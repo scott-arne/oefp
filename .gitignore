@@ -35,6 +35,9 @@ oe_license.txt
 # User CMake presets (may contain local paths)
 CMakeUserPresets.json
 
+# Worktrees
+.worktrees/
+
 # Planning
 docs/superpowers
 docs/plans
