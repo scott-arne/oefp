@@ -28,6 +28,14 @@ FingerprintSpec counted_spec(std::uint64_t size_bits) {
     return spec;
 }
 
+TEST(FingerprintTest, DenseWordCountReturnsExpectedStorageWidth) {
+    EXPECT_EQ(DenseWordCount(0), 0u);
+    EXPECT_EQ(DenseWordCount(1), 1u);
+    EXPECT_EQ(DenseWordCount(64), 1u);
+    EXPECT_EQ(DenseWordCount(65), 2u);
+    EXPECT_EQ(DenseWordCount(128), 2u);
+}
+
 TEST(FingerprintTest, InitializesZeroWordsForBoundarySizes) {
     const std::vector<std::pair<std::uint64_t, std::size_t>> cases = {
         {0, 0},

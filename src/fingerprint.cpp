@@ -12,11 +12,6 @@ namespace {
 
 constexpr std::uint64_t BITS_PER_WORD = 64;
 
-std::size_t word_count_for_size(std::uint64_t size_bits) {
-    return static_cast<std::size_t>(
-        (size_bits / BITS_PER_WORD) + (size_bits % BITS_PER_WORD != 0 ? 1 : 0));
-}
-
 std::uint64_t count_bits(std::uint64_t word) {
 #if defined(_MSC_VER)
     return static_cast<std::uint64_t>(__popcnt64(word));
@@ -52,16 +47,21 @@ bool operator!=(const FingerprintSpec& lhs, const FingerprintSpec& rhs) {
     return !(lhs == rhs);
 }
 
+std::size_t DenseWordCount(std::uint64_t size_bits) {
+    return static_cast<std::size_t>(
+        (size_bits / BITS_PER_WORD) + (size_bits % BITS_PER_WORD != 0 ? 1 : 0));
+}
+
 OEFP::OEFP(FingerprintSpec spec)
     : spec_(validate_binary_spec(std::move(spec))),
-      words_(word_count_for_size(spec_.size_bits), 0ULL) {
+      words_(DenseWordCount(spec_.size_bits), 0ULL) {
 }
 
 OEFP::OEFP(FingerprintSpec spec, std::vector<std::uint64_t> words)
     : spec_(std::move(spec)),
       words_(std::move(words)) {
     ValidateBinarySpec();
-    if (words_.size() != word_count_for_size(spec_.size_bits)) {
+    if (words_.size() != DenseWordCount(spec_.size_bits)) {
         throw std::invalid_argument("Fingerprint word count does not match size_bits.");
     }
     MaskUnusedBits();

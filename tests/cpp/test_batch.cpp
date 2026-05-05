@@ -50,6 +50,23 @@ TEST(OEFPBatchTest, BuildsContiguousRowsFromFingerprints) {
     EXPECT_EQ(batch.PopCounts(), (std::vector<std::uint32_t>{2u, 3u}));
 }
 
+TEST(OEFPBatchTest, AppendsToExplicitSpecEmptyBatch) {
+    auto spec = binary_spec(128);
+    OEFP fp(spec);
+    fp.SetBit(7);
+    fp.SetBit(70);
+    OEFPBatch batch(spec);
+
+    batch.Append(fp);
+
+    EXPECT_EQ(batch.Size(), 1u);
+    EXPECT_EQ(batch.WordsPerFingerprint(), 2u);
+    EXPECT_EQ(batch.WordCount(), 2u);
+    EXPECT_EQ(batch.PopCount(0), 2u);
+    EXPECT_EQ(batch.RowWords(0)[0], fp.Words()[0]);
+    EXPECT_EQ(batch.RowWords(0)[1], fp.Words()[1]);
+}
+
 TEST(OEFPBatchTest, EmptyBatchKeepsSpecAndHasNoRows) {
     auto spec = binary_spec(256);
 
@@ -64,6 +81,18 @@ TEST(OEFPBatchTest, EmptyBatchKeepsSpecAndHasNoRows) {
     EXPECT_TRUE(batch.PopCounts().empty());
 }
 
+TEST(OEFPBatchTest, ExplicitZeroBitEmptyBatchIsAllowed) {
+    auto spec = binary_spec(0);
+
+    OEFPBatch batch(spec);
+
+    EXPECT_EQ(batch.Spec(), spec);
+    EXPECT_EQ(batch.Size(), 0u);
+    EXPECT_EQ(batch.SizeBits(), 0u);
+    EXPECT_EQ(batch.WordsPerFingerprint(), 0u);
+    EXPECT_EQ(batch.WordCount(), 0u);
+}
+
 TEST(OEFPBatchTest, EmptyFromFingerprintsReturnsDefaultBatch) {
     OEFPBatch batch = OEFPBatch::FromFingerprints({});
 
@@ -75,6 +104,23 @@ TEST(OEFPBatchTest, EmptyFromFingerprintsReturnsDefaultBatch) {
     EXPECT_TRUE(batch.PopCounts().empty());
 }
 
+TEST(OEFPBatchTest, AppendRejectsZeroWidthFingerprints) {
+    auto spec = binary_spec(0);
+    OEFP fp(spec);
+    OEFPBatch batch(spec);
+
+    EXPECT_THROW(batch.Append(fp), std::invalid_argument);
+    EXPECT_EQ(batch.Size(), 0u);
+    EXPECT_EQ(batch.WordCount(), 0u);
+    EXPECT_TRUE(batch.PopCounts().empty());
+}
+
+TEST(OEFPBatchTest, FromFingerprintsRejectsZeroWidthFingerprints) {
+    OEFP fp(binary_spec(0));
+
+    EXPECT_THROW(OEFPBatch::FromFingerprints({fp}), std::invalid_argument);
+}
+
 TEST(OEFPBatchTest, AppendRejectsMismatchedSpecs) {
     OEFPBatch batch(binary_spec(64));
     OEFP mismatched(binary_spec(128));
@@ -82,9 +128,29 @@ TEST(OEFPBatchTest, AppendRejectsMismatchedSpecs) {
     EXPECT_THROW(batch.Append(mismatched), std::invalid_argument);
 }
 
+TEST(OEFPBatchTest, AppendRejectsMetadataMismatchWithSameBitSize) {
+    auto spec = binary_spec(64);
+    auto mismatched_spec = spec;
+    mismatched_spec.source_version = "2";
+    OEFPBatch batch(spec);
+    OEFP mismatched(mismatched_spec);
+
+    EXPECT_THROW(batch.Append(mismatched), std::invalid_argument);
+}
+
 TEST(OEFPBatchTest, FromFingerprintsRejectsMismatchedSpecs) {
     auto a = OEFP(binary_spec(64));
     auto b = OEFP(binary_spec(128));
+
+    EXPECT_THROW(OEFPBatch::FromFingerprints({a, b}), std::invalid_argument);
+}
+
+TEST(OEFPBatchTest, FromFingerprintsRejectsMetadataMismatchWithSameBitSize) {
+    auto spec = binary_spec(64);
+    auto mismatched_spec = spec;
+    mismatched_spec.parameters = "different";
+    auto a = OEFP(spec);
+    auto b = OEFP(mismatched_spec);
 
     EXPECT_THROW(OEFPBatch::FromFingerprints({a, b}), std::invalid_argument);
 }

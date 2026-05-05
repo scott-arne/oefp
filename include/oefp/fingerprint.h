@@ -31,6 +31,9 @@ struct FingerprintSpec {
 bool operator==(const FingerprintSpec& lhs, const FingerprintSpec& rhs);
 bool operator!=(const FingerprintSpec& lhs, const FingerprintSpec& rhs);
 
+/// \brief Return the number of uint64 words required for dense bit storage.
+std::size_t DenseWordCount(std::uint64_t size_bits);
+
 /// \brief Dense fixed-length binary fingerprint.
 ///
 /// Bits are stored in uint64 words using little-endian bit numbering within

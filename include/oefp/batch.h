@@ -13,16 +13,30 @@ namespace OEFP {
 class OEFPBatch {
 public:
     OEFPBatch() = default;
+
+    /// \brief Construct an empty batch with a known fingerprint specification.
+    ///
+    /// Zero-bit specifications are allowed for empty batches, but appending
+    /// zero-width fingerprints is rejected.
+    ///
+    /// \raises std::invalid_argument: When spec.value_type is not Binary.
     explicit OEFPBatch(FingerprintSpec spec);
 
     /// \brief Build a batch by copying fingerprints into contiguous rows.
+    ///
+    /// Returns a default empty batch when fingerprints is empty.
+    ///
+    /// \raises std::invalid_argument: When any fingerprint has an incompatible
+    ///     spec or zero-width storage.
     static OEFPBatch FromFingerprints(const std::vector<OEFP>& fingerprints);
 
     /// \brief Append one fingerprint row.
     ///
-    /// The fingerprint spec must exactly match the batch spec.
+    /// The fingerprint spec must exactly match the batch spec. Zero-width
+    /// fingerprints are rejected so row pointers always identify real storage.
     ///
-    /// \raises std::invalid_argument: When the fingerprint spec is incompatible.
+    /// \raises std::invalid_argument: When the fingerprint spec is incompatible
+    ///     or has zero-width storage.
     void Append(const OEFP& fp);
 
     /// \brief Return the shared fingerprint specification.
@@ -83,6 +97,7 @@ private:
     std::vector<std::uint64_t> words_;
     std::vector<std::uint32_t> popcounts_;
 
+    void ReserveRows(std::size_t row_count);
     void ValidateFingerprint(const OEFP& fp) const;
     void CheckRowIndex(std::size_t row) const;
 };

@@ -8,7 +8,10 @@ namespace OEFP {
 
 OEFPBatch::OEFPBatch(FingerprintSpec spec)
     : spec_(std::move(spec)),
-      words_per_fingerprint_(OEFP(spec_).WordCount()) {
+      words_per_fingerprint_(DenseWordCount(spec_.size_bits)) {
+    if (spec_.value_type != FingerprintValueType::Binary) {
+        throw std::invalid_argument("OEFPBatch supports binary fingerprints only.");
+    }
 }
 
 OEFPBatch OEFPBatch::FromFingerprints(const std::vector<OEFP>& fingerprints) {
@@ -17,6 +20,7 @@ OEFPBatch OEFPBatch::FromFingerprints(const std::vector<OEFP>& fingerprints) {
     }
 
     OEFPBatch batch(fingerprints.front().Spec());
+    batch.ReserveRows(fingerprints.size());
     for (const auto& fp : fingerprints) {
         batch.Append(fp);
     }
@@ -32,6 +36,7 @@ void OEFPBatch::Append(const OEFP& fp) {
     }
 
     const auto& fp_words = fp.Words();
+    ReserveRows(Size() + 1);
     words_.insert(words_.end(), fp_words.begin(), fp_words.end());
     popcounts_.push_back(static_cast<std::uint32_t>(popcount));
 }
@@ -89,11 +94,29 @@ const std::uint32_t* OEFPBatch::PopCountData() const {
 }
 
 std::uintptr_t OEFPBatch::WordDataAddress() const {
-    return reinterpret_cast<std::uintptr_t>(WordData());
+    const auto* data = WordData();
+    if (data == nullptr) {
+        return 0;
+    }
+    return reinterpret_cast<std::uintptr_t>(data);
 }
 
 std::uintptr_t OEFPBatch::PopCountDataAddress() const {
-    return reinterpret_cast<std::uintptr_t>(PopCountData());
+    const auto* data = PopCountData();
+    if (data == nullptr) {
+        return 0;
+    }
+    return reinterpret_cast<std::uintptr_t>(data);
+}
+
+void OEFPBatch::ReserveRows(std::size_t row_count) {
+    if (words_per_fingerprint_ != 0
+        && row_count > std::numeric_limits<std::size_t>::max() / words_per_fingerprint_) {
+        throw std::invalid_argument("Requested batch word capacity is too large.");
+    }
+
+    words_.reserve(row_count * words_per_fingerprint_);
+    popcounts_.reserve(row_count);
 }
 
 void OEFPBatch::ValidateFingerprint(const OEFP& fp) const {
@@ -102,6 +125,9 @@ void OEFPBatch::ValidateFingerprint(const OEFP& fp) const {
     }
     if (fp.WordCount() != words_per_fingerprint_) {
         throw std::invalid_argument("Fingerprint word count does not match batch row width.");
+    }
+    if (words_per_fingerprint_ == 0) {
+        throw std::invalid_argument("Cannot append zero-width fingerprints to a batch.");
     }
 }
 
