@@ -6,6 +6,7 @@
 #define OEFP_VERSION_MINOR 1
 #define OEFP_VERSION_PATCH 0
 
+#include "oefp/annotation.h"
 #include "oefp/batch.h"
 #include "oefp/compare.h"
 #include "oefp/fingerprint.h"

@@ -51,6 +51,7 @@ find_package(OpenEye REQUIRED)
 
 # Library
 set(OEFP_SOURCES
+    src/annotation.cpp
     src/batch.cpp
     src/compare.cpp
     src/fingerprint.cpp
