@@ -6,6 +6,7 @@
 #include "oefp/count_batch.h"
 #include "oefp/fingerprint.h"
 #include "oefp/metric.h"
+#include "oefp/sparse.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -45,6 +46,18 @@ double Compare(const OEFP& a, const OEFP& b, const Metric& metric);
 /// \returns Similarity or distance according to metric.Mode().
 /// \throws std::invalid_argument: When fingerprint specifications differ.
 double Compare(const OEFPCount& a, const OEFPCount& b, const Metric& metric);
+
+/// \brief Compare two sparse binary fingerprints with the requested metric.
+///
+/// Tanimoto, Jaccard, Dice, Cosine, Tversky, and Manhattan use binary set
+/// semantics over sorted sparse on-bit identifiers.
+///
+/// \param a First sparse binary fingerprint.
+/// \param b Second sparse binary fingerprint.
+/// \param metric Metric configuration.
+/// \returns Similarity or distance according to metric.Mode().
+/// \throws std::invalid_argument: When fingerprint specifications differ.
+double Compare(const OEFPSparse& a, const OEFPSparse& b, const Metric& metric);
 
 /// \brief Compare one counted query fingerprint against each row in a counted batch.
 std::vector<double> Compare(

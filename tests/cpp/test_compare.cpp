@@ -3,9 +3,11 @@
 #include "oefp/compare.h"
 #include "oefp/count.h"
 #include "oefp/count_batch.h"
+#include "oefp/sparse.h"
 
 #include <cmath>
 #include <cstdint>
+#include <limits>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -46,6 +48,21 @@ OEFPCount count_fingerprint(
     std::vector<std::uint32_t> indices,
     std::vector<std::uint32_t> counts) {
     return OEFPCount(count_spec(size_bits), std::move(indices), std::move(counts));
+}
+
+FingerprintSpec sparse_binary_spec() {
+    FingerprintSpec spec;
+    spec.size_bits = std::numeric_limits<std::uint64_t>::max();
+    spec.value_type = FingerprintValueType::Binary;
+    spec.source_name = "unit-test";
+    spec.source_type = "sparse-binary";
+    spec.source_version = "1";
+    spec.parameters = "sparse=true";
+    return spec;
+}
+
+OEFPSparse sparse_fingerprint(std::vector<std::uint32_t> indices) {
+    return OEFPSparse(sparse_binary_spec(), std::move(indices));
 }
 
 } // namespace
@@ -172,6 +189,55 @@ TEST(CompareCountTest, RejectsMismatchedCountSpecs) {
 TEST(CompareCountTest, UsesZeroSimilarityForEmptyCountDenominators) {
     const OEFPCount a(count_spec(16));
     const OEFPCount b(count_spec(16));
+
+    EXPECT_EQ(Compare(a, b, Metric::Tanimoto()), 0.0);
+    EXPECT_EQ(Compare(a, b, Metric::Tanimoto(MetricMode::Distance)), 1.0);
+    EXPECT_EQ(Compare(a, b, Metric::Jaccard()), 0.0);
+    EXPECT_EQ(Compare(a, b, Metric::Dice()), 0.0);
+    EXPECT_EQ(Compare(a, b, Metric::Dice(MetricMode::Distance)), 1.0);
+    EXPECT_EQ(Compare(a, b, Metric::Cosine()), 0.0);
+    EXPECT_EQ(Compare(a, b, Metric::Cosine(MetricMode::Distance)), 1.0);
+    EXPECT_EQ(Compare(a, b, Metric::Tversky(0.5, 0.5)), 0.0);
+    EXPECT_EQ(Compare(a, b, Metric::Tversky(0.5, 0.5, MetricMode::Distance)), 1.0);
+    EXPECT_EQ(Compare(a, b, Metric::Manhattan()), 0.0);
+}
+
+TEST(CompareSparseBinaryTest, ComputesBinarySparseSimilaritiesAndDistances) {
+    const auto a = sparse_fingerprint({1u, 3u, 9u, 20u});
+    const auto b = sparse_fingerprint({3u, 9u, 10u});
+
+    EXPECT_NEAR(Compare(a, b, Metric::Tanimoto()), 2.0 / 5.0, 1.0e-12);
+    EXPECT_NEAR(Compare(a, b, Metric::Tanimoto(MetricMode::Distance)), 1.0 - 2.0 / 5.0, 1.0e-12);
+    EXPECT_NEAR(Compare(a, b, Metric::Jaccard()), 2.0 / 5.0, 1.0e-12);
+    EXPECT_NEAR(Compare(a, b, Metric::Dice()), 4.0 / 7.0, 1.0e-12);
+    EXPECT_NEAR(Compare(a, b, Metric::Cosine()), 2.0 / std::sqrt(12.0), 1.0e-12);
+    EXPECT_NEAR(Compare(a, b, Metric::Tversky(0.25, 0.75)), 2.0 / 3.25, 1.0e-12);
+    EXPECT_EQ(Compare(a, b, Metric::Manhattan()), 3.0);
+}
+
+TEST(CompareSparseBinaryTest, AsymmetricTverskyDependsOnDirection) {
+    const auto a = sparse_fingerprint({0u, 1u, 2u, 3u});
+    const auto b = sparse_fingerprint({0u, 4u});
+    const auto metric = Metric::Tversky(0.25, 0.75);
+
+    EXPECT_NEAR(Compare(a, b, metric), 1.0 / 2.5, 1.0e-12);
+    EXPECT_NEAR(Compare(b, a, metric), 1.0 / 3.5, 1.0e-12);
+    EXPECT_NE(Compare(a, b, metric), Compare(b, a, metric));
+}
+
+TEST(CompareSparseBinaryTest, RejectsMismatchedSpecs) {
+    const auto a = sparse_fingerprint({1u, 3u});
+
+    auto metadata_spec = sparse_binary_spec();
+    metadata_spec.source_version = "2";
+    const OEFPSparse different_metadata(metadata_spec, {1u, 3u});
+
+    EXPECT_THROW(Compare(a, different_metadata, Metric::Tanimoto()), std::invalid_argument);
+}
+
+TEST(CompareSparseBinaryTest, UsesZeroSimilarityForEmptyDenominators) {
+    const OEFPSparse a(sparse_binary_spec());
+    const OEFPSparse b(sparse_binary_spec());
 
     EXPECT_EQ(Compare(a, b, Metric::Tanimoto()), 0.0);
     EXPECT_EQ(Compare(a, b, Metric::Tanimoto(MetricMode::Distance)), 1.0);

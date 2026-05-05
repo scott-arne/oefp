@@ -336,8 +336,8 @@ class Metric:
 
 
 def compare(
-    a: OEFP | OEFPCount,
-    b: OEFP | OEFPBatch | OEFPCount | OEFPCountBatch,
+    a: OEFP | OEFPCount | OEFPSparse,
+    b: OEFP | OEFPBatch | OEFPCount | OEFPCountBatch | OEFPSparse,
     metric: Metric,
     *,
     num_threads: int = 0,
@@ -347,6 +347,8 @@ def compare(
     if isinstance(a, OEFP) and isinstance(b, OEFP):
         return float(_native.Compare(a._native, b._native, metric._native))
     if isinstance(a, OEFPCount) and isinstance(b, OEFPCount):
+        return float(_native.Compare(a._native, b._native, metric._native))
+    if isinstance(a, OEFPSparse) and isinstance(b, OEFPSparse):
         return float(_native.Compare(a._native, b._native, metric._native))
     if isinstance(a, OEFP) and isinstance(b, OEFPBatch):
         output = np.empty((b.size,), dtype=np.float64)
@@ -373,7 +375,7 @@ def compare(
 
     raise TypeError(
         "compare expects OEFP/OEFP, OEFP/OEFPBatch, OEFPCount/OEFPCount, "
-        "or OEFPCount/OEFPCountBatch inputs."
+        "OEFPCount/OEFPCountBatch, or OEFPSparse/OEFPSparse inputs."
     )
 
 

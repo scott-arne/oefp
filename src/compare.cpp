@@ -217,6 +217,41 @@ SparseCountStats count_sparse_pair(const OEFPCount& a, const OEFPCount& b) {
         b.NonzeroCount());
 }
 
+DenseCounts count_sparse_binary_rows(
+    const std::uint32_t* a_indices,
+    std::size_t a_size,
+    const std::uint32_t* b_indices,
+    std::size_t b_size) {
+    DenseCounts counts;
+    counts.a = static_cast<std::uint64_t>(a_size);
+    counts.b = static_cast<std::uint64_t>(b_size);
+
+    std::size_t a_row = 0;
+    std::size_t b_row = 0;
+    while (a_row < a_size && b_row < b_size) {
+        if (a_indices[a_row] < b_indices[b_row]) {
+            ++a_row;
+        } else if (b_indices[b_row] < a_indices[a_row]) {
+            ++b_row;
+        } else {
+            ++counts.intersection;
+            ++a_row;
+            ++b_row;
+        }
+    }
+
+    counts.xor_count = counts.a + counts.b - 2u * counts.intersection;
+    return counts;
+}
+
+DenseCounts count_sparse_binary_pair(const OEFPSparse& a, const OEFPSparse& b) {
+    return count_sparse_binary_rows(
+        a.IndexData(),
+        a.CountOnBits(),
+        b.IndexData(),
+        b.CountOnBits());
+}
+
 double evaluate_count_metric(const SparseCountStats& stats, const Metric& metric) {
     const auto only_a = stats.a - stats.overlap;
     const auto only_b = stats.b - stats.overlap;
@@ -329,6 +364,14 @@ double Compare(const OEFPCount& a, const OEFPCount& b, const Metric& metric) {
     }
 
     return evaluate_count_metric(count_sparse_pair(a, b), metric);
+}
+
+double Compare(const OEFPSparse& a, const OEFPSparse& b, const Metric& metric) {
+    if (a.Spec() != b.Spec()) {
+        throw std::invalid_argument("Sparse fingerprint specifications must match for comparison.");
+    }
+
+    return evaluate_metric(count_sparse_binary_pair(a, b), metric);
 }
 
 std::vector<double> Compare(
