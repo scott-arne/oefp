@@ -4,6 +4,7 @@
 #include "oefp/count.h"
 #include "oefp/count_batch.h"
 #include "oefp/sparse.h"
+#include "oefp/sparse_batch.h"
 
 #include <cmath>
 #include <cstdint>
@@ -249,6 +250,88 @@ TEST(CompareSparseBinaryTest, UsesZeroSimilarityForEmptyDenominators) {
     EXPECT_EQ(Compare(a, b, Metric::Tversky(0.5, 0.5)), 0.0);
     EXPECT_EQ(Compare(a, b, Metric::Tversky(0.5, 0.5, MetricMode::Distance)), 1.0);
     EXPECT_EQ(Compare(a, b, Metric::Manhattan()), 0.0);
+}
+
+TEST(CompareSparseBinaryBatchTest, QueryToBatchMatchesScalarComparison) {
+    const auto query = sparse_fingerprint({1u, 7u});
+    const auto first = sparse_fingerprint({1u, 7u});
+    const auto second = sparse_fingerprint({0u, 7u});
+    const auto third = sparse_fingerprint({64u});
+    const auto batch = OEFPSparseBatch::FromFingerprints({first, second, third});
+
+    const auto values = Compare(query, batch, Metric::Tanimoto());
+
+    ASSERT_EQ(values.size(), batch.Size());
+    EXPECT_DOUBLE_EQ(values[0], Compare(query, first, Metric::Tanimoto()));
+    EXPECT_DOUBLE_EQ(values[1], Compare(query, second, Metric::Tanimoto()));
+    EXPECT_DOUBLE_EQ(values[2], Compare(query, third, Metric::Tanimoto()));
+}
+
+TEST(CompareSparseBinaryBatchTest, CDistReturnsRowMajorValues) {
+    const auto a0 = sparse_fingerprint({1u, 7u});
+    const auto a1 = sparse_fingerprint({0u, 7u});
+    const auto b0 = sparse_fingerprint({1u, 7u});
+    const auto b1 = sparse_fingerprint({64u});
+    const auto b2 = sparse_fingerprint({0u, 7u});
+    const auto a = OEFPSparseBatch::FromFingerprints({a0, a1});
+    const auto b = OEFPSparseBatch::FromFingerprints({b0, b1, b2});
+
+    const auto values = CDist(a, b, Metric::Dice());
+
+    ASSERT_EQ(values.size(), 6u);
+    EXPECT_DOUBLE_EQ(values[0], Compare(a0, b0, Metric::Dice()));
+    EXPECT_DOUBLE_EQ(values[1], Compare(a0, b1, Metric::Dice()));
+    EXPECT_DOUBLE_EQ(values[2], Compare(a0, b2, Metric::Dice()));
+    EXPECT_DOUBLE_EQ(values[3], Compare(a1, b0, Metric::Dice()));
+    EXPECT_DOUBLE_EQ(values[4], Compare(a1, b1, Metric::Dice()));
+    EXPECT_DOUBLE_EQ(values[5], Compare(a1, b2, Metric::Dice()));
+}
+
+TEST(CompareSparseBinaryBatchTest, PDistReturnsCondensedValues) {
+    const auto first = sparse_fingerprint({1u, 7u});
+    const auto second = sparse_fingerprint({0u, 7u});
+    const auto third = sparse_fingerprint({64u});
+    const auto batch = OEFPSparseBatch::FromFingerprints({first, second, third});
+
+    const auto values = PDist(batch, Metric::Tanimoto());
+
+    ASSERT_EQ(values.size(), 3u);
+    EXPECT_DOUBLE_EQ(values[0], Compare(first, second, Metric::Tanimoto()));
+    EXPECT_DOUBLE_EQ(values[1], Compare(first, third, Metric::Tanimoto()));
+    EXPECT_DOUBLE_EQ(values[2], Compare(second, third, Metric::Tanimoto()));
+}
+
+TEST(CompareSparseBinaryBatchTest, PDistRejectsAsymmetricMetric) {
+    const auto batch = OEFPSparseBatch::FromFingerprints({
+        sparse_fingerprint({1u}),
+        sparse_fingerprint({2u}),
+    });
+
+    EXPECT_THROW(PDist(batch, Metric::Tversky(0.25, 0.75)), std::invalid_argument);
+}
+
+TEST(CompareSparseBinaryBatchTest, ThreadedPDistMatchesSingleThreadedOutput) {
+    std::vector<OEFPSparse> fingerprints;
+    fingerprints.reserve(32);
+    for (std::uint32_t i = 0; i < 32; ++i) {
+        fingerprints.push_back(sparse_fingerprint({i, static_cast<std::uint32_t>(i + 64u)}));
+    }
+    const auto batch = OEFPSparseBatch::FromFingerprints(fingerprints);
+
+    BatchKernelOptions single_thread;
+    single_thread.num_threads = 1;
+    single_thread.chunk_size = 3;
+    BatchKernelOptions multi_thread;
+    multi_thread.num_threads = 4;
+    multi_thread.chunk_size = 3;
+
+    const auto expected = PDist(batch, Metric::Tanimoto(), single_thread);
+    const auto actual = PDist(batch, Metric::Tanimoto(), multi_thread);
+
+    ASSERT_EQ(actual.size(), expected.size());
+    for (std::size_t i = 0; i < expected.size(); ++i) {
+        EXPECT_DOUBLE_EQ(actual[i], expected[i]);
+    }
 }
 
 TEST(CompareCountBatchTest, QueryToBatchMatchesScalarComparison) {

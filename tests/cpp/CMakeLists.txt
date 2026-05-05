@@ -20,6 +20,7 @@ add_executable(oefp_tests
     test_oefp.cpp
     test_openeye_interop.cpp
     test_sparse.cpp
+    test_sparse_batch.cpp
 )
 
 target_link_libraries(oefp_tests

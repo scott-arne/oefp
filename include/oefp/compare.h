@@ -7,6 +7,7 @@
 #include "oefp/fingerprint.h"
 #include "oefp/metric.h"
 #include "oefp/sparse.h"
+#include "oefp/sparse_batch.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -58,6 +59,22 @@ double Compare(const OEFPCount& a, const OEFPCount& b, const Metric& metric);
 /// \returns Similarity or distance according to metric.Mode().
 /// \throws std::invalid_argument: When fingerprint specifications differ.
 double Compare(const OEFPSparse& a, const OEFPSparse& b, const Metric& metric);
+
+/// \brief Compare one sparse binary query fingerprint against each row in a sparse batch.
+std::vector<double> Compare(
+    const OEFPSparse& query,
+    const OEFPSparseBatch& library,
+    const Metric& metric,
+    const BatchKernelOptions& options = {});
+
+/// \brief Fill output with one sparse binary query-to-batch comparison per row.
+void CompareInto(
+    const OEFPSparse& query,
+    const OEFPSparseBatch& library,
+    const Metric& metric,
+    double* output,
+    std::size_t output_length,
+    const BatchKernelOptions& options = {});
 
 /// \brief Compare one counted query fingerprint against each row in a counted batch.
 std::vector<double> Compare(
@@ -126,6 +143,22 @@ void CDistInto(
     std::size_t output_length,
     const BatchKernelOptions& options = {});
 
+/// \brief Compute row-major cross-distance/comparison values for sparse binary batches.
+std::vector<double> CDist(
+    const OEFPSparseBatch& a,
+    const OEFPSparseBatch& b,
+    const Metric& metric,
+    const BatchKernelOptions& options = {});
+
+/// \brief Fill output with row-major sparse binary cross-distance/comparison values.
+void CDistInto(
+    const OEFPSparseBatch& a,
+    const OEFPSparseBatch& b,
+    const Metric& metric,
+    double* output,
+    std::size_t output_length,
+    const BatchKernelOptions& options = {});
+
 /// \brief Compute SciPy-compatible condensed pairwise values for one batch.
 std::vector<double> PDist(
     const OEFPBatch& batch,
@@ -154,6 +187,20 @@ void PDistInto(
     std::size_t output_length,
     const BatchKernelOptions& options = {});
 
+/// \brief Compute SciPy-compatible condensed pairwise values for one sparse binary batch.
+std::vector<double> PDist(
+    const OEFPSparseBatch& batch,
+    const Metric& metric,
+    const BatchKernelOptions& options = {});
+
+/// \brief Fill output with SciPy-compatible sparse binary pairwise values.
+void PDistInto(
+    const OEFPSparseBatch& batch,
+    const Metric& metric,
+    double* output,
+    std::size_t output_length,
+    const BatchKernelOptions& options = {});
+
 /// \brief Address-based query-to-batch output helper for Python bindings.
 void CompareIntoAddress(
     const OEFP& query,
@@ -167,6 +214,15 @@ void CompareIntoAddress(
 void CompareIntoAddress(
     const OEFPCount& query,
     const OEFPCountBatch& library,
+    const Metric& metric,
+    std::uint64_t output_address,
+    std::size_t output_length,
+    const BatchKernelOptions& options = {});
+
+/// \brief Address-based sparse binary query-to-batch output helper for Python bindings.
+void CompareIntoAddress(
+    const OEFPSparse& query,
+    const OEFPSparseBatch& library,
     const Metric& metric,
     std::uint64_t output_address,
     std::size_t output_length,
@@ -190,6 +246,15 @@ void CDistIntoAddress(
     std::size_t output_length,
     const BatchKernelOptions& options = {});
 
+/// \brief Address-based sparse binary cdist output helper for Python bindings.
+void CDistIntoAddress(
+    const OEFPSparseBatch& a,
+    const OEFPSparseBatch& b,
+    const Metric& metric,
+    std::uint64_t output_address,
+    std::size_t output_length,
+    const BatchKernelOptions& options = {});
+
 /// \brief Address-based pdist output helper for Python bindings.
 void PDistIntoAddress(
     const OEFPBatch& batch,
@@ -201,6 +266,14 @@ void PDistIntoAddress(
 /// \brief Address-based counted pdist output helper for Python bindings.
 void PDistIntoAddress(
     const OEFPCountBatch& batch,
+    const Metric& metric,
+    std::uint64_t output_address,
+    std::size_t output_length,
+    const BatchKernelOptions& options = {});
+
+/// \brief Address-based sparse binary pdist output helper for Python bindings.
+void PDistIntoAddress(
+    const OEFPSparseBatch& batch,
     const Metric& metric,
     std::uint64_t output_address,
     std::size_t output_length,

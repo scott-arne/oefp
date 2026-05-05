@@ -16,6 +16,7 @@
 #include "oefp/morgan.h"
 #include "oefp/openeye.h"
 #include "oefp/sparse.h"
+#include "oefp/sparse_batch.h"
 
 #include <oechem.h>
 
