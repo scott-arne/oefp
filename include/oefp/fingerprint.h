@@ -45,7 +45,7 @@ public:
     /// \brief Construct a zero-initialized binary fingerprint.
     ///
     /// \param spec Fingerprint size and provenance metadata.
-    /// \raises std::invalid_argument: When spec.value_type is not Binary.
+    /// \throws std::invalid_argument: When spec.value_type is not Binary.
     explicit OEFP(FingerprintSpec spec);
 
     /// \brief Construct a binary fingerprint from precomputed words.
@@ -55,7 +55,7 @@ public:
     ///
     /// \param spec Fingerprint size and provenance metadata.
     /// \param words Dense uint64 storage words.
-    /// \raises std::invalid_argument: When spec.value_type is not Binary or
+    /// \throws std::invalid_argument: When spec.value_type is not Binary or
     ///     words has an incompatible length.
     OEFP(FingerprintSpec spec, std::vector<std::uint64_t> words);
 
@@ -81,7 +81,7 @@ public:
 
     /// \brief Return one storage word by zero-based word index.
     ///
-    /// \raises std::out_of_range: When word_index is greater than or equal to
+    /// \throws std::out_of_range: When word_index is greater than or equal to
     ///     WordCount().
     std::uint64_t Word(std::size_t word_index) const;
 
@@ -90,25 +90,25 @@ public:
     /// Writes through this method preserve the fixed-size invariant by masking
     /// unused high bits when the final word is changed.
     ///
-    /// \raises std::out_of_range: When word_index is greater than or equal to
+    /// \throws std::out_of_range: When word_index is greater than or equal to
     ///     WordCount().
     void SetWord(std::size_t word_index, std::uint64_t value);
 
     /// \brief Set a bit by zero-based index.
     ///
-    /// \raises std::out_of_range: When index is greater than or equal to
+    /// \throws std::out_of_range: When index is greater than or equal to
     ///     SizeBits().
     void SetBit(std::uint64_t index);
 
     /// \brief Clear a bit by zero-based index.
     ///
-    /// \raises std::out_of_range: When index is greater than or equal to
+    /// \throws std::out_of_range: When index is greater than or equal to
     ///     SizeBits().
     void ClearBit(std::uint64_t index);
 
     /// \brief Test whether a bit is set by zero-based index.
     ///
-    /// \raises std::out_of_range: When index is greater than or equal to
+    /// \throws std::out_of_range: When index is greater than or equal to
     ///     SizeBits().
     bool TestBit(std::uint64_t index) const;
 

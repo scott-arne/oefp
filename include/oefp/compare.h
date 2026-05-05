@@ -27,7 +27,7 @@ struct BatchKernelOptions {
 /// \param b Second fingerprint.
 /// \param metric Metric configuration.
 /// \returns Similarity or distance according to metric.Mode().
-/// \raises std::invalid_argument: When fingerprint specifications or storage
+/// \throws std::invalid_argument: When fingerprint specifications or storage
 ///     widths differ.
 double Compare(const OEFP& a, const OEFP& b, const Metric& metric);
 
@@ -40,7 +40,7 @@ std::vector<double> Compare(
 
 /// \brief Fill output with one query-to-batch comparison value per batch row.
 ///
-/// \raises std::invalid_argument: When output_length is not library.Size(), or
+/// \throws std::invalid_argument: When output_length is not library.Size(), or
 ///     when output is null for non-empty output.
 void CompareInto(
     const OEFP& query,

@@ -33,7 +33,7 @@ public:
     /// \param alpha Weight for bits present only in the first fingerprint.
     /// \param beta Weight for bits present only in the second fingerprint.
     /// \param mode Whether to return similarity or distance values.
-    /// \raises std::invalid_argument: When alpha or beta is outside [0.0, 1.0].
+    /// \throws std::invalid_argument: When alpha or beta is outside [0.0, 1.0].
     static Metric Tversky(
         double alpha,
         double beta,
@@ -47,7 +47,7 @@ public:
 
     /// \brief Create a Manhattan distance metric.
     ///
-    /// \raises std::invalid_argument: When mode is MetricMode::Similarity.
+    /// \throws std::invalid_argument: When mode is MetricMode::Similarity.
     static Metric Manhattan(MetricMode mode = MetricMode::Distance);
 
     /// \brief Return the metric family.
@@ -67,7 +67,7 @@ public:
 
     /// \brief Validate that this metric is usable for pairwise distances.
     ///
-    /// \raises std::invalid_argument: When the metric is asymmetric.
+    /// \throws std::invalid_argument: When the metric is asymmetric.
     void ValidateForPDist() const;
 
 private:

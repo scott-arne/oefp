@@ -19,14 +19,14 @@ public:
     /// Zero-bit specifications are allowed for empty batches, but appending
     /// zero-width fingerprints is rejected.
     ///
-    /// \raises std::invalid_argument: When spec.value_type is not Binary.
+    /// \throws std::invalid_argument: When spec.value_type is not Binary.
     explicit OEFPBatch(FingerprintSpec spec);
 
     /// \brief Build a batch by copying fingerprints into contiguous rows.
     ///
     /// Returns a default empty batch when fingerprints is empty.
     ///
-    /// \raises std::invalid_argument: When any fingerprint has an incompatible
+    /// \throws std::invalid_argument: When any fingerprint has an incompatible
     ///     spec or zero-width storage.
     static OEFPBatch FromFingerprints(const std::vector<::OEFP::OEFP>& fingerprints);
 
@@ -35,7 +35,7 @@ public:
     /// The fingerprint spec must exactly match the batch spec. Zero-width
     /// fingerprints are rejected so row pointers always identify real storage.
     ///
-    /// \raises std::invalid_argument: When the fingerprint spec is incompatible
+    /// \throws std::invalid_argument: When the fingerprint spec is incompatible
     ///     or has zero-width storage.
     void Append(const OEFP& fp);
 
@@ -59,7 +59,7 @@ public:
     /// The returned pointer remains valid until the batch is modified or
     /// destroyed.
     ///
-    /// \raises std::out_of_range: When row is greater than or equal to Size().
+    /// \throws std::out_of_range: When row is greater than or equal to Size().
     const std::uint64_t* RowWords(std::size_t row) const;
 
     /// \brief Return read-only access to all row-major fingerprint words.
@@ -70,7 +70,7 @@ public:
 
     /// \brief Return the cached popcount for one row.
     ///
-    /// \raises std::out_of_range: When row is greater than or equal to Size().
+    /// \throws std::out_of_range: When row is greater than or equal to Size().
     std::uint32_t PopCount(std::size_t row) const;
 
     /// \brief Return a raw pointer to the contiguous word storage.

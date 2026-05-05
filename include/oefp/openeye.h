@@ -12,7 +12,7 @@ OEFP FromOEFingerPrint(const OEGraphSim::OEFingerPrint& fp);
 
 /// \brief Convert an OEFP dense binary fingerprint back to OEFingerPrint.
 ///
-/// \raises std::invalid_argument: When the OEFP spec does not carry a
+/// \throws std::invalid_argument: When the OEFP spec does not carry a
 ///     resolvable OpenEye fingerprint type.
 OEGraphSim::OEFingerPrint ToOEFingerPrint(const OEFP& fp);
 
