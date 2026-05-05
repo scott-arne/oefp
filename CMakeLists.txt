@@ -13,8 +13,11 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 # Options
 option(OEFP_BUILD_TESTS "Build tests" ON)
 option(OEFP_BUILD_PYTHON "Build Python bindings" ON)
+option(OEFP_BUILD_BENCHMARKS "Build OEFP benchmarks" OFF)
 option(OEFP_UNIVERSAL2 "Build universal2 binary for macOS" OFF)
 option(OEFP_USE_STABLE_ABI "Use Python stable ABI" ON)
+
+set(OEFP_OECLUSTER_SOURCE_DIR "" CACHE PATH "Path to local oecluster source tree")
 
 if(APPLE AND OEFP_UNIVERSAL2)
     set(CMAKE_OSX_ARCHITECTURES "x86_64;arm64" CACHE STRING "Build architectures" FORCE)
@@ -89,6 +92,17 @@ endif()
 # Python bindings
 if(OEFP_BUILD_PYTHON AND SWIG_FOUND)
     add_subdirectory(swig)
+endif()
+
+if(OEFP_BUILD_BENCHMARKS)
+    if(NOT OEFP_OECLUSTER_SOURCE_DIR)
+        message(FATAL_ERROR "Set OEFP_OECLUSTER_SOURCE_DIR to build oecluster parity benchmarks")
+    endif()
+    set(OECLUSTER_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+    set(OECLUSTER_BUILD_PYTHON OFF CACHE BOOL "" FORCE)
+    set(OECLUSTER_BUILD_TOOLS OFF CACHE BOOL "" FORCE)
+    add_subdirectory("${OEFP_OECLUSTER_SOURCE_DIR}" "${CMAKE_BINARY_DIR}/_deps/oecluster")
+    add_subdirectory(benchmarks)
 endif()
 
 # Install

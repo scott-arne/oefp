@@ -60,8 +60,18 @@ std::size_t condensed_size(std::size_t n) {
     return checked_product(left, right, "Pairwise output size is too large.");
 }
 
-std::size_t condensed_index(std::size_t n, std::size_t i, std::size_t j) {
-    return n * i - i * (i + 1) / 2 + j - i - 1;
+void condensed_pair_from_index(
+    std::size_t index,
+    std::size_t n,
+    std::size_t& i,
+    std::size_t& j) {
+    const auto n_double = static_cast<double>(n);
+    const auto index_double = static_cast<double>(index);
+    const auto row = n_double - 2.0
+        - std::floor(
+            std::sqrt(-8.0 * index_double + 4.0 * n_double * (n_double - 1.0) - 7.0) / 2.0 - 0.5);
+    i = static_cast<std::size_t>(row);
+    j = index + i + 1 - n * (n - 1) / 2 + (n - i) * ((n - i) - 1) / 2;
 }
 
 double zero_safe_divide(double numerator, double denominator) {
@@ -256,17 +266,32 @@ void CDistInto(
     validate_batch_compatibility(a, b);
 
     const auto word_count = a.WordsPerFingerprint();
-    detail::ParallelFor(0, a.Size(), options.chunk_size, options.num_threads, [&](std::size_t begin, std::size_t end) {
-        for (std::size_t row_a = begin; row_a < end; ++row_a) {
-            const auto* a_words = a.RowWords(row_a);
-            for (std::size_t row_b = 0; row_b < b.Size(); ++row_b) {
-                const auto counts = count_dense_pair(
-                    a_words,
-                    b.RowWords(row_b),
-                    word_count,
-                    a.PopCount(row_a),
-                    b.PopCount(row_b));
-                output[row_a * b.Size() + row_b] = evaluate_metric(counts, metric);
+    const auto b_size = b.Size();
+    detail::ParallelFor(0, expected_length, options.chunk_size, options.num_threads, [&](std::size_t begin, std::size_t end) {
+        auto row_a = begin / b_size;
+        auto row_b = begin % b_size;
+        std::size_t cached_row_a = std::numeric_limits<std::size_t>::max();
+        const std::uint64_t* a_words = nullptr;
+        std::uint32_t a_popcount = 0;
+
+        for (std::size_t output_index = begin; output_index < end; ++output_index) {
+            if (row_a != cached_row_a) {
+                cached_row_a = row_a;
+                a_words = a.RowWords(row_a);
+                a_popcount = a.PopCount(row_a);
+            }
+            const auto counts = count_dense_pair(
+                a_words,
+                b.RowWords(row_b),
+                word_count,
+                a_popcount,
+                b.PopCount(row_b));
+            output[output_index] = evaluate_metric(counts, metric);
+
+            ++row_b;
+            if (row_b == b_size) {
+                row_b = 0;
+                ++row_a;
             }
         }
     });
@@ -291,18 +316,35 @@ void PDistInto(
     const auto expected_length = condensed_size(batch.Size());
     validate_output(output, output_length, expected_length);
 
+    const auto batch_size = batch.Size();
     const auto word_count = batch.WordsPerFingerprint();
-    detail::ParallelFor(0, batch.Size(), options.chunk_size, options.num_threads, [&](std::size_t begin, std::size_t end) {
-        for (std::size_t row_a = begin; row_a < end; ++row_a) {
-            const auto* a_words = batch.RowWords(row_a);
-            for (std::size_t row_b = row_a + 1; row_b < batch.Size(); ++row_b) {
-                const auto counts = count_dense_pair(
-                    a_words,
-                    batch.RowWords(row_b),
-                    word_count,
-                    batch.PopCount(row_a),
-                    batch.PopCount(row_b));
-                output[condensed_index(batch.Size(), row_a, row_b)] = evaluate_metric(counts, metric);
+    detail::ParallelFor(0, expected_length, options.chunk_size, options.num_threads, [&](std::size_t begin, std::size_t end) {
+        std::size_t row_a = 0;
+        std::size_t row_b = 0;
+        condensed_pair_from_index(begin, batch_size, row_a, row_b);
+
+        std::size_t cached_row_a = std::numeric_limits<std::size_t>::max();
+        const std::uint64_t* a_words = nullptr;
+        std::uint32_t a_popcount = 0;
+
+        for (std::size_t output_index = begin; output_index < end; ++output_index) {
+            if (row_a != cached_row_a) {
+                cached_row_a = row_a;
+                a_words = batch.RowWords(row_a);
+                a_popcount = batch.PopCount(row_a);
+            }
+            const auto counts = count_dense_pair(
+                a_words,
+                batch.RowWords(row_b),
+                word_count,
+                a_popcount,
+                batch.PopCount(row_b));
+            output[output_index] = evaluate_metric(counts, metric);
+
+            ++row_b;
+            if (row_b == batch_size) {
+                ++row_a;
+                row_b = row_a + 1;
             }
         }
     });

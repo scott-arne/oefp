@@ -80,6 +80,26 @@ pytest tests/python/ -v
 The Python tests verify that molecules created with `openeye.oechem.OEGraphMol`
 pass correctly to the C++ `calculate_molecular_weight` function.
 
+### Fingerprint Kernel Benchmark
+
+OEFP includes a benchmark that compares dense-binary fingerprint `pdist`
+against the current `oecluster` fingerprint path for the same molecules,
+OpenEye circular fingerprint settings, metric, thread count, and chunk size.
+
+```bash
+python benchmarks/benchmark_oecluster_fingerprint.py --count 512 --threads 0 --chunk-size 256 --repeats 3
+```
+
+For exact C++ comparison against current `OECluster::pdist` and
+`OECluster::cdist`, build the optional benchmark with a local `oecluster`
+checkout:
+
+```bash
+cmake -S . -B build-bench -DOEFP_BUILD_BENCHMARKS=ON -DOEFP_OECLUSTER_SOURCE_DIR=/Users/johnss51/Development/cpp/oecluster
+cmake --build build-bench --target oefp_oecluster_fingerprint_benchmark
+./build-bench/benchmarks/oefp_oecluster_fingerprint_benchmark 512 0 256
+```
+
 ## Usage
 
 ```python

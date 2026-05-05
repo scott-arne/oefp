@@ -52,6 +52,8 @@ ignore_errors = true
 
 [[tool.mypy.overrides]]
 module = [
+    "oecluster",
+    "oecluster.*",
     "openeye",
     "openeye.*",
 ]
