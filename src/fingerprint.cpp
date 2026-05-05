@@ -33,6 +33,13 @@ std::uint64_t count_bits(std::uint64_t word) {
 #endif
 }
 
+FingerprintSpec validate_binary_spec(FingerprintSpec spec) {
+    if (spec.value_type != FingerprintValueType::Binary) {
+        throw std::invalid_argument("OEFP currently supports binary fingerprints only.");
+    }
+    return spec;
+}
+
 } // namespace
 
 bool operator==(const FingerprintSpec& lhs, const FingerprintSpec& rhs) {
@@ -46,9 +53,8 @@ bool operator!=(const FingerprintSpec& lhs, const FingerprintSpec& rhs) {
 }
 
 OEFP::OEFP(FingerprintSpec spec)
-    : spec_(std::move(spec)),
+    : spec_(validate_binary_spec(std::move(spec))),
       words_(word_count_for_size(spec_.size_bits), 0ULL) {
-    ValidateBinarySpec();
 }
 
 OEFP::OEFP(FingerprintSpec spec, std::vector<std::uint64_t> words)
