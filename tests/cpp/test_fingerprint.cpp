@@ -57,6 +57,15 @@ TEST(FingerprintTest, InitializesZeroWordsForBoundarySizes) {
     }
 }
 
+TEST(FingerprintTest, DefaultConstructsAsEmptyBinaryFingerprint) {
+    const OEFP fingerprint;
+
+    EXPECT_EQ(fingerprint.SizeBits(), 0u);
+    EXPECT_EQ(fingerprint.WordCount(), 0u);
+    EXPECT_EQ(fingerprint.CountOnBits(), 0u);
+    EXPECT_EQ(fingerprint.WordData(), nullptr);
+}
+
 TEST(FingerprintTest, SetsTestsAndClearsBitsAcrossWordBoundaries) {
     OEFP fingerprint(binary_spec(130));
 

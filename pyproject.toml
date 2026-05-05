@@ -21,6 +21,7 @@ classifiers = [
     "Programming Language :: C++",
 ]
 dependencies = [
+    "numpy>=1.24",
     "openeye-toolkits>=2025.2",
 ]
 
@@ -31,6 +32,30 @@ dev = ["pytest>=7.0", "vrzn>=0.1.0"]
 testpaths = ["tests/python"]
 python_files = ["test_*.py"]
 addopts = "-v"
+
+[tool.ruff.lint.per-file-ignores]
+"python/oefp/__init__.py" = ["E402"]
+"python/oefp/oefp.py" = ["F401"]
+
+[tool.mypy]
+exclude = [
+    "^python/oefp/_build_info\\.py$",
+    "^python/oefp/oefp\\.py$",
+]
+
+[[tool.mypy.overrides]]
+module = [
+    "oefp._build_info",
+    "oefp.oefp",
+]
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = [
+    "openeye",
+    "openeye.*",
+]
+ignore_missing_imports = true
 
 [tool.scikit-build]
 cmake.version = ">=3.21"
@@ -63,7 +88,7 @@ rpath-strategy = "platform"  # "platform" = @loader_path/../openeye/libs/{platfo
 # OpenEye libraries that are expected to be missing from delocate
 # (they are provided at runtime by openeye-toolkits, not bundled in the wheel)
 expected-missing-libs = [
-    "liboechem", "liboesystem", "liboeplatform",
+    "liboechem", "liboegraphsim", "liboegrid", "liboesystem", "liboeplatform",
     "liboemath", "libzstd",
 ]
 

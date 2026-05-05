@@ -76,6 +76,10 @@ target_link_libraries(oefp
         OpenEye::OEGraphSim
 )
 
+if(TARGET OpenEye::OEGrid)
+    target_link_libraries(oefp PUBLIC OpenEye::OEGrid)
+endif()
+
 # Tests
 if(OEFP_BUILD_TESTS)
     enable_testing()

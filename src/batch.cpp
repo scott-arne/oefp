@@ -93,20 +93,20 @@ const std::uint32_t* OEFPBatch::PopCountData() const {
     return popcounts_.data();
 }
 
-std::uintptr_t OEFPBatch::WordDataAddress() const {
+std::uint64_t OEFPBatch::WordDataAddress() const {
     const auto* data = WordData();
     if (data == nullptr) {
         return 0;
     }
-    return reinterpret_cast<std::uintptr_t>(data);
+    return static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>(data));
 }
 
-std::uintptr_t OEFPBatch::PopCountDataAddress() const {
+std::uint64_t OEFPBatch::PopCountDataAddress() const {
     const auto* data = PopCountData();
     if (data == nullptr) {
         return 0;
     }
-    return reinterpret_cast<std::uintptr_t>(data);
+    return static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>(data));
 }
 
 void OEFPBatch::ReserveRows(std::size_t row_count) {

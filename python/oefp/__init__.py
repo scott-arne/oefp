@@ -263,9 +263,27 @@ _check_openeye_version()
 from .oefp import (
     calculate_molecular_weight,
 )
+from .api import (
+    Metric,
+    OEFP,
+    OEFPBatch,
+    cdist,
+    compare,
+    from_openeye_fingerprint,
+    pdist,
+    to_openeye_fingerprint,
+)
 
 __all__ = [
     "__version__",
     "__version_info__",
+    "Metric",
+    "OEFP",
+    "OEFPBatch",
     "calculate_molecular_weight",
+    "cdist",
+    "compare",
+    "from_openeye_fingerprint",
+    "pdist",
+    "to_openeye_fingerprint",
 ]

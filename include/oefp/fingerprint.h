@@ -40,6 +40,8 @@ std::size_t DenseWordCount(std::uint64_t size_bits);
 /// each word: bit index i maps to word i / 64 and mask 1ULL << (i % 64).
 class OEFP {
 public:
+    OEFP() = default;
+
     /// \brief Construct a zero-initialized binary fingerprint.
     ///
     /// \param spec Fingerprint size and provenance metadata.
@@ -68,6 +70,14 @@ public:
 
     /// \brief Return read-only access to the dense storage words.
     const std::vector<std::uint64_t>& Words() const;
+
+    /// \brief Return a raw pointer to the dense storage words.
+    ///
+    /// Returns nullptr for zero-width fingerprints.
+    const std::uint64_t* WordData() const;
+
+    /// \brief Return the word data pointer as an integer address.
+    std::uint64_t WordDataAddress() const;
 
     /// \brief Return one storage word by zero-based word index.
     ///

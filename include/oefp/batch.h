@@ -28,7 +28,7 @@ public:
     ///
     /// \raises std::invalid_argument: When any fingerprint has an incompatible
     ///     spec or zero-width storage.
-    static OEFPBatch FromFingerprints(const std::vector<OEFP>& fingerprints);
+    static OEFPBatch FromFingerprints(const std::vector<::OEFP::OEFP>& fingerprints);
 
     /// \brief Append one fingerprint row.
     ///
@@ -86,10 +86,10 @@ public:
     const std::uint32_t* PopCountData() const;
 
     /// \brief Return the word data pointer as an integer address.
-    std::uintptr_t WordDataAddress() const;
+    std::uint64_t WordDataAddress() const;
 
     /// \brief Return the popcount data pointer as an integer address.
-    std::uintptr_t PopCountDataAddress() const;
+    std::uint64_t PopCountDataAddress() const;
 
 private:
     FingerprintSpec spec_;

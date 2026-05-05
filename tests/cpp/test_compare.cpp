@@ -246,18 +246,18 @@ TEST(CompareBatchTest, AddressHelpersWriteIntoCallerOwnedOutput) {
         query,
         batch,
         Metric::Tanimoto(),
-        reinterpret_cast<std::uintptr_t>(query_output.data()),
+        static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>(query_output.data())),
         query_output.size());
     CDistIntoAddress(
         batch,
         batch,
         Metric::Tanimoto(),
-        reinterpret_cast<std::uintptr_t>(cdist_output.data()),
+        static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>(cdist_output.data())),
         cdist_output.size());
     PDistIntoAddress(
         batch,
         Metric::Tanimoto(),
-        reinterpret_cast<std::uintptr_t>(pdist_output.data()),
+        static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>(pdist_output.data())),
         pdist_output.size());
 
     EXPECT_DOUBLE_EQ(query_output[0], 1.0);

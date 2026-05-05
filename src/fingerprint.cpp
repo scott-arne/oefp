@@ -83,6 +83,21 @@ const std::vector<std::uint64_t>& OEFP::Words() const {
     return words_;
 }
 
+const std::uint64_t* OEFP::WordData() const {
+    if (words_.empty()) {
+        return nullptr;
+    }
+    return words_.data();
+}
+
+std::uint64_t OEFP::WordDataAddress() const {
+    const auto* data = WordData();
+    if (data == nullptr) {
+        return 0;
+    }
+    return static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>(data));
+}
+
 std::uint64_t OEFP::Word(std::size_t word_index) const {
     CheckWordIndex(word_index);
     return words_[word_index];

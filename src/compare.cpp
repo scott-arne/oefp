@@ -172,8 +172,8 @@ void validate_batch_compatibility(const OEFPBatch& a, const OEFPBatch& b) {
     }
 }
 
-double* address_to_output(std::uintptr_t output_address) {
-    return reinterpret_cast<double*>(output_address);
+double* address_to_output(std::uint64_t output_address) {
+    return reinterpret_cast<double*>(static_cast<std::uintptr_t>(output_address));
 }
 
 } // namespace
@@ -312,7 +312,7 @@ void CompareIntoAddress(
     const OEFP& query,
     const OEFPBatch& library,
     const Metric& metric,
-    std::uintptr_t output_address,
+    std::uint64_t output_address,
     std::size_t output_length,
     const BatchKernelOptions& options) {
     CompareInto(query, library, metric, address_to_output(output_address), output_length, options);
@@ -322,7 +322,7 @@ void CDistIntoAddress(
     const OEFPBatch& a,
     const OEFPBatch& b,
     const Metric& metric,
-    std::uintptr_t output_address,
+    std::uint64_t output_address,
     std::size_t output_length,
     const BatchKernelOptions& options) {
     CDistInto(a, b, metric, address_to_output(output_address), output_length, options);
@@ -331,7 +331,7 @@ void CDistIntoAddress(
 void PDistIntoAddress(
     const OEFPBatch& batch,
     const Metric& metric,
-    std::uintptr_t output_address,
+    std::uint64_t output_address,
     std::size_t output_length,
     const BatchKernelOptions& options) {
     PDistInto(batch, metric, address_to_output(output_address), output_length, options);

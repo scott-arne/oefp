@@ -59,6 +59,10 @@ namespace OESystem {
     class OEMolRecord;
 }
 
+namespace OEGraphSim {
+    class OEFingerPrint;
+}
+
 // ============================================================================
 // Cross-runtime SWIG compatibility layer
 // ============================================================================
@@ -156,6 +160,9 @@ DEFINE_OE_TYPE_CHECKER(oescalargrid, "openeye.oegrid", "OEScalarGrid")
 // ---- Docking (openeye.oedocking) ----
 DEFINE_OE_TYPE_CHECKER(oereceptor,   "openeye.oedocking", "OEReceptor")
 
+// ---- Fingerprints (openeye.oegraphsim) ----
+DEFINE_OE_TYPE_CHECKER(oefingerprint, "openeye.oegraphsim", "OEFingerPrint")
+
 #undef DEFINE_OE_TYPE_CHECKER
 
 // ---- OEScalarGrid return-type helper (zero-copy pointer swap) ----
@@ -192,6 +199,41 @@ static PyObject* _oefp_wrap_as_oe_grid(OESystem::OEScalarGrid* grid) {
     swig_this->ptr = grid;
     Py_DECREF(thisAttr);
     return oe_grid;
+}
+
+static PyObject* _oefp_wrap_as_oe_fingerprint(OEGraphSim::OEFingerPrint* fp) {
+    if (!fp) {
+        Py_RETURN_NONE;
+    }
+    PyObject* oegraphsim_mod = PyImport_ImportModule("openeye.oegraphsim");
+    if (!oegraphsim_mod) {
+        delete fp;
+        return NULL;
+    }
+    PyObject* fp_cls = PyObject_GetAttrString(oegraphsim_mod, "OEFingerPrint");
+    Py_DECREF(oegraphsim_mod);
+    if (!fp_cls) {
+        delete fp;
+        return NULL;
+    }
+    PyObject* oe_fp = PyObject_CallNoArgs(fp_cls);
+    Py_DECREF(fp_cls);
+    if (!oe_fp) {
+        delete fp;
+        return NULL;
+    }
+    PyObject* thisAttr = PyObject_GetAttrString(oe_fp, "this");
+    if (!thisAttr) {
+        PyErr_Clear();
+        Py_DECREF(oe_fp);
+        delete fp;
+        return NULL;
+    }
+    _SwigPyObjectCompat* swig_this = (_SwigPyObjectCompat*)thisAttr;
+    delete reinterpret_cast<OEGraphSim::OEFingerPrint*>(swig_this->ptr);
+    swig_this->ptr = fp;
+    Py_DECREF(thisAttr);
+    return oe_fp;
 }
 %}
 
@@ -344,6 +386,14 @@ OE_CROSS_RUNTIME_NULLABLE_PTR_TYPEMAPS(OESystem::OEScalarGrid, _oefp_is_oescalar
     if (!$result) SWIG_fail;
 }
 
+// ---- Fingerprints (OEGraphSim) ----
+OE_CROSS_RUNTIME_REF_TYPEMAPS(OEGraphSim::OEFingerPrint, _oefp_is_oefingerprint, "Expected OEFingerPrint object.")
+
+%typemap(out) OEGraphSim::OEFingerPrint {
+    $result = _oefp_wrap_as_oe_fingerprint(new OEGraphSim::OEFingerPrint($1));
+    if (!$result) SWIG_fail;
+}
+
 // ---- Docking (OEDocking) ----
 OE_CROSS_RUNTIME_REF_TYPEMAPS(OEDocking::OEReceptor, _oefp_is_oereceptor, "Expected OEReceptor object.")
 
@@ -351,8 +401,16 @@ OE_CROSS_RUNTIME_REF_TYPEMAPS(OEDocking::OEReceptor, _oefp_is_oereceptor, "Expec
 // Include STL typemaps
 // ============================================================================
 %include "std_string.i"
+%include "std_vector.i"
 %include "stdint.i"
 %include "exception.i"
+
+namespace std {
+%template(SizeTVector) vector< size_t >;
+%template(UInt32Vector) vector< std::uint32_t >;
+%template(UInt64Vector) vector< std::uint64_t >;
+%template(DoubleVector) vector< double >;
+}
 
 // ============================================================================
 // Exception handling
@@ -377,6 +435,45 @@ OE_CROSS_RUNTIME_REF_TYPEMAPS(OEDocking::OEReceptor, _oefp_is_oereceptor, "Expec
 // ============================================================================
 // Wrapped API
 // ============================================================================
+%rename(_NativeOEFP) OEFP::OEFP;
+%rename(_NativeOEFPBatch) OEFP::OEFPBatch;
+%rename(_NativeMetric) OEFP::Metric;
+
+%define OEFP_GIL_RELEASE_EXCEPTION(FUNC)
+%exception FUNC {
+    PyThreadState* _oefp_thread_state = PyEval_SaveThread();
+    try {
+        $action
+        PyEval_RestoreThread(_oefp_thread_state);
+    } catch (const std::exception& e) {
+        PyEval_RestoreThread(_oefp_thread_state);
+        SWIG_exception(SWIG_RuntimeError, e.what());
+    } catch (...) {
+        PyEval_RestoreThread(_oefp_thread_state);
+        SWIG_exception(SWIG_RuntimeError, "Unknown C++ exception");
+    }
+}
+%enddef
+
+OEFP_GIL_RELEASE_EXCEPTION(OEFP::Compare)
+OEFP_GIL_RELEASE_EXCEPTION(OEFP::CDist)
+OEFP_GIL_RELEASE_EXCEPTION(OEFP::PDist)
+OEFP_GIL_RELEASE_EXCEPTION(OEFP::CompareIntoAddress)
+OEFP_GIL_RELEASE_EXCEPTION(OEFP::CDistIntoAddress)
+OEFP_GIL_RELEASE_EXCEPTION(OEFP::PDistIntoAddress)
+
+%include "oefp/fingerprint.h"
+
+namespace std {
+%template(OEFPVector) vector< ::OEFP::OEFP >;
+}
+
+%include "oefp/batch.h"
+%include "oefp/metric.h"
+%include "oefp/compare.h"
+%include "oefp/openeye.h"
+%include "oefp/annotation.h"
+
 namespace OEFP {
 
 double calculate_molecular_weight(const OEChem::OEMolBase& mol);

@@ -85,7 +85,7 @@ void CompareIntoAddress(
     const OEFP& query,
     const OEFPBatch& library,
     const Metric& metric,
-    std::uintptr_t output_address,
+    std::uint64_t output_address,
     std::size_t output_length,
     const BatchKernelOptions& options = {});
 
@@ -94,7 +94,7 @@ void CDistIntoAddress(
     const OEFPBatch& a,
     const OEFPBatch& b,
     const Metric& metric,
-    std::uintptr_t output_address,
+    std::uint64_t output_address,
     std::size_t output_length,
     const BatchKernelOptions& options = {});
 
@@ -102,7 +102,7 @@ void CDistIntoAddress(
 void PDistIntoAddress(
     const OEFPBatch& batch,
     const Metric& metric,
-    std::uintptr_t output_address,
+    std::uint64_t output_address,
     std::size_t output_length,
     const BatchKernelOptions& options = {});
 
