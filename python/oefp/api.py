@@ -184,6 +184,66 @@ class OEFPBatch:
         return int(self._native.SizeBits())
 
 
+class OEFPCountBatch:
+    """Python wrapper for a native sparse counted OEFPCountBatch."""
+
+    def __init__(self, native: Any):
+        self._native = native
+
+    @classmethod
+    def from_fingerprints(cls, fingerprints: Sequence[OEFPCount]) -> OEFPCountBatch:
+        """Create a contiguous sparse batch from counted fingerprints."""
+        native_fps = _native.OEFPCountVector()
+        for fp in fingerprints:
+            native_fps.push_back(fp._native)
+        return cls(_native._NativeOEFPCountBatch.FromFingerprints(native_fps))
+
+    @property
+    def indices(self) -> np.ndarray:
+        """Read-only view of flattened sparse uint32 indices."""
+        return readonly_array_from_address(
+            self,
+            self._native.IndexDataAddress(),
+            (self._native.EntryCount(),),
+            np.dtype(np.uint32),
+        )
+
+    @property
+    def counts(self) -> np.ndarray:
+        """Read-only view of flattened sparse uint32 counts."""
+        return readonly_array_from_address(
+            self,
+            self._native.CountDataAddress(),
+            (self._native.EntryCount(),),
+            np.dtype(np.uint32),
+        )
+
+    @property
+    def offsets(self) -> np.ndarray:
+        """Read-only view of row offsets into indices and counts."""
+        return readonly_array_from_address(
+            self,
+            self._native.RowOffsetDataAddress(),
+            (self._native.Size() + 1,),
+            np.dtype(np.uint64),
+        )
+
+    @property
+    def size(self) -> int:
+        """Number of fingerprint rows."""
+        return int(self._native.Size())
+
+    @property
+    def entry_count(self) -> int:
+        """Number of flattened sparse count entries."""
+        return int(self._native.EntryCount())
+
+    @property
+    def num_bits(self) -> int:
+        """Fixed folded fingerprint size in bits."""
+        return int(self._native.SizeBits())
+
+
 @dataclass(frozen=True)
 class Metric:
     """Python wrapper for native OEFP metrics."""
@@ -229,7 +289,7 @@ class Metric:
 
 def compare(
     a: OEFP | OEFPCount,
-    b: OEFP | OEFPBatch | OEFPCount,
+    b: OEFP | OEFPBatch | OEFPCount | OEFPCountBatch,
     metric: Metric,
     *,
     num_threads: int = 0,
@@ -240,32 +300,52 @@ def compare(
         return float(_native.Compare(a._native, b._native, metric._native))
     if isinstance(a, OEFPCount) and isinstance(b, OEFPCount):
         return float(_native.Compare(a._native, b._native, metric._native))
-    if not isinstance(a, OEFP) or not isinstance(b, OEFPBatch):
-        raise TypeError(
-            "compare expects OEFP/OEFP, OEFP/OEFPBatch, or OEFPCount/OEFPCount inputs."
+    if isinstance(a, OEFP) and isinstance(b, OEFPBatch):
+        output = np.empty((b.size,), dtype=np.float64)
+        _native.CompareIntoAddress(
+            a._native,
+            b._native,
+            metric._native,
+            int(output.ctypes.data),
+            output.size,
+            _batch_options(num_threads, chunk_size),
         )
+        return output
+    if isinstance(a, OEFPCount) and isinstance(b, OEFPCountBatch):
+        output = np.empty((b.size,), dtype=np.float64)
+        _native.CompareIntoAddress(
+            a._native,
+            b._native,
+            metric._native,
+            int(output.ctypes.data),
+            output.size,
+            _batch_options(num_threads, chunk_size),
+        )
+        return output
 
-    output = np.empty((b.size,), dtype=np.float64)
-    _native.CompareIntoAddress(
-        a._native,
-        b._native,
-        metric._native,
-        int(output.ctypes.data),
-        output.size,
-        _batch_options(num_threads, chunk_size),
+    raise TypeError(
+        "compare expects OEFP/OEFP, OEFP/OEFPBatch, OEFPCount/OEFPCount, "
+        "or OEFPCount/OEFPCountBatch inputs."
     )
-    return output
 
 
 def cdist(
-    a: OEFPBatch,
-    b: OEFPBatch,
+    a: OEFPBatch | OEFPCountBatch,
+    b: OEFPBatch | OEFPCountBatch,
     metric: Metric,
     *,
     num_threads: int = 0,
     chunk_size: int = 256,
 ) -> np.ndarray:
     """Return row-major cross-distance/comparison values as a 2D array."""
+    if not (
+        (isinstance(a, OEFPBatch) and isinstance(b, OEFPBatch))
+        or (isinstance(a, OEFPCountBatch) and isinstance(b, OEFPCountBatch))
+    ):
+        raise TypeError(
+            "cdist expects OEFPBatch/OEFPBatch or OEFPCountBatch/OEFPCountBatch inputs."
+        )
+
     output = np.empty((a.size, b.size), dtype=np.float64)
     _native.CDistIntoAddress(
         a._native,
@@ -279,13 +359,16 @@ def cdist(
 
 
 def pdist(
-    batch: OEFPBatch,
+    batch: OEFPBatch | OEFPCountBatch,
     metric: Metric,
     *,
     num_threads: int = 0,
     chunk_size: int = 256,
 ) -> np.ndarray:
     """Return SciPy-compatible condensed pairwise values."""
+    if not isinstance(batch, (OEFPBatch, OEFPCountBatch)):
+        raise TypeError("pdist expects an OEFPBatch or OEFPCountBatch input.")
+
     output = np.empty((batch.size * (batch.size - 1) // 2,), dtype=np.float64)
     _native.PDistIntoAddress(
         batch._native,

@@ -3,6 +3,7 @@
 
 #include "oefp/batch.h"
 #include "oefp/count.h"
+#include "oefp/count_batch.h"
 #include "oefp/fingerprint.h"
 #include "oefp/metric.h"
 
@@ -45,6 +46,22 @@ double Compare(const OEFP& a, const OEFP& b, const Metric& metric);
 /// \throws std::invalid_argument: When fingerprint specifications differ.
 double Compare(const OEFPCount& a, const OEFPCount& b, const Metric& metric);
 
+/// \brief Compare one counted query fingerprint against each row in a counted batch.
+std::vector<double> Compare(
+    const OEFPCount& query,
+    const OEFPCountBatch& library,
+    const Metric& metric,
+    const BatchKernelOptions& options = {});
+
+/// \brief Fill output with one counted query-to-batch comparison per row.
+void CompareInto(
+    const OEFPCount& query,
+    const OEFPCountBatch& library,
+    const Metric& metric,
+    double* output,
+    std::size_t output_length,
+    const BatchKernelOptions& options = {});
+
 /// \brief Compare one query fingerprint against each row in a dense batch.
 std::vector<double> Compare(
     const OEFP& query,
@@ -80,6 +97,22 @@ void CDistInto(
     std::size_t output_length,
     const BatchKernelOptions& options = {});
 
+/// \brief Compute row-major cross-distance/comparison values for counted batches.
+std::vector<double> CDist(
+    const OEFPCountBatch& a,
+    const OEFPCountBatch& b,
+    const Metric& metric,
+    const BatchKernelOptions& options = {});
+
+/// \brief Fill output with row-major counted cross-distance/comparison values.
+void CDistInto(
+    const OEFPCountBatch& a,
+    const OEFPCountBatch& b,
+    const Metric& metric,
+    double* output,
+    std::size_t output_length,
+    const BatchKernelOptions& options = {});
+
 /// \brief Compute SciPy-compatible condensed pairwise values for one batch.
 std::vector<double> PDist(
     const OEFPBatch& batch,
@@ -94,10 +127,33 @@ void PDistInto(
     std::size_t output_length,
     const BatchKernelOptions& options = {});
 
+/// \brief Compute SciPy-compatible condensed pairwise values for one counted batch.
+std::vector<double> PDist(
+    const OEFPCountBatch& batch,
+    const Metric& metric,
+    const BatchKernelOptions& options = {});
+
+/// \brief Fill output with SciPy-compatible counted pairwise values.
+void PDistInto(
+    const OEFPCountBatch& batch,
+    const Metric& metric,
+    double* output,
+    std::size_t output_length,
+    const BatchKernelOptions& options = {});
+
 /// \brief Address-based query-to-batch output helper for Python bindings.
 void CompareIntoAddress(
     const OEFP& query,
     const OEFPBatch& library,
+    const Metric& metric,
+    std::uint64_t output_address,
+    std::size_t output_length,
+    const BatchKernelOptions& options = {});
+
+/// \brief Address-based counted query-to-batch output helper for Python bindings.
+void CompareIntoAddress(
+    const OEFPCount& query,
+    const OEFPCountBatch& library,
     const Metric& metric,
     std::uint64_t output_address,
     std::size_t output_length,
@@ -112,9 +168,26 @@ void CDistIntoAddress(
     std::size_t output_length,
     const BatchKernelOptions& options = {});
 
+/// \brief Address-based counted cdist output helper for Python bindings.
+void CDistIntoAddress(
+    const OEFPCountBatch& a,
+    const OEFPCountBatch& b,
+    const Metric& metric,
+    std::uint64_t output_address,
+    std::size_t output_length,
+    const BatchKernelOptions& options = {});
+
 /// \brief Address-based pdist output helper for Python bindings.
 void PDistIntoAddress(
     const OEFPBatch& batch,
+    const Metric& metric,
+    std::uint64_t output_address,
+    std::size_t output_length,
+    const BatchKernelOptions& options = {});
+
+/// \brief Address-based counted pdist output helper for Python bindings.
+void PDistIntoAddress(
+    const OEFPCountBatch& batch,
     const Metric& metric,
     std::uint64_t output_address,
     std::size_t output_length,

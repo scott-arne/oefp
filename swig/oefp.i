@@ -437,6 +437,7 @@ namespace std {
 // ============================================================================
 %rename(_NativeOEFP) OEFP::OEFP;
 %rename(_NativeOEFPBatch) OEFP::OEFPBatch;
+%rename(_NativeOEFPCountBatch) OEFP::OEFPCountBatch;
 %rename(_NativeMetric) OEFP::Metric;
 
 %define OEFP_GIL_RELEASE_EXCEPTION(FUNC)
@@ -469,9 +470,11 @@ OEFP_GIL_RELEASE_EXCEPTION(OEFP::MakeMorganCountFingerprint)
 
 namespace std {
 %template(OEFPVector) vector< ::OEFP::OEFP >;
+%template(OEFPCountVector) vector< ::OEFP::OEFPCount >;
 }
 
 %include "oefp/batch.h"
+%include "oefp/count_batch.h"
 %include "oefp/metric.h"
 %include "oefp/morgan.h"
 %include "oefp/compare.h"

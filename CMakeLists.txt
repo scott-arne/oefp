@@ -58,6 +58,7 @@ set(OEFP_SOURCES
     src/batch.cpp
     src/compare.cpp
     src/count.cpp
+    src/count_batch.cpp
     src/fingerprint.cpp
     src/metric.cpp
     src/morgan.cpp

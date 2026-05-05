@@ -159,32 +159,37 @@ double evaluate_metric(const DenseCounts& counts, const Metric& metric) {
     throw std::invalid_argument("Unsupported fingerprint metric.");
 }
 
-SparseCountStats count_sparse_pair(const OEFPCount& a, const OEFPCount& b) {
+SparseCountStats count_sparse_rows(
+    const std::uint32_t* a_indices,
+    const std::uint32_t* a_counts,
+    std::size_t a_size,
+    const std::uint32_t* b_indices,
+    const std::uint32_t* b_counts,
+    std::size_t b_size) {
     SparseCountStats stats;
     double a_square = 0.0;
     double b_square = 0.0;
     std::size_t a_row = 0;
     std::size_t b_row = 0;
 
-    while (a_row < a.NonzeroCount() || b_row < b.NonzeroCount()) {
-        if (b_row == b.NonzeroCount()
-            || (a_row < a.NonzeroCount() && a.Index(a_row) < b.Index(b_row))) {
-            const auto a_count = static_cast<double>(a.Count(a_row));
+    while (a_row < a_size || b_row < b_size) {
+        if (b_row == b_size || (a_row < a_size && a_indices[a_row] < b_indices[b_row])) {
+            const auto a_count = static_cast<double>(a_counts[a_row]);
             stats.a += a_count;
             stats.union_count += a_count;
             stats.l1 += a_count;
             a_square += a_count * a_count;
             ++a_row;
-        } else if (a_row == a.NonzeroCount() || b.Index(b_row) < a.Index(a_row)) {
-            const auto b_count = static_cast<double>(b.Count(b_row));
+        } else if (a_row == a_size || b_indices[b_row] < a_indices[a_row]) {
+            const auto b_count = static_cast<double>(b_counts[b_row]);
             stats.b += b_count;
             stats.union_count += b_count;
             stats.l1 += b_count;
             b_square += b_count * b_count;
             ++b_row;
         } else {
-            const auto a_count = static_cast<double>(a.Count(a_row));
-            const auto b_count = static_cast<double>(b.Count(b_row));
+            const auto a_count = static_cast<double>(a_counts[a_row]);
+            const auto b_count = static_cast<double>(b_counts[b_row]);
             stats.a += a_count;
             stats.b += b_count;
             stats.overlap += a_count < b_count ? a_count : b_count;
@@ -200,6 +205,16 @@ SparseCountStats count_sparse_pair(const OEFPCount& a, const OEFPCount& b) {
 
     stats.square_product = a_square * b_square;
     return stats;
+}
+
+SparseCountStats count_sparse_pair(const OEFPCount& a, const OEFPCount& b) {
+    return count_sparse_rows(
+        a.IndexData(),
+        a.CountData(),
+        a.NonzeroCount(),
+        b.IndexData(),
+        b.CountData(),
+        b.NonzeroCount());
 }
 
 double evaluate_count_metric(const SparseCountStats& stats, const Metric& metric) {
@@ -262,6 +277,26 @@ void validate_batch_compatibility(const OEFPBatch& a, const OEFPBatch& b) {
     }
 }
 
+void validate_count_fingerprint_batch_compatibility(
+    const OEFPCount& query,
+    const OEFPCountBatch& library) {
+    if (library.Size() == 0) {
+        return;
+    }
+    if (query.Spec() != library.Spec()) {
+        throw std::invalid_argument("Count fingerprint specification must match batch specification.");
+    }
+}
+
+void validate_count_batch_compatibility(const OEFPCountBatch& a, const OEFPCountBatch& b) {
+    if (a.Size() == 0 || b.Size() == 0) {
+        return;
+    }
+    if (a.Spec() != b.Spec()) {
+        throw std::invalid_argument("Count batch fingerprint specifications must match.");
+    }
+}
+
 double* address_to_output(std::uint64_t output_address) {
     return reinterpret_cast<double*>(static_cast<std::uintptr_t>(output_address));
 }
@@ -294,6 +329,43 @@ double Compare(const OEFPCount& a, const OEFPCount& b, const Metric& metric) {
     }
 
     return evaluate_count_metric(count_sparse_pair(a, b), metric);
+}
+
+std::vector<double> Compare(
+    const OEFPCount& query,
+    const OEFPCountBatch& library,
+    const Metric& metric,
+    const BatchKernelOptions& options) {
+    std::vector<double> output(library.Size(), 0.0);
+    CompareInto(query, library, metric, output.data(), output.size(), options);
+    return output;
+}
+
+void CompareInto(
+    const OEFPCount& query,
+    const OEFPCountBatch& library,
+    const Metric& metric,
+    double* output,
+    std::size_t output_length,
+    const BatchKernelOptions& options) {
+    validate_output(output, output_length, library.Size());
+    validate_count_fingerprint_batch_compatibility(query, library);
+
+    const auto* query_indices = query.IndexData();
+    const auto* query_counts = query.CountData();
+    const auto query_size = query.NonzeroCount();
+    detail::ParallelFor(0, library.Size(), options.chunk_size, options.num_threads, [&](std::size_t begin, std::size_t end) {
+        for (std::size_t row = begin; row < end; ++row) {
+            const auto counts = count_sparse_rows(
+                query_indices,
+                query_counts,
+                query_size,
+                library.RowIndices(row),
+                library.RowCounts(row),
+                library.RowEntryCount(row));
+            output[row] = evaluate_count_metric(counts, metric);
+        }
+    });
 }
 
 std::vector<double> Compare(
@@ -385,6 +457,61 @@ void CDistInto(
     });
 }
 
+std::vector<double> CDist(
+    const OEFPCountBatch& a,
+    const OEFPCountBatch& b,
+    const Metric& metric,
+    const BatchKernelOptions& options) {
+    std::vector<double> output(checked_product(a.Size(), b.Size(), "CDist output size is too large."), 0.0);
+    CDistInto(a, b, metric, output.data(), output.size(), options);
+    return output;
+}
+
+void CDistInto(
+    const OEFPCountBatch& a,
+    const OEFPCountBatch& b,
+    const Metric& metric,
+    double* output,
+    std::size_t output_length,
+    const BatchKernelOptions& options) {
+    const auto expected_length = checked_product(a.Size(), b.Size(), "CDist output size is too large.");
+    validate_output(output, output_length, expected_length);
+    validate_count_batch_compatibility(a, b);
+
+    const auto b_size = b.Size();
+    detail::ParallelFor(0, expected_length, options.chunk_size, options.num_threads, [&](std::size_t begin, std::size_t end) {
+        auto row_a = begin / b_size;
+        auto row_b = begin % b_size;
+        std::size_t cached_row_a = std::numeric_limits<std::size_t>::max();
+        const std::uint32_t* a_indices = nullptr;
+        const std::uint32_t* a_counts = nullptr;
+        std::size_t a_count = 0;
+
+        for (std::size_t output_index = begin; output_index < end; ++output_index) {
+            if (row_a != cached_row_a) {
+                cached_row_a = row_a;
+                a_indices = a.RowIndices(row_a);
+                a_counts = a.RowCounts(row_a);
+                a_count = a.RowEntryCount(row_a);
+            }
+            const auto counts = count_sparse_rows(
+                a_indices,
+                a_counts,
+                a_count,
+                b.RowIndices(row_b),
+                b.RowCounts(row_b),
+                b.RowEntryCount(row_b));
+            output[output_index] = evaluate_count_metric(counts, metric);
+
+            ++row_b;
+            if (row_b == b_size) {
+                row_b = 0;
+                ++row_a;
+            }
+        }
+    });
+}
+
 std::vector<double> PDist(
     const OEFPBatch& batch,
     const Metric& metric,
@@ -438,9 +565,74 @@ void PDistInto(
     });
 }
 
+std::vector<double> PDist(
+    const OEFPCountBatch& batch,
+    const Metric& metric,
+    const BatchKernelOptions& options) {
+    std::vector<double> output(condensed_size(batch.Size()), 0.0);
+    PDistInto(batch, metric, output.data(), output.size(), options);
+    return output;
+}
+
+void PDistInto(
+    const OEFPCountBatch& batch,
+    const Metric& metric,
+    double* output,
+    std::size_t output_length,
+    const BatchKernelOptions& options) {
+    metric.ValidateForPDist();
+    const auto expected_length = condensed_size(batch.Size());
+    validate_output(output, output_length, expected_length);
+
+    const auto batch_size = batch.Size();
+    detail::ParallelFor(0, expected_length, options.chunk_size, options.num_threads, [&](std::size_t begin, std::size_t end) {
+        std::size_t row_a = 0;
+        std::size_t row_b = 0;
+        condensed_pair_from_index(begin, batch_size, row_a, row_b);
+
+        std::size_t cached_row_a = std::numeric_limits<std::size_t>::max();
+        const std::uint32_t* a_indices = nullptr;
+        const std::uint32_t* a_counts = nullptr;
+        std::size_t a_count = 0;
+
+        for (std::size_t output_index = begin; output_index < end; ++output_index) {
+            if (row_a != cached_row_a) {
+                cached_row_a = row_a;
+                a_indices = batch.RowIndices(row_a);
+                a_counts = batch.RowCounts(row_a);
+                a_count = batch.RowEntryCount(row_a);
+            }
+            const auto counts = count_sparse_rows(
+                a_indices,
+                a_counts,
+                a_count,
+                batch.RowIndices(row_b),
+                batch.RowCounts(row_b),
+                batch.RowEntryCount(row_b));
+            output[output_index] = evaluate_count_metric(counts, metric);
+
+            ++row_b;
+            if (row_b == batch_size) {
+                ++row_a;
+                row_b = row_a + 1;
+            }
+        }
+    });
+}
+
 void CompareIntoAddress(
     const OEFP& query,
     const OEFPBatch& library,
+    const Metric& metric,
+    std::uint64_t output_address,
+    std::size_t output_length,
+    const BatchKernelOptions& options) {
+    CompareInto(query, library, metric, address_to_output(output_address), output_length, options);
+}
+
+void CompareIntoAddress(
+    const OEFPCount& query,
+    const OEFPCountBatch& library,
     const Metric& metric,
     std::uint64_t output_address,
     std::size_t output_length,
@@ -458,8 +650,27 @@ void CDistIntoAddress(
     CDistInto(a, b, metric, address_to_output(output_address), output_length, options);
 }
 
+void CDistIntoAddress(
+    const OEFPCountBatch& a,
+    const OEFPCountBatch& b,
+    const Metric& metric,
+    std::uint64_t output_address,
+    std::size_t output_length,
+    const BatchKernelOptions& options) {
+    CDistInto(a, b, metric, address_to_output(output_address), output_length, options);
+}
+
 void PDistIntoAddress(
     const OEFPBatch& batch,
+    const Metric& metric,
+    std::uint64_t output_address,
+    std::size_t output_length,
+    const BatchKernelOptions& options) {
+    PDistInto(batch, metric, address_to_output(output_address), output_length, options);
+}
+
+void PDistIntoAddress(
+    const OEFPCountBatch& batch,
     const Metric& metric,
     std::uint64_t output_address,
     std::size_t output_length,

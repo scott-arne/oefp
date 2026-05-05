@@ -2,6 +2,7 @@
 
 #include "oefp/compare.h"
 #include "oefp/count.h"
+#include "oefp/count_batch.h"
 
 #include <cmath>
 #include <cstdint>
@@ -182,6 +183,91 @@ TEST(CompareCountTest, UsesZeroSimilarityForEmptyCountDenominators) {
     EXPECT_EQ(Compare(a, b, Metric::Tversky(0.5, 0.5)), 0.0);
     EXPECT_EQ(Compare(a, b, Metric::Tversky(0.5, 0.5, MetricMode::Distance)), 1.0);
     EXPECT_EQ(Compare(a, b, Metric::Manhattan()), 0.0);
+}
+
+TEST(CompareCountBatchTest, QueryToBatchMatchesScalarComparison) {
+    const auto query = count_fingerprint(128, {1u, 7u}, {2u, 1u});
+    const auto first = count_fingerprint(128, {1u, 7u}, {2u, 1u});
+    const auto second = count_fingerprint(128, {0u, 7u}, {3u, 4u});
+    const auto third = count_fingerprint(128, {64u}, {5u});
+    const auto batch = OEFPCountBatch::FromFingerprints({first, second, third});
+
+    const auto values = Compare(query, batch, Metric::Tanimoto());
+
+    ASSERT_EQ(values.size(), batch.Size());
+    EXPECT_DOUBLE_EQ(values[0], Compare(query, first, Metric::Tanimoto()));
+    EXPECT_DOUBLE_EQ(values[1], Compare(query, second, Metric::Tanimoto()));
+    EXPECT_DOUBLE_EQ(values[2], Compare(query, third, Metric::Tanimoto()));
+}
+
+TEST(CompareCountBatchTest, CDistReturnsRowMajorValues) {
+    const auto a0 = count_fingerprint(128, {1u, 7u}, {2u, 1u});
+    const auto a1 = count_fingerprint(128, {0u, 7u}, {3u, 4u});
+    const auto b0 = count_fingerprint(128, {1u, 7u}, {2u, 1u});
+    const auto b1 = count_fingerprint(128, {64u}, {5u});
+    const auto b2 = count_fingerprint(128, {0u, 7u}, {3u, 4u});
+    const auto a = OEFPCountBatch::FromFingerprints({a0, a1});
+    const auto b = OEFPCountBatch::FromFingerprints({b0, b1, b2});
+
+    const auto values = CDist(a, b, Metric::Dice());
+
+    ASSERT_EQ(values.size(), 6u);
+    EXPECT_DOUBLE_EQ(values[0], Compare(a0, b0, Metric::Dice()));
+    EXPECT_DOUBLE_EQ(values[1], Compare(a0, b1, Metric::Dice()));
+    EXPECT_DOUBLE_EQ(values[2], Compare(a0, b2, Metric::Dice()));
+    EXPECT_DOUBLE_EQ(values[3], Compare(a1, b0, Metric::Dice()));
+    EXPECT_DOUBLE_EQ(values[4], Compare(a1, b1, Metric::Dice()));
+    EXPECT_DOUBLE_EQ(values[5], Compare(a1, b2, Metric::Dice()));
+}
+
+TEST(CompareCountBatchTest, PDistReturnsCondensedValues) {
+    const auto first = count_fingerprint(128, {1u, 7u}, {2u, 1u});
+    const auto second = count_fingerprint(128, {0u, 7u}, {3u, 4u});
+    const auto third = count_fingerprint(128, {64u}, {5u});
+    const auto batch = OEFPCountBatch::FromFingerprints({first, second, third});
+
+    const auto values = PDist(batch, Metric::Tanimoto());
+
+    ASSERT_EQ(values.size(), 3u);
+    EXPECT_DOUBLE_EQ(values[0], Compare(first, second, Metric::Tanimoto()));
+    EXPECT_DOUBLE_EQ(values[1], Compare(first, third, Metric::Tanimoto()));
+    EXPECT_DOUBLE_EQ(values[2], Compare(second, third, Metric::Tanimoto()));
+}
+
+TEST(CompareCountBatchTest, PDistRejectsAsymmetricMetric) {
+    const auto batch = OEFPCountBatch::FromFingerprints({
+        count_fingerprint(128, {1u}, {2u}),
+        count_fingerprint(128, {2u}, {3u}),
+    });
+
+    EXPECT_THROW(PDist(batch, Metric::Tversky(0.25, 0.75)), std::invalid_argument);
+}
+
+TEST(CompareCountBatchTest, ThreadedPDistMatchesSingleThreadedOutput) {
+    std::vector<OEFPCount> fingerprints;
+    fingerprints.reserve(32);
+    for (std::uint32_t i = 0; i < 32; ++i) {
+        fingerprints.push_back(count_fingerprint(
+            256,
+            {i, static_cast<std::uint32_t>(i + 64u)},
+            {static_cast<std::uint32_t>(i % 5u + 1u), 2u}));
+    }
+    const auto batch = OEFPCountBatch::FromFingerprints(fingerprints);
+
+    BatchKernelOptions single_thread;
+    single_thread.num_threads = 1;
+    single_thread.chunk_size = 3;
+    BatchKernelOptions multi_thread;
+    multi_thread.num_threads = 4;
+    multi_thread.chunk_size = 3;
+
+    const auto expected = PDist(batch, Metric::Tanimoto(), single_thread);
+    const auto actual = PDist(batch, Metric::Tanimoto(), multi_thread);
+
+    ASSERT_EQ(actual.size(), expected.size());
+    for (std::size_t i = 0; i < expected.size(); ++i) {
+        EXPECT_DOUBLE_EQ(actual[i], expected[i]);
+    }
 }
 
 TEST(CompareBatchTest, QueryToBatchMatchesScalarComparison) {
