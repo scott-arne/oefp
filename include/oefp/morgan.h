@@ -5,6 +5,7 @@
 #include "oefp/fingerprint.h"
 
 #include <cstdint>
+#include <vector>
 #include <oechem.h>
 
 namespace OEFP {
@@ -18,6 +19,8 @@ struct MorganOptions {
     bool only_nonzero_invariants = false;
     bool include_ring_membership = true;
     bool include_redundant_environments = false;
+    bool count_simulation = false;
+    std::vector<std::uint32_t> count_bounds{1u, 2u, 4u, 8u};
 };
 
 /// \brief Generate an RDKit-compatible folded binary Morgan fingerprint.
@@ -42,6 +45,8 @@ OEFP MakeMorganFingerprint(
 ///
 /// Counts are accumulated from the same atom-environment events used by the
 /// binary generator, then folded by ``raw_id % num_bits``.
+/// Count simulation is only defined for binary Morgan output and is rejected
+/// for this API.
 ///
 /// \param mol Molecule to fingerprint.
 /// \param options Morgan generation options.

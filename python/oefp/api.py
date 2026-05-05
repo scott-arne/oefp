@@ -56,6 +56,27 @@ def _uint32_option(name: str, value: Any, *, positive: bool) -> int:
     return normalized
 
 
+def _uint32_sequence(name: str, values: Sequence[Any]) -> list[int]:
+    normalized_values: list[int] = []
+    for value in values:
+        if not isinstance(value, Integral):
+            raise TypeError(f"Morgan {name} entries must be integers.")
+        normalized = int(value)
+        if normalized < 0:
+            raise ValueError(f"Morgan {name} entries must be non-negative.")
+        if normalized > _UINT32_MAX:
+            raise ValueError(f"Morgan {name} entries must be no greater than {_UINT32_MAX}.")
+        normalized_values.append(normalized)
+    return normalized_values
+
+
+def _native_uint32_vector(values: Sequence[int]) -> Any:
+    vector = _native.UInt32Vector()
+    for value in values:
+        vector.push_back(int(value))
+    return vector
+
+
 class OEFP:
     """Python wrapper for a native dense-binary OEFP."""
 
@@ -388,9 +409,20 @@ def _morgan_options(
     only_nonzero_invariants: bool = False,
     include_ring_membership: bool = True,
     include_redundant_environments: bool = False,
+    count_simulation: bool = False,
+    count_bounds: Sequence[int] | None = None,
 ) -> Any:
     radius_int = _uint32_option("radius", radius, positive=False)
     num_bits_int = _uint32_option("num_bits", num_bits, positive=True)
+    normalized_count_bounds = (
+        [1, 2, 4, 8]
+        if count_bounds is None
+        else _uint32_sequence("count_bounds", count_bounds)
+    )
+    if count_simulation and not normalized_count_bounds:
+        raise ValueError("Morgan count_bounds cannot be empty when count simulation is enabled.")
+    if count_simulation and len(normalized_count_bounds) >= num_bits_int:
+        raise ValueError("Morgan count_bounds length must be smaller than num_bits.")
     if use_chirality:
         raise ValueError("Morgan chirality conformance is not implemented yet.")
     options = _native.MorganOptions()
@@ -401,6 +433,8 @@ def _morgan_options(
     options.only_nonzero_invariants = bool(only_nonzero_invariants)
     options.include_ring_membership = bool(include_ring_membership)
     options.include_redundant_environments = bool(include_redundant_environments)
+    options.count_simulation = bool(count_simulation)
+    options.count_bounds = _native_uint32_vector(normalized_count_bounds)
     return options
 
 
@@ -414,6 +448,8 @@ def morgan_fingerprint(
     only_nonzero_invariants: bool = False,
     include_ring_membership: bool = True,
     include_redundant_environments: bool = False,
+    count_simulation: bool = False,
+    count_bounds: Sequence[int] | None = None,
 ) -> OEFP:
     """Generate an RDKit-compatible folded binary Morgan fingerprint."""
     options = _morgan_options(
@@ -424,6 +460,8 @@ def morgan_fingerprint(
         only_nonzero_invariants,
         include_ring_membership,
         include_redundant_environments,
+        count_simulation,
+        count_bounds,
     )
     return OEFP(_native.MakeMorganFingerprint(mol, options))
 

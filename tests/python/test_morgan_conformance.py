@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from typing import Any, cast
 
 import numpy as np
@@ -53,15 +54,19 @@ def _rdkit_on_bits(
     only_nonzero_invariants: bool = False,
     include_ring_membership: bool = True,
     include_redundant_environments: bool = False,
+    count_simulation: bool = False,
+    count_bounds: Sequence[int] | None = None,
 ) -> set[int]:
     atom_invariants_generator = rdFingerprintGenerator.GetMorganAtomInvGen(include_ring_membership)
+    rdkit_count_bounds = tuple(count_bounds) if count_bounds is not None else None
     generator = rdFingerprintGenerator.GetMorganGenerator(
         radius=radius,
-        countSimulation=False,
+        countSimulation=count_simulation,
         includeChirality=use_chirality,
         useBondTypes=use_bond_types,
         onlyNonzeroInvariants=only_nonzero_invariants,
         includeRingMembership=include_ring_membership,
+        countBounds=rdkit_count_bounds,
         atomInvariantsGenerator=atom_invariants_generator,
         fpSize=num_bits,
         includeRedundantEnvironments=include_redundant_environments,
@@ -109,12 +114,74 @@ def test_morgan_binary_option_toggles_match_rdkit(kwargs: dict[str, bool], smile
     import oefp
 
     default_bits = _rdkit_on_bits(smiles, radius=2, num_bits=256)
-    expected_bits = _rdkit_on_bits(smiles, radius=2, num_bits=256, **kwargs)
+    expected_bits = _rdkit_on_bits(smiles, radius=2, num_bits=256, **cast(Any, kwargs))
     assert expected_bits != default_bits
 
-    fp = oefp.morgan_fingerprint(_openeye_mol(smiles), radius=2, num_bits=256, **kwargs)
+    fp = oefp.morgan_fingerprint(
+        _openeye_mol(smiles),
+        radius=2,
+        num_bits=256,
+        **cast(Any, kwargs),
+    )
 
     assert _oefp_on_bits(fp) == expected_bits
+
+
+@pytest.mark.parametrize("smiles", ["CC", "CCO", "CC(C)O", "c1ccccc1", "C1CCCCC1"])
+@pytest.mark.parametrize("radius", [0, 1, 2])
+@pytest.mark.parametrize("num_bits", [128, 2048])
+def test_morgan_binary_count_simulation_matches_rdkit_default_bounds(
+    smiles: str,
+    radius: int,
+    num_bits: int,
+):
+    import oefp
+
+    fp = oefp.morgan_fingerprint(
+        _openeye_mol(smiles),
+        radius=radius,
+        num_bits=num_bits,
+        count_simulation=True,
+    )
+
+    assert fp.num_bits == num_bits
+    assert _oefp_on_bits(fp) == _rdkit_on_bits(
+        smiles,
+        radius=radius,
+        num_bits=num_bits,
+        count_simulation=True,
+    )
+
+
+@pytest.mark.parametrize(
+    ("count_bounds", "smiles"),
+    [
+        ([1, 3, 7], "CCO"),
+        ([0, 1, 2], "CC"),
+        ([1, 8, 16, 32], "c1ccccc1"),
+    ],
+)
+def test_morgan_binary_count_simulation_custom_bounds_match_rdkit(
+    count_bounds: Sequence[int],
+    smiles: str,
+):
+    import oefp
+
+    fp = oefp.morgan_fingerprint(
+        _openeye_mol(smiles),
+        radius=2,
+        num_bits=256,
+        count_simulation=True,
+        count_bounds=count_bounds,
+    )
+
+    assert _oefp_on_bits(fp) == _rdkit_on_bits(
+        smiles,
+        radius=2,
+        num_bits=256,
+        count_simulation=True,
+        count_bounds=count_bounds,
+    )
 
 
 # morgan_fingerprint is a Python convenience wrapper, so user-facing option
@@ -156,6 +223,31 @@ def test_morgan_rejects_non_integral_options(kwargs: dict[str, float], match: st
         oefp.morgan_fingerprint(_openeye_mol("CCO"), **cast(Any, kwargs))
 
 
+@pytest.mark.parametrize(
+    ("kwargs", "exception_type", "match"),
+    [
+        ({"count_simulation": True, "count_bounds": []}, ValueError, "count_bounds"),
+        (
+            {"count_simulation": True, "num_bits": 4, "count_bounds": [1, 2, 4, 8]},
+            ValueError,
+            "count_bounds",
+        ),
+        ({"count_bounds": [-1]}, ValueError, "count_bounds"),
+        ({"count_bounds": [2**32]}, ValueError, "count_bounds"),
+        ({"count_bounds": [1.5]}, TypeError, "count_bounds"),
+    ],
+)
+def test_morgan_rejects_invalid_count_simulation_options(
+    kwargs: dict[str, Any],
+    exception_type: type[Exception],
+    match: str,
+):
+    import oefp
+
+    with pytest.raises(exception_type, match=match):
+        oefp.morgan_fingerprint(_openeye_mol("CCO"), **kwargs)
+
+
 def test_morgan_rejects_chirality_until_conformance_is_supported():
     import oefp
 
@@ -180,6 +272,8 @@ def test_morgan_batch_compatibility_uses_full_options():
         oefp.morgan_fingerprint(_openeye_mol("CCO"), radius=2, num_bits=128, only_nonzero_invariants=True),
         oefp.morgan_fingerprint(_openeye_mol("CCO"), radius=2, num_bits=128, include_ring_membership=False),
         oefp.morgan_fingerprint(_openeye_mol("CCO"), radius=2, num_bits=128, include_redundant_environments=True),
+        oefp.morgan_fingerprint(_openeye_mol("CCO"), radius=2, num_bits=128, count_simulation=True),
+        oefp.morgan_fingerprint(_openeye_mol("CCO"), radius=2, num_bits=128, count_bounds=[1, 3, 7]),
     ]
 
     for mismatched_fp in mismatched_fps:

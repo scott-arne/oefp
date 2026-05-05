@@ -5,8 +5,10 @@
 
 #include <oechem.h>
 
+#include <cstdint>
 #include <stdexcept>
 #include <string>
+#include <vector>
 
 namespace OEFP {
 namespace test {
@@ -32,6 +34,8 @@ TEST(MorganTest, DefaultOptionsMatchExpectedPublicDefaults) {
     EXPECT_FALSE(options.only_nonzero_invariants);
     EXPECT_TRUE(options.include_ring_membership);
     EXPECT_FALSE(options.include_redundant_environments);
+    EXPECT_FALSE(options.count_simulation);
+    EXPECT_EQ(options.count_bounds, std::vector<std::uint32_t>({1u, 2u, 4u, 8u}));
 }
 
 TEST(MorganTest, RejectsInvalidOptions) {
@@ -44,6 +48,21 @@ TEST(MorganTest, RejectsInvalidOptions) {
     MorganOptions chiral;
     chiral.use_chirality = true;
     EXPECT_THROW(MakeMorganFingerprint(mol, chiral), std::invalid_argument);
+
+    MorganOptions empty_count_bounds;
+    empty_count_bounds.count_simulation = true;
+    empty_count_bounds.count_bounds.clear();
+    EXPECT_THROW(MakeMorganFingerprint(mol, empty_count_bounds), std::invalid_argument);
+
+    MorganOptions too_many_count_bounds;
+    too_many_count_bounds.count_simulation = true;
+    too_many_count_bounds.num_bits = 4;
+    too_many_count_bounds.count_bounds = {1u, 2u, 4u, 8u};
+    EXPECT_THROW(MakeMorganFingerprint(mol, too_many_count_bounds), std::invalid_argument);
+
+    MorganOptions simulated_count_fp;
+    simulated_count_fp.count_simulation = true;
+    EXPECT_THROW(MakeMorganCountFingerprint(mol, simulated_count_fp), std::invalid_argument);
 }
 
 TEST(MorganTest, GeneratedFingerprintCarriesStrictMorganSpec) {
@@ -55,6 +74,8 @@ TEST(MorganTest, GeneratedFingerprintCarriesStrictMorganSpec) {
     options.only_nonzero_invariants = true;
     options.include_ring_membership = false;
     options.include_redundant_environments = true;
+    options.count_simulation = true;
+    options.count_bounds = {1u, 3u, 7u};
 
     const auto fp = MakeMorganFingerprint(mol, options);
     const auto& spec = fp.Spec();
@@ -69,7 +90,8 @@ TEST(MorganTest, GeneratedFingerprintCarriesStrictMorganSpec) {
         spec.parameters,
         "radius=1;num_bits=128;use_chirality=false;use_bond_types=false;"
         "only_nonzero_invariants=true;include_ring_membership=false;"
-        "include_redundant_environments=true");
+        "include_redundant_environments=true;count_simulation=true;"
+        "count_bounds=1,3,7");
 }
 
 TEST(MorganTest, MatchingOptionsBatchAndDifferentOptionsReject) {
@@ -119,6 +141,20 @@ TEST(MorganTest, MatchingOptionsBatchAndDifferentOptionsReject) {
         OEFPBatch::FromFingerprints(
             {fp_a, MakeMorganFingerprint(mol_a, different_redundant_environments)}),
         std::invalid_argument);
+
+    MorganOptions different_count_simulation = options;
+    different_count_simulation.count_simulation = true;
+    EXPECT_THROW(
+        OEFPBatch::FromFingerprints(
+            {fp_a, MakeMorganFingerprint(mol_a, different_count_simulation)}),
+        std::invalid_argument);
+
+    MorganOptions different_count_bounds = options;
+    different_count_bounds.count_bounds = {1u, 4u, 16u};
+    EXPECT_THROW(
+        OEFPBatch::FromFingerprints(
+            {fp_a, MakeMorganFingerprint(mol_a, different_count_bounds)}),
+        std::invalid_argument);
 }
 
 TEST(MorganTest, GeneratesNonEmptyFingerprintForSimpleMolecule) {
@@ -127,6 +163,31 @@ TEST(MorganTest, GeneratesNonEmptyFingerprintForSimpleMolecule) {
     const auto fp = MakeMorganFingerprint(mol);
 
     EXPECT_GT(fp.CountOnBits(), 0u);
+}
+
+TEST(MorganTest, CountSimulationSetsThresholdBits) {
+    const auto mol = mol_from_smiles("CC");
+    MorganOptions options;
+    options.radius = 0;
+    options.num_bits = 16;
+    options.count_simulation = true;
+    options.count_bounds = {1u, 2u, 4u};
+
+    const auto fp = MakeMorganFingerprint(mol, options);
+    const auto bit_count = options.count_bounds.size();
+
+    EXPECT_EQ(fp.CountOnBits(), 2u);
+
+    std::vector<std::uint64_t> on_bits;
+    for (std::uint64_t bit = 0; bit < fp.SizeBits(); ++bit) {
+        if (fp.TestBit(bit)) {
+            on_bits.push_back(bit);
+        }
+    }
+    ASSERT_EQ(on_bits.size(), 2u);
+    EXPECT_EQ(on_bits[0] % bit_count, 0u);
+    EXPECT_EQ(on_bits[1], on_bits[0] + 1u);
+    EXPECT_FALSE(fp.TestBit(on_bits[0] + 2u));
 }
 
 TEST(MorganTest, GeneratesCountFingerprintWithStrictMorganSpec) {

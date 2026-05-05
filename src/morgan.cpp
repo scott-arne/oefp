@@ -63,6 +63,12 @@ void validate_options(const MorganOptions& options) {
     if (options.use_chirality) {
         throw std::invalid_argument("Morgan chirality conformance is not implemented yet.");
     }
+    if (options.count_simulation && options.count_bounds.empty()) {
+        throw std::invalid_argument("Morgan count_bounds cannot be empty when count simulation is enabled.");
+    }
+    if (options.count_simulation && options.count_bounds.size() >= options.num_bits) {
+        throw std::invalid_argument("Morgan count_bounds size must be smaller than num_bits.");
+    }
 }
 
 const char* bool_parameter(bool value) {
@@ -78,7 +84,15 @@ std::string canonical_parameters(const MorganOptions& options) {
            << ";only_nonzero_invariants=" << bool_parameter(options.only_nonzero_invariants)
            << ";include_ring_membership=" << bool_parameter(options.include_ring_membership)
            << ";include_redundant_environments="
-           << bool_parameter(options.include_redundant_environments);
+           << bool_parameter(options.include_redundant_environments)
+           << ";count_simulation=" << bool_parameter(options.count_simulation)
+           << ";count_bounds=";
+    for (std::size_t i = 0; i < options.count_bounds.size(); ++i) {
+        if (i != 0u) {
+            params << ',';
+        }
+        params << options.count_bounds[i];
+    }
     return params.str();
 }
 
@@ -226,7 +240,8 @@ std::vector<std::uint32_t> atom_iteration_order(
 
 std::vector<MorganEvent> enumerate_events(
     const OEChem::OEMolBase& mol,
-    const MorganOptions& options) {
+    const MorganOptions& options,
+    std::uint32_t fold_size) {
     const auto graph = build_graph(mol, options);
 
     std::vector<std::uint32_t> atom_invariants(graph.atoms.size(), 0u);
@@ -254,7 +269,7 @@ std::vector<MorganEvent> enumerate_events(
         if (!options.only_nonzero_invariants || current[atom_record.index] != 0u) {
             events.push_back(
                 MorganEvent{atom_record.index, 0u, current[atom_record.index],
-                            current[atom_record.index] % options.num_bits});
+                            current[atom_record.index] % fold_size});
         }
     }
 
@@ -312,7 +327,7 @@ std::vector<MorganEvent> enumerate_events(
                         atom_id,
                         layer + 1u,
                         raw_id,
-                        raw_id % options.num_bits,
+                        raw_id % fold_size,
                     });
                     seen_neighborhoods.insert(neighborhood);
                 }
@@ -329,13 +344,44 @@ std::vector<MorganEvent> enumerate_events(
     return events;
 }
 
+OEFP make_count_simulated_fingerprint(
+    const OEChem::OEMolBase& mol,
+    const MorganOptions& options) {
+    const auto bound_count = options.count_bounds.size();
+    const auto effective_size = options.num_bits / bound_count;
+    std::map<std::uint32_t, std::uint32_t> effective_counts;
+    for (const auto& event : enumerate_events(mol, options, effective_size)) {
+        auto& count = effective_counts[event.bit_id];
+        if (count == std::numeric_limits<std::uint32_t>::max()) {
+            throw std::overflow_error("Morgan count simulation count exceeds uint32 storage.");
+        }
+        ++count;
+    }
+
+    OEFP fingerprint(morgan_spec(options, FingerprintValueType::Binary));
+    for (const auto& [base_bit, count] : effective_counts) {
+        for (std::size_t i = 0; i < bound_count; ++i) {
+            if (count >= options.count_bounds[i]) {
+                fingerprint.SetBit(
+                    static_cast<std::uint64_t>(base_bit) * bound_count
+                    + static_cast<std::uint64_t>(i));
+            }
+        }
+    }
+    return fingerprint;
+}
+
 } // namespace
 
 OEFP MakeMorganFingerprint(const OEChem::OEMolBase& mol, const MorganOptions& options) {
     validate_options(options);
 
+    if (options.count_simulation) {
+        return make_count_simulated_fingerprint(mol, options);
+    }
+
     OEFP fingerprint(morgan_spec(options, FingerprintValueType::Binary));
-    for (const auto& event : enumerate_events(mol, options)) {
+    for (const auto& event : enumerate_events(mol, options, options.num_bits)) {
         fingerprint.SetBit(event.bit_id);
     }
     return fingerprint;
@@ -343,9 +389,12 @@ OEFP MakeMorganFingerprint(const OEChem::OEMolBase& mol, const MorganOptions& op
 
 OEFPCount MakeMorganCountFingerprint(const OEChem::OEMolBase& mol, const MorganOptions& options) {
     validate_options(options);
+    if (options.count_simulation) {
+        throw std::invalid_argument("Morgan count simulation is only supported for binary fingerprints.");
+    }
 
     std::map<std::uint32_t, std::uint32_t> folded_counts;
-    for (const auto& event : enumerate_events(mol, options)) {
+    for (const auto& event : enumerate_events(mol, options, options.num_bits)) {
         auto& count = folded_counts[event.bit_id];
         if (count == std::numeric_limits<std::uint32_t>::max()) {
             throw std::overflow_error("Morgan count fingerprint count exceeds uint32 storage.");
