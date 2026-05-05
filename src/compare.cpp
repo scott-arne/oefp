@@ -38,6 +38,16 @@ struct DenseCounts {
     std::uint64_t xor_count = 0;
 };
 
+struct SparseCountStats {
+    double a = 0.0;
+    double b = 0.0;
+    double overlap = 0.0;
+    double union_count = 0.0;
+    double dot = 0.0;
+    double square_product = 0.0;
+    double l1 = 0.0;
+};
+
 std::size_t checked_product(std::size_t a, std::size_t b, const char* label) {
     if (a != 0 && b > std::numeric_limits<std::size_t>::max() / a) {
         throw std::invalid_argument(label);
@@ -149,6 +159,76 @@ double evaluate_metric(const DenseCounts& counts, const Metric& metric) {
     throw std::invalid_argument("Unsupported fingerprint metric.");
 }
 
+SparseCountStats count_sparse_pair(const OEFPCount& a, const OEFPCount& b) {
+    SparseCountStats stats;
+    double a_square = 0.0;
+    double b_square = 0.0;
+    std::size_t a_row = 0;
+    std::size_t b_row = 0;
+
+    while (a_row < a.NonzeroCount() || b_row < b.NonzeroCount()) {
+        if (b_row == b.NonzeroCount()
+            || (a_row < a.NonzeroCount() && a.Index(a_row) < b.Index(b_row))) {
+            const auto a_count = static_cast<double>(a.Count(a_row));
+            stats.a += a_count;
+            stats.union_count += a_count;
+            stats.l1 += a_count;
+            a_square += a_count * a_count;
+            ++a_row;
+        } else if (a_row == a.NonzeroCount() || b.Index(b_row) < a.Index(a_row)) {
+            const auto b_count = static_cast<double>(b.Count(b_row));
+            stats.b += b_count;
+            stats.union_count += b_count;
+            stats.l1 += b_count;
+            b_square += b_count * b_count;
+            ++b_row;
+        } else {
+            const auto a_count = static_cast<double>(a.Count(a_row));
+            const auto b_count = static_cast<double>(b.Count(b_row));
+            stats.a += a_count;
+            stats.b += b_count;
+            stats.overlap += a_count < b_count ? a_count : b_count;
+            stats.union_count += a_count > b_count ? a_count : b_count;
+            stats.dot += a_count * b_count;
+            stats.l1 += a_count > b_count ? a_count - b_count : b_count - a_count;
+            a_square += a_count * a_count;
+            b_square += b_count * b_count;
+            ++a_row;
+            ++b_row;
+        }
+    }
+
+    stats.square_product = a_square * b_square;
+    return stats;
+}
+
+double evaluate_count_metric(const SparseCountStats& stats, const Metric& metric) {
+    const auto only_a = stats.a - stats.overlap;
+    const auto only_b = stats.b - stats.overlap;
+
+    switch (metric.Kind()) {
+    case MetricKind::Tanimoto:
+    case MetricKind::Jaccard:
+        return apply_mode(zero_safe_divide(stats.overlap, stats.union_count), metric.Mode());
+    case MetricKind::Tversky:
+        return apply_mode(
+            zero_safe_divide(
+                stats.overlap,
+                stats.overlap + metric.Alpha() * only_a + metric.Beta() * only_b),
+            metric.Mode());
+    case MetricKind::Dice:
+        return apply_mode(zero_safe_divide(2.0 * stats.overlap, stats.a + stats.b), metric.Mode());
+    case MetricKind::Cosine:
+        return apply_mode(
+            zero_safe_divide(stats.dot, std::sqrt(stats.square_product)),
+            metric.Mode());
+    case MetricKind::Manhattan:
+        return stats.l1;
+    }
+
+    throw std::invalid_argument("Unsupported fingerprint metric.");
+}
+
 void validate_output(double* output, std::size_t output_length, std::size_t expected_length) {
     if (output_length != expected_length) {
         throw std::invalid_argument("Output length does not match requested comparison shape.");
@@ -206,6 +286,14 @@ double Compare(const OEFP& a, const OEFP& b, const Metric& metric) {
         a.CountOnBits(),
         b.CountOnBits());
     return evaluate_metric(counts, metric);
+}
+
+double Compare(const OEFPCount& a, const OEFPCount& b, const Metric& metric) {
+    if (a.Spec() != b.Spec()) {
+        throw std::invalid_argument("Count fingerprint specifications must match for comparison.");
+    }
+
+    return evaluate_count_metric(count_sparse_pair(a, b), metric);
 }
 
 std::vector<double> Compare(

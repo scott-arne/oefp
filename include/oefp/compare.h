@@ -2,6 +2,7 @@
 #define OEFP_COMPARE_H
 
 #include "oefp/batch.h"
+#include "oefp/count.h"
 #include "oefp/fingerprint.h"
 #include "oefp/metric.h"
 
@@ -30,6 +31,19 @@ struct BatchKernelOptions {
 /// \throws std::invalid_argument: When fingerprint specifications or storage
 ///     widths differ.
 double Compare(const OEFP& a, const OEFP& b, const Metric& metric);
+
+/// \brief Compare two sparse counted fingerprints with the requested metric.
+///
+/// Tanimoto, Jaccard, Dice, and Tversky use weighted count overlap semantics
+/// compatible with RDKit count fingerprints. Cosine uses weighted dot-product
+/// semantics and Manhattan uses L1 count distance.
+///
+/// \param a First counted fingerprint.
+/// \param b Second counted fingerprint.
+/// \param metric Metric configuration.
+/// \returns Similarity or distance according to metric.Mode().
+/// \throws std::invalid_argument: When fingerprint specifications differ.
+double Compare(const OEFPCount& a, const OEFPCount& b, const Metric& metric);
 
 /// \brief Compare one query fingerprint against each row in a dense batch.
 std::vector<double> Compare(

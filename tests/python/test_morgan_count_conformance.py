@@ -6,6 +6,7 @@ import numpy as np
 import pytest
 
 Chem = pytest.importorskip("rdkit.Chem", reason="RDKit is required for Morgan count conformance tests")
+DataStructs = pytest.importorskip("rdkit.DataStructs", reason="RDKit is required for count metric conformance tests")
 rdFingerprintGenerator = pytest.importorskip(
     "rdkit.Chem.rdFingerprintGenerator",
     reason="RDKit is required for Morgan count conformance tests",
@@ -59,6 +60,36 @@ def _rdkit_counts(
         includeRedundantEnvironments=include_redundant_environments,
     )
     return {int(index): int(count) for index, count in generator.GetCountFingerprint(_rdkit_mol(smiles)).GetNonzeroElements().items()}
+
+
+def _rdkit_count_fingerprint(
+    smiles: str,
+    *,
+    radius: int = 2,
+    num_bits: int = 2048,
+):
+    atom_invariants_generator = rdFingerprintGenerator.GetMorganAtomInvGen(True)
+    generator = rdFingerprintGenerator.GetMorganGenerator(
+        radius=radius,
+        countSimulation=False,
+        includeChirality=False,
+        useBondTypes=True,
+        onlyNonzeroInvariants=False,
+        includeRingMembership=True,
+        atomInvariantsGenerator=atom_invariants_generator,
+        fpSize=num_bits,
+        includeRedundantEnvironments=False,
+    )
+    return generator.GetCountFingerprint(_rdkit_mol(smiles))
+
+
+def _count_stats(a: dict[int, int], b: dict[int, int]) -> tuple[int, int, int]:
+    keys = set(a) | set(b)
+    dot = sum(a.get(key, 0) * b.get(key, 0) for key in keys)
+    a_square = sum(count * count for count in a.values())
+    b_square = sum(count * count for count in b.values())
+    l1 = sum(abs(a.get(key, 0) - b.get(key, 0)) for key in keys)
+    return dot, a_square * b_square, l1
 
 
 @pytest.mark.parametrize(
@@ -126,3 +157,37 @@ def test_morgan_count_reuses_public_option_validation():
         oefp.morgan_count_fingerprint(mol, radius=-1)
     with pytest.raises(ValueError, match="chirality"):
         oefp.morgan_count_fingerprint(mol, use_chirality=True)
+
+
+def test_morgan_count_compare_matches_rdkit_count_metrics():
+    import oefp
+
+    kwargs = {"radius": 2, "num_bits": 256}
+    fp_a = oefp.morgan_count_fingerprint(_openeye_mol("CCO"), **kwargs)
+    fp_b = oefp.morgan_count_fingerprint(_openeye_mol("CCN"), **kwargs)
+    rd_a = _rdkit_count_fingerprint("CCO", **kwargs)
+    rd_b = _rdkit_count_fingerprint("CCN", **kwargs)
+
+    tanimoto = DataStructs.TanimotoSimilarity(rd_a, rd_b)
+    dice = DataStructs.DiceSimilarity(rd_a, rd_b)
+    tversky = DataStructs.TverskySimilarity(rd_a, rd_b, 0.25, 0.75)
+
+    assert oefp.compare(fp_a, fp_b, oefp.Metric.tanimoto()) == pytest.approx(tanimoto)
+    assert oefp.compare(fp_a, fp_b, oefp.Metric.tanimoto(mode="distance")) == pytest.approx(1.0 - tanimoto)
+    assert oefp.compare(fp_a, fp_b, oefp.Metric.dice()) == pytest.approx(dice)
+    assert oefp.compare(fp_a, fp_b, oefp.Metric.tversky(0.25, 0.75)) == pytest.approx(tversky)
+
+
+def test_morgan_count_compare_supports_cosine_and_manhattan():
+    import oefp
+
+    fp_a = oefp.morgan_count_fingerprint(_openeye_mol("CCO"), num_bits=128)
+    fp_b = oefp.morgan_count_fingerprint(_openeye_mol("CCN"), num_bits=128)
+    counts_a = _oefp_counts(fp_a)
+    counts_b = _oefp_counts(fp_b)
+    dot, square_product, l1 = _count_stats(counts_a, counts_b)
+    expected_cosine = 0.0 if square_product == 0 else dot / np.sqrt(square_product)
+
+    assert oefp.compare(fp_a, fp_b, oefp.Metric.cosine()) == pytest.approx(expected_cosine)
+    assert oefp.compare(fp_a, fp_b, oefp.Metric.cosine(mode="distance")) == pytest.approx(1.0 - expected_cosine)
+    assert oefp.compare(fp_a, fp_b, oefp.Metric.manhattan()) == pytest.approx(l1)

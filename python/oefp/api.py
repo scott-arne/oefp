@@ -228,16 +228,22 @@ class Metric:
 
 
 def compare(
-    a: OEFP,
-    b: OEFP | OEFPBatch,
+    a: OEFP | OEFPCount,
+    b: OEFP | OEFPBatch | OEFPCount,
     metric: Metric,
     *,
     num_threads: int = 0,
     chunk_size: int = 256,
 ) -> float | np.ndarray:
     """Compare one fingerprint with another fingerprint or batch."""
-    if isinstance(b, OEFP):
+    if isinstance(a, OEFP) and isinstance(b, OEFP):
         return float(_native.Compare(a._native, b._native, metric._native))
+    if isinstance(a, OEFPCount) and isinstance(b, OEFPCount):
+        return float(_native.Compare(a._native, b._native, metric._native))
+    if not isinstance(a, OEFP) or not isinstance(b, OEFPBatch):
+        raise TypeError(
+            "compare expects OEFP/OEFP, OEFP/OEFPBatch, or OEFPCount/OEFPCount inputs."
+        )
 
     output = np.empty((b.size,), dtype=np.float64)
     _native.CompareIntoAddress(

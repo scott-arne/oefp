@@ -1,11 +1,13 @@
 #include <gtest/gtest.h>
 
 #include "oefp/compare.h"
+#include "oefp/count.h"
 
 #include <cmath>
 #include <cstdint>
 #include <stdexcept>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace OEFP {
@@ -29,6 +31,20 @@ OEFP fingerprint_with_bits(std::uint64_t size_bits, std::initializer_list<std::u
         fp.SetBit(bit);
     }
     return fp;
+}
+
+FingerprintSpec count_spec(std::uint64_t size_bits) {
+    auto spec = binary_spec(size_bits);
+    spec.value_type = FingerprintValueType::Counted;
+    spec.source_type = "count";
+    return spec;
+}
+
+OEFPCount count_fingerprint(
+    std::uint64_t size_bits,
+    std::vector<std::uint32_t> indices,
+    std::vector<std::uint32_t> counts) {
+    return OEFPCount(count_spec(size_bits), std::move(indices), std::move(counts));
 }
 
 } // namespace
@@ -124,6 +140,47 @@ TEST(CompareTest, HandlesZeroWidthFingerprintsWithEmptyDenominatorRule) {
     EXPECT_EQ(Compare(a, b, Metric::Cosine(MetricMode::Distance)), 1.0);
     EXPECT_EQ(Compare(a, b, Metric::Tversky(1.0, 0.0)), 0.0);
     EXPECT_EQ(Compare(a, b, Metric::Tversky(1.0, 0.0, MetricMode::Distance)), 1.0);
+    EXPECT_EQ(Compare(a, b, Metric::Manhattan()), 0.0);
+}
+
+TEST(CompareCountTest, ComputesWeightedCountSimilaritiesAndDistances) {
+    const auto a = count_fingerprint(16, {1u, 3u, 8u}, {2u, 4u, 1u});
+    const auto b = count_fingerprint(16, {1u, 2u, 8u}, {1u, 5u, 3u});
+
+    EXPECT_NEAR(Compare(a, b, Metric::Tanimoto()), 2.0 / 14.0, 1.0e-12);
+    EXPECT_NEAR(Compare(a, b, Metric::Tanimoto(MetricMode::Distance)), 1.0 - 2.0 / 14.0, 1.0e-12);
+    EXPECT_NEAR(Compare(a, b, Metric::Jaccard()), 2.0 / 14.0, 1.0e-12);
+    EXPECT_NEAR(Compare(a, b, Metric::Dice()), 4.0 / 16.0, 1.0e-12);
+    EXPECT_NEAR(Compare(a, b, Metric::Tversky(0.25, 0.75)), 2.0 / 8.5, 1.0e-12);
+    EXPECT_NEAR(Compare(a, b, Metric::Cosine()), 5.0 / std::sqrt(735.0), 1.0e-12);
+    EXPECT_EQ(Compare(a, b, Metric::Manhattan()), 12.0);
+}
+
+TEST(CompareCountTest, RejectsMismatchedCountSpecs) {
+    const auto a = count_fingerprint(16, {1u}, {2u});
+    const auto different_size = count_fingerprint(32, {1u}, {2u});
+
+    auto metadata_spec = count_spec(16);
+    metadata_spec.source_version = "2";
+    const OEFPCount different_metadata(metadata_spec, {1u}, {2u});
+
+    EXPECT_THROW(Compare(a, different_size, Metric::Tanimoto()), std::invalid_argument);
+    EXPECT_THROW(Compare(a, different_metadata, Metric::Tanimoto()), std::invalid_argument);
+}
+
+TEST(CompareCountTest, UsesZeroSimilarityForEmptyCountDenominators) {
+    const OEFPCount a(count_spec(16));
+    const OEFPCount b(count_spec(16));
+
+    EXPECT_EQ(Compare(a, b, Metric::Tanimoto()), 0.0);
+    EXPECT_EQ(Compare(a, b, Metric::Tanimoto(MetricMode::Distance)), 1.0);
+    EXPECT_EQ(Compare(a, b, Metric::Jaccard()), 0.0);
+    EXPECT_EQ(Compare(a, b, Metric::Dice()), 0.0);
+    EXPECT_EQ(Compare(a, b, Metric::Dice(MetricMode::Distance)), 1.0);
+    EXPECT_EQ(Compare(a, b, Metric::Cosine()), 0.0);
+    EXPECT_EQ(Compare(a, b, Metric::Cosine(MetricMode::Distance)), 1.0);
+    EXPECT_EQ(Compare(a, b, Metric::Tversky(0.5, 0.5)), 0.0);
+    EXPECT_EQ(Compare(a, b, Metric::Tversky(0.5, 0.5, MetricMode::Distance)), 1.0);
     EXPECT_EQ(Compare(a, b, Metric::Manhattan()), 0.0);
 }
 
