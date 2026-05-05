@@ -4,12 +4,15 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass
+from numbers import Integral
 from typing import Any
 
 import numpy as np
 
 from . import oefp as _native
 from ._views import readonly_array_from_address
+
+_UINT32_MAX = 2**32 - 1
 
 
 def _mode_value(mode: str) -> Any:
@@ -37,6 +40,20 @@ def _manual_spec(num_bits: int, algorithm: str) -> Any:
     spec.source_version = ""
     spec.parameters = ""
     return spec
+
+
+def _uint32_option(name: str, value: Any, *, positive: bool) -> int:
+    if not isinstance(value, Integral):
+        raise TypeError(f"Morgan {name} must be an integer.")
+    normalized = int(value)
+    if positive:
+        if normalized <= 0:
+            raise ValueError(f"Morgan {name} must be greater than zero.")
+    elif normalized < 0:
+        raise ValueError(f"Morgan {name} must be non-negative.")
+    if normalized > _UINT32_MAX:
+        raise ValueError(f"Morgan {name} must be no greater than {_UINT32_MAX}.")
+    return normalized
 
 
 class OEFP:
@@ -230,6 +247,33 @@ def pdist(
         _batch_options(num_threads, chunk_size),
     )
     return output
+
+
+def morgan_fingerprint(
+    mol: Any,
+    *,
+    radius: int = 2,
+    num_bits: int = 2048,
+    use_chirality: bool = False,
+    use_bond_types: bool = True,
+    only_nonzero_invariants: bool = False,
+    include_ring_membership: bool = True,
+    include_redundant_environments: bool = False,
+) -> OEFP:
+    """Generate an RDKit-compatible folded binary Morgan fingerprint."""
+    radius_int = _uint32_option("radius", radius, positive=False)
+    num_bits_int = _uint32_option("num_bits", num_bits, positive=True)
+    if use_chirality:
+        raise ValueError("Morgan chirality conformance is not implemented yet.")
+    options = _native.MorganOptions()
+    options.radius = radius_int
+    options.num_bits = num_bits_int
+    options.use_chirality = bool(use_chirality)
+    options.use_bond_types = bool(use_bond_types)
+    options.only_nonzero_invariants = bool(only_nonzero_invariants)
+    options.include_ring_membership = bool(include_ring_membership)
+    options.include_redundant_environments = bool(include_redundant_environments)
+    return OEFP(_native.MakeMorganFingerprint(mol, options))
 
 
 def from_openeye_fingerprint(fp: Any) -> OEFP:

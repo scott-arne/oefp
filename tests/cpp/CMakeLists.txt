@@ -14,6 +14,7 @@ add_executable(oefp_tests
     test_compare.cpp
     test_fingerprint.cpp
     test_metric.cpp
+    test_morgan.cpp
     test_oefp.cpp
     test_openeye_interop.cpp
 )

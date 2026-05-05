@@ -461,6 +461,7 @@ OEFP_GIL_RELEASE_EXCEPTION(OEFP::PDist)
 OEFP_GIL_RELEASE_EXCEPTION(OEFP::CompareIntoAddress)
 OEFP_GIL_RELEASE_EXCEPTION(OEFP::CDistIntoAddress)
 OEFP_GIL_RELEASE_EXCEPTION(OEFP::PDistIntoAddress)
+OEFP_GIL_RELEASE_EXCEPTION(OEFP::MakeMorganFingerprint)
 
 %include "oefp/fingerprint.h"
 
@@ -470,6 +471,7 @@ namespace std {
 
 %include "oefp/batch.h"
 %include "oefp/metric.h"
+%include "oefp/morgan.h"
 %include "oefp/compare.h"
 %include "oefp/openeye.h"
 %include "oefp/annotation.h"

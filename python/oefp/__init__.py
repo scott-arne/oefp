@@ -270,6 +270,7 @@ from .api import (
     cdist,
     compare,
     from_openeye_fingerprint,
+    morgan_fingerprint,
     pdist,
     to_openeye_fingerprint,
 )
@@ -284,6 +285,7 @@ __all__ = [
     "cdist",
     "compare",
     "from_openeye_fingerprint",
+    "morgan_fingerprint",
     "pdist",
     "to_openeye_fingerprint",
 ]

@@ -11,6 +11,7 @@
 #include "oefp/compare.h"
 #include "oefp/fingerprint.h"
 #include "oefp/metric.h"
+#include "oefp/morgan.h"
 #include "oefp/openeye.h"
 
 #include <oechem.h>

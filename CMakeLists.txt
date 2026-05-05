@@ -59,6 +59,7 @@ set(OEFP_SOURCES
     src/compare.cpp
     src/fingerprint.cpp
     src/metric.cpp
+    src/morgan.cpp
     src/oefp.cpp
     src/openeye.cpp
 )
