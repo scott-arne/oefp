@@ -51,6 +51,7 @@ find_package(OpenEye REQUIRED)
 
 # Library
 set(OEFP_SOURCES
+    src/fingerprint.cpp
     src/oefp.cpp
 )
 
