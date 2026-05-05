@@ -3,6 +3,10 @@
 #include <stdexcept>
 #include <utility>
 
+#ifdef _MSC_VER
+#include <intrin.h>
+#endif
+
 namespace OEFP {
 namespace {
 
@@ -14,12 +18,19 @@ std::size_t word_count_for_size(std::uint64_t size_bits) {
 }
 
 std::uint64_t count_bits(std::uint64_t word) {
+#if defined(_MSC_VER)
+    return static_cast<std::uint64_t>(__popcnt64(word));
+#elif defined(__clang__) || defined(__GNUC__)
+    return static_cast<std::uint64_t>(
+        __builtin_popcountll(static_cast<unsigned long long>(word)));
+#else
     std::uint64_t count = 0;
     while (word != 0) {
         word &= word - 1;
         ++count;
     }
     return count;
+#endif
 }
 
 } // namespace
@@ -66,8 +77,17 @@ const std::vector<std::uint64_t>& OEFP::Words() const {
     return words_;
 }
 
-std::vector<std::uint64_t>& OEFP::MutableWords() {
-    return words_;
+std::uint64_t OEFP::Word(std::size_t word_index) const {
+    CheckWordIndex(word_index);
+    return words_[word_index];
+}
+
+void OEFP::SetWord(std::size_t word_index, std::uint64_t value) {
+    CheckWordIndex(word_index);
+    words_[word_index] = value;
+    if (word_index + 1 == words_.size()) {
+        MaskUnusedBits();
+    }
 }
 
 void OEFP::SetBit(std::uint64_t index) {
@@ -112,6 +132,12 @@ void OEFP::ValidateBinarySpec() const {
 void OEFP::CheckBitIndex(std::uint64_t index) const {
     if (index >= spec_.size_bits) {
         throw std::out_of_range("Fingerprint bit index is out of range.");
+    }
+}
+
+void OEFP::CheckWordIndex(std::size_t word_index) const {
+    if (word_index >= words_.size()) {
+        throw std::out_of_range("Fingerprint word index is out of range.");
     }
 }
 

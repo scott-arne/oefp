@@ -66,11 +66,20 @@ public:
     /// \brief Return read-only access to the dense storage words.
     const std::vector<std::uint64_t>& Words() const;
 
-    /// \brief Return mutable access to the dense storage words.
+    /// \brief Return one storage word by zero-based word index.
     ///
-    /// Callers that write through this reference must preserve the fixed-size
-    /// invariant by calling MaskUnusedBits() after changing the final word.
-    std::vector<std::uint64_t>& MutableWords();
+    /// \raises std::out_of_range: When word_index is greater than or equal to
+    ///     WordCount().
+    std::uint64_t Word(std::size_t word_index) const;
+
+    /// \brief Set one storage word by zero-based word index.
+    ///
+    /// Writes through this method preserve the fixed-size invariant by masking
+    /// unused high bits when the final word is changed.
+    ///
+    /// \raises std::out_of_range: When word_index is greater than or equal to
+    ///     WordCount().
+    void SetWord(std::size_t word_index, std::uint64_t value);
 
     /// \brief Set a bit by zero-based index.
     ///
@@ -102,6 +111,7 @@ private:
 
     void ValidateBinarySpec() const;
     void CheckBitIndex(std::uint64_t index) const;
+    void CheckWordIndex(std::size_t word_index) const;
 };
 
 bool operator==(const OEFP& lhs, const OEFP& rhs);

@@ -6,8 +6,6 @@
 #include "oefp/oefp.h"
 #include <oechem.h>
 #include <oegrid.h>
-
-using namespace OEFP;
 %}
 
 // ============================================================================

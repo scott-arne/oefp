@@ -6,6 +6,8 @@
 #define OEFP_VERSION_MINOR 1
 #define OEFP_VERSION_PATCH 0
 
+#include "oefp/fingerprint.h"
+
 #include <oechem.h>
 
 namespace OEFP {

@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include "oefp/fingerprint.h"
+#include "oefp/oefp.h"
 
 #include <cstdint>
 #include <stdexcept>
@@ -19,6 +19,12 @@ FingerprintSpec binary_spec(std::uint64_t size_bits) {
     spec.source_type = "dense";
     spec.source_version = "1";
     spec.parameters = "size=" + std::to_string(size_bits);
+    return spec;
+}
+
+FingerprintSpec counted_spec(std::uint64_t size_bits) {
+    auto spec = binary_spec(size_bits);
+    spec.value_type = FingerprintValueType::Counted;
     return spec;
 }
 
@@ -83,6 +89,13 @@ TEST(FingerprintTest, BitOperationsRejectOutOfRangeIndexes) {
     EXPECT_THROW(fingerprint.TestBit(3), std::out_of_range);
 }
 
+TEST(FingerprintTest, WordAccessRejectsOutOfRangeIndexes) {
+    OEFP fingerprint(binary_spec(65));
+
+    EXPECT_THROW(static_cast<void>(fingerprint.Word(2)), std::out_of_range);
+    EXPECT_THROW(fingerprint.SetWord(2, 0ULL), std::out_of_range);
+}
+
 TEST(FingerprintTest, ConstructorValidatesWordCount) {
     EXPECT_THROW(OEFP(binary_spec(65), std::vector<std::uint64_t>{0ULL}), std::invalid_argument);
     EXPECT_THROW(
@@ -92,16 +105,33 @@ TEST(FingerprintTest, ConstructorValidatesWordCount) {
     EXPECT_NO_THROW(OEFP(binary_spec(65), std::vector<std::uint64_t>{0ULL, 0ULL}));
 }
 
+TEST(FingerprintTest, ConstructorsRejectCountedSpecs) {
+    EXPECT_THROW(OEFP(counted_spec(64)), std::invalid_argument);
+    EXPECT_THROW(OEFP(counted_spec(64), std::vector<std::uint64_t>{0ULL}), std::invalid_argument);
+}
+
 TEST(FingerprintTest, MasksUnusedHighBitsInFinalWord) {
     OEFP fingerprint(binary_spec(65), std::vector<std::uint64_t>{~0ULL, ~0ULL});
 
-    EXPECT_EQ(fingerprint.Words()[0], ~0ULL);
-    EXPECT_EQ(fingerprint.Words()[1], 1ULL);
+    EXPECT_EQ(fingerprint.Word(0), ~0ULL);
+    EXPECT_EQ(fingerprint.Word(1), 1ULL);
 
-    fingerprint.MutableWords()[1] = ~0ULL;
-    fingerprint.MaskUnusedBits();
+    fingerprint.SetWord(1, ~0ULL);
 
+    EXPECT_EQ(fingerprint.Word(1), 1ULL);
     EXPECT_EQ(fingerprint.Words()[1], 1ULL);
+}
+
+TEST(FingerprintTest, SetsAndReadsWordsWithFinalWordMasking) {
+    OEFP fingerprint(binary_spec(130));
+
+    fingerprint.SetWord(0, ~0ULL);
+    fingerprint.SetWord(1, 0x1234ULL);
+    fingerprint.SetWord(2, ~0ULL);
+
+    EXPECT_EQ(fingerprint.Word(0), ~0ULL);
+    EXPECT_EQ(fingerprint.Word(1), 0x1234ULL);
+    EXPECT_EQ(fingerprint.Word(2), 0x3ULL);
 }
 
 TEST(FingerprintTest, CountsOnBits) {
