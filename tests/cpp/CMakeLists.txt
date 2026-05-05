@@ -10,7 +10,9 @@ FetchContent_MakeAvailable(googletest)
 
 add_executable(oefp_tests
     test_batch.cpp
+    test_compare.cpp
     test_fingerprint.cpp
+    test_metric.cpp
     test_oefp.cpp
 )
 

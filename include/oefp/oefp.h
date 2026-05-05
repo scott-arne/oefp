@@ -7,7 +7,9 @@
 #define OEFP_VERSION_PATCH 0
 
 #include "oefp/batch.h"
+#include "oefp/compare.h"
 #include "oefp/fingerprint.h"
+#include "oefp/metric.h"
 
 #include <oechem.h>
 

@@ -52,7 +52,9 @@ find_package(OpenEye REQUIRED)
 # Library
 set(OEFP_SOURCES
     src/batch.cpp
+    src/compare.cpp
     src/fingerprint.cpp
+    src/metric.cpp
     src/oefp.cpp
 )
 
