@@ -97,6 +97,48 @@ class OEFP:
         return int(self._native.SizeBits())
 
 
+class OEFPCount:
+    """Python wrapper for a native sparse counted fingerprint."""
+
+    def __init__(self, native: Any):
+        self._native = native
+
+    @property
+    def indices(self) -> np.ndarray:
+        """Read-only view of sorted nonzero count indices."""
+        return readonly_array_from_address(
+            self,
+            self._native.IndexDataAddress(),
+            (self._native.NonzeroCount(),),
+            np.dtype(np.uint32),
+        )
+
+    @property
+    def counts(self) -> np.ndarray:
+        """Read-only view of counts parallel to indices."""
+        return readonly_array_from_address(
+            self,
+            self._native.CountDataAddress(),
+            (self._native.NonzeroCount(),),
+            np.dtype(np.uint32),
+        )
+
+    @property
+    def nonzero_count(self) -> int:
+        """Number of nonzero sparse count entries."""
+        return int(self._native.NonzeroCount())
+
+    @property
+    def total_count(self) -> int:
+        """Sum of all sparse counts."""
+        return int(self._native.TotalCount())
+
+    @property
+    def num_bits(self) -> int:
+        """Fixed folded fingerprint size."""
+        return int(self._native.SizeBits())
+
+
 class OEFPBatch:
     """Python wrapper for a native dense-binary OEFPBatch."""
 
@@ -249,9 +291,7 @@ def pdist(
     return output
 
 
-def morgan_fingerprint(
-    mol: Any,
-    *,
+def _morgan_options(
     radius: int = 2,
     num_bits: int = 2048,
     use_chirality: bool = False,
@@ -259,8 +299,7 @@ def morgan_fingerprint(
     only_nonzero_invariants: bool = False,
     include_ring_membership: bool = True,
     include_redundant_environments: bool = False,
-) -> OEFP:
-    """Generate an RDKit-compatible folded binary Morgan fingerprint."""
+) -> Any:
     radius_int = _uint32_option("radius", radius, positive=False)
     num_bits_int = _uint32_option("num_bits", num_bits, positive=True)
     if use_chirality:
@@ -273,7 +312,55 @@ def morgan_fingerprint(
     options.only_nonzero_invariants = bool(only_nonzero_invariants)
     options.include_ring_membership = bool(include_ring_membership)
     options.include_redundant_environments = bool(include_redundant_environments)
+    return options
+
+
+def morgan_fingerprint(
+    mol: Any,
+    *,
+    radius: int = 2,
+    num_bits: int = 2048,
+    use_chirality: bool = False,
+    use_bond_types: bool = True,
+    only_nonzero_invariants: bool = False,
+    include_ring_membership: bool = True,
+    include_redundant_environments: bool = False,
+) -> OEFP:
+    """Generate an RDKit-compatible folded binary Morgan fingerprint."""
+    options = _morgan_options(
+        radius,
+        num_bits,
+        use_chirality,
+        use_bond_types,
+        only_nonzero_invariants,
+        include_ring_membership,
+        include_redundant_environments,
+    )
     return OEFP(_native.MakeMorganFingerprint(mol, options))
+
+
+def morgan_count_fingerprint(
+    mol: Any,
+    *,
+    radius: int = 2,
+    num_bits: int = 2048,
+    use_chirality: bool = False,
+    use_bond_types: bool = True,
+    only_nonzero_invariants: bool = False,
+    include_ring_membership: bool = True,
+    include_redundant_environments: bool = False,
+) -> OEFPCount:
+    """Generate an RDKit-compatible folded count Morgan fingerprint."""
+    options = _morgan_options(
+        radius,
+        num_bits,
+        use_chirality,
+        use_bond_types,
+        only_nonzero_invariants,
+        include_ring_membership,
+        include_redundant_environments,
+    )
+    return OEFPCount(_native.MakeMorganCountFingerprint(mol, options))
 
 
 def from_openeye_fingerprint(fp: Any) -> OEFP:

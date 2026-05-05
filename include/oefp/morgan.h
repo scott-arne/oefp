@@ -1,6 +1,7 @@
 #ifndef OEFP_MORGAN_H
 #define OEFP_MORGAN_H
 
+#include "oefp/count.h"
 #include "oefp/fingerprint.h"
 
 #include <cstdint>
@@ -33,6 +34,26 @@ struct MorganOptions {
 OEFP MakeMorganFingerprint(const OEChem::OEMolBase& mol, const MorganOptions& options);
 #else
 OEFP MakeMorganFingerprint(
+    const OEChem::OEMolBase& mol,
+    const MorganOptions& options = MorganOptions{});
+#endif
+
+/// \brief Generate an RDKit-compatible folded count Morgan fingerprint.
+///
+/// Counts are accumulated from the same atom-environment events used by the
+/// binary generator, then folded by ``raw_id % num_bits``.
+///
+/// \param mol Molecule to fingerprint.
+/// \param options Morgan generation options.
+/// \returns Sparse counted Morgan fingerprint.
+/// \throws std::invalid_argument: When the requested options are unsupported
+///     or invalid.
+#ifdef SWIG
+OEFPCount MakeMorganCountFingerprint(
+    const OEChem::OEMolBase& mol,
+    const MorganOptions& options);
+#else
+OEFPCount MakeMorganCountFingerprint(
     const OEChem::OEMolBase& mol,
     const MorganOptions& options = MorganOptions{});
 #endif

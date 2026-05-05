@@ -12,6 +12,7 @@ add_executable(oefp_tests
     test_annotation.cpp
     test_batch.cpp
     test_compare.cpp
+    test_count.cpp
     test_fingerprint.cpp
     test_metric.cpp
     test_morgan.cpp

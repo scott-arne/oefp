@@ -9,6 +9,7 @@
 #include "oefp/annotation.h"
 #include "oefp/batch.h"
 #include "oefp/compare.h"
+#include "oefp/count.h"
 #include "oefp/fingerprint.h"
 #include "oefp/metric.h"
 #include "oefp/morgan.h"

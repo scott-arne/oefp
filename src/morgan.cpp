@@ -2,6 +2,8 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <limits>
+#include <map>
 #include <set>
 #include <sstream>
 #include <stdexcept>
@@ -80,10 +82,10 @@ std::string canonical_parameters(const MorganOptions& options) {
     return params.str();
 }
 
-FingerprintSpec morgan_spec(const MorganOptions& options) {
+FingerprintSpec morgan_spec(const MorganOptions& options, FingerprintValueType value_type) {
     FingerprintSpec spec;
     spec.size_bits = options.num_bits;
-    spec.value_type = FingerprintValueType::Binary;
+    spec.value_type = value_type;
     spec.source_name = "RDKit-compatible";
     spec.source_type = "Morgan";
     spec.source_version = MORGAN_COMPAT_VERSION;
@@ -332,11 +334,38 @@ std::vector<MorganEvent> enumerate_events(
 OEFP MakeMorganFingerprint(const OEChem::OEMolBase& mol, const MorganOptions& options) {
     validate_options(options);
 
-    OEFP fingerprint(morgan_spec(options));
+    OEFP fingerprint(morgan_spec(options, FingerprintValueType::Binary));
     for (const auto& event : enumerate_events(mol, options)) {
         fingerprint.SetBit(event.bit_id);
     }
     return fingerprint;
+}
+
+OEFPCount MakeMorganCountFingerprint(const OEChem::OEMolBase& mol, const MorganOptions& options) {
+    validate_options(options);
+
+    std::map<std::uint32_t, std::uint32_t> folded_counts;
+    for (const auto& event : enumerate_events(mol, options)) {
+        auto& count = folded_counts[event.bit_id];
+        if (count == std::numeric_limits<std::uint32_t>::max()) {
+            throw std::overflow_error("Morgan count fingerprint count exceeds uint32 storage.");
+        }
+        ++count;
+    }
+
+    std::vector<std::uint32_t> indices;
+    std::vector<std::uint32_t> counts;
+    indices.reserve(folded_counts.size());
+    counts.reserve(folded_counts.size());
+    for (const auto& [index, count] : folded_counts) {
+        indices.push_back(index);
+        counts.push_back(count);
+    }
+
+    return OEFPCount(
+        morgan_spec(options, FingerprintValueType::Counted),
+        std::move(indices),
+        std::move(counts));
 }
 
 } // namespace OEFP

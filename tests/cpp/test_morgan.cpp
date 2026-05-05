@@ -129,5 +129,24 @@ TEST(MorganTest, GeneratesNonEmptyFingerprintForSimpleMolecule) {
     EXPECT_GT(fp.CountOnBits(), 0u);
 }
 
+TEST(MorganTest, GeneratesCountFingerprintWithStrictMorganSpec) {
+    const auto mol = mol_from_smiles("CCO");
+    MorganOptions options;
+    options.num_bits = 128;
+
+    const auto fp = MakeMorganCountFingerprint(mol, options);
+    const auto& spec = fp.Spec();
+
+    EXPECT_EQ(fp.SizeBits(), 128u);
+    EXPECT_EQ(spec.size_bits, 128u);
+    EXPECT_EQ(spec.value_type, FingerprintValueType::Counted);
+    EXPECT_EQ(spec.source_name, "RDKit-compatible");
+    EXPECT_EQ(spec.source_type, "Morgan");
+    EXPECT_EQ(spec.source_version, "Morgan-2026.03.1");
+    EXPECT_NE(spec.parameters.find("num_bits=128"), std::string::npos);
+    EXPECT_GT(fp.NonzeroCount(), 0u);
+    EXPECT_GE(fp.TotalCount(), fp.NonzeroCount());
+}
+
 } // namespace test
 } // namespace OEFP
