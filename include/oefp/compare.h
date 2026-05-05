@@ -17,11 +17,16 @@ struct BatchKernelOptions {
 
 /// \brief Compare two dense binary fingerprints with the requested metric.
 ///
+/// Fingerprint specifications must compare exactly equal, including provenance
+/// metadata. This intentionally matches batch admission rules for dense-binary
+/// milestone 1.
+///
 /// \param a First fingerprint.
 /// \param b Second fingerprint.
 /// \param metric Metric configuration.
 /// \returns Similarity or distance according to metric.Mode().
-/// \raises std::invalid_argument: When fingerprint specifications differ.
+/// \raises std::invalid_argument: When fingerprint specifications or storage
+///     widths differ.
 double Compare(const OEFP& a, const OEFP& b, const Metric& metric);
 
 } // namespace OEFP

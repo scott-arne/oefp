@@ -6,6 +6,16 @@
 namespace OEFP {
 namespace {
 
+void validate_metric_mode(MetricMode mode) {
+    switch (mode) {
+    case MetricMode::Similarity:
+    case MetricMode::Distance:
+        return;
+    }
+
+    throw std::invalid_argument("Metric mode is invalid.");
+}
+
 void validate_tversky_parameter(double value, const char* name) {
     if (!(value >= 0.0 && value <= 1.0)) {
         throw std::invalid_argument(std::string("Tversky ") + name + " must be in [0.0, 1.0].");
@@ -37,6 +47,7 @@ Metric Metric::Cosine(MetricMode mode) {
 }
 
 Metric Metric::Manhattan(MetricMode mode) {
+    validate_metric_mode(mode);
     if (mode == MetricMode::Similarity) {
         throw std::invalid_argument("Manhattan similarity is not defined for binary fingerprints.");
     }
@@ -74,6 +85,7 @@ Metric::Metric(MetricKind kind, MetricMode mode, double alpha, double beta)
       mode_(mode),
       alpha_(alpha),
       beta_(beta) {
+    validate_metric_mode(mode_);
 }
 
 } // namespace OEFP

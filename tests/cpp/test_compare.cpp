@@ -64,6 +64,16 @@ TEST(CompareTest, ComputesDiceCosineAndTversky) {
         1.0e-12);
 }
 
+TEST(CompareTest, AsymmetricTverskyDependsOnDirection) {
+    const auto a = fingerprint_with_bits(64, {0, 1, 2, 3});
+    const auto b = fingerprint_with_bits(64, {0, 4});
+    const auto metric = Metric::Tversky(0.25, 0.75);
+
+    EXPECT_NEAR(Compare(a, b, metric), 1.0 / 2.5, 1.0e-12);
+    EXPECT_NEAR(Compare(b, a, metric), 1.0 / 3.5, 1.0e-12);
+    EXPECT_NE(Compare(a, b, metric), Compare(b, a, metric));
+}
+
 TEST(CompareTest, ComputesManhattanDistance) {
     const auto a = fingerprint_with_bits(128, {0, 1, 64, 100});
     const auto b = fingerprint_with_bits(128, {1, 64, 65, 100, 127});

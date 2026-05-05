@@ -35,10 +35,14 @@ double zero_safe_divide(double numerator, double denominator) {
 }
 
 double apply_mode(double similarity, MetricMode mode) {
-    if (mode == MetricMode::Distance) {
+    switch (mode) {
+    case MetricMode::Similarity:
+        return similarity;
+    case MetricMode::Distance:
         return 1.0 - similarity;
     }
-    return similarity;
+
+    throw std::invalid_argument("Metric mode is invalid.");
 }
 
 } // namespace
@@ -46,6 +50,10 @@ double apply_mode(double similarity, MetricMode mode) {
 double Compare(const OEFP& a, const OEFP& b, const Metric& metric) {
     if (a.Spec() != b.Spec()) {
         throw std::invalid_argument("Fingerprint specifications must match for comparison.");
+    }
+
+    if (a.WordCount() != b.WordCount()) {
+        throw std::invalid_argument("Fingerprint word counts must match for comparison.");
     }
 
     std::uint64_t intersection = 0;

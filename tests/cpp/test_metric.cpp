@@ -66,6 +66,17 @@ TEST(MetricTest, ManhattanRejectsSimilarityMode) {
     EXPECT_THROW(Metric::Manhattan(MetricMode::Similarity), std::invalid_argument);
 }
 
+TEST(MetricTest, FactoriesRejectInvalidModes) {
+    const auto invalid_mode = static_cast<MetricMode>(999);
+
+    EXPECT_THROW(Metric::Tanimoto(invalid_mode), std::invalid_argument);
+    EXPECT_THROW(Metric::Jaccard(invalid_mode), std::invalid_argument);
+    EXPECT_THROW(Metric::Tversky(0.5, 0.5, invalid_mode), std::invalid_argument);
+    EXPECT_THROW(Metric::Dice(invalid_mode), std::invalid_argument);
+    EXPECT_THROW(Metric::Cosine(invalid_mode), std::invalid_argument);
+    EXPECT_THROW(Metric::Manhattan(invalid_mode), std::invalid_argument);
+}
+
 TEST(MetricTest, ValidateForPDistAcceptsSymmetricMetrics) {
     EXPECT_NO_THROW(Metric::Tanimoto().ValidateForPDist());
     EXPECT_NO_THROW(Metric::Jaccard().ValidateForPDist());
