@@ -64,6 +64,7 @@ set(OEFP_SOURCES
     src/morgan.cpp
     src/oefp.cpp
     src/openeye.cpp
+    src/sparse.cpp
 )
 
 add_library(oefp ${OEFP_SOURCES})

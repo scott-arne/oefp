@@ -160,6 +160,33 @@ class OEFPCount:
         return int(self._native.SizeBits())
 
 
+class OEFPSparse:
+    """Python wrapper for a native sparse binary fingerprint."""
+
+    def __init__(self, native: Any):
+        self._native = native
+
+    @property
+    def indices(self) -> np.ndarray:
+        """Read-only view of sorted on-bit identifiers."""
+        return readonly_array_from_address(
+            self,
+            self._native.IndexDataAddress(),
+            (self._native.CountOnBits(),),
+            np.dtype(np.uint32),
+        )
+
+    @property
+    def popcount(self) -> int:
+        """Number of on-bit entries."""
+        return int(self._native.CountOnBits())
+
+    @property
+    def num_bits(self) -> int:
+        """Sparse fingerprint identifier domain size."""
+        return int(self._native.SizeBits())
+
+
 class OEFPBatch:
     """Python wrapper for a native dense-binary OEFPBatch."""
 
@@ -511,6 +538,29 @@ def morgan_sparse_count_fingerprint(
         include_redundant_environments,
     )
     return OEFPCount(_native.MakeMorganSparseCountFingerprint(mol, options))
+
+
+def morgan_sparse_fingerprint(
+    mol: Any,
+    *,
+    radius: int = 2,
+    use_chirality: bool = False,
+    use_bond_types: bool = True,
+    only_nonzero_invariants: bool = False,
+    include_ring_membership: bool = True,
+    include_redundant_environments: bool = False,
+) -> OEFPSparse:
+    """Generate an RDKit-compatible sparse binary Morgan fingerprint."""
+    options = _morgan_options(
+        radius,
+        2048,
+        use_chirality,
+        use_bond_types,
+        only_nonzero_invariants,
+        include_ring_membership,
+        include_redundant_environments,
+    )
+    return OEFPSparse(_native.MakeMorganSparseFingerprint(mol, options))
 
 
 def from_openeye_fingerprint(fp: Any) -> OEFP:

@@ -3,6 +3,7 @@
 
 #include "oefp/count.h"
 #include "oefp/fingerprint.h"
+#include "oefp/sparse.h"
 
 #include <cstdint>
 #include <vector>
@@ -79,6 +80,26 @@ OEFPCount MakeMorganSparseCountFingerprint(
     const MorganOptions& options);
 #else
 OEFPCount MakeMorganSparseCountFingerprint(
+    const OEChem::OEMolBase& mol,
+    const MorganOptions& options = MorganOptions{});
+#endif
+
+/// \brief Generate an RDKit-compatible sparse binary Morgan fingerprint.
+///
+/// On-bit identifiers are raw atom-environment identifiers without folding by
+/// ``num_bits``. This matches RDKit's sparse binary Morgan output.
+///
+/// \param mol Molecule to fingerprint.
+/// \param options Morgan generation options.
+/// \returns Sparse binary Morgan fingerprint keyed by raw environment id.
+/// \throws std::invalid_argument: When the requested options are unsupported
+///     or invalid.
+#ifdef SWIG
+OEFPSparse MakeMorganSparseFingerprint(
+    const OEChem::OEMolBase& mol,
+    const MorganOptions& options);
+#else
+OEFPSparse MakeMorganSparseFingerprint(
     const OEChem::OEMolBase& mol,
     const MorganOptions& options = MorganOptions{});
 #endif

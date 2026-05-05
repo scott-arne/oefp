@@ -465,9 +465,11 @@ OEFP_GIL_RELEASE_EXCEPTION(OEFP::PDistIntoAddress)
 OEFP_GIL_RELEASE_EXCEPTION(OEFP::MakeMorganFingerprint)
 OEFP_GIL_RELEASE_EXCEPTION(OEFP::MakeMorganCountFingerprint)
 OEFP_GIL_RELEASE_EXCEPTION(OEFP::MakeMorganSparseCountFingerprint)
+OEFP_GIL_RELEASE_EXCEPTION(OEFP::MakeMorganSparseFingerprint)
 
 %include "oefp/fingerprint.h"
 %include "oefp/count.h"
+%include "oefp/sparse.h"
 
 namespace std {
 %template(OEFPVector) vector< ::OEFP::OEFP >;

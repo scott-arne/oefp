@@ -234,5 +234,28 @@ TEST(MorganTest, GeneratesSparseCountFingerprintWithRawIdentifiers) {
     EXPECT_GT(fp.Indices().back(), options.num_bits);
 }
 
+TEST(MorganTest, GeneratesSparseFingerprintWithRawIdentifiers) {
+    const auto mol = mol_from_smiles("CCO");
+    MorganOptions options;
+    options.num_bits = 128;
+
+    const auto fp = MakeMorganSparseFingerprint(mol, options);
+    const auto& spec = fp.Spec();
+
+    EXPECT_EQ(fp.SizeBits(), std::numeric_limits<std::uint64_t>::max());
+    EXPECT_EQ(spec.size_bits, std::numeric_limits<std::uint64_t>::max());
+    EXPECT_EQ(spec.value_type, FingerprintValueType::Binary);
+    EXPECT_EQ(spec.source_name, "RDKit-compatible");
+    EXPECT_EQ(spec.source_type, "Morgan");
+    EXPECT_EQ(spec.source_version, "Morgan-2026.03.1");
+    EXPECT_EQ(
+        spec.parameters,
+        "radius=2;use_chirality=false;use_bond_types=true;"
+        "only_nonzero_invariants=false;include_ring_membership=true;"
+        "include_redundant_environments=false;output=sparse_binary");
+    EXPECT_GT(fp.CountOnBits(), 0u);
+    EXPECT_GT(fp.Indices().back(), options.num_bits);
+}
+
 } // namespace test
 } // namespace OEFP

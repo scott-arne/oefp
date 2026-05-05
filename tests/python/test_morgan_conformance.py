@@ -44,6 +44,13 @@ def _oefp_on_bits(fp) -> set[int]:
     return bits
 
 
+def _oefp_sparse_on_bits(fp) -> set[int]:
+    indices = np.asarray(fp.indices, dtype=np.uint32)
+    assert indices.tolist() == sorted(indices.tolist())
+    assert len(indices) == fp.popcount
+    return {int(index) for index in indices}
+
+
 def _rdkit_on_bits(
     smiles: str,
     *,
@@ -72,6 +79,30 @@ def _rdkit_on_bits(
         includeRedundantEnvironments=include_redundant_environments,
     )
     return set(generator.GetFingerprint(_rdkit_mol(smiles)).GetOnBits())
+
+
+def _rdkit_sparse_on_bits(
+    smiles: str,
+    *,
+    radius: int = 2,
+    use_chirality: bool = False,
+    use_bond_types: bool = True,
+    only_nonzero_invariants: bool = False,
+    include_ring_membership: bool = True,
+    include_redundant_environments: bool = False,
+) -> set[int]:
+    atom_invariants_generator = rdFingerprintGenerator.GetMorganAtomInvGen(include_ring_membership)
+    generator = rdFingerprintGenerator.GetMorganGenerator(
+        radius=radius,
+        countSimulation=False,
+        includeChirality=use_chirality,
+        useBondTypes=use_bond_types,
+        onlyNonzeroInvariants=only_nonzero_invariants,
+        includeRingMembership=include_ring_membership,
+        atomInvariantsGenerator=atom_invariants_generator,
+        includeRedundantEnvironments=include_redundant_environments,
+    )
+    return {int(bit) & 0xFFFFFFFF for bit in generator.GetSparseFingerprint(_rdkit_mol(smiles)).GetOnBits()}
 
 
 @pytest.mark.parametrize(
@@ -103,6 +134,29 @@ def test_morgan_binary_matches_rdkit_default_options(smiles: str, radius: int, n
 
 
 @pytest.mark.parametrize(
+    "smiles",
+    [
+        "C",
+        "CC",
+        "CCO",
+        "CC(C)O",
+        "c1ccccc1",
+        "C1CCCCC1",
+        "C[NH+](C)C",
+        "[2H]O",
+    ],
+)
+@pytest.mark.parametrize("radius", [0, 1, 2])
+def test_morgan_sparse_binary_matches_rdkit_default_options(smiles: str, radius: int):
+    import oefp
+
+    fp = oefp.morgan_sparse_fingerprint(_openeye_mol(smiles), radius=radius)
+
+    assert fp.num_bits == 2**64 - 1
+    assert _oefp_sparse_on_bits(fp) == _rdkit_sparse_on_bits(smiles, radius=radius)
+
+
+@pytest.mark.parametrize(
     ("kwargs", "smiles"),
     [
         ({"use_bond_types": False}, "c1ccccc1"),
@@ -125,6 +179,30 @@ def test_morgan_binary_option_toggles_match_rdkit(kwargs: dict[str, bool], smile
     )
 
     assert _oefp_on_bits(fp) == expected_bits
+
+
+@pytest.mark.parametrize(
+    ("kwargs", "smiles"),
+    [
+        ({"use_bond_types": False}, "c1ccccc1"),
+        ({"include_ring_membership": False}, "C1CCCCC1"),
+        ({"include_redundant_environments": True}, "CC"),
+    ],
+)
+def test_morgan_sparse_binary_option_toggles_match_rdkit(kwargs: dict[str, bool], smiles: str):
+    import oefp
+
+    default_bits = _rdkit_sparse_on_bits(smiles, radius=2)
+    expected_bits = _rdkit_sparse_on_bits(smiles, radius=2, **cast(Any, kwargs))
+    assert expected_bits != default_bits
+
+    fp = oefp.morgan_sparse_fingerprint(
+        _openeye_mol(smiles),
+        radius=2,
+        **cast(Any, kwargs),
+    )
+
+    assert _oefp_sparse_on_bits(fp) == expected_bits
 
 
 @pytest.mark.parametrize("smiles", ["CC", "CCO", "CC(C)O", "c1ccccc1", "C1CCCCC1"])
@@ -253,6 +331,8 @@ def test_morgan_rejects_chirality_until_conformance_is_supported():
 
     with pytest.raises(ValueError, match="chirality"):
         oefp.morgan_fingerprint(_openeye_mol("C[C@H](F)Cl"), use_chirality=True)
+    with pytest.raises(ValueError, match="chirality"):
+        oefp.morgan_sparse_fingerprint(_openeye_mol("C[C@H](F)Cl"), use_chirality=True)
 
 
 def test_morgan_batch_compatibility_uses_full_options():

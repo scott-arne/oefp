@@ -15,6 +15,7 @@
 #include "oefp/metric.h"
 #include "oefp/morgan.h"
 #include "oefp/openeye.h"
+#include "oefp/sparse.h"
 
 #include <oechem.h>
 

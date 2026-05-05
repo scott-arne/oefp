@@ -110,6 +110,19 @@ std::string canonical_sparse_count_parameters(const MorganOptions& options) {
     return params.str();
 }
 
+std::string canonical_sparse_binary_parameters(const MorganOptions& options) {
+    std::ostringstream params;
+    params << "radius=" << options.radius
+           << ";use_chirality=" << bool_parameter(options.use_chirality)
+           << ";use_bond_types=" << bool_parameter(options.use_bond_types)
+           << ";only_nonzero_invariants=" << bool_parameter(options.only_nonzero_invariants)
+           << ";include_ring_membership=" << bool_parameter(options.include_ring_membership)
+           << ";include_redundant_environments="
+           << bool_parameter(options.include_redundant_environments)
+           << ";output=sparse_binary";
+    return params.str();
+}
+
 FingerprintSpec morgan_spec(const MorganOptions& options, FingerprintValueType value_type) {
     FingerprintSpec spec;
     spec.size_bits = options.num_bits;
@@ -125,6 +138,13 @@ FingerprintSpec morgan_sparse_count_spec(const MorganOptions& options) {
     FingerprintSpec spec = morgan_spec(options, FingerprintValueType::Counted);
     spec.size_bits = std::numeric_limits<std::uint64_t>::max();
     spec.parameters = canonical_sparse_count_parameters(options);
+    return spec;
+}
+
+FingerprintSpec morgan_sparse_binary_spec(const MorganOptions& options) {
+    FingerprintSpec spec = morgan_spec(options, FingerprintValueType::Binary);
+    spec.size_bits = std::numeric_limits<std::uint64_t>::max();
+    spec.parameters = canonical_sparse_binary_parameters(options);
     return spec;
 }
 
@@ -472,6 +492,28 @@ OEFPCount MakeMorganSparseCountFingerprint(
         morgan_sparse_count_spec(options),
         std::move(indices),
         std::move(counts));
+}
+
+OEFPSparse MakeMorganSparseFingerprint(
+    const OEChem::OEMolBase& mol,
+    const MorganOptions& options) {
+    validate_options(options);
+    if (options.count_simulation) {
+        throw std::invalid_argument("Morgan count simulation is only supported for binary fingerprints.");
+    }
+
+    std::set<std::uint32_t> raw_ids;
+    for (const auto& event : enumerate_events(mol, options, UNFOLDED_MORGAN_IDS)) {
+        raw_ids.insert(event.raw_id);
+    }
+
+    std::vector<std::uint32_t> indices;
+    indices.reserve(raw_ids.size());
+    for (const auto raw_id : raw_ids) {
+        indices.push_back(raw_id);
+    }
+
+    return OEFPSparse(morgan_sparse_binary_spec(options), std::move(indices));
 }
 
 } // namespace OEFP

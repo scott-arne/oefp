@@ -19,6 +19,7 @@ add_executable(oefp_tests
     test_morgan.cpp
     test_oefp.cpp
     test_openeye_interop.cpp
+    test_sparse.cpp
 )
 
 target_link_libraries(oefp_tests
