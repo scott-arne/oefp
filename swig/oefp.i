@@ -464,6 +464,7 @@ OEFP_GIL_RELEASE_EXCEPTION(OEFP::CDistIntoAddress)
 OEFP_GIL_RELEASE_EXCEPTION(OEFP::PDistIntoAddress)
 OEFP_GIL_RELEASE_EXCEPTION(OEFP::MakeMorganFingerprint)
 OEFP_GIL_RELEASE_EXCEPTION(OEFP::MakeMorganCountFingerprint)
+OEFP_GIL_RELEASE_EXCEPTION(OEFP::MakeMorganSparseCountFingerprint)
 
 %include "oefp/fingerprint.h"
 %include "oefp/count.h"

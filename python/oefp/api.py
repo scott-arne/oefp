@@ -490,6 +490,29 @@ def morgan_count_fingerprint(
     return OEFPCount(_native.MakeMorganCountFingerprint(mol, options))
 
 
+def morgan_sparse_count_fingerprint(
+    mol: Any,
+    *,
+    radius: int = 2,
+    use_chirality: bool = False,
+    use_bond_types: bool = True,
+    only_nonzero_invariants: bool = False,
+    include_ring_membership: bool = True,
+    include_redundant_environments: bool = False,
+) -> OEFPCount:
+    """Generate an RDKit-compatible sparse count Morgan fingerprint."""
+    options = _morgan_options(
+        radius,
+        2048,
+        use_chirality,
+        use_bond_types,
+        only_nonzero_invariants,
+        include_ring_membership,
+        include_redundant_environments,
+    )
+    return OEFPCount(_native.MakeMorganSparseCountFingerprint(mol, options))
+
+
 def from_openeye_fingerprint(fp: Any) -> OEFP:
     """Import an OpenEye OEFingerPrint as an OEFP."""
     return OEFP(_native.FromOEFingerPrint(fp))

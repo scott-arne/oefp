@@ -19,6 +19,7 @@ namespace {
 
 constexpr const char* MORGAN_COMPAT_VERSION = "Morgan-2026.03.1";
 constexpr std::int32_t RDKIT_AROMATIC_BOND_TYPE = 12;
+constexpr std::uint32_t UNFOLDED_MORGAN_IDS = 0u;
 
 struct MorganEvent {
     std::uint32_t atom_id = 0;
@@ -96,6 +97,19 @@ std::string canonical_parameters(const MorganOptions& options) {
     return params.str();
 }
 
+std::string canonical_sparse_count_parameters(const MorganOptions& options) {
+    std::ostringstream params;
+    params << "radius=" << options.radius
+           << ";use_chirality=" << bool_parameter(options.use_chirality)
+           << ";use_bond_types=" << bool_parameter(options.use_bond_types)
+           << ";only_nonzero_invariants=" << bool_parameter(options.only_nonzero_invariants)
+           << ";include_ring_membership=" << bool_parameter(options.include_ring_membership)
+           << ";include_redundant_environments="
+           << bool_parameter(options.include_redundant_environments)
+           << ";output=sparse_count";
+    return params.str();
+}
+
 FingerprintSpec morgan_spec(const MorganOptions& options, FingerprintValueType value_type) {
     FingerprintSpec spec;
     spec.size_bits = options.num_bits;
@@ -105,6 +119,17 @@ FingerprintSpec morgan_spec(const MorganOptions& options, FingerprintValueType v
     spec.source_version = MORGAN_COMPAT_VERSION;
     spec.parameters = canonical_parameters(options);
     return spec;
+}
+
+FingerprintSpec morgan_sparse_count_spec(const MorganOptions& options) {
+    FingerprintSpec spec = morgan_spec(options, FingerprintValueType::Counted);
+    spec.size_bits = std::numeric_limits<std::uint64_t>::max();
+    spec.parameters = canonical_sparse_count_parameters(options);
+    return spec;
+}
+
+std::uint32_t event_bit_id(std::uint32_t raw_id, std::uint32_t fold_size) {
+    return fold_size == UNFOLDED_MORGAN_IDS ? raw_id : raw_id % fold_size;
 }
 
 std::uint32_t hash_combine_value(std::uint32_t seed, std::uint32_t hashed_value) {
@@ -269,7 +294,7 @@ std::vector<MorganEvent> enumerate_events(
         if (!options.only_nonzero_invariants || current[atom_record.index] != 0u) {
             events.push_back(
                 MorganEvent{atom_record.index, 0u, current[atom_record.index],
-                            current[atom_record.index] % fold_size});
+                            event_bit_id(current[atom_record.index], fold_size)});
         }
     }
 
@@ -327,7 +352,7 @@ std::vector<MorganEvent> enumerate_events(
                         atom_id,
                         layer + 1u,
                         raw_id,
-                        raw_id % fold_size,
+                        event_bit_id(raw_id, fold_size),
                     });
                     seen_neighborhoods.insert(neighborhood);
                 }
@@ -413,6 +438,38 @@ OEFPCount MakeMorganCountFingerprint(const OEChem::OEMolBase& mol, const MorganO
 
     return OEFPCount(
         morgan_spec(options, FingerprintValueType::Counted),
+        std::move(indices),
+        std::move(counts));
+}
+
+OEFPCount MakeMorganSparseCountFingerprint(
+    const OEChem::OEMolBase& mol,
+    const MorganOptions& options) {
+    validate_options(options);
+    if (options.count_simulation) {
+        throw std::invalid_argument("Morgan count simulation is only supported for binary fingerprints.");
+    }
+
+    std::map<std::uint32_t, std::uint32_t> raw_counts;
+    for (const auto& event : enumerate_events(mol, options, UNFOLDED_MORGAN_IDS)) {
+        auto& count = raw_counts[event.bit_id];
+        if (count == std::numeric_limits<std::uint32_t>::max()) {
+            throw std::overflow_error("Morgan sparse count fingerprint count exceeds uint32 storage.");
+        }
+        ++count;
+    }
+
+    std::vector<std::uint32_t> indices;
+    std::vector<std::uint32_t> counts;
+    indices.reserve(raw_counts.size());
+    counts.reserve(raw_counts.size());
+    for (const auto& [index, count] : raw_counts) {
+        indices.push_back(index);
+        counts.push_back(count);
+    }
+
+    return OEFPCount(
+        morgan_sparse_count_spec(options),
         std::move(indices),
         std::move(counts));
 }

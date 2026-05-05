@@ -274,6 +274,7 @@ from .api import (
     from_openeye_fingerprint,
     morgan_count_fingerprint,
     morgan_fingerprint,
+    morgan_sparse_count_fingerprint,
     pdist,
     to_openeye_fingerprint,
 )
@@ -292,6 +293,7 @@ __all__ = [
     "from_openeye_fingerprint",
     "morgan_count_fingerprint",
     "morgan_fingerprint",
+    "morgan_sparse_count_fingerprint",
     "pdist",
     "to_openeye_fingerprint",
 ]
