@@ -56,6 +56,7 @@ set(OEFP_SOURCES
     src/fingerprint.cpp
     src/metric.cpp
     src/oefp.cpp
+    src/openeye.cpp
 )
 
 add_library(oefp ${OEFP_SOURCES})
@@ -71,6 +72,7 @@ target_include_directories(oefp
 target_link_libraries(oefp
     PUBLIC
         OpenEye::OEChem
+        OpenEye::OEGraphSim
 )
 
 # Tests
