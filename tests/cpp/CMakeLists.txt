@@ -9,6 +9,7 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(googletest)
 
 add_executable(oefp_tests
+    test_batch.cpp
     test_fingerprint.cpp
     test_oefp.cpp
 )
