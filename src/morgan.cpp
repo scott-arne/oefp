@@ -424,6 +424,31 @@ OEFPMappingSet mapping_from_events(const std::vector<MorganEvent>& events) {
     return mapping;
 }
 
+OEFPCount count_fingerprint_from_events(
+    FingerprintSpec spec,
+    const std::vector<MorganEvent>& events,
+    const char* overflow_message) {
+    std::map<std::uint32_t, std::uint32_t> folded_counts;
+    for (const auto& event : events) {
+        auto& count = folded_counts[event.bit_id];
+        if (count == std::numeric_limits<std::uint32_t>::max()) {
+            throw std::overflow_error(overflow_message);
+        }
+        ++count;
+    }
+
+    std::vector<std::uint32_t> indices;
+    std::vector<std::uint32_t> counts;
+    indices.reserve(folded_counts.size());
+    counts.reserve(folded_counts.size());
+    for (const auto& [index, count] : folded_counts) {
+        indices.push_back(index);
+        counts.push_back(count);
+    }
+
+    return OEFPCount(std::move(spec), std::move(indices), std::move(counts));
+}
+
 } // namespace
 
 MorganFingerprintResult::MorganFingerprintResult(OEFP fingerprint, OEFPMappingSet mapping)
@@ -449,6 +474,34 @@ OEFPSparse MorganSparseFingerprintResult::Fingerprint() const {
 }
 
 OEFPMappingSet MorganSparseFingerprintResult::Mapping() const {
+    return mapping_;
+}
+
+MorganCountFingerprintResult::MorganCountFingerprintResult(
+    OEFPCount fingerprint,
+    OEFPMappingSet mapping)
+    : fingerprint_(std::move(fingerprint)), mapping_(std::move(mapping)) {
+}
+
+OEFPCount MorganCountFingerprintResult::Fingerprint() const {
+    return fingerprint_;
+}
+
+OEFPMappingSet MorganCountFingerprintResult::Mapping() const {
+    return mapping_;
+}
+
+MorganSparseCountFingerprintResult::MorganSparseCountFingerprintResult(
+    OEFPCount fingerprint,
+    OEFPMappingSet mapping)
+    : fingerprint_(std::move(fingerprint)), mapping_(std::move(mapping)) {
+}
+
+OEFPCount MorganSparseCountFingerprintResult::Fingerprint() const {
+    return fingerprint_;
+}
+
+OEFPMappingSet MorganSparseCountFingerprintResult::Mapping() const {
     return mapping_;
 }
 
@@ -489,28 +542,28 @@ OEFPCount MakeMorganCountFingerprint(const OEChem::OEMolBase& mol, const MorganO
         throw std::invalid_argument("Morgan count simulation is only supported for binary fingerprints.");
     }
 
-    std::map<std::uint32_t, std::uint32_t> folded_counts;
-    for (const auto& event : enumerate_events(mol, options, options.num_bits)) {
-        auto& count = folded_counts[event.bit_id];
-        if (count == std::numeric_limits<std::uint32_t>::max()) {
-            throw std::overflow_error("Morgan count fingerprint count exceeds uint32 storage.");
-        }
-        ++count;
-    }
-
-    std::vector<std::uint32_t> indices;
-    std::vector<std::uint32_t> counts;
-    indices.reserve(folded_counts.size());
-    counts.reserve(folded_counts.size());
-    for (const auto& [index, count] : folded_counts) {
-        indices.push_back(index);
-        counts.push_back(count);
-    }
-
-    return OEFPCount(
+    const auto events = enumerate_events(mol, options, options.num_bits);
+    return count_fingerprint_from_events(
         morgan_spec(options, FingerprintValueType::Counted),
-        std::move(indices),
-        std::move(counts));
+        events,
+        "Morgan count fingerprint count exceeds uint32 storage.");
+}
+
+MorganCountFingerprintResult MakeMorganCountFingerprintWithMapping(
+    const OEChem::OEMolBase& mol,
+    const MorganOptions& options) {
+    validate_options(options);
+    if (options.count_simulation) {
+        throw std::invalid_argument("Morgan count simulation is only supported for binary fingerprints.");
+    }
+
+    const auto events = enumerate_events(mol, options, options.num_bits);
+    return MorganCountFingerprintResult(
+        count_fingerprint_from_events(
+            morgan_spec(options, FingerprintValueType::Counted),
+            events,
+            "Morgan count fingerprint count exceeds uint32 storage."),
+        mapping_from_events(events));
 }
 
 OEFPCount MakeMorganSparseCountFingerprint(
@@ -521,28 +574,28 @@ OEFPCount MakeMorganSparseCountFingerprint(
         throw std::invalid_argument("Morgan count simulation is only supported for binary fingerprints.");
     }
 
-    std::map<std::uint32_t, std::uint32_t> raw_counts;
-    for (const auto& event : enumerate_events(mol, options, UNFOLDED_MORGAN_IDS)) {
-        auto& count = raw_counts[event.bit_id];
-        if (count == std::numeric_limits<std::uint32_t>::max()) {
-            throw std::overflow_error("Morgan sparse count fingerprint count exceeds uint32 storage.");
-        }
-        ++count;
-    }
-
-    std::vector<std::uint32_t> indices;
-    std::vector<std::uint32_t> counts;
-    indices.reserve(raw_counts.size());
-    counts.reserve(raw_counts.size());
-    for (const auto& [index, count] : raw_counts) {
-        indices.push_back(index);
-        counts.push_back(count);
-    }
-
-    return OEFPCount(
+    const auto events = enumerate_events(mol, options, UNFOLDED_MORGAN_IDS);
+    return count_fingerprint_from_events(
         morgan_sparse_count_spec(options),
-        std::move(indices),
-        std::move(counts));
+        events,
+        "Morgan sparse count fingerprint count exceeds uint32 storage.");
+}
+
+MorganSparseCountFingerprintResult MakeMorganSparseCountFingerprintWithMapping(
+    const OEChem::OEMolBase& mol,
+    const MorganOptions& options) {
+    validate_options(options);
+    if (options.count_simulation) {
+        throw std::invalid_argument("Morgan count simulation is only supported for binary fingerprints.");
+    }
+
+    const auto events = enumerate_events(mol, options, UNFOLDED_MORGAN_IDS);
+    return MorganSparseCountFingerprintResult(
+        count_fingerprint_from_events(
+            morgan_sparse_count_spec(options),
+            events,
+            "Morgan sparse count fingerprint count exceeds uint32 storage."),
+        mapping_from_events(events));
 }
 
 OEFPSparse MakeMorganSparseFingerprint(

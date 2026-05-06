@@ -86,6 +86,40 @@ def _rdkit_sparse_counts(
     return {int(index): int(count) for index, count in generator.GetSparseCountFingerprint(_rdkit_mol(smiles)).GetNonzeroElements().items()}
 
 
+def _rdkit_count_bit_info(
+    smiles: str,
+    *,
+    radius: int = 2,
+    num_bits: int = 2048,
+    sparse: bool = False,
+    use_bond_types: bool = True,
+    include_ring_membership: bool = True,
+    include_redundant_environments: bool = False,
+) -> dict[int, tuple[tuple[int, int], ...]]:
+    atom_invariants_generator = rdFingerprintGenerator.GetMorganAtomInvGen(include_ring_membership)
+    generator = rdFingerprintGenerator.GetMorganGenerator(
+        radius=radius,
+        countSimulation=False,
+        includeChirality=False,
+        useBondTypes=use_bond_types,
+        onlyNonzeroInvariants=False,
+        includeRingMembership=include_ring_membership,
+        atomInvariantsGenerator=atom_invariants_generator,
+        fpSize=num_bits,
+        includeRedundantEnvironments=include_redundant_environments,
+    )
+    output = rdFingerprintGenerator.AdditionalOutput()
+    output.AllocateBitInfoMap()
+    if sparse:
+        generator.GetSparseCountFingerprint(_rdkit_mol(smiles), additionalOutput=output)
+    else:
+        generator.GetCountFingerprint(_rdkit_mol(smiles), additionalOutput=output)
+    return {
+        int(bit_id) & 0xFFFFFFFF: tuple((int(atom_id), int(radius)) for atom_id, radius in environments)
+        for bit_id, environments in output.GetBitInfoMap().items()
+    }
+
+
 def _rdkit_count_fingerprint(
     smiles: str,
     *,
@@ -199,6 +233,35 @@ def test_morgan_sparse_count_option_toggles_match_rdkit(kwargs: dict[str, bool],
     fp = oefp.morgan_sparse_count_fingerprint(_openeye_mol(smiles), radius=2, **kwargs)
 
     assert _oefp_counts(fp) == expected_counts
+
+
+def test_morgan_count_mapping_bit_info_matches_rdkit():
+    import oefp
+
+    smiles = "CCC(CC)CO"
+    result = oefp.morgan_count_fingerprint_with_mapping(
+        _openeye_mol(smiles),
+        radius=1,
+        num_bits=2048,
+    )
+    expected = _rdkit_count_bit_info(smiles, radius=1, num_bits=2048)
+
+    assert _oefp_counts(result.fingerprint) == _rdkit_counts(smiles, radius=1, num_bits=2048)
+    assert result.mapping.bit_info() == expected
+
+
+def test_morgan_sparse_count_mapping_bit_info_matches_rdkit():
+    import oefp
+
+    smiles = "CCC(CC)CO"
+    result = oefp.morgan_sparse_count_fingerprint_with_mapping(
+        _openeye_mol(smiles),
+        radius=1,
+    )
+    expected = _rdkit_count_bit_info(smiles, radius=1, sparse=True)
+
+    assert _oefp_counts(result.fingerprint) == _rdkit_sparse_counts(smiles, radius=1)
+    assert result.mapping.bit_info() == expected
 
 
 def test_morgan_count_arrays_are_read_only_views():

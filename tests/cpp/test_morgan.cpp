@@ -212,6 +212,57 @@ TEST(MorganTest, GeneratesSparseBinaryFingerprintWithRawBitMappings) {
     EXPECT_FALSE(mappings.EnvironmentsForBit(0, 2245384272u).empty());
 }
 
+TEST(MorganTest, GeneratesFoldedCountFingerprintWithBitMappings) {
+    const auto mol = mol_from_smiles("CCC(CC)CO");
+    MorganOptions options;
+    options.radius = 1;
+    options.num_bits = 2048;
+
+    const auto result = MakeMorganCountFingerprintWithMapping(mol, options);
+    const auto fp = result.Fingerprint();
+    const auto mappings = result.Mapping();
+    const auto bit_ids = mappings.BitIds(0);
+
+    EXPECT_EQ(fp.NonzeroCount(), bit_ids.size());
+    for (const auto bit_id : bit_ids) {
+        const auto bit_id32 = static_cast<std::uint32_t>(bit_id);
+        EXPECT_NE(
+            std::find(fp.Indices().begin(), fp.Indices().end(), bit_id32),
+            fp.Indices().end());
+        EXPECT_FALSE(mappings.EnvironmentsForBit(0, bit_id).empty());
+    }
+
+    const auto environments = mappings.EnvironmentsForBit(0, 80);
+    ASSERT_EQ(environments.size(), 3u);
+    EXPECT_EQ(environments[0].AtomId(), 1u);
+    EXPECT_EQ(environments[0].Radius(), 0u);
+    EXPECT_EQ(environments[1].AtomId(), 3u);
+    EXPECT_EQ(environments[1].Radius(), 0u);
+    EXPECT_EQ(environments[2].AtomId(), 5u);
+    EXPECT_EQ(environments[2].Radius(), 0u);
+}
+
+TEST(MorganTest, GeneratesSparseCountFingerprintWithRawBitMappings) {
+    const auto mol = mol_from_smiles("CCC(CC)CO");
+    MorganOptions options;
+    options.radius = 1;
+
+    const auto result = MakeMorganSparseCountFingerprintWithMapping(mol, options);
+    const auto fp = result.Fingerprint();
+    const auto mappings = result.Mapping();
+    const auto bit_ids = mappings.BitIds(0);
+
+    EXPECT_EQ(fp.NonzeroCount(), bit_ids.size());
+    for (const auto bit_id : bit_ids) {
+        const auto bit_id32 = static_cast<std::uint32_t>(bit_id);
+        EXPECT_NE(
+            std::find(fp.Indices().begin(), fp.Indices().end(), bit_id32),
+            fp.Indices().end());
+        EXPECT_FALSE(mappings.EnvironmentsForBit(0, bit_id).empty());
+    }
+    EXPECT_FALSE(mappings.EnvironmentsForBit(0, 2245384272u).empty());
+}
+
 TEST(MorganTest, CountSimulationSetsThresholdBits) {
     const auto mol = mol_from_smiles("CC");
     MorganOptions options;

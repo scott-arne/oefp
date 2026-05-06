@@ -59,6 +59,40 @@ private:
     OEFPMappingSet mapping_;
 };
 
+/// \brief Folded count Morgan fingerprint plus separate environment mappings.
+class MorganCountFingerprintResult {
+public:
+    MorganCountFingerprintResult() = default;
+    MorganCountFingerprintResult(OEFPCount fingerprint, OEFPMappingSet mapping);
+
+    /// \brief Return the generated counted fingerprint by value.
+    OEFPCount Fingerprint() const;
+
+    /// \brief Return the generated bit environment mappings by value.
+    OEFPMappingSet Mapping() const;
+
+private:
+    OEFPCount fingerprint_;
+    OEFPMappingSet mapping_;
+};
+
+/// \brief Sparse count Morgan fingerprint plus separate environment mappings.
+class MorganSparseCountFingerprintResult {
+public:
+    MorganSparseCountFingerprintResult() = default;
+    MorganSparseCountFingerprintResult(OEFPCount fingerprint, OEFPMappingSet mapping);
+
+    /// \brief Return the generated sparse counted fingerprint by value.
+    OEFPCount Fingerprint() const;
+
+    /// \brief Return the generated bit environment mappings by value.
+    OEFPMappingSet Mapping() const;
+
+private:
+    OEFPCount fingerprint_;
+    OEFPMappingSet mapping_;
+};
+
 /// \brief Generate an RDKit-compatible folded binary Morgan fingerprint.
 ///
 /// The production implementation is OEFP-owned; RDKit is used only by
@@ -117,6 +151,25 @@ OEFPCount MakeMorganCountFingerprint(
     const MorganOptions& options = MorganOptions{});
 #endif
 
+/// \brief Generate a folded count Morgan fingerprint with bit provenance mappings.
+///
+/// Mapping keys are folded count ids and mapping values record RDKit-style
+/// ``bitInfoMap`` entries for each atom environment contributing to the count.
+/// Count simulation is only defined for binary Morgan output and is rejected
+/// for this API.
+///
+/// \throws std::invalid_argument: When the requested options are unsupported
+///     or invalid.
+#ifdef SWIG
+MorganCountFingerprintResult MakeMorganCountFingerprintWithMapping(
+    const OEChem::OEMolBase& mol,
+    const MorganOptions& options);
+#else
+MorganCountFingerprintResult MakeMorganCountFingerprintWithMapping(
+    const OEChem::OEMolBase& mol,
+    const MorganOptions& options = MorganOptions{});
+#endif
+
 /// \brief Generate an RDKit-compatible sparse count Morgan fingerprint.
 ///
 /// Counts are accumulated from raw atom-environment identifiers without
@@ -133,6 +186,23 @@ OEFPCount MakeMorganSparseCountFingerprint(
     const MorganOptions& options);
 #else
 OEFPCount MakeMorganSparseCountFingerprint(
+    const OEChem::OEMolBase& mol,
+    const MorganOptions& options = MorganOptions{});
+#endif
+
+/// \brief Generate a sparse count Morgan fingerprint with raw bit mappings.
+///
+/// Mapping keys are raw Morgan environment identifiers, matching RDKit sparse
+/// count Morgan bit-info output.
+///
+/// \throws std::invalid_argument: When the requested options are unsupported
+///     or invalid.
+#ifdef SWIG
+MorganSparseCountFingerprintResult MakeMorganSparseCountFingerprintWithMapping(
+    const OEChem::OEMolBase& mol,
+    const MorganOptions& options);
+#else
+MorganSparseCountFingerprintResult MakeMorganSparseCountFingerprintWithMapping(
     const OEChem::OEMolBase& mol,
     const MorganOptions& options = MorganOptions{});
 #endif

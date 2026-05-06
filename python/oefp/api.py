@@ -429,6 +429,22 @@ class MorganSparseFingerprintResult:
     mapping: OEFPMappingSet
 
 
+@dataclass(frozen=True)
+class MorganCountFingerprintResult:
+    """Folded count Morgan fingerprint plus generated bit mappings."""
+
+    fingerprint: OEFPCount
+    mapping: OEFPMappingSet
+
+
+@dataclass(frozen=True)
+class MorganSparseCountFingerprintResult:
+    """Sparse count Morgan fingerprint plus generated bit mappings."""
+
+    fingerprint: OEFPCount
+    mapping: OEFPMappingSet
+
+
 def compare(
     a: OEFP | OEFPCount | OEFPSparse,
     b: OEFP | OEFPBatch | OEFPCount | OEFPCountBatch | OEFPSparse | OEFPSparseBatch,
@@ -655,6 +671,34 @@ def morgan_count_fingerprint(
     return OEFPCount(_native.MakeMorganCountFingerprint(mol, options))
 
 
+def morgan_count_fingerprint_with_mapping(
+    mol: Any,
+    *,
+    radius: int = 2,
+    num_bits: int = 2048,
+    use_chirality: bool = False,
+    use_bond_types: bool = True,
+    only_nonzero_invariants: bool = False,
+    include_ring_membership: bool = True,
+    include_redundant_environments: bool = False,
+) -> MorganCountFingerprintResult:
+    """Generate a folded count Morgan fingerprint and bit-info mapping."""
+    options = _morgan_options(
+        radius,
+        num_bits,
+        use_chirality,
+        use_bond_types,
+        only_nonzero_invariants,
+        include_ring_membership,
+        include_redundant_environments,
+    )
+    native = _native.MakeMorganCountFingerprintWithMapping(mol, options)
+    return MorganCountFingerprintResult(
+        OEFPCount(native.Fingerprint()),
+        OEFPMappingSet(native.Mapping()),
+    )
+
+
 def morgan_sparse_count_fingerprint(
     mol: Any,
     *,
@@ -676,6 +720,33 @@ def morgan_sparse_count_fingerprint(
         include_redundant_environments,
     )
     return OEFPCount(_native.MakeMorganSparseCountFingerprint(mol, options))
+
+
+def morgan_sparse_count_fingerprint_with_mapping(
+    mol: Any,
+    *,
+    radius: int = 2,
+    use_chirality: bool = False,
+    use_bond_types: bool = True,
+    only_nonzero_invariants: bool = False,
+    include_ring_membership: bool = True,
+    include_redundant_environments: bool = False,
+) -> MorganSparseCountFingerprintResult:
+    """Generate a sparse count Morgan fingerprint and raw bit-info mapping."""
+    options = _morgan_options(
+        radius,
+        2048,
+        use_chirality,
+        use_bond_types,
+        only_nonzero_invariants,
+        include_ring_membership,
+        include_redundant_environments,
+    )
+    native = _native.MakeMorganSparseCountFingerprintWithMapping(mol, options)
+    return MorganSparseCountFingerprintResult(
+        OEFPCount(native.Fingerprint()),
+        OEFPMappingSet(native.Mapping()),
+    )
 
 
 def morgan_sparse_fingerprint(
