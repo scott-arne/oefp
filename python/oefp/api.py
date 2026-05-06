@@ -77,6 +77,47 @@ def _native_uint32_vector(values: Sequence[int]) -> Any:
     return vector
 
 
+def _atom_pair_options(
+    min_distance: int,
+    max_distance: int,
+    num_bits: int,
+    use_chirality: bool,
+    use_2d: bool,
+    count_simulation: bool,
+    count_bounds: Sequence[int] | None,
+) -> Any:
+    min_distance_int = _uint32_option("min_distance", min_distance, positive=False)
+    max_distance_int = _uint32_option("max_distance", max_distance, positive=False)
+    num_bits_int = _uint32_option("num_bits", num_bits, positive=True)
+    normalized_count_bounds = (
+        [1, 2, 4, 8]
+        if count_bounds is None
+        else _uint32_sequence("count_bounds", count_bounds)
+    )
+    if min_distance_int > max_distance_int:
+        raise ValueError("Atom Pair min_distance cannot exceed max_distance.")
+    if max_distance_int >= 31:
+        raise ValueError("Atom Pair max_distance must be smaller than 31.")
+    if use_chirality:
+        raise ValueError("Atom Pair chirality conformance is not implemented yet.")
+    if not use_2d:
+        raise ValueError("Atom Pair 3D distance conformance is not implemented yet.")
+    if count_simulation and not normalized_count_bounds:
+        raise ValueError("Atom Pair count_bounds cannot be empty when count simulation is enabled.")
+    if count_simulation and len(normalized_count_bounds) >= num_bits_int:
+        raise ValueError("Atom Pair count_bounds length must be smaller than num_bits.")
+
+    options = _native.AtomPairOptions()
+    options.min_distance = min_distance_int
+    options.max_distance = max_distance_int
+    options.num_bits = num_bits_int
+    options.use_chirality = bool(use_chirality)
+    options.use_2d = bool(use_2d)
+    options.count_simulation = bool(count_simulation)
+    options.count_bounds = _native_uint32_vector(normalized_count_bounds)
+    return options
+
+
 class OEFP:
     """Python wrapper for a native dense-binary OEFP."""
 
@@ -617,6 +658,30 @@ def morgan_fingerprint(
         count_bounds,
     )
     return OEFP(_native.MakeMorganFingerprint(mol, options))
+
+
+def atom_pair_fingerprint(
+    mol: Any,
+    *,
+    min_distance: int = 1,
+    max_distance: int = 30,
+    num_bits: int = 2048,
+    use_chirality: bool = False,
+    use_2d: bool = True,
+    count_simulation: bool = True,
+    count_bounds: Sequence[int] | None = None,
+) -> OEFP:
+    """Generate an RDKit-compatible folded binary Atom Pair fingerprint."""
+    options = _atom_pair_options(
+        min_distance,
+        max_distance,
+        num_bits,
+        use_chirality,
+        use_2d,
+        count_simulation,
+        count_bounds,
+    )
+    return OEFP(_native.MakeAtomPairFingerprint(mol, options))
 
 
 def morgan_fingerprint_with_mapping(

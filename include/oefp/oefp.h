@@ -7,6 +7,7 @@
 #define OEFP_VERSION_PATCH 0
 
 #include "oefp/annotation.h"
+#include "oefp/atom_pair.h"
 #include "oefp/batch.h"
 #include "oefp/compare.h"
 #include "oefp/count.h"

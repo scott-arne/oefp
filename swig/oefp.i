@@ -465,6 +465,7 @@ OEFP_GIL_RELEASE_EXCEPTION(OEFP::PDist)
 OEFP_GIL_RELEASE_EXCEPTION(OEFP::CompareIntoAddress)
 OEFP_GIL_RELEASE_EXCEPTION(OEFP::CDistIntoAddress)
 OEFP_GIL_RELEASE_EXCEPTION(OEFP::PDistIntoAddress)
+OEFP_GIL_RELEASE_EXCEPTION(OEFP::MakeAtomPairFingerprint)
 OEFP_GIL_RELEASE_EXCEPTION(OEFP::MakeMorganFingerprint)
 OEFP_GIL_RELEASE_EXCEPTION(OEFP::MakeMorganFingerprintWithMapping)
 OEFP_GIL_RELEASE_EXCEPTION(OEFP::MakeMorganCountFingerprint)
@@ -478,6 +479,7 @@ OEFP_GIL_RELEASE_EXCEPTION(OEFP::MakeMorganSparseFingerprintWithMapping)
 %include "oefp/count.h"
 %include "oefp/sparse.h"
 %include "oefp/annotation.h"
+%include "oefp/atom_pair.h"
 
 namespace std {
 %template(OEFPVector) vector< ::OEFP::OEFP >;
