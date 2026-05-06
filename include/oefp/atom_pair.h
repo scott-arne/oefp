@@ -3,6 +3,7 @@
 
 #include "oefp/count.h"
 #include "oefp/fingerprint.h"
+#include "oefp/sparse.h"
 
 #include <cstdint>
 #include <vector>
@@ -58,6 +59,27 @@ OEFPCount MakeAtomPairCountFingerprint(
     const AtomPairOptions& options);
 #else
 OEFPCount MakeAtomPairCountFingerprint(
+    const OEChem::OEMolBase& mol,
+    const AtomPairOptions& options = AtomPairOptions{});
+#endif
+
+/// \brief Generate an RDKit-compatible sparse binary Atom Pair fingerprint.
+///
+/// Sparse Atom Pair fingerprints use RDKit's fixed sparse result size and keep
+/// count simulation enabled by default, matching
+/// ``GetAtomPairGenerator(...).GetSparseFingerprint()``.
+///
+/// \param mol Molecule to fingerprint.
+/// \param options Atom Pair generation options.
+/// \returns Sparse binary Atom Pair fingerprint.
+/// \throws std::invalid_argument: When the requested options are unsupported
+///     or invalid.
+#ifdef SWIG
+OEFPSparse MakeAtomPairSparseFingerprint(
+    const OEChem::OEMolBase& mol,
+    const AtomPairOptions& options);
+#else
+OEFPSparse MakeAtomPairSparseFingerprint(
     const OEChem::OEMolBase& mol,
     const AtomPairOptions& options = AtomPairOptions{});
 #endif

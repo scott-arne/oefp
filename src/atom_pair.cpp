@@ -5,6 +5,7 @@
 #include <limits>
 #include <map>
 #include <queue>
+#include <set>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -28,6 +29,7 @@ constexpr std::uint32_t MAX_NUM_BRANCHES = (1u << NUM_BRANCH_BITS) - 1u;
 constexpr std::uint32_t CODE_SIZE = NUM_TYPE_BITS + NUM_PI_BITS + NUM_BRANCH_BITS;
 constexpr std::uint32_t NUM_PATH_BITS = 5;
 constexpr std::uint32_t MAX_PATH_LENGTH = (1u << NUM_PATH_BITS) - 1u;
+constexpr std::uint32_t ATOM_PAIR_SPARSE_SIZE = 1u << (NUM_PATH_BITS + 2u * CODE_SIZE);
 
 struct AtomRecord {
     const OEChem::OEAtomBase* atom = nullptr;
@@ -66,6 +68,24 @@ std::string canonical_parameters(const AtomPairOptions& options) {
     return params.str();
 }
 
+std::string canonical_sparse_binary_parameters(const AtomPairOptions& options) {
+    std::ostringstream params;
+    params << "min_distance=" << options.min_distance
+           << ";max_distance=" << options.max_distance
+           << ";use_chirality=" << bool_parameter(options.use_chirality)
+           << ";use_2d=" << bool_parameter(options.use_2d)
+           << ";count_simulation=" << bool_parameter(options.count_simulation)
+           << ";count_bounds=";
+    for (std::size_t i = 0; i < options.count_bounds.size(); ++i) {
+        if (i != 0u) {
+            params << ',';
+        }
+        params << options.count_bounds[i];
+    }
+    params << ";output=sparse_binary";
+    return params.str();
+}
+
 FingerprintSpec atom_pair_spec(const AtomPairOptions& options) {
     FingerprintSpec spec;
     spec.size_bits = options.num_bits;
@@ -74,6 +94,13 @@ FingerprintSpec atom_pair_spec(const AtomPairOptions& options) {
     spec.source_type = "AtomPair";
     spec.source_version = ATOM_PAIR_COMPAT_VERSION;
     spec.parameters = canonical_parameters(options);
+    return spec;
+}
+
+FingerprintSpec atom_pair_sparse_binary_spec(const AtomPairOptions& options) {
+    FingerprintSpec spec = atom_pair_spec(options);
+    spec.size_bits = ATOM_PAIR_SPARSE_SIZE;
+    spec.parameters = canonical_sparse_binary_parameters(options);
     return spec;
 }
 
@@ -128,6 +155,27 @@ void validate_count_options(const AtomPairOptions& options) {
     }
     if (!options.use_2d) {
         throw std::invalid_argument("Atom Pair 3D distance conformance is not implemented yet.");
+    }
+}
+
+void validate_sparse_options(const AtomPairOptions& options) {
+    if (options.min_distance > options.max_distance) {
+        throw std::invalid_argument("Atom Pair min_distance cannot exceed max_distance.");
+    }
+    if (options.max_distance >= MAX_PATH_LENGTH) {
+        throw std::invalid_argument("Atom Pair max_distance must be smaller than 31.");
+    }
+    if (options.use_chirality) {
+        throw std::invalid_argument("Atom Pair chirality conformance is not implemented yet.");
+    }
+    if (!options.use_2d) {
+        throw std::invalid_argument("Atom Pair 3D distance conformance is not implemented yet.");
+    }
+    if (options.count_simulation && options.count_bounds.empty()) {
+        throw std::invalid_argument("Atom Pair count_bounds cannot be empty when count simulation is enabled.");
+    }
+    if (options.count_simulation && options.count_bounds.size() >= ATOM_PAIR_SPARSE_SIZE) {
+        throw std::invalid_argument("Atom Pair count_bounds size must be smaller than sparse fingerprint size.");
     }
 }
 
@@ -344,6 +392,51 @@ OEFPCount make_count_fingerprint(
     return OEFPCount(atom_pair_count_spec(options), std::move(indices), std::move(counts));
 }
 
+OEFPSparse make_sparse_fingerprint(
+    const OEChem::OEMolBase& mol,
+    const AtomPairOptions& options) {
+    std::set<std::uint32_t> on_bits;
+    for (const auto& event : enumerate_events(mol, options, ATOM_PAIR_SPARSE_SIZE)) {
+        on_bits.insert(event.bit_id);
+    }
+
+    std::vector<std::uint32_t> indices;
+    indices.reserve(on_bits.size());
+    for (const auto bit_id : on_bits) {
+        indices.push_back(bit_id);
+    }
+
+    return OEFPSparse(atom_pair_sparse_binary_spec(options), std::move(indices));
+}
+
+OEFPSparse make_count_simulated_sparse_fingerprint(
+    const OEChem::OEMolBase& mol,
+    const AtomPairOptions& options) {
+    const auto bound_count = options.count_bounds.size();
+    const auto effective_size = ATOM_PAIR_SPARSE_SIZE / bound_count;
+    std::map<std::uint32_t, std::uint32_t> effective_counts;
+    for (const auto& event : enumerate_events(mol, options, effective_size)) {
+        auto& count = effective_counts[event.bit_id];
+        if (count == std::numeric_limits<std::uint32_t>::max()) {
+            throw std::overflow_error("Atom Pair sparse count simulation count exceeds uint32 storage.");
+        }
+        ++count;
+    }
+
+    std::vector<std::uint32_t> indices;
+    for (const auto& [base_bit, count] : effective_counts) {
+        for (std::size_t i = 0; i < bound_count; ++i) {
+            if (count >= options.count_bounds[i]) {
+                indices.push_back(
+                    base_bit * static_cast<std::uint32_t>(bound_count)
+                    + static_cast<std::uint32_t>(i));
+            }
+        }
+    }
+
+    return OEFPSparse(atom_pair_sparse_binary_spec(options), std::move(indices));
+}
+
 } // namespace
 
 OEFP MakeAtomPairFingerprint(const OEChem::OEMolBase& mol, const AtomPairOptions& options) {
@@ -359,6 +452,16 @@ OEFPCount MakeAtomPairCountFingerprint(
     const AtomPairOptions& options) {
     validate_count_options(options);
     return make_count_fingerprint(mol, count_options(options));
+}
+
+OEFPSparse MakeAtomPairSparseFingerprint(
+    const OEChem::OEMolBase& mol,
+    const AtomPairOptions& options) {
+    validate_sparse_options(options);
+    if (options.count_simulation) {
+        return make_count_simulated_sparse_fingerprint(mol, options);
+    }
+    return make_sparse_fingerprint(mol, options);
 }
 
 } // namespace OEFP
