@@ -263,6 +263,36 @@ TEST(MorganTest, GeneratesSparseCountFingerprintWithRawBitMappings) {
     EXPECT_FALSE(mappings.EnvironmentsForBit(0, 2245384272u).empty());
 }
 
+TEST(MorganTest, GeneratesCountSimulatedFingerprintWithBitMappings) {
+    const auto mol = mol_from_smiles("CCC(CC)CO");
+    MorganOptions options;
+    options.radius = 1;
+    options.num_bits = 64;
+    options.count_simulation = true;
+    options.count_bounds = {1u, 2u, 4u};
+
+    const auto result = MakeMorganFingerprintWithMapping(mol, options);
+    const auto fp = result.Fingerprint();
+    const auto mappings = result.Mapping();
+    const auto expected_fp = MakeMorganFingerprint(mol, options);
+
+    EXPECT_EQ(fp, expected_fp);
+    EXPECT_EQ(fp.CountOnBits(), mappings.BitIds(0).size());
+
+    const auto environments = mappings.EnvironmentsForBit(0, 33);
+    ASSERT_EQ(environments.size(), 4u);
+    EXPECT_EQ(environments[0].AtomId(), 2u);
+    EXPECT_EQ(environments[0].Radius(), 0u);
+    EXPECT_EQ(environments[1].AtomId(), 2u);
+    EXPECT_EQ(environments[1].Radius(), 1u);
+    EXPECT_EQ(environments[2].AtomId(), 6u);
+    EXPECT_EQ(environments[2].Radius(), 1u);
+    EXPECT_EQ(environments[3].AtomId(), 5u);
+    EXPECT_EQ(environments[3].Radius(), 1u);
+    EXPECT_EQ(mappings.EnvironmentsForBit(0, 34), environments);
+    EXPECT_EQ(mappings.EnvironmentsForBit(0, 35), environments);
+}
+
 TEST(MorganTest, CountSimulationSetsThresholdBits) {
     const auto mol = mol_from_smiles("CC");
     MorganOptions options;

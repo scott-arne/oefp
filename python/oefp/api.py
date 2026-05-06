@@ -629,6 +629,8 @@ def morgan_fingerprint_with_mapping(
     only_nonzero_invariants: bool = False,
     include_ring_membership: bool = True,
     include_redundant_environments: bool = False,
+    count_simulation: bool = False,
+    count_bounds: Sequence[int] | None = None,
 ) -> MorganFingerprintResult:
     """Generate a folded binary Morgan fingerprint and bit-info mapping."""
     options = _morgan_options(
@@ -639,6 +641,8 @@ def morgan_fingerprint_with_mapping(
         only_nonzero_invariants,
         include_ring_membership,
         include_redundant_environments,
+        count_simulation,
+        count_bounds,
     )
     native = _native.MakeMorganFingerprintWithMapping(mol, options)
     return MorganFingerprintResult(

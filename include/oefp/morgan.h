@@ -113,9 +113,9 @@ OEFP MakeMorganFingerprint(
 
 /// \brief Generate a folded binary Morgan fingerprint with bit provenance mappings.
 ///
-/// Mapping output records RDKit-style ``bitInfoMap`` entries: each mapped bit
-/// stores the center atom id and Morgan radius for every environment that
-/// generated that bit.
+/// Mapping output records RDKit-style ``bitInfoMap`` entries for normal binary
+/// and count-simulated binary Morgan output. Each mapped bit stores the center
+/// atom id and Morgan radius for every environment that generated that bit.
 ///
 /// \throws std::invalid_argument: When the requested options are unsupported
 ///     or invalid.

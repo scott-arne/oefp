@@ -39,6 +39,7 @@ struct NeighborInvariant {
 
 struct BondRecord {
     std::uint32_t index = 0;
+    std::uint32_t sort_index = 0;
     std::uint32_t begin = 0;
     std::uint32_t end = 0;
     std::int32_t invariant = 1;
@@ -56,6 +57,41 @@ struct MoleculeGraph {
 };
 
 using BondSet = std::set<std::uint32_t>;
+
+struct BondSetLess {
+    bool operator()(const BondSet& lhs, const BondSet& rhs) const {
+        auto lhs_it = lhs.rbegin();
+        auto rhs_it = rhs.rbegin();
+        while (lhs_it != lhs.rend() || rhs_it != rhs.rend()) {
+            if (lhs_it == lhs.rend()) {
+                return true;
+            }
+            if (rhs_it == rhs.rend()) {
+                return false;
+            }
+            if (*lhs_it != *rhs_it) {
+                return *lhs_it < *rhs_it;
+            }
+            ++lhs_it;
+            ++rhs_it;
+        }
+        return false;
+    }
+};
+
+using RoundEnvironment = std::tuple<BondSet, std::uint32_t, std::uint32_t>;
+
+bool round_environment_less(const RoundEnvironment& lhs, const RoundEnvironment& rhs) {
+    const BondSetLess bond_set_less;
+    if (bond_set_less(std::get<0>(lhs), std::get<0>(rhs))) {
+        return true;
+    }
+    if (bond_set_less(std::get<0>(rhs), std::get<0>(lhs))) {
+        return false;
+    }
+    return std::tie(std::get<1>(lhs), std::get<2>(lhs))
+           < std::tie(std::get<1>(rhs), std::get<2>(rhs));
+}
 
 void validate_options(const MorganOptions& options) {
     if (options.num_bits == 0) {
@@ -226,6 +262,44 @@ std::int32_t bond_invariant(const OEChem::OEBondBase& bond, const MorganOptions&
     return bond_type_value(bond);
 }
 
+void assign_rdkit_bond_order(MoleculeGraph& graph, const std::vector<std::uint32_t>& bond_ids) {
+    const auto missing_bond = std::numeric_limits<std::uint32_t>::max();
+    std::vector<std::uint32_t> parent_bonds(graph.atoms.size(), missing_bond);
+    std::vector<std::uint32_t> parent_atoms(graph.atoms.size(), 0u);
+
+    for (const auto bond_id : bond_ids) {
+        const auto& bond = graph.bonds[bond_id];
+        const auto child = std::max(bond.begin, bond.end);
+        const auto parent = std::min(bond.begin, bond.end);
+        if (child >= parent_bonds.size()) {
+            continue;
+        }
+        if (parent_bonds[child] == missing_bond || parent > parent_atoms[child]) {
+            parent_bonds[child] = bond_id;
+            parent_atoms[child] = parent;
+        }
+    }
+
+    std::vector<std::tuple<std::uint32_t, std::uint32_t, std::uint32_t, std::uint32_t>>
+        ordered_bonds;
+    ordered_bonds.reserve(bond_ids.size());
+    for (const auto bond_id : bond_ids) {
+        const auto& bond = graph.bonds[bond_id];
+        const auto child = std::max(bond.begin, bond.end);
+        const auto parent = std::min(bond.begin, bond.end);
+        const auto order_group =
+            child < parent_bonds.size() && parent_bonds[child] == bond_id ? 0u : 1u;
+        ordered_bonds.emplace_back(order_group, child, parent, bond_id);
+    }
+
+    // RDKit numbers parent/tree bonds before ring-closure bonds. OpenEye can
+    // expose closure bonds first, so use a separate sort index for provenance.
+    std::sort(ordered_bonds.begin(), ordered_bonds.end());
+    for (std::uint32_t order = 0; order < ordered_bonds.size(); ++order) {
+        graph.bonds[std::get<3>(ordered_bonds[order])].sort_index = order;
+    }
+}
+
 MoleculeGraph build_graph(const OEChem::OEMolBase& mol, const MorganOptions& options) {
     MoleculeGraph graph;
     graph.atoms.resize(mol.GetMaxAtomIdx());
@@ -240,11 +314,14 @@ MoleculeGraph build_graph(const OEChem::OEMolBase& mol, const MorganOptions& opt
         graph.atoms[idx].index = idx;
     }
 
+    std::vector<std::uint32_t> bond_ids;
+    bond_ids.reserve(mol.NumBonds());
     for (OESystem::OEIter<OEChem::OEBondBase> bond = mol.GetBonds(); bond; ++bond) {
         const auto idx = bond->GetIdx();
         if (idx >= graph.bonds.size()) {
             throw std::runtime_error("OpenEye bond index exceeds molecule bond storage.");
         }
+        bond_ids.push_back(idx);
         auto& record = graph.bonds[idx];
         record.index = idx;
         record.begin = bond->GetBgnIdx();
@@ -254,6 +331,7 @@ MoleculeGraph build_graph(const OEChem::OEMolBase& mol, const MorganOptions& opt
         graph.atoms[record.end].bond_indices.push_back(idx);
     }
 
+    assign_rdkit_bond_order(graph, bond_ids);
     return graph;
 }
 
@@ -304,7 +382,7 @@ std::vector<MorganEvent> enumerate_events(
     std::vector<BondSet> neighborhoods(graph.atoms.size());
     std::vector<BondSet> round_neighborhoods = neighborhoods;
     std::vector<bool> dead_atoms(graph.atoms.size(), false);
-    std::set<BondSet> seen_neighborhoods;
+    std::set<BondSet, BondSetLess> seen_neighborhoods;
     const auto atom_order = atom_iteration_order(current, options);
 
     for (const auto& atom_record : graph.atoms) {
@@ -319,7 +397,7 @@ std::vector<MorganEvent> enumerate_events(
     }
 
     for (std::uint32_t layer = 0; layer < options.radius; ++layer) {
-        std::vector<std::tuple<BondSet, std::uint32_t, std::uint32_t>> this_round;
+        std::vector<RoundEnvironment> this_round;
 
         for (const auto atom_id : atom_order) {
             if (atom_id >= graph.atoms.size()) {
@@ -339,7 +417,7 @@ std::vector<MorganEvent> enumerate_events(
 
             for (const auto bond_id : atom_record.bond_indices) {
                 const auto& bond = graph.bonds[bond_id];
-                round_neighborhoods[atom_id].insert(bond_id);
+                round_neighborhoods[atom_id].insert(bond.sort_index);
                 const auto nbr = other_atom(bond, atom_id);
                 round_neighborhoods[atom_id].insert(
                     neighborhoods[nbr].begin(),
@@ -359,7 +437,9 @@ std::vector<MorganEvent> enumerate_events(
             this_round.emplace_back(round_neighborhoods[atom_id], invariant, atom_id);
         }
 
-        std::sort(this_round.begin(), this_round.end());
+        // RDKit sorts boost::dynamic_bitset neighborhoods before duplicate
+        // suppression, so compare the stored bond ids from the highest bit down.
+        std::sort(this_round.begin(), this_round.end(), round_environment_less);
         for (const auto& item : this_round) {
             const auto& neighborhood = std::get<0>(item);
             const auto raw_id = std::get<1>(item);
@@ -414,6 +494,43 @@ OEFP make_count_simulated_fingerprint(
         }
     }
     return fingerprint;
+}
+
+MorganFingerprintResult make_count_simulated_fingerprint_with_mapping(
+    const OEChem::OEMolBase& mol,
+    const MorganOptions& options) {
+    const auto bound_count = options.count_bounds.size();
+    const auto effective_size = options.num_bits / bound_count;
+    std::map<std::uint32_t, std::vector<MorganEvent>> events_by_base_bit;
+    for (const auto& event : enumerate_events(mol, options, effective_size)) {
+        auto& events = events_by_base_bit[event.bit_id];
+        if (events.size() == std::numeric_limits<std::uint32_t>::max()) {
+            throw std::overflow_error("Morgan count simulation count exceeds uint32 storage.");
+        }
+        events.push_back(event);
+    }
+
+    OEFP fingerprint(morgan_spec(options, FingerprintValueType::Binary));
+    OEFPMappingSet mapping;
+    for (const auto& [base_bit, events] : events_by_base_bit) {
+        const auto count = static_cast<std::uint32_t>(events.size());
+        for (std::size_t i = 0; i < bound_count; ++i) {
+            if (count >= options.count_bounds[i]) {
+                const auto simulated_bit =
+                    static_cast<std::uint64_t>(base_bit) * bound_count
+                    + static_cast<std::uint64_t>(i);
+                fingerprint.SetBit(simulated_bit);
+                for (const auto& event : events) {
+                    mapping.AddEnvironmentMapping(
+                        0,
+                        simulated_bit,
+                        event.atom_id,
+                        event.radius);
+                }
+            }
+        }
+    }
+    return MorganFingerprintResult(fingerprint, mapping);
 }
 
 OEFPMappingSet mapping_from_events(const std::vector<MorganEvent>& events) {
@@ -524,7 +641,7 @@ MorganFingerprintResult MakeMorganFingerprintWithMapping(
     const MorganOptions& options) {
     validate_options(options);
     if (options.count_simulation) {
-        throw std::invalid_argument("Morgan mapping output is not supported for count simulation.");
+        return make_count_simulated_fingerprint_with_mapping(mol, options);
     }
 
     const auto events = enumerate_events(mol, options, options.num_bits);

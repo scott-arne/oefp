@@ -139,6 +139,35 @@ def _rdkit_bit_info(
     }
 
 
+def _rdkit_count_simulation_bit_info(
+    smiles: str,
+    *,
+    radius: int = 2,
+    num_bits: int = 2048,
+    count_bounds: Sequence[int] | None = None,
+) -> dict[int, tuple[tuple[int, int], ...]]:
+    atom_invariants_generator = rdFingerprintGenerator.GetMorganAtomInvGen(True)
+    generator = rdFingerprintGenerator.GetMorganGenerator(
+        radius=radius,
+        countSimulation=True,
+        countBounds=tuple(count_bounds) if count_bounds is not None else None,
+        includeChirality=False,
+        useBondTypes=True,
+        onlyNonzeroInvariants=False,
+        includeRingMembership=True,
+        atomInvariantsGenerator=atom_invariants_generator,
+        fpSize=num_bits,
+        includeRedundantEnvironments=False,
+    )
+    output = rdFingerprintGenerator.AdditionalOutput()
+    output.AllocateBitInfoMap()
+    generator.GetFingerprint(_rdkit_mol(smiles), additionalOutput=output)
+    return {
+        int(bit_id) & 0xFFFFFFFF: tuple((int(atom_id), int(radius)) for atom_id, radius in environments)
+        for bit_id, environments in output.GetBitInfoMap().items()
+    }
+
+
 @pytest.mark.parametrize(
     "smiles",
     [
@@ -325,6 +354,50 @@ def test_morgan_binary_count_simulation_custom_bounds_match_rdkit(
         count_simulation=True,
         count_bounds=count_bounds,
     )
+
+
+@pytest.mark.parametrize(
+    ("smiles", "radius", "num_bits", "count_bounds"),
+    [
+        ("CC", 1, 64, [1, 2, 4]),
+        ("CCC(CC)CO", 1, 64, [1, 2, 4]),
+        ("CCO", 2, 128, None),
+        ("CCO", 2, 256, [1, 3, 7]),
+        ("CC", 2, 256, [0, 1, 2]),
+        ("c1ccccc1", 1, 64, [1, 2, 4]),
+    ],
+)
+def test_morgan_binary_count_simulation_mapping_bit_info_matches_rdkit(
+    smiles: str,
+    radius: int,
+    num_bits: int,
+    count_bounds: Sequence[int] | None,
+):
+    import oefp
+
+    result = oefp.morgan_fingerprint_with_mapping(
+        _openeye_mol(smiles),
+        radius=radius,
+        num_bits=num_bits,
+        count_simulation=True,
+        count_bounds=count_bounds,
+    )
+    expected_bits = _rdkit_on_bits(
+        smiles,
+        radius=radius,
+        num_bits=num_bits,
+        count_simulation=True,
+        count_bounds=count_bounds,
+    )
+    expected_mapping = _rdkit_count_simulation_bit_info(
+        smiles,
+        radius=radius,
+        num_bits=num_bits,
+        count_bounds=count_bounds,
+    )
+
+    assert _oefp_on_bits(result.fingerprint) == expected_bits
+    assert result.mapping.bit_info() == expected_mapping
 
 
 # morgan_fingerprint is a Python convenience wrapper, so user-facing option
