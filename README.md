@@ -6,6 +6,12 @@ This project provides a C++ library with Python bindings built using SWIG and
 [OpenEye Toolkits](https://www.eyesopen.com/). Molecules created with
 `openeye.oechem` in Python pass natively to C++ without serialization.
 
+OEFP currently includes dense binary, sparse binary, and sparse counted
+fingerprint containers; scalar, `cdist`, and `pdist` comparisons; and
+RDKit-compatible Morgan and Atom Pair generators for folded binary/count and
+sparse binary/count outputs. Morgan also exposes RDKit-style bit-info mapping
+outputs for binary and counted fingerprints.
+
 ## Prerequisites
 
 - **OpenEye C++ SDK** -- Headers and libraries (download from
@@ -14,6 +20,7 @@ This project provides a C++ library with Python bindings built using SWIG and
 - **CMake** >= 3.16
 - **SWIG** >= 4.0
 - **Python** >= 3.10
+- **RDKit** -- Optional, but required for the conformance tests
 
 ## Getting Started
 
@@ -74,11 +81,12 @@ cd build-debug && ctest --output-on-failure
 Python tests:
 
 ```bash
-pytest tests/python/ -v
+PYTHONPATH=python python -m pytest tests/python -q
 ```
 
-The Python tests verify that molecules created with `openeye.oechem.OEGraphMol`
-pass correctly to the C++ `calculate_molecular_weight` function.
+The Python tests cover the public wrappers, Python views over C++-owned memory,
+batch kernels, OpenEye molecule interop, and RDKit conformance for Morgan and
+Atom Pair fingerprints when RDKit is installed.
 
 ### Fingerprint Kernel Benchmark
 
@@ -104,17 +112,30 @@ cmake --build build-bench --target oefp_oecluster_fingerprint_benchmark
 
 ```python
 from openeye import oechem
-from oefp import calculate_molecular_weight
+import oefp
 
 mol = oechem.OEGraphMol()
 oechem.OESmilesToMol(mol, "CC(=O)OC1=CC=CC=C1C(=O)O")  # aspirin
 
-mw = calculate_molecular_weight(mol)
-print(f"Molecular weight: {mw:.2f}")  # 180.16
+morgan = oefp.morgan_fingerprint(mol, radius=2, num_bits=2048)
+atom_pair_counts = oefp.atom_pair_sparse_count_fingerprint(mol)
+
+score = oefp.compare(morgan, morgan, oefp.Metric.tanimoto())
+batch = oefp.OEFPBatch.from_fingerprints([morgan])
+distances = oefp.pdist(batch, oefp.Metric.tanimoto(mode="distance"))
+
+with_mapping = oefp.morgan_count_fingerprint_with_mapping(mol, radius=2)
+bit_info = with_mapping.mapping.bit_info()
 ```
 
 The `OEGraphMol` object passes directly from Python to C++ via cross-runtime
-SWIG typemaps. No SMILES round-trip or manual pointer handling is needed.
+SWIG typemaps. Fingerprint arrays returned by Python wrappers are read-only
+NumPy views over C++-owned storage, so callers can inspect results without
+copying the backing buffers.
+
+Current conformance scope is intentionally explicit: Morgan chirality, Atom
+Pair chirality, and Atom Pair 3D-distance generation raise `ValueError` until
+those paths have dedicated RDKit parity coverage.
 
 ## Project Structure
 
@@ -125,9 +146,20 @@ oefp/
     pyproject.toml                  # Package metadata + [tool.oe-build] config
     vrzn.toml                       # Version locations for vrzn
     include/oefp/
-        oefp.h               # Public C++ header
+        oefp.h                      # Umbrella public C++ header
+        fingerprint.h               # Dense binary fingerprints
+        sparse.h                    # Sparse binary fingerprints
+        count.h                     # Sparse counted fingerprints
+        batch.h                     # Dense binary batch storage
+        sparse_batch.h              # Sparse binary batch storage
+        count_batch.h               # Sparse counted batch storage
+        metric.h                    # Comparison metrics
+        compare.h                   # Scalar and batch comparison kernels
+        morgan.h                    # Morgan fingerprint generators
+        atom_pair.h                 # Atom Pair fingerprint generators
+        annotation.h                # Fingerprint mapping annotations
     src/
-        oefp.cpp             # C++ implementation
+        *.cpp                       # C++ implementations
     swig/
         oefp.i               # SWIG interface with OEMolBase typemaps
         CMakeLists.txt              # SWIG module build rules
@@ -135,75 +167,34 @@ oefp/
         pyproject.toml              # Setuptools config for editable installs
         oefp/
             __init__.py             # Python package (imports, compat layer)
+            api.py                  # Pythonic wrappers around native bindings
+            py.typed                # PEP 561 typing marker
     scripts/
         build_python.py             # Build distributable wheels
     tests/
         cpp/
             CMakeLists.txt          # C++ test build rules
-            test_oefp.cpp     # C++ unit tests
+            test_*.cpp              # C++ unit tests
         python/
             conftest.py             # Pytest fixtures (molecule helpers)
-            test_oefp.py      # Python tests
+            test_*.py               # Python API and conformance tests
     .github/workflows/
         build-wheels.yml            # CI: multi-platform wheel builds
 ```
 
-## Adding New Functions
+## Public API Notes
 
-The scaffolded `calculate_molecular_weight` function demonstrates the pattern for
-wrapping C++ code that operates on OpenEye molecules. To add your own functions:
+The primary Python surface is the wrapper layer exported from `oefp`:
 
-**1. Declare in the header** (`include/oefp/oefp.h`):
+- Fingerprints: `OEFP`, `OEFPSparse`, `OEFPCount`
+- Batch containers: `OEFPBatch`, `OEFPSparseBatch`, `OEFPCountBatch`
+- Metrics and kernels: `Metric`, `compare`, `cdist`, `pdist`
+- Morgan generators: folded binary/count, sparse binary/count, and mapping
+  result variants
+- Atom Pair generators: folded binary/count and sparse binary/count
 
-```cpp
-namespace OEFP {
-
-double my_function(const OEChem::OEMolBase& mol);
-
-} // namespace OEFP
-```
-
-**2. Implement** (`src/oefp.cpp` or a new `.cpp` file):
-
-```cpp
-namespace OEFP {
-
-double my_function(const OEChem::OEMolBase& mol) {
-    // Your implementation using OpenEye C++ API
-}
-
-} // namespace OEFP
-```
-
-If you add new `.cpp` files, add them to the `OEFP_SOURCES` list in
-`CMakeLists.txt`.
-
-**3. Expose in SWIG** (`swig/oefp.i`), under the "Wrapped API" section:
-
-```swig
-namespace OEFP {
-double my_function(const OEChem::OEMolBase& mol);
-}
-```
-
-Any function accepting `OEMolBase&` or `const OEMolBase&` will automatically use
-the cross-runtime typemaps.
-
-**4. Import in Python** (`python/oefp/__init__.py`):
-
-```python
-from .oefp import (
-    calculate_molecular_weight,
-    my_function,
-)
-```
-
-**5. Rebuild and test:**
-
-```bash
-cmake --build build-debug
-pytest tests/python/ -v
-```
+When adding a native feature, keep the C++ header, implementation, SWIG
+interface, Python wrapper, Python exports, and C++/Python tests in sync.
 
 ## Building Wheels
 
@@ -242,7 +233,8 @@ builds wheels on:
 
 - Linux x86_64 (Rocky Linux 8, manylinux_2_28)
 - Linux aarch64 (Rocky Linux 9, manylinux_2_34)
-- macOS arm64 (universal2)
+- macOS (`macos-latest`)
+- Windows x64 (abi3 wheel)
 
 It triggers on version tags (`v*`) and `workflow_dispatch`. Wheels are published
 to PyPI via trusted publishing on tag pushes.
@@ -256,6 +248,7 @@ to PyPI via trusted publishing on tag pushes.
 | `SDK_LINUX_X86_64` | `OpenEye-toolkits-...-x64.tar.gz` | Linux x86_64 SDK filename |
 | `SDK_LINUX_AARCH64` | `OpenEye-toolkits-...-aarch64.tar.gz` | Linux aarch64 SDK filename |
 | `SDK_MACOS` | `OpenEye-toolkits-...-universal.tar.gz` | macOS SDK filename |
+| `SDK_WINDOWS` | `OpenEye-toolkits-...-win64.zip` | Windows x64 SDK filename |
 
 **Required GitHub Secrets:**
 

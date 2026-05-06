@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from typing import Any, cast
 
 import numpy as np
 import pytest
@@ -433,3 +434,30 @@ def test_atom_pair_rejects_unsupported_options():
         oefp.atom_pair_sparse_count_fingerprint(mol, use_chirality=True)
     with pytest.raises(ValueError, match="3D"):
         oefp.atom_pair_sparse_count_fingerprint(mol, use_2d=False)
+
+
+@pytest.mark.parametrize(
+    ("kwargs", "exception_type", "match"),
+    [
+        ({"min_distance": -1}, ValueError, "Atom Pair min_distance"),
+        ({"min_distance": 2**32}, ValueError, "Atom Pair min_distance"),
+        ({"max_distance": 2**32}, ValueError, "Atom Pair max_distance"),
+        ({"num_bits": 0}, ValueError, "Atom Pair num_bits"),
+        ({"num_bits": 2**32}, ValueError, "Atom Pair num_bits"),
+        ({"min_distance": 1.5}, TypeError, "Atom Pair min_distance"),
+        ({"max_distance": 1.5}, TypeError, "Atom Pair max_distance"),
+        ({"num_bits": 128.5}, TypeError, "Atom Pair num_bits"),
+        ({"count_bounds": [-1]}, ValueError, "Atom Pair count_bounds"),
+        ({"count_bounds": [2**32]}, ValueError, "Atom Pair count_bounds"),
+        ({"count_bounds": [1.5]}, TypeError, "Atom Pair count_bounds"),
+    ],
+)
+def test_atom_pair_rejects_invalid_python_options(
+    kwargs: dict[str, Any],
+    exception_type: type[Exception],
+    match: str,
+):
+    import oefp
+
+    with pytest.raises(exception_type, match=match):
+        oefp.atom_pair_fingerprint(_openeye_mol("CCO"), **cast(Any, kwargs))

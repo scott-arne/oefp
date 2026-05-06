@@ -1,5 +1,7 @@
 """Tests for oefp Python bindings."""
 
+from importlib import resources
+
 import pytest
 
 
@@ -43,3 +45,8 @@ class TestCalculateMolecularWeight:
         assert hasattr(oefp, '__version_info__')
         assert oefp.__version__ == "0.1.0"
         assert oefp.__version_info__ == (0, 1, 0)
+
+
+def test_package_advertises_pep561_typing():
+    """Verify built distributions include the PEP 561 typing marker."""
+    assert resources.files("oefp").joinpath("py.typed").is_file()
