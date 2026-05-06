@@ -6,6 +6,7 @@ build-backend = "scikit_build_core.build"
 name = "oefp"
 version = "0.1.0"
 description = "Improved fingerprints for the OpenEye Toolkits"
+readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]
 requires-python = ">=3.10"
@@ -26,7 +27,14 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=7.0", "vrzn>=0.1.0"]
+dev = [
+    "build>=1.2",
+    "mypy>=1.8",
+    "pytest>=7.0",
+    "rdkit>=2024.9",
+    "ruff>=0.6",
+    "vrzn>=0.1.0",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests/python"]

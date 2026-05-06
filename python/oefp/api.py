@@ -42,30 +42,30 @@ def _manual_spec(num_bits: int, algorithm: str) -> Any:
     return spec
 
 
-def _uint32_option(name: str, value: Any, *, positive: bool) -> int:
+def _uint32_option(context: str, name: str, value: Any, *, positive: bool) -> int:
     if not isinstance(value, Integral):
-        raise TypeError(f"Morgan {name} must be an integer.")
+        raise TypeError(f"{context} {name} must be an integer.")
     normalized = int(value)
     if positive:
         if normalized <= 0:
-            raise ValueError(f"Morgan {name} must be greater than zero.")
+            raise ValueError(f"{context} {name} must be greater than zero.")
     elif normalized < 0:
-        raise ValueError(f"Morgan {name} must be non-negative.")
+        raise ValueError(f"{context} {name} must be non-negative.")
     if normalized > _UINT32_MAX:
-        raise ValueError(f"Morgan {name} must be no greater than {_UINT32_MAX}.")
+        raise ValueError(f"{context} {name} must be no greater than {_UINT32_MAX}.")
     return normalized
 
 
-def _uint32_sequence(name: str, values: Sequence[Any]) -> list[int]:
+def _uint32_sequence(context: str, name: str, values: Sequence[Any]) -> list[int]:
     normalized_values: list[int] = []
     for value in values:
         if not isinstance(value, Integral):
-            raise TypeError(f"Morgan {name} entries must be integers.")
+            raise TypeError(f"{context} {name} entries must be integers.")
         normalized = int(value)
         if normalized < 0:
-            raise ValueError(f"Morgan {name} entries must be non-negative.")
+            raise ValueError(f"{context} {name} entries must be non-negative.")
         if normalized > _UINT32_MAX:
-            raise ValueError(f"Morgan {name} entries must be no greater than {_UINT32_MAX}.")
+            raise ValueError(f"{context} {name} entries must be no greater than {_UINT32_MAX}.")
         normalized_values.append(normalized)
     return normalized_values
 
@@ -86,13 +86,13 @@ def _atom_pair_options(
     count_simulation: bool,
     count_bounds: Sequence[int] | None,
 ) -> Any:
-    min_distance_int = _uint32_option("min_distance", min_distance, positive=False)
-    max_distance_int = _uint32_option("max_distance", max_distance, positive=False)
-    num_bits_int = _uint32_option("num_bits", num_bits, positive=True)
+    min_distance_int = _uint32_option("Atom Pair", "min_distance", min_distance, positive=False)
+    max_distance_int = _uint32_option("Atom Pair", "max_distance", max_distance, positive=False)
+    num_bits_int = _uint32_option("Atom Pair", "num_bits", num_bits, positive=True)
     normalized_count_bounds = (
         [1, 2, 4, 8]
         if count_bounds is None
-        else _uint32_sequence("count_bounds", count_bounds)
+        else _uint32_sequence("Atom Pair", "count_bounds", count_bounds)
     )
     if min_distance_int > max_distance_int:
         raise ValueError("Atom Pair min_distance cannot exceed max_distance.")
@@ -606,12 +606,12 @@ def _morgan_options(
     count_simulation: bool = False,
     count_bounds: Sequence[int] | None = None,
 ) -> Any:
-    radius_int = _uint32_option("radius", radius, positive=False)
-    num_bits_int = _uint32_option("num_bits", num_bits, positive=True)
+    radius_int = _uint32_option("Morgan", "radius", radius, positive=False)
+    num_bits_int = _uint32_option("Morgan", "num_bits", num_bits, positive=True)
     normalized_count_bounds = (
         [1, 2, 4, 8]
         if count_bounds is None
-        else _uint32_sequence("count_bounds", count_bounds)
+        else _uint32_sequence("Morgan", "count_bounds", count_bounds)
     )
     if count_simulation and not normalized_count_bounds:
         raise ValueError("Morgan count_bounds cannot be empty when count simulation is enabled.")

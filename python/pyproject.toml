@@ -13,3 +13,6 @@ dependencies = [
 
 [tool.setuptools]
 packages = ["oefp"]
+
+[tool.setuptools.package-data]
+oefp = ["py.typed"]

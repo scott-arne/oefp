@@ -12,3 +12,7 @@ openeye_add_swig_module(
         OEMATH_LIBRARY OEZSTD_LIBRARY
     INIT_PY ${CMAKE_SOURCE_DIR}/python/oefp/__init__.py
 )
+
+install(FILES ${CMAKE_SOURCE_DIR}/python/oefp/py.typed
+    DESTINATION oefp
+)
