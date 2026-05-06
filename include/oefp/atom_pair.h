@@ -1,6 +1,7 @@
 #ifndef OEFP_ATOM_PAIR_H
 #define OEFP_ATOM_PAIR_H
 
+#include "oefp/count.h"
 #include "oefp/fingerprint.h"
 
 #include <cstdint>
@@ -36,6 +37,27 @@ OEFP MakeAtomPairFingerprint(
     const AtomPairOptions& options);
 #else
 OEFP MakeAtomPairFingerprint(
+    const OEChem::OEMolBase& mol,
+    const AtomPairOptions& options = AtomPairOptions{});
+#endif
+
+/// \brief Generate an RDKit-compatible folded count Atom Pair fingerprint.
+///
+/// Counts are accumulated from the same atom-pair events used by the binary
+/// generator, then folded by ``raw_id % num_bits``. Count simulation is a
+/// binary-output concern and is normalized away for counted fingerprints.
+///
+/// \param mol Molecule to fingerprint.
+/// \param options Atom Pair generation options.
+/// \returns Sparse counted Atom Pair fingerprint.
+/// \throws std::invalid_argument: When the requested options are unsupported
+///     or invalid.
+#ifdef SWIG
+OEFPCount MakeAtomPairCountFingerprint(
+    const OEChem::OEMolBase& mol,
+    const AtomPairOptions& options);
+#else
+OEFPCount MakeAtomPairCountFingerprint(
     const OEChem::OEMolBase& mol,
     const AtomPairOptions& options = AtomPairOptions{});
 #endif

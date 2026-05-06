@@ -77,6 +77,18 @@ FingerprintSpec atom_pair_spec(const AtomPairOptions& options) {
     return spec;
 }
 
+AtomPairOptions count_options(const AtomPairOptions& options) {
+    AtomPairOptions normalized = options;
+    normalized.count_simulation = false;
+    return normalized;
+}
+
+FingerprintSpec atom_pair_count_spec(const AtomPairOptions& options) {
+    FingerprintSpec spec = atom_pair_spec(count_options(options));
+    spec.value_type = FingerprintValueType::Counted;
+    return spec;
+}
+
 void validate_options(const AtomPairOptions& options) {
     if (options.num_bits == 0) {
         throw std::invalid_argument("Atom Pair num_bits must be greater than zero.");
@@ -98,6 +110,24 @@ void validate_options(const AtomPairOptions& options) {
     }
     if (options.count_simulation && options.count_bounds.size() >= options.num_bits) {
         throw std::invalid_argument("Atom Pair count_bounds size must be smaller than num_bits.");
+    }
+}
+
+void validate_count_options(const AtomPairOptions& options) {
+    if (options.num_bits == 0) {
+        throw std::invalid_argument("Atom Pair num_bits must be greater than zero.");
+    }
+    if (options.min_distance > options.max_distance) {
+        throw std::invalid_argument("Atom Pair min_distance cannot exceed max_distance.");
+    }
+    if (options.max_distance >= MAX_PATH_LENGTH) {
+        throw std::invalid_argument("Atom Pair max_distance must be smaller than 31.");
+    }
+    if (options.use_chirality) {
+        throw std::invalid_argument("Atom Pair chirality conformance is not implemented yet.");
+    }
+    if (!options.use_2d) {
+        throw std::invalid_argument("Atom Pair 3D distance conformance is not implemented yet.");
     }
 }
 
@@ -290,6 +320,30 @@ OEFP make_count_simulated_fingerprint(
     return fingerprint;
 }
 
+OEFPCount make_count_fingerprint(
+    const OEChem::OEMolBase& mol,
+    const AtomPairOptions& options) {
+    std::map<std::uint32_t, std::uint32_t> folded_counts;
+    for (const auto& event : enumerate_events(mol, options, options.num_bits)) {
+        auto& count = folded_counts[event.bit_id];
+        if (count == std::numeric_limits<std::uint32_t>::max()) {
+            throw std::overflow_error("Atom Pair count fingerprint count exceeds uint32 storage.");
+        }
+        ++count;
+    }
+
+    std::vector<std::uint32_t> indices;
+    std::vector<std::uint32_t> counts;
+    indices.reserve(folded_counts.size());
+    counts.reserve(folded_counts.size());
+    for (const auto& [index, count] : folded_counts) {
+        indices.push_back(index);
+        counts.push_back(count);
+    }
+
+    return OEFPCount(atom_pair_count_spec(options), std::move(indices), std::move(counts));
+}
+
 } // namespace
 
 OEFP MakeAtomPairFingerprint(const OEChem::OEMolBase& mol, const AtomPairOptions& options) {
@@ -298,6 +352,13 @@ OEFP MakeAtomPairFingerprint(const OEChem::OEMolBase& mol, const AtomPairOptions
         return make_count_simulated_fingerprint(mol, options);
     }
     return make_standard_fingerprint(mol, options);
+}
+
+OEFPCount MakeAtomPairCountFingerprint(
+    const OEChem::OEMolBase& mol,
+    const AtomPairOptions& options) {
+    validate_count_options(options);
+    return make_count_fingerprint(mol, count_options(options));
 }
 
 } // namespace OEFP

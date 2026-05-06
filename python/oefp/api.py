@@ -684,6 +684,28 @@ def atom_pair_fingerprint(
     return OEFP(_native.MakeAtomPairFingerprint(mol, options))
 
 
+def atom_pair_count_fingerprint(
+    mol: Any,
+    *,
+    min_distance: int = 1,
+    max_distance: int = 30,
+    num_bits: int = 2048,
+    use_chirality: bool = False,
+    use_2d: bool = True,
+) -> OEFPCount:
+    """Generate an RDKit-compatible folded count Atom Pair fingerprint."""
+    options = _atom_pair_options(
+        min_distance,
+        max_distance,
+        num_bits,
+        use_chirality,
+        use_2d,
+        False,
+        None,
+    )
+    return OEFPCount(_native.MakeAtomPairCountFingerprint(mol, options))
+
+
 def morgan_fingerprint_with_mapping(
     mol: Any,
     *,
