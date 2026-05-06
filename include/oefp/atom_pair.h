@@ -84,6 +84,28 @@ OEFPSparse MakeAtomPairSparseFingerprint(
     const AtomPairOptions& options = AtomPairOptions{});
 #endif
 
+/// \brief Generate an RDKit-compatible sparse count Atom Pair fingerprint.
+///
+/// Sparse count Atom Pair fingerprints use RDKit's fixed raw Atom Pair
+/// identifier domain. Count simulation is a binary-output concern and is
+/// ignored for this counted output, matching
+/// ``GetAtomPairGenerator(...).GetSparseCountFingerprint()``.
+///
+/// \param mol Molecule to fingerprint.
+/// \param options Atom Pair generation options.
+/// \returns Sparse counted Atom Pair fingerprint.
+/// \throws std::invalid_argument: When the requested options are unsupported
+///     or invalid.
+#ifdef SWIG
+OEFPCount MakeAtomPairSparseCountFingerprint(
+    const OEChem::OEMolBase& mol,
+    const AtomPairOptions& options);
+#else
+OEFPCount MakeAtomPairSparseCountFingerprint(
+    const OEChem::OEMolBase& mol,
+    const AtomPairOptions& options = AtomPairOptions{});
+#endif
+
 } // namespace OEFP
 
 #endif // OEFP_ATOM_PAIR_H

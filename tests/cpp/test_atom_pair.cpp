@@ -162,5 +162,35 @@ TEST(AtomPairTest, GeneratesNonEmptySparseFingerprintForSimpleMolecule) {
     EXPECT_GT(fp.CountOnBits(), 0u);
 }
 
+TEST(AtomPairTest, GeneratedSparseCountFingerprintCarriesStrictAtomPairSpec) {
+    const auto mol = mol_from_smiles("CCO");
+    AtomPairOptions options;
+    options.min_distance = 1;
+    options.max_distance = 2;
+
+    const auto fp = MakeAtomPairSparseCountFingerprint(mol, options);
+    const auto& spec = fp.Spec();
+
+    EXPECT_EQ(fp.SizeBits(), 8388608u);
+    EXPECT_EQ(spec.size_bits, 8388608u);
+    EXPECT_EQ(spec.value_type, FingerprintValueType::Counted);
+    EXPECT_EQ(spec.source_name, "RDKit-compatible");
+    EXPECT_EQ(spec.source_type, "AtomPair");
+    EXPECT_EQ(spec.source_version, "AtomPair-1.1.0");
+    EXPECT_EQ(
+        spec.parameters,
+        "min_distance=1;max_distance=2;use_chirality=false;"
+        "use_2d=true;output=sparse_count");
+}
+
+TEST(AtomPairTest, GeneratesNonEmptySparseCountFingerprintForSimpleMolecule) {
+    const auto mol = mol_from_smiles("CCO");
+
+    const auto fp = MakeAtomPairSparseCountFingerprint(mol);
+
+    EXPECT_GT(fp.NonzeroCount(), 0u);
+    EXPECT_EQ(fp.TotalCount(), 3u);
+}
+
 } // namespace test
 } // namespace OEFP

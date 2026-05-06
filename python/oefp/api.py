@@ -729,6 +729,27 @@ def atom_pair_sparse_fingerprint(
     return OEFPSparse(_native.MakeAtomPairSparseFingerprint(mol, options))
 
 
+def atom_pair_sparse_count_fingerprint(
+    mol: Any,
+    *,
+    min_distance: int = 1,
+    max_distance: int = 30,
+    use_chirality: bool = False,
+    use_2d: bool = True,
+) -> OEFPCount:
+    """Generate an RDKit-compatible sparse count Atom Pair fingerprint."""
+    options = _atom_pair_options(
+        min_distance,
+        max_distance,
+        1 << 23,
+        use_chirality,
+        use_2d,
+        False,
+        None,
+    )
+    return OEFPCount(_native.MakeAtomPairSparseCountFingerprint(mol, options))
+
+
 def morgan_fingerprint_with_mapping(
     mol: Any,
     *,

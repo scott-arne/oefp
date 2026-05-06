@@ -126,6 +126,27 @@ def _rdkit_atom_pair_counts(
     }
 
 
+def _rdkit_atom_pair_sparse_counts(
+    smiles: str,
+    *,
+    min_distance: int = 1,
+    max_distance: int = 30,
+    use_chirality: bool = False,
+    use_2d: bool = True,
+) -> tuple[int, dict[int, int]]:
+    generator = rdFingerprintGenerator.GetAtomPairGenerator(
+        minDistance=min_distance,
+        maxDistance=max_distance,
+        includeChirality=use_chirality,
+        use2D=use_2d,
+    )
+    fp = generator.GetSparseCountFingerprint(_rdkit_mol(smiles))
+    return (
+        int(fp.GetLength()),
+        {int(index): int(count) for index, count in fp.GetNonzeroElements().items()},
+    )
+
+
 @pytest.mark.parametrize(
     "smiles",
     [
@@ -334,6 +355,64 @@ def test_atom_pair_sparse_binary_distance_bounds_match_rdkit(
     assert _oefp_sparse_bits(fp) == expected_bits
 
 
+@pytest.mark.parametrize(
+    "smiles",
+    [
+        "CC",
+        "CCO",
+        "CC(C)O",
+        "c1ccccc1",
+        "c1ccc(O)cc1",
+        "C1CCCCC1",
+        "CC(=O)O",
+        "C[NH+](C)C",
+        "O=C([O-])C",
+        "C=C",
+        "C#N",
+    ],
+)
+def test_atom_pair_sparse_counts_match_rdkit_default_options(smiles: str):
+    import oefp
+
+    fp = oefp.atom_pair_sparse_count_fingerprint(_openeye_mol(smiles))
+    expected_num_bits, expected_counts = _rdkit_atom_pair_sparse_counts(smiles)
+
+    assert fp.num_bits == expected_num_bits
+    assert _oefp_counts(fp) == expected_counts
+
+
+@pytest.mark.parametrize(
+    ("smiles", "min_distance", "max_distance"),
+    [
+        ("CCO", 1, 1),
+        ("CCO", 2, 2),
+        ("CCCC", 1, 2),
+        ("CCCC", 2, 3),
+        ("c1ccccc1", 1, 3),
+    ],
+)
+def test_atom_pair_sparse_count_distance_bounds_match_rdkit(
+    smiles: str,
+    min_distance: int,
+    max_distance: int,
+):
+    import oefp
+
+    fp = oefp.atom_pair_sparse_count_fingerprint(
+        _openeye_mol(smiles),
+        min_distance=min_distance,
+        max_distance=max_distance,
+    )
+    expected_num_bits, expected_counts = _rdkit_atom_pair_sparse_counts(
+        smiles,
+        min_distance=min_distance,
+        max_distance=max_distance,
+    )
+
+    assert fp.num_bits == expected_num_bits
+    assert _oefp_counts(fp) == expected_counts
+
+
 def test_atom_pair_rejects_unsupported_options():
     import oefp
 
@@ -350,3 +429,7 @@ def test_atom_pair_rejects_unsupported_options():
         oefp.atom_pair_sparse_fingerprint(mol, use_chirality=True)
     with pytest.raises(ValueError, match="3D"):
         oefp.atom_pair_sparse_fingerprint(mol, use_2d=False)
+    with pytest.raises(ValueError, match="chirality"):
+        oefp.atom_pair_sparse_count_fingerprint(mol, use_chirality=True)
+    with pytest.raises(ValueError, match="3D"):
+        oefp.atom_pair_sparse_count_fingerprint(mol, use_2d=False)
