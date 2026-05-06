@@ -105,6 +105,40 @@ def _rdkit_sparse_on_bits(
     return {int(bit) & 0xFFFFFFFF for bit in generator.GetSparseFingerprint(_rdkit_mol(smiles)).GetOnBits()}
 
 
+def _rdkit_bit_info(
+    smiles: str,
+    *,
+    radius: int = 2,
+    num_bits: int = 2048,
+    sparse: bool = False,
+    use_bond_types: bool = True,
+    include_ring_membership: bool = True,
+    include_redundant_environments: bool = False,
+) -> dict[int, tuple[tuple[int, int], ...]]:
+    atom_invariants_generator = rdFingerprintGenerator.GetMorganAtomInvGen(include_ring_membership)
+    generator = rdFingerprintGenerator.GetMorganGenerator(
+        radius=radius,
+        countSimulation=False,
+        includeChirality=False,
+        useBondTypes=use_bond_types,
+        onlyNonzeroInvariants=False,
+        includeRingMembership=include_ring_membership,
+        atomInvariantsGenerator=atom_invariants_generator,
+        fpSize=num_bits,
+        includeRedundantEnvironments=include_redundant_environments,
+    )
+    output = rdFingerprintGenerator.AdditionalOutput()
+    output.AllocateBitInfoMap()
+    if sparse:
+        generator.GetSparseFingerprint(_rdkit_mol(smiles), additionalOutput=output)
+    else:
+        generator.GetFingerprint(_rdkit_mol(smiles), additionalOutput=output)
+    return {
+        int(bit_id) & 0xFFFFFFFF: tuple((int(atom_id), int(radius)) for atom_id, radius in environments)
+        for bit_id, environments in output.GetBitInfoMap().items()
+    }
+
+
 @pytest.mark.parametrize(
     "smiles",
     [
@@ -203,6 +237,37 @@ def test_morgan_sparse_binary_option_toggles_match_rdkit(kwargs: dict[str, bool]
     )
 
     assert _oefp_sparse_on_bits(fp) == expected_bits
+
+
+def test_morgan_binary_mapping_bit_info_matches_rdkit():
+    import oefp
+
+    smiles = "CCC(CC)CO"
+    result = oefp.morgan_fingerprint_with_mapping(
+        _openeye_mol(smiles),
+        radius=1,
+        num_bits=2048,
+    )
+    expected = _rdkit_bit_info(smiles, radius=1, num_bits=2048)
+
+    assert _oefp_on_bits(result.fingerprint) == set(expected)
+    assert result.mapping.bit_info() == expected
+    assert result.mapping.environments_for_bit(80) == expected[80]
+
+
+def test_morgan_sparse_binary_mapping_bit_info_matches_rdkit():
+    import oefp
+
+    smiles = "CCC(CC)CO"
+    result = oefp.morgan_sparse_fingerprint_with_mapping(
+        _openeye_mol(smiles),
+        radius=1,
+    )
+    expected = _rdkit_bit_info(smiles, radius=1, sparse=True)
+
+    assert _oefp_sparse_on_bits(result.fingerprint) == set(expected)
+    assert result.mapping.bit_info() == expected
+    assert result.mapping.environments_for_bit(2245384272) == expected[2245384272]
 
 
 @pytest.mark.parametrize("smiles", ["CC", "CCO", "CC(C)O", "c1ccccc1", "C1CCCCC1"])

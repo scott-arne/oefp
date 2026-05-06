@@ -187,6 +187,34 @@ class OEFPSparse:
         return int(self._native.SizeBits())
 
 
+class OEFPMappingSet:
+    """Python wrapper for native fingerprint bit environment mappings."""
+
+    def __init__(self, native: Any):
+        self._native = native
+
+    def bit_ids(self, row: int = 0) -> tuple[int, ...]:
+        """Return mapped bit ids for a fingerprint row."""
+        return tuple(int(bit_id) for bit_id in self._native.BitIds32(int(row)))
+
+    def atoms_for_bit(self, bit_id: int, row: int = 0) -> tuple[int, ...]:
+        """Return center atom ids recorded for one bit."""
+        return tuple(int(atom_id) for atom_id in self._native.AtomsForBit(int(row), int(bit_id)))
+
+    def environments_for_bit(self, bit_id: int, row: int = 0) -> tuple[tuple[int, int], ...]:
+        """Return ``(atom_id, radius)`` environments recorded for one bit."""
+        atom_ids = self._native.EnvironmentAtomIdsForBit(int(row), int(bit_id))
+        radii = self._native.EnvironmentRadiiForBit(int(row), int(bit_id))
+        return tuple((int(atom_id), int(radius)) for atom_id, radius in zip(atom_ids, radii, strict=True))
+
+    def bit_info(self, row: int = 0) -> dict[int, tuple[tuple[int, int], ...]]:
+        """Return RDKit-style bit-info mappings for one fingerprint row."""
+        return {
+            bit_id: self.environments_for_bit(bit_id, row)
+            for bit_id in self.bit_ids(row)
+        }
+
+
 class OEFPBatch:
     """Python wrapper for a native dense-binary OEFPBatch."""
 
@@ -385,6 +413,22 @@ class Metric:
         return cls(_native._NativeMetric.Manhattan(_mode_value(mode)))
 
 
+@dataclass(frozen=True)
+class MorganFingerprintResult:
+    """Dense Morgan fingerprint plus generated bit mappings."""
+
+    fingerprint: OEFP
+    mapping: OEFPMappingSet
+
+
+@dataclass(frozen=True)
+class MorganSparseFingerprintResult:
+    """Sparse Morgan fingerprint plus generated bit mappings."""
+
+    fingerprint: OEFPSparse
+    mapping: OEFPMappingSet
+
+
 def compare(
     a: OEFP | OEFPCount | OEFPSparse,
     b: OEFP | OEFPBatch | OEFPCount | OEFPCountBatch | OEFPSparse | OEFPSparseBatch,
@@ -559,6 +603,34 @@ def morgan_fingerprint(
     return OEFP(_native.MakeMorganFingerprint(mol, options))
 
 
+def morgan_fingerprint_with_mapping(
+    mol: Any,
+    *,
+    radius: int = 2,
+    num_bits: int = 2048,
+    use_chirality: bool = False,
+    use_bond_types: bool = True,
+    only_nonzero_invariants: bool = False,
+    include_ring_membership: bool = True,
+    include_redundant_environments: bool = False,
+) -> MorganFingerprintResult:
+    """Generate a folded binary Morgan fingerprint and bit-info mapping."""
+    options = _morgan_options(
+        radius,
+        num_bits,
+        use_chirality,
+        use_bond_types,
+        only_nonzero_invariants,
+        include_ring_membership,
+        include_redundant_environments,
+    )
+    native = _native.MakeMorganFingerprintWithMapping(mol, options)
+    return MorganFingerprintResult(
+        OEFP(native.Fingerprint()),
+        OEFPMappingSet(native.Mapping()),
+    )
+
+
 def morgan_count_fingerprint(
     mol: Any,
     *,
@@ -627,6 +699,33 @@ def morgan_sparse_fingerprint(
         include_redundant_environments,
     )
     return OEFPSparse(_native.MakeMorganSparseFingerprint(mol, options))
+
+
+def morgan_sparse_fingerprint_with_mapping(
+    mol: Any,
+    *,
+    radius: int = 2,
+    use_chirality: bool = False,
+    use_bond_types: bool = True,
+    only_nonzero_invariants: bool = False,
+    include_ring_membership: bool = True,
+    include_redundant_environments: bool = False,
+) -> MorganSparseFingerprintResult:
+    """Generate a sparse binary Morgan fingerprint and raw bit-info mapping."""
+    options = _morgan_options(
+        radius,
+        2048,
+        use_chirality,
+        use_bond_types,
+        only_nonzero_invariants,
+        include_ring_membership,
+        include_redundant_environments,
+    )
+    native = _native.MakeMorganSparseFingerprintWithMapping(mol, options)
+    return MorganSparseFingerprintResult(
+        OEFPSparse(native.Fingerprint()),
+        OEFPMappingSet(native.Mapping()),
+    )
 
 
 def from_openeye_fingerprint(fp: Any) -> OEFP:

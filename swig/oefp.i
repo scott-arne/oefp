@@ -407,8 +407,8 @@ OE_CROSS_RUNTIME_REF_TYPEMAPS(OEDocking::OEReceptor, _oefp_is_oereceptor, "Expec
 
 namespace std {
 %template(SizeTVector) vector< size_t >;
-%template(UInt32Vector) vector< std::uint32_t >;
-%template(UInt64Vector) vector< std::uint64_t >;
+%template(UInt32Vector) vector< unsigned int >;
+%template(UInt64Vector) vector< unsigned long long >;
 %template(DoubleVector) vector< double >;
 }
 
@@ -441,6 +441,8 @@ namespace std {
 %rename(_NativeOEFPSparseBatch) OEFP::OEFPSparseBatch;
 %rename(_NativeMetric) OEFP::Metric;
 
+%ignore OEFP::OEFPMappingSet::EnvironmentsForBit;
+
 %define OEFP_GIL_RELEASE_EXCEPTION(FUNC)
 %exception FUNC {
     PyThreadState* _oefp_thread_state = PyEval_SaveThread();
@@ -464,13 +466,16 @@ OEFP_GIL_RELEASE_EXCEPTION(OEFP::CompareIntoAddress)
 OEFP_GIL_RELEASE_EXCEPTION(OEFP::CDistIntoAddress)
 OEFP_GIL_RELEASE_EXCEPTION(OEFP::PDistIntoAddress)
 OEFP_GIL_RELEASE_EXCEPTION(OEFP::MakeMorganFingerprint)
+OEFP_GIL_RELEASE_EXCEPTION(OEFP::MakeMorganFingerprintWithMapping)
 OEFP_GIL_RELEASE_EXCEPTION(OEFP::MakeMorganCountFingerprint)
 OEFP_GIL_RELEASE_EXCEPTION(OEFP::MakeMorganSparseCountFingerprint)
 OEFP_GIL_RELEASE_EXCEPTION(OEFP::MakeMorganSparseFingerprint)
+OEFP_GIL_RELEASE_EXCEPTION(OEFP::MakeMorganSparseFingerprintWithMapping)
 
 %include "oefp/fingerprint.h"
 %include "oefp/count.h"
 %include "oefp/sparse.h"
+%include "oefp/annotation.h"
 
 namespace std {
 %template(OEFPVector) vector< ::OEFP::OEFP >;
@@ -485,7 +490,6 @@ namespace std {
 %include "oefp/morgan.h"
 %include "oefp/compare.h"
 %include "oefp/openeye.h"
-%include "oefp/annotation.h"
 
 namespace OEFP {
 

@@ -416,7 +416,41 @@ OEFP make_count_simulated_fingerprint(
     return fingerprint;
 }
 
+OEFPMappingSet mapping_from_events(const std::vector<MorganEvent>& events) {
+    OEFPMappingSet mapping;
+    for (const auto& event : events) {
+        mapping.AddEnvironmentMapping(0, event.bit_id, event.atom_id, event.radius);
+    }
+    return mapping;
+}
+
 } // namespace
+
+MorganFingerprintResult::MorganFingerprintResult(OEFP fingerprint, OEFPMappingSet mapping)
+    : fingerprint_(std::move(fingerprint)), mapping_(std::move(mapping)) {
+}
+
+OEFP MorganFingerprintResult::Fingerprint() const {
+    return fingerprint_;
+}
+
+OEFPMappingSet MorganFingerprintResult::Mapping() const {
+    return mapping_;
+}
+
+MorganSparseFingerprintResult::MorganSparseFingerprintResult(
+    OEFPSparse fingerprint,
+    OEFPMappingSet mapping)
+    : fingerprint_(std::move(fingerprint)), mapping_(std::move(mapping)) {
+}
+
+OEFPSparse MorganSparseFingerprintResult::Fingerprint() const {
+    return fingerprint_;
+}
+
+OEFPMappingSet MorganSparseFingerprintResult::Mapping() const {
+    return mapping_;
+}
 
 OEFP MakeMorganFingerprint(const OEChem::OEMolBase& mol, const MorganOptions& options) {
     validate_options(options);
@@ -430,6 +464,23 @@ OEFP MakeMorganFingerprint(const OEChem::OEMolBase& mol, const MorganOptions& op
         fingerprint.SetBit(event.bit_id);
     }
     return fingerprint;
+}
+
+MorganFingerprintResult MakeMorganFingerprintWithMapping(
+    const OEChem::OEMolBase& mol,
+    const MorganOptions& options) {
+    validate_options(options);
+    if (options.count_simulation) {
+        throw std::invalid_argument("Morgan mapping output is not supported for count simulation.");
+    }
+
+    const auto events = enumerate_events(mol, options, options.num_bits);
+    OEFP fingerprint(morgan_spec(options, FingerprintValueType::Binary));
+    for (const auto& event : events) {
+        fingerprint.SetBit(event.bit_id);
+    }
+
+    return MorganFingerprintResult(fingerprint, mapping_from_events(events));
 }
 
 OEFPCount MakeMorganCountFingerprint(const OEChem::OEMolBase& mol, const MorganOptions& options) {
@@ -514,6 +565,31 @@ OEFPSparse MakeMorganSparseFingerprint(
     }
 
     return OEFPSparse(morgan_sparse_binary_spec(options), std::move(indices));
+}
+
+MorganSparseFingerprintResult MakeMorganSparseFingerprintWithMapping(
+    const OEChem::OEMolBase& mol,
+    const MorganOptions& options) {
+    validate_options(options);
+    if (options.count_simulation) {
+        throw std::invalid_argument("Morgan count simulation is only supported for binary fingerprints.");
+    }
+
+    const auto events = enumerate_events(mol, options, UNFOLDED_MORGAN_IDS);
+    std::set<std::uint32_t> raw_ids;
+    for (const auto& event : events) {
+        raw_ids.insert(event.raw_id);
+    }
+
+    std::vector<std::uint32_t> indices;
+    indices.reserve(raw_ids.size());
+    for (const auto raw_id : raw_ids) {
+        indices.push_back(raw_id);
+    }
+
+    return MorganSparseFingerprintResult(
+        OEFPSparse(morgan_sparse_binary_spec(options), std::move(indices)),
+        mapping_from_events(events));
 }
 
 } // namespace OEFP

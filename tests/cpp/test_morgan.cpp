@@ -5,6 +5,7 @@
 
 #include <oechem.h>
 
+#include <algorithm>
 #include <cstdint>
 #include <limits>
 #include <stdexcept>
@@ -164,6 +165,51 @@ TEST(MorganTest, GeneratesNonEmptyFingerprintForSimpleMolecule) {
     const auto fp = MakeMorganFingerprint(mol);
 
     EXPECT_GT(fp.CountOnBits(), 0u);
+}
+
+TEST(MorganTest, GeneratesFoldedBinaryFingerprintWithBitMappings) {
+    const auto mol = mol_from_smiles("CCC(CC)CO");
+    MorganOptions options;
+    options.radius = 1;
+    options.num_bits = 2048;
+
+    const auto result = MakeMorganFingerprintWithMapping(mol, options);
+    const auto fp = result.Fingerprint();
+    const auto mappings = result.Mapping();
+    const auto bit_ids = mappings.BitIds(0);
+
+    EXPECT_EQ(fp.CountOnBits(), bit_ids.size());
+    for (const auto bit_id : bit_ids) {
+        EXPECT_TRUE(fp.TestBit(bit_id));
+        EXPECT_FALSE(mappings.EnvironmentsForBit(0, bit_id).empty());
+    }
+
+    const auto environments = mappings.EnvironmentsForBit(0, 80);
+    ASSERT_EQ(environments.size(), 3u);
+    EXPECT_EQ(environments[0].AtomId(), 1u);
+    EXPECT_EQ(environments[0].Radius(), 0u);
+    EXPECT_EQ(environments[1].AtomId(), 3u);
+    EXPECT_EQ(environments[1].Radius(), 0u);
+    EXPECT_EQ(environments[2].AtomId(), 5u);
+    EXPECT_EQ(environments[2].Radius(), 0u);
+}
+
+TEST(MorganTest, GeneratesSparseBinaryFingerprintWithRawBitMappings) {
+    const auto mol = mol_from_smiles("CCC(CC)CO");
+    MorganOptions options;
+    options.radius = 1;
+
+    const auto result = MakeMorganSparseFingerprintWithMapping(mol, options);
+    const auto fp = result.Fingerprint();
+    const auto mappings = result.Mapping();
+    const auto bit_ids = mappings.BitIds(0);
+
+    EXPECT_EQ(fp.CountOnBits(), bit_ids.size());
+    for (const auto bit_id : bit_ids) {
+        EXPECT_NE(std::find(fp.Indices().begin(), fp.Indices().end(), bit_id), fp.Indices().end());
+        EXPECT_FALSE(mappings.EnvironmentsForBit(0, bit_id).empty());
+    }
+    EXPECT_FALSE(mappings.EnvironmentsForBit(0, 2245384272u).empty());
 }
 
 TEST(MorganTest, CountSimulationSetsThresholdBits) {
