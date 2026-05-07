@@ -454,6 +454,40 @@ class Metric:
         return cls(_native._NativeMetric.Manhattan(_mode_value(mode)))
 
 
+class MorganGenerator:
+    """Reusable generator for folded binary Morgan fingerprints."""
+
+    def __init__(
+        self,
+        *,
+        radius: int = 2,
+        num_bits: int = 2048,
+        use_chirality: bool = False,
+        use_bond_types: bool = True,
+        only_nonzero_invariants: bool = False,
+        include_ring_membership: bool = True,
+        include_redundant_environments: bool = False,
+        count_simulation: bool = False,
+        count_bounds: Sequence[int] | None = None,
+    ) -> None:
+        options = _morgan_options(
+            radius,
+            num_bits,
+            use_chirality,
+            use_bond_types,
+            only_nonzero_invariants,
+            include_ring_membership,
+            include_redundant_environments,
+            count_simulation,
+            count_bounds,
+        )
+        self._native = _native._NativeMorganGenerator(options)
+
+    def fingerprint(self, mol: Any) -> OEFP:
+        """Generate a folded dense binary Morgan fingerprint."""
+        return OEFP(self._native.Fingerprint(mol))
+
+
 @dataclass(frozen=True)
 class MorganFingerprintResult:
     """Dense Morgan fingerprint plus generated bit mappings."""
@@ -646,18 +680,18 @@ def morgan_fingerprint(
     count_bounds: Sequence[int] | None = None,
 ) -> OEFP:
     """Generate an RDKit-compatible folded binary Morgan fingerprint."""
-    options = _morgan_options(
-        radius,
-        num_bits,
-        use_chirality,
-        use_bond_types,
-        only_nonzero_invariants,
-        include_ring_membership,
-        include_redundant_environments,
-        count_simulation,
-        count_bounds,
+    generator = MorganGenerator(
+        radius=radius,
+        num_bits=num_bits,
+        use_chirality=use_chirality,
+        use_bond_types=use_bond_types,
+        only_nonzero_invariants=only_nonzero_invariants,
+        include_ring_membership=include_ring_membership,
+        include_redundant_environments=include_redundant_environments,
+        count_simulation=count_simulation,
+        count_bounds=count_bounds,
     )
-    return OEFP(_native.MakeMorganFingerprint(mol, options))
+    return generator.fingerprint(mol)
 
 
 def atom_pair_fingerprint(
