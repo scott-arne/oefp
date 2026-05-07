@@ -313,6 +313,7 @@ MoleculeGraph build_graph(const OEChem::OEMolBase& mol) {
         }
         graph.atoms[idx].atom = atom;
         graph.atoms[idx].index = idx;
+        graph.atoms[idx].neighbors.reserve(atom->GetDegree());
     }
 
     for (OESystem::OEIter<OEChem::OEBondBase> bond = mol.GetBonds(); bond; ++bond) {

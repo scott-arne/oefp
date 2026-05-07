@@ -183,6 +183,9 @@ def _rdkit_count_simulation_bit_info(
         "O=C([O-])C",
         "[2H]O",
         "[13CH3]CO",
+        "OCl(=O)(=O)=O",
+        "OBr(=O)(=O)=O",
+        "OI(=O)(=O)=O",
     ],
 )
 @pytest.mark.parametrize("radius", [0, 1, 2])
@@ -207,6 +210,9 @@ def test_morgan_binary_matches_rdkit_default_options(smiles: str, radius: int, n
         "C1CCCCC1",
         "C[NH+](C)C",
         "[2H]O",
+        "OCl(=O)(=O)=O",
+        "OBr(=O)(=O)=O",
+        "OI(=O)(=O)=O",
     ],
 )
 @pytest.mark.parametrize("radius", [0, 1, 2])

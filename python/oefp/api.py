@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass
+from functools import lru_cache
 from numbers import Integral
 from typing import Any
 
@@ -70,6 +71,12 @@ def _uint32_sequence(context: str, name: str, values: Sequence[Any]) -> list[int
     return normalized_values
 
 
+def _normalized_count_bounds(context: str, count_bounds: Sequence[int] | None) -> tuple[int, ...]:
+    if count_bounds is None:
+        return (1, 2, 4, 8)
+    return tuple(_uint32_sequence(context, "count_bounds", count_bounds))
+
+
 def _native_uint32_vector(values: Sequence[int]) -> Any:
     vector = _native.UInt32Vector()
     for value in values:
@@ -77,7 +84,7 @@ def _native_uint32_vector(values: Sequence[int]) -> Any:
     return vector
 
 
-def _atom_pair_options(
+def _normalized_atom_pair_values(
     min_distance: int,
     max_distance: int,
     num_bits: int,
@@ -85,15 +92,11 @@ def _atom_pair_options(
     use_2d: bool,
     count_simulation: bool,
     count_bounds: Sequence[int] | None,
-) -> Any:
+) -> tuple[int, int, int, bool, bool, bool, tuple[int, ...]]:
     min_distance_int = _uint32_option("Atom Pair", "min_distance", min_distance, positive=False)
     max_distance_int = _uint32_option("Atom Pair", "max_distance", max_distance, positive=False)
     num_bits_int = _uint32_option("Atom Pair", "num_bits", num_bits, positive=True)
-    normalized_count_bounds = (
-        [1, 2, 4, 8]
-        if count_bounds is None
-        else _uint32_sequence("Atom Pair", "count_bounds", count_bounds)
-    )
+    normalized_count_bounds = _normalized_count_bounds("Atom Pair", count_bounds)
     if min_distance_int > max_distance_int:
         raise ValueError("Atom Pair min_distance cannot exceed max_distance.")
     if max_distance_int >= 31:
@@ -107,13 +110,50 @@ def _atom_pair_options(
     if count_simulation and len(normalized_count_bounds) >= num_bits_int:
         raise ValueError("Atom Pair count_bounds length must be smaller than num_bits.")
 
+    return (
+        min_distance_int,
+        max_distance_int,
+        num_bits_int,
+        bool(use_chirality),
+        bool(use_2d),
+        bool(count_simulation),
+        normalized_count_bounds,
+    )
+
+
+def _atom_pair_options(
+    min_distance: int,
+    max_distance: int,
+    num_bits: int,
+    use_chirality: bool,
+    use_2d: bool,
+    count_simulation: bool,
+    count_bounds: Sequence[int] | None,
+) -> Any:
+    (
+        min_distance_int,
+        max_distance_int,
+        num_bits_int,
+        use_chirality_bool,
+        use_2d_bool,
+        count_simulation_bool,
+        normalized_count_bounds,
+    ) = _normalized_atom_pair_values(
+        min_distance,
+        max_distance,
+        num_bits,
+        use_chirality,
+        use_2d,
+        count_simulation,
+        count_bounds,
+    )
     options = _native.AtomPairOptions()
     options.min_distance = min_distance_int
     options.max_distance = max_distance_int
     options.num_bits = num_bits_int
-    options.use_chirality = bool(use_chirality)
-    options.use_2d = bool(use_2d)
-    options.count_simulation = bool(count_simulation)
+    options.use_chirality = use_chirality_bool
+    options.use_2d = use_2d_bool
+    options.count_simulation = count_simulation_bool
     options.count_bounds = _native_uint32_vector(normalized_count_bounds)
     return options
 
@@ -670,30 +710,117 @@ def _morgan_options(
     count_simulation: bool = False,
     count_bounds: Sequence[int] | None = None,
 ) -> Any:
+    (
+        radius_int,
+        num_bits_int,
+        use_chirality_bool,
+        use_bond_types_bool,
+        only_nonzero_invariants_bool,
+        include_ring_membership_bool,
+        include_redundant_environments_bool,
+        count_simulation_bool,
+        normalized_count_bounds,
+    ) = _normalized_morgan_values(
+        radius,
+        num_bits,
+        use_chirality,
+        use_bond_types,
+        only_nonzero_invariants,
+        include_ring_membership,
+        include_redundant_environments,
+        count_simulation,
+        count_bounds,
+    )
+    options = _native.MorganOptions()
+    options.radius = radius_int
+    options.num_bits = num_bits_int
+    options.use_chirality = use_chirality_bool
+    options.use_bond_types = use_bond_types_bool
+    options.only_nonzero_invariants = only_nonzero_invariants_bool
+    options.include_ring_membership = include_ring_membership_bool
+    options.include_redundant_environments = include_redundant_environments_bool
+    options.count_simulation = count_simulation_bool
+    options.count_bounds = _native_uint32_vector(normalized_count_bounds)
+    return options
+
+
+def _normalized_morgan_values(
+    radius: int,
+    num_bits: int,
+    use_chirality: bool,
+    use_bond_types: bool,
+    only_nonzero_invariants: bool,
+    include_ring_membership: bool,
+    include_redundant_environments: bool,
+    count_simulation: bool,
+    count_bounds: Sequence[int] | None,
+) -> tuple[int, int, bool, bool, bool, bool, bool, bool, tuple[int, ...]]:
     radius_int = _uint32_option("Morgan", "radius", radius, positive=False)
     num_bits_int = _uint32_option("Morgan", "num_bits", num_bits, positive=True)
-    normalized_count_bounds = (
-        [1, 2, 4, 8]
-        if count_bounds is None
-        else _uint32_sequence("Morgan", "count_bounds", count_bounds)
-    )
+    normalized_count_bounds = _normalized_count_bounds("Morgan", count_bounds)
     if count_simulation and not normalized_count_bounds:
         raise ValueError("Morgan count_bounds cannot be empty when count simulation is enabled.")
     if count_simulation and len(normalized_count_bounds) >= num_bits_int:
         raise ValueError("Morgan count_bounds length must be smaller than num_bits.")
     if use_chirality:
         raise ValueError("Morgan chirality conformance is not implemented yet.")
-    options = _native.MorganOptions()
-    options.radius = radius_int
-    options.num_bits = num_bits_int
-    options.use_chirality = bool(use_chirality)
-    options.use_bond_types = bool(use_bond_types)
-    options.only_nonzero_invariants = bool(only_nonzero_invariants)
-    options.include_ring_membership = bool(include_ring_membership)
-    options.include_redundant_environments = bool(include_redundant_environments)
-    options.count_simulation = bool(count_simulation)
-    options.count_bounds = _native_uint32_vector(normalized_count_bounds)
-    return options
+    return (
+        radius_int,
+        num_bits_int,
+        bool(use_chirality),
+        bool(use_bond_types),
+        bool(only_nonzero_invariants),
+        bool(include_ring_membership),
+        bool(include_redundant_environments),
+        bool(count_simulation),
+        normalized_count_bounds,
+    )
+
+
+@lru_cache(maxsize=32)
+def _cached_morgan_generator(
+    radius: int,
+    num_bits: int,
+    use_chirality: bool,
+    use_bond_types: bool,
+    only_nonzero_invariants: bool,
+    include_ring_membership: bool,
+    include_redundant_environments: bool,
+    count_simulation: bool,
+    count_bounds: tuple[int, ...],
+) -> MorganGenerator:
+    return MorganGenerator(
+        radius=radius,
+        num_bits=num_bits,
+        use_chirality=use_chirality,
+        use_bond_types=use_bond_types,
+        only_nonzero_invariants=only_nonzero_invariants,
+        include_ring_membership=include_ring_membership,
+        include_redundant_environments=include_redundant_environments,
+        count_simulation=count_simulation,
+        count_bounds=count_bounds,
+    )
+
+
+@lru_cache(maxsize=32)
+def _cached_atom_pair_generator(
+    min_distance: int,
+    max_distance: int,
+    num_bits: int,
+    use_chirality: bool,
+    use_2d: bool,
+    count_simulation: bool,
+    count_bounds: tuple[int, ...],
+) -> AtomPairGenerator:
+    return AtomPairGenerator(
+        min_distance=min_distance,
+        max_distance=max_distance,
+        num_bits=num_bits,
+        use_chirality=use_chirality,
+        use_2d=use_2d,
+        count_simulation=count_simulation,
+        count_bounds=count_bounds,
+    )
 
 
 def morgan_fingerprint(
@@ -710,16 +837,18 @@ def morgan_fingerprint(
     count_bounds: Sequence[int] | None = None,
 ) -> OEFP:
     """Generate an RDKit-compatible folded binary Morgan fingerprint."""
-    generator = MorganGenerator(
-        radius=radius,
-        num_bits=num_bits,
-        use_chirality=use_chirality,
-        use_bond_types=use_bond_types,
-        only_nonzero_invariants=only_nonzero_invariants,
-        include_ring_membership=include_ring_membership,
-        include_redundant_environments=include_redundant_environments,
-        count_simulation=count_simulation,
-        count_bounds=count_bounds,
+    generator = _cached_morgan_generator(
+        *_normalized_morgan_values(
+            radius,
+            num_bits,
+            use_chirality,
+            use_bond_types,
+            only_nonzero_invariants,
+            include_ring_membership,
+            include_redundant_environments,
+            count_simulation,
+            count_bounds,
+        )
     )
     return generator.fingerprint(mol)
 
@@ -736,14 +865,16 @@ def atom_pair_fingerprint(
     count_bounds: Sequence[int] | None = None,
 ) -> OEFP:
     """Generate an RDKit-compatible folded binary Atom Pair fingerprint."""
-    generator = AtomPairGenerator(
-        min_distance=min_distance,
-        max_distance=max_distance,
-        num_bits=num_bits,
-        use_chirality=use_chirality,
-        use_2d=use_2d,
-        count_simulation=count_simulation,
-        count_bounds=count_bounds,
+    generator = _cached_atom_pair_generator(
+        *_normalized_atom_pair_values(
+            min_distance,
+            max_distance,
+            num_bits,
+            use_chirality,
+            use_2d,
+            count_simulation,
+            count_bounds,
+        )
     )
     return generator.fingerprint(mol)
 

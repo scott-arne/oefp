@@ -19,6 +19,10 @@ namespace {
 
 constexpr const char* MORGAN_COMPAT_VERSION = "Morgan-2026.03.1";
 constexpr std::int32_t RDKIT_AROMATIC_BOND_TYPE = 12;
+constexpr std::uint32_t OXYGEN_ATOMIC_NUM = 8u;
+constexpr std::uint32_t CHLORINE_ATOMIC_NUM = 17u;
+constexpr std::uint32_t BROMINE_ATOMIC_NUM = 35u;
+constexpr std::uint32_t IODINE_ATOMIC_NUM = 53u;
 constexpr std::uint32_t UNFOLDED_MORGAN_IDS = 0u;
 constexpr std::uint64_t BITS_PER_WORD = 64u;
 
@@ -49,6 +53,7 @@ struct BondRecord {
 struct AtomRecord {
     const OEChem::OEAtomBase* atom = nullptr;
     std::uint32_t index = 0;
+    std::int32_t formal_charge_adjustment = 0;
     std::vector<std::uint32_t> bond_indices;
 };
 
@@ -249,12 +254,62 @@ std::int32_t isotope_delta(const OEChem::OEAtomBase& atom) {
     return static_cast<std::int32_t>(isotope_weight - average_weight);
 }
 
-std::uint32_t atom_invariant(const OEChem::OEAtomBase& atom, const MorganOptions& options) {
+bool is_rdkit_halogen_oxide_center(const AtomRecord& record) {
+    if (record.atom == nullptr || record.atom->GetFormalCharge() != 0) {
+        return false;
+    }
+    const auto atomic_num = record.atom->GetAtomicNum();
+    return atomic_num == CHLORINE_ATOMIC_NUM || atomic_num == BROMINE_ATOMIC_NUM
+           || atomic_num == IODINE_ATOMIC_NUM;
+}
+
+bool is_rdkit_halogen_oxide_oxygen(const AtomRecord& record) {
+    return record.atom != nullptr && record.atom->GetAtomicNum() == OXYGEN_ATOMIC_NUM
+           && record.atom->GetFormalCharge() == 0 && record.atom->GetTotalHCount() == 0
+           && record.atom->GetExplicitDegree() == 1;
+}
+
+bool rdkit_normalizes_halogen_oxide_bond(
+    const AtomRecord& begin,
+    const AtomRecord& end,
+    const OEChem::OEBondBase& bond) {
+    if (bond.GetOrder() != 2 || bond.IsAromatic()) {
+        return false;
+    }
+    return (is_rdkit_halogen_oxide_center(begin) && is_rdkit_halogen_oxide_oxygen(end))
+           || (is_rdkit_halogen_oxide_center(end) && is_rdkit_halogen_oxide_oxygen(begin));
+}
+
+void apply_rdkit_halogen_oxide_normalization(
+    AtomRecord& begin,
+    AtomRecord& end,
+    const OEChem::OEBondBase& bond) {
+    if (!rdkit_normalizes_halogen_oxide_bond(begin, end, bond)) {
+        return;
+    }
+
+    // RDKit sanitization rewrites neutral halogen oxides such as OCl(=O)=O
+    // into charge-separated single bonds. OpenEye keeps the input valence
+    // form, so adjust only the Morgan compatibility invariants here.
+    if (is_rdkit_halogen_oxide_center(begin)) {
+        ++begin.formal_charge_adjustment;
+        --end.formal_charge_adjustment;
+    } else {
+        --begin.formal_charge_adjustment;
+        ++end.formal_charge_adjustment;
+    }
+}
+
+std::uint32_t atom_invariant(const AtomRecord& atom_record, const MorganOptions& options) {
+    const auto& atom = *atom_record.atom;
     std::uint32_t invariant = 0;
     invariant = combine_hash(invariant, atom.GetAtomicNum());
     invariant = combine_hash(invariant, atom.GetDegree());
     invariant = combine_hash(invariant, atom.GetTotalHCount());
-    invariant = combine_hash(invariant, static_cast<std::uint32_t>(atom.GetFormalCharge()));
+    invariant = combine_hash(
+        invariant,
+        static_cast<std::uint32_t>(
+            atom.GetFormalCharge() + atom_record.formal_charge_adjustment));
     invariant = combine_hash(invariant, static_cast<std::uint32_t>(isotope_delta(atom)));
     if (options.include_ring_membership && atom.IsInRing()) {
         invariant = combine_hash(invariant, 1u);
@@ -269,8 +324,15 @@ std::int32_t bond_type_value(const OEChem::OEBondBase& bond) {
     return static_cast<std::int32_t>(bond.GetOrder());
 }
 
-std::int32_t bond_invariant(const OEChem::OEBondBase& bond, const MorganOptions& options) {
+std::int32_t bond_invariant(
+    const OEChem::OEBondBase& bond,
+    const AtomRecord& begin,
+    const AtomRecord& end,
+    const MorganOptions& options) {
     if (!options.use_bond_types) {
+        return 1;
+    }
+    if (rdkit_normalizes_halogen_oxide_bond(begin, end, bond)) {
         return 1;
     }
     return bond_type_value(bond);
@@ -326,6 +388,7 @@ MoleculeGraph build_graph(const OEChem::OEMolBase& mol, const MorganOptions& opt
         }
         graph.atoms[idx].atom = atom;
         graph.atoms[idx].index = idx;
+        graph.atoms[idx].bond_indices.reserve(atom->GetDegree());
     }
 
     std::vector<std::uint32_t> bond_ids;
@@ -340,7 +403,10 @@ MoleculeGraph build_graph(const OEChem::OEMolBase& mol, const MorganOptions& opt
         record.index = idx;
         record.begin = bond->GetBgnIdx();
         record.end = bond->GetEndIdx();
-        record.invariant = bond_invariant(*bond, options);
+        auto& begin = graph.atoms[record.begin];
+        auto& end = graph.atoms[record.end];
+        apply_rdkit_halogen_oxide_normalization(begin, end, *bond);
+        record.invariant = bond_invariant(*bond, begin, end, options);
         graph.atoms[record.begin].bond_indices.push_back(idx);
         graph.atoms[record.end].bond_indices.push_back(idx);
     }
@@ -386,7 +452,7 @@ void enumerate_events_into(
     std::vector<std::uint32_t> atom_invariants(graph.atoms.size(), 0u);
     for (const auto& atom_record : graph.atoms) {
         if (atom_record.atom != nullptr) {
-            atom_invariants[atom_record.index] = atom_invariant(*atom_record.atom, options);
+            atom_invariants[atom_record.index] = atom_invariant(atom_record, options);
         }
     }
 

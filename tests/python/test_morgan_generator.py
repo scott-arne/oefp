@@ -105,3 +105,54 @@ def test_morgan_generator_rejects_invalid_options():
 
     with pytest.raises(ValueError, match="count_bounds cannot be empty"):
         oefp.MorganGenerator(count_simulation=True, count_bounds=[])
+
+
+def _clear_morgan_generator_cache(api_module: Any) -> None:
+    cached_generator = getattr(api_module, "_cached_morgan_generator", None)
+    if cached_generator is not None:
+        cached_generator.cache_clear()
+
+
+def test_morgan_fingerprint_reuses_cached_generator_for_same_options(monkeypatch: Any):
+    import oefp.api as api
+
+    _clear_morgan_generator_cache(api)
+    constructed: list[dict[str, Any]] = []
+
+    class FakeMorganGenerator:
+        def __init__(self, **kwargs: Any) -> None:
+            constructed.append(kwargs)
+
+        def fingerprint(self, mol: Any) -> tuple[int, Any]:
+            return (len(constructed), mol)
+
+    monkeypatch.setattr(api, "MorganGenerator", FakeMorganGenerator)
+
+    first = api.morgan_fingerprint("mol", radius=1, count_bounds=[1, 2])
+    second = api.morgan_fingerprint("mol", radius=1, count_bounds=[1, 2])
+
+    assert len(constructed) == 1
+    assert first == second
+    _clear_morgan_generator_cache(api)
+
+
+def test_morgan_fingerprint_cache_distinguishes_options(monkeypatch: Any):
+    import oefp.api as api
+
+    _clear_morgan_generator_cache(api)
+    constructed: list[dict[str, Any]] = []
+
+    class FakeMorganGenerator:
+        def __init__(self, **kwargs: Any) -> None:
+            constructed.append(kwargs)
+
+        def fingerprint(self, mol: Any) -> tuple[int, Any]:
+            return (len(constructed), mol)
+
+    monkeypatch.setattr(api, "MorganGenerator", FakeMorganGenerator)
+
+    api.morgan_fingerprint("mol", radius=1)
+    api.morgan_fingerprint("mol", radius=2)
+
+    assert len(constructed) == 2
+    _clear_morgan_generator_cache(api)
