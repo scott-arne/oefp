@@ -4,7 +4,6 @@
 #include <cstdint>
 #include <limits>
 #include <map>
-#include <queue>
 #include <set>
 #include <sstream>
 #include <stdexcept>
@@ -329,27 +328,29 @@ MoleculeGraph build_graph(const OEChem::OEMolBase& mol) {
     return graph;
 }
 
-std::vector<std::uint32_t> shortest_distances(
+void fill_shortest_distances(
     const MoleculeGraph& graph,
-    std::uint32_t start_atom) {
+    std::uint32_t start_atom,
+    std::vector<std::uint32_t>& distances,
+    std::vector<std::uint32_t>& queue) {
     const auto unreachable = std::numeric_limits<std::uint32_t>::max();
-    std::vector<std::uint32_t> distances(graph.atoms.size(), unreachable);
-    std::queue<std::uint32_t> queue;
+    std::fill(distances.begin(), distances.end(), unreachable);
+    queue.clear();
     distances[start_atom] = 0;
-    queue.push(start_atom);
+    queue.push_back(start_atom);
 
-    while (!queue.empty()) {
-        const auto atom_id = queue.front();
-        queue.pop();
+    std::size_t queue_head = 0;
+    while (queue_head < queue.size()) {
+        const auto atom_id = queue[queue_head];
+        ++queue_head;
         for (const auto neighbor : graph.atoms[atom_id].neighbors) {
             if (distances[neighbor] != unreachable) {
                 continue;
             }
             distances[neighbor] = distances[atom_id] + 1u;
-            queue.push(neighbor);
+            queue.push_back(neighbor);
         }
     }
-    return distances;
 }
 
 template <typename EventSink>
@@ -371,11 +372,14 @@ void enumerate_events_into(
         }
     }
 
+    std::vector<std::uint32_t> distances(graph.atoms.size(), 0u);
+    std::vector<std::uint32_t> distance_queue;
+    distance_queue.reserve(graph.atoms.size());
     for (const auto& atom_record : graph.atoms) {
         if (atom_record.atom == nullptr) {
             continue;
         }
-        const auto distances = shortest_distances(graph, atom_record.index);
+        fill_shortest_distances(graph, atom_record.index, distances, distance_queue);
         for (std::uint32_t other = atom_record.index + 1u; other < graph.atoms.size(); ++other) {
             if (graph.atoms[other].atom == nullptr) {
                 continue;
@@ -434,7 +438,7 @@ OEFP make_count_simulated_fingerprint(
     const FingerprintSpec& spec) {
     const auto bound_count = options.count_bounds.size();
     const auto effective_size = options.num_bits / bound_count;
-    std::map<std::uint32_t, std::uint32_t> effective_counts;
+    std::vector<std::uint32_t> effective_counts(effective_size, 0u);
     enumerate_events_into(
         mol,
         options,
@@ -449,7 +453,11 @@ OEFP make_count_simulated_fingerprint(
         });
 
     std::vector<std::uint64_t> words(DenseWordCount(spec.size_bits), 0ULL);
-    for (const auto& [base_bit, count] : effective_counts) {
+    for (std::uint32_t base_bit = 0; base_bit < effective_counts.size(); ++base_bit) {
+        const auto count = effective_counts[base_bit];
+        if (count == 0u) {
+            continue;
+        }
         for (std::size_t i = 0; i < bound_count; ++i) {
             if (count >= options.count_bounds[i]) {
                 const auto bit_id =
