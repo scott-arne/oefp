@@ -361,10 +361,12 @@ std::vector<std::uint32_t> atom_iteration_order(
     return atom_order;
 }
 
-std::vector<MorganEvent> enumerate_events(
+template <typename EventSink>
+void enumerate_events_into(
     const OEChem::OEMolBase& mol,
     const MorganOptions& options,
-    std::uint32_t fold_size) {
+    std::uint32_t fold_size,
+    EventSink&& emit_event) {
     const auto graph = build_graph(mol, options);
 
     std::vector<std::uint32_t> atom_invariants(graph.atoms.size(), 0u);
@@ -373,9 +375,6 @@ std::vector<MorganEvent> enumerate_events(
             atom_invariants[atom_record.index] = atom_invariant(*atom_record.atom, options);
         }
     }
-
-    std::vector<MorganEvent> events;
-    events.reserve((static_cast<std::size_t>(options.radius) + 1u) * mol.NumAtoms());
 
     std::vector<std::uint32_t> current = atom_invariants;
     std::vector<std::uint32_t> next(graph.atoms.size(), 0u);
@@ -390,7 +389,7 @@ std::vector<MorganEvent> enumerate_events(
             continue;
         }
         if (!options.only_nonzero_invariants || current[atom_record.index] != 0u) {
-            events.push_back(
+            emit_event(
                 MorganEvent{atom_record.index, 0u, current[atom_record.index],
                             event_bit_id(current[atom_record.index], fold_size)});
         }
@@ -448,7 +447,7 @@ std::vector<MorganEvent> enumerate_events(
             if (options.include_redundant_environments
                 || seen_neighborhoods.count(neighborhood) == 0u) {
                 if (!options.only_nonzero_invariants || atom_invariants[atom_id] != 0u) {
-                    events.push_back(MorganEvent{
+                    emit_event(MorganEvent{
                         atom_id,
                         layer + 1u,
                         raw_id,
@@ -465,6 +464,21 @@ std::vector<MorganEvent> enumerate_events(
         std::fill(next.begin(), next.end(), 0u);
         neighborhoods = round_neighborhoods;
     }
+}
+
+std::vector<MorganEvent> enumerate_events(
+    const OEChem::OEMolBase& mol,
+    const MorganOptions& options,
+    std::uint32_t fold_size) {
+    std::vector<MorganEvent> events;
+    events.reserve((static_cast<std::size_t>(options.radius) + 1u) * mol.NumAtoms());
+    enumerate_events_into(
+        mol,
+        options,
+        fold_size,
+        [&events](MorganEvent event) {
+            events.push_back(event);
+        });
 
     return events;
 }
@@ -493,6 +507,21 @@ OEFP make_count_simulated_fingerprint(
             }
         }
     }
+    return fingerprint;
+}
+
+OEFP make_binary_fingerprint_from_events(
+    const OEChem::OEMolBase& mol,
+    const MorganOptions& options,
+    const FingerprintSpec& spec) {
+    OEFP fingerprint(spec);
+    enumerate_events_into(
+        mol,
+        options,
+        options.num_bits,
+        [&fingerprint](const MorganEvent& event) {
+            fingerprint.SetBit(event.bit_id);
+        });
     return fingerprint;
 }
 
@@ -632,12 +661,7 @@ OEFP MorganGenerator::Fingerprint(const OEChem::OEMolBase& mol) const {
     if (options_.count_simulation) {
         return make_count_simulated_fingerprint(mol, options_);
     }
-
-    OEFP fingerprint(binary_spec_);
-    for (const auto& event : enumerate_events(mol, options_, options_.num_bits)) {
-        fingerprint.SetBit(event.bit_id);
-    }
-    return fingerprint;
+    return make_binary_fingerprint_from_events(mol, options_, binary_spec_);
 }
 
 const MorganOptions& MorganGenerator::Options() const {
