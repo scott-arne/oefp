@@ -20,6 +20,7 @@ namespace {
 constexpr const char* MORGAN_COMPAT_VERSION = "Morgan-2026.03.1";
 constexpr std::int32_t RDKIT_AROMATIC_BOND_TYPE = 12;
 constexpr std::uint32_t UNFOLDED_MORGAN_IDS = 0u;
+constexpr std::uint64_t BITS_PER_WORD = 64u;
 
 struct MorganEvent {
     std::uint32_t atom_id = 0;
@@ -56,7 +57,7 @@ struct MoleculeGraph {
     std::vector<BondRecord> bonds;
 };
 
-using BondSet = std::set<std::uint32_t>;
+using BondSet = std::vector<std::uint32_t>;
 
 struct BondSetLess {
     bool operator()(const BondSet& lhs, const BondSet& rhs) const {
@@ -91,6 +92,20 @@ bool round_environment_less(const RoundEnvironment& lhs, const RoundEnvironment&
     }
     return std::tie(std::get<1>(lhs), std::get<2>(lhs))
            < std::tie(std::get<1>(rhs), std::get<2>(rhs));
+}
+
+void add_bond_to_neighborhood(BondSet& neighborhood, std::uint32_t bond_id) {
+    const auto position = std::lower_bound(neighborhood.begin(), neighborhood.end(), bond_id);
+    if (position == neighborhood.end() || *position != bond_id) {
+        neighborhood.insert(position, bond_id);
+    }
+}
+
+void add_neighborhood(BondSet& neighborhood, const BondSet& additions) {
+    neighborhood.reserve(neighborhood.size() + additions.size());
+    for (const auto bond_id : additions) {
+        add_bond_to_neighborhood(neighborhood, bond_id);
+    }
 }
 
 void validate_options(const MorganOptions& options) {
@@ -235,17 +250,16 @@ std::int32_t isotope_delta(const OEChem::OEAtomBase& atom) {
 }
 
 std::uint32_t atom_invariant(const OEChem::OEAtomBase& atom, const MorganOptions& options) {
-    std::vector<std::uint32_t> components;
-    components.reserve(6);
-    components.push_back(atom.GetAtomicNum());
-    components.push_back(atom.GetDegree());
-    components.push_back(atom.GetTotalHCount());
-    components.push_back(static_cast<std::uint32_t>(atom.GetFormalCharge()));
-    components.push_back(static_cast<std::uint32_t>(isotope_delta(atom)));
+    std::uint32_t invariant = 0;
+    invariant = combine_hash(invariant, atom.GetAtomicNum());
+    invariant = combine_hash(invariant, atom.GetDegree());
+    invariant = combine_hash(invariant, atom.GetTotalHCount());
+    invariant = combine_hash(invariant, static_cast<std::uint32_t>(atom.GetFormalCharge()));
+    invariant = combine_hash(invariant, static_cast<std::uint32_t>(isotope_delta(atom)));
     if (options.include_ring_membership && atom.IsInRing()) {
-        components.push_back(1u);
+        invariant = combine_hash(invariant, 1u);
     }
-    return vector_hash(components);
+    return invariant;
 }
 
 std::int32_t bond_type_value(const OEChem::OEBondBase& bond) {
@@ -397,6 +411,8 @@ void enumerate_events_into(
 
     for (std::uint32_t layer = 0; layer < options.radius; ++layer) {
         std::vector<RoundEnvironment> this_round;
+        this_round.reserve(graph.atoms.size());
+        std::vector<NeighborInvariant> neighbors;
 
         for (const auto atom_id : atom_order) {
             if (atom_id >= graph.atoms.size()) {
@@ -411,16 +427,14 @@ void enumerate_events_into(
                 continue;
             }
 
-            std::vector<NeighborInvariant> neighbors;
+            neighbors.clear();
             neighbors.reserve(atom_record.bond_indices.size());
 
             for (const auto bond_id : atom_record.bond_indices) {
                 const auto& bond = graph.bonds[bond_id];
-                round_neighborhoods[atom_id].insert(bond.sort_index);
+                add_bond_to_neighborhood(round_neighborhoods[atom_id], bond.sort_index);
                 const auto nbr = other_atom(bond, atom_id);
-                round_neighborhoods[atom_id].insert(
-                    neighborhoods[nbr].begin(),
-                    neighborhoods[nbr].end());
+                add_neighborhood(round_neighborhoods[atom_id], neighborhoods[nbr]);
                 neighbors.push_back(NeighborInvariant{bond.invariant, current[nbr]});
             }
 
@@ -514,15 +528,15 @@ OEFP make_binary_fingerprint_from_events(
     const OEChem::OEMolBase& mol,
     const MorganOptions& options,
     const FingerprintSpec& spec) {
-    OEFP fingerprint(spec);
+    std::vector<std::uint64_t> words(DenseWordCount(spec.size_bits), 0ULL);
     enumerate_events_into(
         mol,
         options,
         options.num_bits,
-        [&fingerprint](const MorganEvent& event) {
-            fingerprint.SetBit(event.bit_id);
+        [&words](const MorganEvent& event) {
+            words[event.bit_id / BITS_PER_WORD] |= 1ULL << (event.bit_id % BITS_PER_WORD);
         });
-    return fingerprint;
+    return OEFP(spec, std::move(words));
 }
 
 MorganFingerprintResult make_count_simulated_fingerprint_with_mapping(
