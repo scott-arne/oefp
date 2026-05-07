@@ -100,6 +100,67 @@ TEST(AtomPairTest, GeneratesNonEmptyFingerprintForSimpleMolecule) {
     EXPECT_GT(fp.CountOnBits(), 0u);
 }
 
+TEST(AtomPairGeneratorTest, FingerprintMatchesFunctionalApiForDefaultOptions) {
+    const auto mol = mol_from_smiles("CC(=O)Oc1ccccc1C(=O)O");
+    const AtomPairOptions options;
+    const AtomPairGenerator generator(options);
+
+    const auto generated = generator.Fingerprint(mol);
+    const auto functional = MakeAtomPairFingerprint(mol, options);
+
+    EXPECT_EQ(generated.Spec(), functional.Spec());
+    EXPECT_EQ(generated.Words(), functional.Words());
+    EXPECT_EQ(generated.CountOnBits(), functional.CountOnBits());
+}
+
+TEST(AtomPairGeneratorTest, FingerprintMatchesFunctionalApiForNonDefaultOptions) {
+    const auto mol = mol_from_smiles("c1ccc(O)cc1");
+    AtomPairOptions options;
+    options.min_distance = 1;
+    options.max_distance = 4;
+    options.num_bits = 512;
+    options.count_simulation = false;
+
+    const AtomPairGenerator generator(options);
+
+    const auto generated = generator.Fingerprint(mol);
+    const auto functional = MakeAtomPairFingerprint(mol, options);
+
+    EXPECT_EQ(generated.SizeBits(), 512u);
+    EXPECT_EQ(generated.Spec(), functional.Spec());
+    EXPECT_EQ(generated.Words(), functional.Words());
+}
+
+TEST(AtomPairGeneratorTest, CountSimulationMatchesFunctionalApi) {
+    const auto mol = mol_from_smiles("CCC(CC)CO");
+    AtomPairOptions options;
+    options.num_bits = 256;
+    options.count_simulation = true;
+    options.count_bounds = {1u, 2u, 4u};
+
+    const AtomPairGenerator generator(options);
+
+    const auto generated = generator.Fingerprint(mol);
+    const auto functional = MakeAtomPairFingerprint(mol, options);
+
+    EXPECT_EQ(generated.Spec(), functional.Spec());
+    EXPECT_EQ(generated.Words(), functional.Words());
+}
+
+TEST(AtomPairGeneratorTest, ConstructorRejectsInvalidOptions) {
+    AtomPairOptions zero_bits;
+    zero_bits.num_bits = 0;
+    EXPECT_THROW(static_cast<void>(AtomPairGenerator{zero_bits}), std::invalid_argument);
+
+    AtomPairOptions chiral;
+    chiral.use_chirality = true;
+    EXPECT_THROW(static_cast<void>(AtomPairGenerator{chiral}), std::invalid_argument);
+
+    AtomPairOptions empty_count_bounds;
+    empty_count_bounds.count_bounds.clear();
+    EXPECT_THROW(static_cast<void>(AtomPairGenerator{empty_count_bounds}), std::invalid_argument);
+}
+
 TEST(AtomPairTest, GeneratedCountFingerprintCarriesStrictAtomPairSpec) {
     const auto mol = mol_from_smiles("CCO");
     AtomPairOptions options;

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Benchmark OEFP reusable Morgan generation against RDKit."""
+"""Benchmark OEFP reusable fingerprint generation against RDKit."""
 
 from __future__ import annotations
 
@@ -112,6 +112,7 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--warmup", type=int, default=1)
     parser.add_argument("--pdist-size", type=int, default=400)
     parser.add_argument("--generation-max-ratio", type=float, default=1.10)
+    parser.add_argument("--atom-pair-generation-max-ratio", type=float, default=1.00)
     return parser
 
 
@@ -127,6 +128,8 @@ def _validate_args(args: argparse.Namespace) -> None:
         raise SystemExit("--pdist-size must be greater than 1")
     if args.generation_max_ratio <= 0.0:
         raise SystemExit("--generation-max-ratio must be greater than 0")
+    if args.atom_pair_generation_max_ratio <= 0.0:
+        raise SystemExit("--atom-pair-generation-max-ratio must be greater than 0")
 
 
 def _rdkit_bulk_pdist(rd_fps: list[Any], data_structs: Any) -> list[float]:
@@ -147,35 +150,60 @@ def main() -> int:
     import oefp  # type: ignore[import-not-found]
 
     oe_mols, rd_mols = _load_molecules(args.smiles, args.max_mols)
-    rd_generator = rdFingerprintGenerator.GetMorganGenerator(
+    rd_morgan_generator = rdFingerprintGenerator.GetMorganGenerator(
         radius=2,
         fpSize=2048,
         includeChirality=False,
         useBondTypes=True,
         includeRingMembership=True,
     )
-    oe_generator = oefp.MorganGenerator(radius=2, num_bits=2048)
+    oe_morgan_generator = oefp.MorganGenerator(radius=2, num_bits=2048)
+    rd_atom_pair_generator = rdFingerprintGenerator.GetAtomPairGenerator(
+        minDistance=1,
+        maxDistance=30,
+        includeChirality=False,
+        use2D=True,
+        countSimulation=True,
+        fpSize=2048,
+    )
+    oe_atom_pair_generator = oefp.AtomPairGenerator(num_bits=2048)
 
     # Generation timing intentionally includes the Python loop plus Python
     # wrapper/object allocation over prebuilt molecules and reusable generators.
     oe_generation = _time_trials(
-        lambda: [oe_generator.fingerprint(mol) for mol in oe_mols],
+        lambda: [oe_morgan_generator.fingerprint(mol) for mol in oe_mols],
         trials=args.trials,
         warmup=args.warmup,
         molecule_count=len(oe_mols),
     )
-    rd_generation = _time_trials(
-        lambda: [rd_generator.GetFingerprint(mol) for mol in rd_mols],
+    rd_morgan_generation = _time_trials(
+        lambda: [rd_morgan_generator.GetFingerprint(mol) for mol in rd_mols],
         trials=args.trials,
         warmup=args.warmup,
         molecule_count=len(rd_mols),
     )
-    generation_ratio = oe_generation.median_s / rd_generation.median_s
+    morgan_generation_ratio = oe_generation.median_s / rd_morgan_generation.median_s
+    oe_atom_pair_generation = _time_trials(
+        lambda: [oe_atom_pair_generator.fingerprint(mol) for mol in oe_mols],
+        trials=args.trials,
+        warmup=args.warmup,
+        molecule_count=len(oe_mols),
+    )
+    rd_atom_pair_generation = _time_trials(
+        lambda: [rd_atom_pair_generator.GetFingerprint(mol) for mol in rd_mols],
+        trials=args.trials,
+        warmup=args.warmup,
+        molecule_count=len(rd_mols),
+    )
+    atom_pair_generation_ratio = (
+        oe_atom_pair_generation.median_s / rd_atom_pair_generation.median_s
+    )
 
     print(f"data path:                 {args.smiles}")
     print(f"trials:                    {args.trials}")
     print(f"warmup:                    {args.warmup}")
-    print(f"generation gate:           {args.generation_max_ratio:.3f}")
+    print(f"Morgan generation gate:    {args.generation_max_ratio:.3f}")
+    print(f"Atom Pair generation gate: {args.atom_pair_generation_max_ratio:.3f}")
     print(f"molecules:                 {len(oe_mols)}")
     print(
         f"oefp Morgan median/IQR:    "
@@ -183,11 +211,22 @@ def main() -> int:
     )
     print(
         f"rdkit Morgan median/IQR:   "
-        f"{rd_generation.median_s:.6f}s / {rd_generation.iqr_s:.6f}s"
+        f"{rd_morgan_generation.median_s:.6f}s / {rd_morgan_generation.iqr_s:.6f}s"
     )
-    print(f"oefp/rdkit generation:     {generation_ratio:.3f}")
+    print(f"oefp/rdkit Morgan generation:     {morgan_generation_ratio:.3f}")
     print(f"oefp Morgan per molecule:  {oe_generation.per_mol_us:.3f}us")
-    print(f"rdkit Morgan per molecule: {rd_generation.per_mol_us:.3f}us")
+    print(f"rdkit Morgan per molecule: {rd_morgan_generation.per_mol_us:.3f}us")
+    print(
+        f"oefp Atom Pair median/IQR: "
+        f"{oe_atom_pair_generation.median_s:.6f}s / {oe_atom_pair_generation.iqr_s:.6f}s"
+    )
+    print(
+        f"rdkit Atom Pair median/IQR:"
+        f" {rd_atom_pair_generation.median_s:.6f}s / {rd_atom_pair_generation.iqr_s:.6f}s"
+    )
+    print(f"oefp/rdkit Atom Pair generation:  {atom_pair_generation_ratio:.3f}")
+    print(f"oefp Atom Pair per molecule:      {oe_atom_pair_generation.per_mol_us:.3f}us")
+    print(f"rdkit Atom Pair per molecule:     {rd_atom_pair_generation.per_mol_us:.3f}us")
 
     pdist_n = min(args.pdist_size, len(oe_mols))
     if pdist_n <= 1:
@@ -195,8 +234,8 @@ def main() -> int:
             "pdist benchmark requires at least two loaded molecules; "
             "increase --max-mols or use a SMILES file with at least two parseable molecules"
         )
-    pdist_oe_fps = [oe_generator.fingerprint(mol) for mol in oe_mols[:pdist_n]]
-    pdist_rd_fps = [rd_generator.GetFingerprint(mol) for mol in rd_mols[:pdist_n]]
+    pdist_oe_fps = [oe_morgan_generator.fingerprint(mol) for mol in oe_mols[:pdist_n]]
+    pdist_rd_fps = [rd_morgan_generator.GetFingerprint(mol) for mol in rd_mols[:pdist_n]]
     batch = oefp.OEFPBatch.from_fingerprints(pdist_oe_fps)
     metric = oefp.Metric.tanimoto()
     oe_pdist_values = np.asarray(
@@ -225,10 +264,15 @@ def main() -> int:
     print(f"rdkit bulk median/IQR:      {rd_pdist.median_s:.6f}s / {rd_pdist.iqr_s:.6f}s")
     print(f"rdkit/oefp pdist speedup:   {pdist_speedup:.3f}")
 
-    if generation_ratio > args.generation_max_ratio:
+    if morgan_generation_ratio > args.generation_max_ratio:
         raise SystemExit(
-            f"OEFP generation ratio {generation_ratio:.3f} exceeds "
+            f"OEFP Morgan generation ratio {morgan_generation_ratio:.3f} exceeds "
             f"configured gate {args.generation_max_ratio:.3f}"
+        )
+    if atom_pair_generation_ratio > args.atom_pair_generation_max_ratio:
+        raise SystemExit(
+            f"OEFP Atom Pair generation ratio {atom_pair_generation_ratio:.3f} exceeds "
+            f"configured gate {args.atom_pair_generation_max_ratio:.3f}"
         )
     return 0
 

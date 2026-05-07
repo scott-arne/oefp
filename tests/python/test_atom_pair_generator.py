@@ -1,4 +1,4 @@
-"""Tests for the reusable Python Morgan generator."""
+"""Tests for the reusable Python Atom Pair generator."""
 
 from __future__ import annotations
 
@@ -30,14 +30,14 @@ def _on_bits(fp: Any) -> set[int]:
     return bits
 
 
-def test_morgan_generator_matches_functional_api_default_options():
+def test_atom_pair_generator_matches_functional_api_default_options():
     import oefp
 
     mol = _openeye_mol("CC(=O)Oc1ccccc1C(=O)O")
-    generator = oefp.MorganGenerator()
+    generator = oefp.AtomPairGenerator()
 
     generated = generator.fingerprint(mol)
-    functional = oefp.morgan_fingerprint(mol)
+    functional = oefp.atom_pair_fingerprint(mol)
 
     assert generated.num_bits == functional.num_bits
     assert generated.popcount == functional.popcount
@@ -45,46 +45,42 @@ def test_morgan_generator_matches_functional_api_default_options():
     assert _on_bits(generated) == _on_bits(functional)
 
 
-def test_morgan_generator_matches_functional_api_nondefault_options():
+def test_atom_pair_generator_matches_functional_api_nondefault_options():
     import oefp
 
     mol = _openeye_mol("c1ccc(O)cc1")
-    generator = oefp.MorganGenerator(
-        radius=1,
+    generator = oefp.AtomPairGenerator(
+        min_distance=1,
+        max_distance=4,
         num_bits=512,
-        use_bond_types=False,
-        only_nonzero_invariants=True,
-        include_ring_membership=False,
-        include_redundant_environments=True,
+        count_simulation=False,
     )
 
     generated = generator.fingerprint(mol)
-    functional = oefp.morgan_fingerprint(
+    functional = oefp.atom_pair_fingerprint(
         mol,
-        radius=1,
+        min_distance=1,
+        max_distance=4,
         num_bits=512,
-        use_bond_types=False,
-        only_nonzero_invariants=True,
-        include_ring_membership=False,
-        include_redundant_environments=True,
+        count_simulation=False,
     )
 
     assert generated.num_bits == 512
     assert generated.words.tolist() == functional.words.tolist()
 
 
-def test_morgan_generator_count_simulation_matches_functional_api():
+def test_atom_pair_generator_count_simulation_matches_functional_api():
     import oefp
 
     mol = _openeye_mol("CCC(CC)CO")
-    generator = oefp.MorganGenerator(
+    generator = oefp.AtomPairGenerator(
         num_bits=256,
         count_simulation=True,
         count_bounds=[1, 2, 4],
     )
 
     generated = generator.fingerprint(mol)
-    functional = oefp.morgan_fingerprint(
+    functional = oefp.atom_pair_fingerprint(
         mol,
         num_bits=256,
         count_simulation=True,
@@ -94,65 +90,65 @@ def test_morgan_generator_count_simulation_matches_functional_api():
     assert generated.words.tolist() == functional.words.tolist()
 
 
-def test_morgan_generator_rejects_invalid_options():
+def test_atom_pair_generator_rejects_invalid_options():
     import oefp
 
     with pytest.raises(ValueError, match="num_bits must be greater than zero"):
-        oefp.MorganGenerator(num_bits=0)
+        oefp.AtomPairGenerator(num_bits=0)
 
     with pytest.raises(ValueError, match="chirality conformance"):
-        oefp.MorganGenerator(use_chirality=True)
+        oefp.AtomPairGenerator(use_chirality=True)
 
     with pytest.raises(ValueError, match="count_bounds cannot be empty"):
-        oefp.MorganGenerator(count_simulation=True, count_bounds=[])
+        oefp.AtomPairGenerator(count_simulation=True, count_bounds=[])
 
 
-def _clear_morgan_generator_cache(api_module: Any) -> None:
-    cached_generator = getattr(api_module, "_cached_morgan_generator", None)
+def _clear_atom_pair_generator_cache(api_module: Any) -> None:
+    cached_generator = getattr(api_module, "_cached_atom_pair_generator", None)
     if cached_generator is not None:
         cached_generator.cache_clear()
 
 
-def test_morgan_fingerprint_reuses_cached_generator_for_same_options(monkeypatch: Any):
+def test_atom_pair_fingerprint_reuses_cached_generator_for_same_options(monkeypatch: Any):
     import oefp.api as api
 
-    _clear_morgan_generator_cache(api)
+    _clear_atom_pair_generator_cache(api)
     constructed: list[dict[str, Any]] = []
 
-    class FakeMorganGenerator:
+    class FakeAtomPairGenerator:
         def __init__(self, **kwargs: Any) -> None:
             constructed.append(kwargs)
 
         def fingerprint(self, mol: Any) -> tuple[int, Any]:
             return (len(constructed), mol)
 
-    monkeypatch.setattr(api, "MorganGenerator", FakeMorganGenerator)
+    monkeypatch.setattr(api, "AtomPairGenerator", FakeAtomPairGenerator)
 
-    first = api.morgan_fingerprint("mol", radius=1, count_bounds=[1, 2])
-    second = api.morgan_fingerprint("mol", radius=1, count_bounds=[1, 2])
+    first = api.atom_pair_fingerprint("mol", max_distance=4, count_bounds=[1, 2])
+    second = api.atom_pair_fingerprint("mol", max_distance=4, count_bounds=[1, 2])
 
     assert len(constructed) == 1
     assert first == second
-    _clear_morgan_generator_cache(api)
+    _clear_atom_pair_generator_cache(api)
 
 
-def test_morgan_fingerprint_cache_distinguishes_options(monkeypatch: Any):
+def test_atom_pair_fingerprint_cache_distinguishes_options(monkeypatch: Any):
     import oefp.api as api
 
-    _clear_morgan_generator_cache(api)
+    _clear_atom_pair_generator_cache(api)
     constructed: list[dict[str, Any]] = []
 
-    class FakeMorganGenerator:
+    class FakeAtomPairGenerator:
         def __init__(self, **kwargs: Any) -> None:
             constructed.append(kwargs)
 
         def fingerprint(self, mol: Any) -> tuple[int, Any]:
             return (len(constructed), mol)
 
-    monkeypatch.setattr(api, "MorganGenerator", FakeMorganGenerator)
+    monkeypatch.setattr(api, "AtomPairGenerator", FakeAtomPairGenerator)
 
-    api.morgan_fingerprint("mol", radius=1)
-    api.morgan_fingerprint("mol", radius=2)
+    api.atom_pair_fingerprint("mol", max_distance=4)
+    api.atom_pair_fingerprint("mol", max_distance=5)
 
     assert len(constructed) == 2
-    _clear_morgan_generator_cache(api)
+    _clear_atom_pair_generator_cache(api)
