@@ -264,6 +264,7 @@ from .oefp import (
     calculate_molecular_weight,
 )
 from .api import (
+    AtomPairGenerator,
     Metric,
     MorganGenerator,
     OEFP,
@@ -299,6 +300,7 @@ from .api import (
 __all__ = [
     "__version__",
     "__version_info__",
+    "AtomPairGenerator",
     "Metric",
     "MorganGenerator",
     "OEFP",

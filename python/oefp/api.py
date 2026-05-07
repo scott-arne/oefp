@@ -488,6 +488,36 @@ class MorganGenerator:
         return OEFP(self._native.Fingerprint(mol))
 
 
+class AtomPairGenerator:
+    """Reusable generator for folded binary Atom Pair fingerprints."""
+
+    def __init__(
+        self,
+        *,
+        min_distance: int = 1,
+        max_distance: int = 30,
+        num_bits: int = 2048,
+        use_chirality: bool = False,
+        use_2d: bool = True,
+        count_simulation: bool = True,
+        count_bounds: Sequence[int] | None = None,
+    ) -> None:
+        options = _atom_pair_options(
+            min_distance,
+            max_distance,
+            num_bits,
+            use_chirality,
+            use_2d,
+            count_simulation,
+            count_bounds,
+        )
+        self._native = _native._NativeAtomPairGenerator(options)
+
+    def fingerprint(self, mol: Any) -> OEFP:
+        """Generate a folded dense binary Atom Pair fingerprint."""
+        return OEFP(self._native.Fingerprint(mol))
+
+
 @dataclass(frozen=True)
 class MorganFingerprintResult:
     """Dense Morgan fingerprint plus generated bit mappings."""
@@ -706,16 +736,16 @@ def atom_pair_fingerprint(
     count_bounds: Sequence[int] | None = None,
 ) -> OEFP:
     """Generate an RDKit-compatible folded binary Atom Pair fingerprint."""
-    options = _atom_pair_options(
-        min_distance,
-        max_distance,
-        num_bits,
-        use_chirality,
-        use_2d,
-        count_simulation,
-        count_bounds,
+    generator = AtomPairGenerator(
+        min_distance=min_distance,
+        max_distance=max_distance,
+        num_bits=num_bits,
+        use_chirality=use_chirality,
+        use_2d=use_2d,
+        count_simulation=count_simulation,
+        count_bounds=count_bounds,
     )
-    return OEFP(_native.MakeAtomPairFingerprint(mol, options))
+    return generator.fingerprint(mol)
 
 
 def atom_pair_count_fingerprint(

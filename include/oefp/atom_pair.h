@@ -22,6 +22,38 @@ struct AtomPairOptions {
     std::vector<std::uint32_t> count_bounds{1u, 2u, 4u, 8u};
 };
 
+/// \brief Reusable generator for RDKit-compatible dense Atom Pair fingerprints.
+class AtomPairGenerator {
+public:
+    /// \brief Construct a reusable generator from validated Atom Pair options.
+    ///
+    /// \param options Atom Pair generation options.
+    /// \throws std::invalid_argument: When the requested options are unsupported
+    ///     or invalid.
+#ifdef SWIG
+    explicit AtomPairGenerator(AtomPairOptions options);
+#else
+    explicit AtomPairGenerator(AtomPairOptions options = AtomPairOptions{});
+#endif
+
+    /// \brief Generate a folded dense binary Atom Pair fingerprint.
+    ///
+    /// Count-simulation options are supported because they still produce dense
+    /// binary output. Count and sparse output remain on the existing
+    /// free-function APIs.
+    ///
+    /// \param mol Molecule to fingerprint.
+    /// \returns Dense binary Atom Pair fingerprint.
+    OEFP Fingerprint(const OEChem::OEMolBase& mol) const;
+
+    /// \brief Return the normalized generator options.
+    const AtomPairOptions& Options() const;
+
+private:
+    AtomPairOptions options_;
+    FingerprintSpec binary_spec_;
+};
+
 /// \brief Generate an RDKit-compatible folded binary Atom Pair fingerprint.
 ///
 /// The production implementation is OEFP-owned; RDKit is used only by

@@ -30,6 +30,7 @@ constexpr std::uint32_t CODE_SIZE = NUM_TYPE_BITS + NUM_PI_BITS + NUM_BRANCH_BIT
 constexpr std::uint32_t NUM_PATH_BITS = 5;
 constexpr std::uint32_t MAX_PATH_LENGTH = (1u << NUM_PATH_BITS) - 1u;
 constexpr std::uint32_t ATOM_PAIR_SPARSE_SIZE = 1u << (NUM_PATH_BITS + 2u * CODE_SIZE);
+constexpr std::uint64_t BITS_PER_WORD = 64u;
 
 struct AtomRecord {
     const OEChem::OEAtomBase* atom = nullptr;
@@ -351,11 +352,13 @@ std::vector<std::uint32_t> shortest_distances(
     return distances;
 }
 
-std::vector<AtomPairEvent> enumerate_events(
+template <typename EventSink>
+void enumerate_events_into(
     const OEChem::OEMolBase& mol,
     const AtomPairOptions& options,
     std::uint32_t fold_size,
-    AtomPairIdentifierKind identifier_kind) {
+    AtomPairIdentifierKind identifier_kind,
+    EventSink&& emit_event) {
     OEChem::OEGraphMol working_mol(mol);
     OEChem::OEAssignHybridization(working_mol);
     const auto graph = build_graph(working_mol);
@@ -368,7 +371,6 @@ std::vector<AtomPairEvent> enumerate_events(
         }
     }
 
-    std::vector<AtomPairEvent> events;
     for (const auto& atom_record : graph.atoms) {
         if (atom_record.atom == nullptr) {
             continue;
@@ -387,49 +389,77 @@ std::vector<AtomPairEvent> enumerate_events(
                 atom_codes[other],
                 distance,
                 identifier_kind);
-            events.push_back(AtomPairEvent{raw_id, event_bit_id(raw_id, fold_size)});
+            emit_event(AtomPairEvent{raw_id, event_bit_id(raw_id, fold_size)});
         }
     }
+}
+
+std::vector<AtomPairEvent> enumerate_events(
+    const OEChem::OEMolBase& mol,
+    const AtomPairOptions& options,
+    std::uint32_t fold_size,
+    AtomPairIdentifierKind identifier_kind) {
+    std::vector<AtomPairEvent> events;
+    events.reserve(mol.NumAtoms() * (mol.NumAtoms() - 1u) / 2u);
+    enumerate_events_into(
+        mol,
+        options,
+        fold_size,
+        identifier_kind,
+        [&events](AtomPairEvent event) {
+            events.push_back(event);
+        });
     return events;
 }
 
 OEFP make_standard_fingerprint(
     const OEChem::OEMolBase& mol,
-    const AtomPairOptions& options) {
-    OEFP fingerprint(atom_pair_spec(options));
-    for (const auto& event :
-         enumerate_events(mol, options, options.num_bits, AtomPairIdentifierKind::Hashed)) {
-        fingerprint.SetBit(event.bit_id);
-    }
-    return fingerprint;
+    const AtomPairOptions& options,
+    const FingerprintSpec& spec) {
+    std::vector<std::uint64_t> words(DenseWordCount(spec.size_bits), 0ULL);
+    enumerate_events_into(
+        mol,
+        options,
+        options.num_bits,
+        AtomPairIdentifierKind::Hashed,
+        [&words](const AtomPairEvent& event) {
+            words[event.bit_id / BITS_PER_WORD] |= 1ULL << (event.bit_id % BITS_PER_WORD);
+        });
+    return OEFP(spec, std::move(words));
 }
 
 OEFP make_count_simulated_fingerprint(
     const OEChem::OEMolBase& mol,
-    const AtomPairOptions& options) {
+    const AtomPairOptions& options,
+    const FingerprintSpec& spec) {
     const auto bound_count = options.count_bounds.size();
     const auto effective_size = options.num_bits / bound_count;
     std::map<std::uint32_t, std::uint32_t> effective_counts;
-    for (const auto& event :
-         enumerate_events(mol, options, effective_size, AtomPairIdentifierKind::Hashed)) {
-        auto& count = effective_counts[event.bit_id];
-        if (count == std::numeric_limits<std::uint32_t>::max()) {
-            throw std::overflow_error("Atom Pair count simulation count exceeds uint32 storage.");
-        }
-        ++count;
-    }
+    enumerate_events_into(
+        mol,
+        options,
+        effective_size,
+        AtomPairIdentifierKind::Hashed,
+        [&effective_counts](const AtomPairEvent& event) {
+            auto& count = effective_counts[event.bit_id];
+            if (count == std::numeric_limits<std::uint32_t>::max()) {
+                throw std::overflow_error("Atom Pair count simulation count exceeds uint32 storage.");
+            }
+            ++count;
+        });
 
-    OEFP fingerprint(atom_pair_spec(options));
+    std::vector<std::uint64_t> words(DenseWordCount(spec.size_bits), 0ULL);
     for (const auto& [base_bit, count] : effective_counts) {
         for (std::size_t i = 0; i < bound_count; ++i) {
             if (count >= options.count_bounds[i]) {
-                fingerprint.SetBit(
+                const auto bit_id =
                     static_cast<std::uint64_t>(base_bit) * bound_count
-                    + static_cast<std::uint64_t>(i));
+                    + static_cast<std::uint64_t>(i);
+                words[bit_id / BITS_PER_WORD] |= 1ULL << (bit_id % BITS_PER_WORD);
             }
         }
     }
-    return fingerprint;
+    return OEFP(spec, std::move(words));
 }
 
 OEFPCount make_count_fingerprint(
@@ -531,12 +561,25 @@ OEFPCount make_sparse_count_fingerprint(
 
 } // namespace
 
-OEFP MakeAtomPairFingerprint(const OEChem::OEMolBase& mol, const AtomPairOptions& options) {
-    validate_options(options);
-    if (options.count_simulation) {
-        return make_count_simulated_fingerprint(mol, options);
+AtomPairGenerator::AtomPairGenerator(AtomPairOptions options)
+    : options_(std::move(options)) {
+    validate_options(options_);
+    binary_spec_ = atom_pair_spec(options_);
+}
+
+OEFP AtomPairGenerator::Fingerprint(const OEChem::OEMolBase& mol) const {
+    if (options_.count_simulation) {
+        return make_count_simulated_fingerprint(mol, options_, binary_spec_);
     }
-    return make_standard_fingerprint(mol, options);
+    return make_standard_fingerprint(mol, options_, binary_spec_);
+}
+
+const AtomPairOptions& AtomPairGenerator::Options() const {
+    return options_;
+}
+
+OEFP MakeAtomPairFingerprint(const OEChem::OEMolBase& mol, const AtomPairOptions& options) {
+    return AtomPairGenerator(options).Fingerprint(mol);
 }
 
 OEFPCount MakeAtomPairCountFingerprint(
