@@ -622,18 +622,30 @@ OEFPMappingSet MorganSparseCountFingerprintResult::Mapping() const {
     return mapping_;
 }
 
-OEFP MakeMorganFingerprint(const OEChem::OEMolBase& mol, const MorganOptions& options) {
-    validate_options(options);
+MorganGenerator::MorganGenerator(MorganOptions options)
+    : options_(std::move(options)) {
+    validate_options(options_);
+    binary_spec_ = morgan_spec(options_, FingerprintValueType::Binary);
+}
 
-    if (options.count_simulation) {
-        return make_count_simulated_fingerprint(mol, options);
+OEFP MorganGenerator::Fingerprint(const OEChem::OEMolBase& mol) const {
+    if (options_.count_simulation) {
+        return make_count_simulated_fingerprint(mol, options_);
     }
 
-    OEFP fingerprint(morgan_spec(options, FingerprintValueType::Binary));
-    for (const auto& event : enumerate_events(mol, options, options.num_bits)) {
+    OEFP fingerprint(binary_spec_);
+    for (const auto& event : enumerate_events(mol, options_, options_.num_bits)) {
         fingerprint.SetBit(event.bit_id);
     }
     return fingerprint;
+}
+
+const MorganOptions& MorganGenerator::Options() const {
+    return options_;
+}
+
+OEFP MakeMorganFingerprint(const OEChem::OEMolBase& mol, const MorganOptions& options) {
+    return MorganGenerator(options).Fingerprint(mol);
 }
 
 MorganFingerprintResult MakeMorganFingerprintWithMapping(

@@ -96,6 +96,69 @@ TEST(MorganTest, GeneratedFingerprintCarriesStrictMorganSpec) {
         "count_bounds=1,3,7");
 }
 
+TEST(MorganGeneratorTest, FingerprintMatchesFunctionalApiForDefaultOptions) {
+    const auto mol = mol_from_smiles("CC(=O)Oc1ccccc1C(=O)O");
+    const MorganOptions options;
+
+    const MorganGenerator generator(options);
+    const auto generated = generator.Fingerprint(mol);
+    const auto functional = MakeMorganFingerprint(mol, options);
+
+    EXPECT_EQ(generated.Spec(), functional.Spec());
+    EXPECT_EQ(generated.Words(), functional.Words());
+    EXPECT_EQ(generated.CountOnBits(), functional.CountOnBits());
+}
+
+TEST(MorganGeneratorTest, FingerprintMatchesFunctionalApiForNonDefaultOptions) {
+    const auto mol = mol_from_smiles("c1ccc(O)cc1");
+    MorganOptions options;
+    options.radius = 1;
+    options.num_bits = 512;
+    options.use_bond_types = false;
+    options.only_nonzero_invariants = true;
+    options.include_ring_membership = false;
+    options.include_redundant_environments = true;
+
+    const MorganGenerator generator(options);
+    const auto generated = generator.Fingerprint(mol);
+    const auto functional = MakeMorganFingerprint(mol, options);
+
+    EXPECT_EQ(generated.Spec(), functional.Spec());
+    EXPECT_EQ(generated.Words(), functional.Words());
+    EXPECT_EQ(generated.CountOnBits(), functional.CountOnBits());
+}
+
+TEST(MorganGeneratorTest, CountSimulationMatchesFunctionalApi) {
+    const auto mol = mol_from_smiles("CCC(CC)CO");
+    MorganOptions options;
+    options.num_bits = 256;
+    options.count_simulation = true;
+    options.count_bounds = {1u, 2u, 4u};
+
+    const MorganGenerator generator(options);
+    const auto generated = generator.Fingerprint(mol);
+    const auto functional = MakeMorganFingerprint(mol, options);
+
+    EXPECT_EQ(generated.Spec(), functional.Spec());
+    EXPECT_EQ(generated.Words(), functional.Words());
+    EXPECT_EQ(generated.CountOnBits(), functional.CountOnBits());
+}
+
+TEST(MorganGeneratorTest, ConstructorRejectsInvalidOptions) {
+    MorganOptions zero_bits;
+    zero_bits.num_bits = 0;
+    EXPECT_THROW(static_cast<void>(MorganGenerator{zero_bits}), std::invalid_argument);
+
+    MorganOptions chiral;
+    chiral.use_chirality = true;
+    EXPECT_THROW(static_cast<void>(MorganGenerator{chiral}), std::invalid_argument);
+
+    MorganOptions empty_count_bounds;
+    empty_count_bounds.count_simulation = true;
+    empty_count_bounds.count_bounds.clear();
+    EXPECT_THROW(static_cast<void>(MorganGenerator{empty_count_bounds}), std::invalid_argument);
+}
+
 TEST(MorganTest, MatchingOptionsBatchAndDifferentOptionsReject) {
     const auto mol_a = mol_from_smiles("CCO");
     const auto mol_b = mol_from_smiles("CCN");

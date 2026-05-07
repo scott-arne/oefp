@@ -93,6 +93,34 @@ private:
     OEFPMappingSet mapping_;
 };
 
+/// \brief Reusable generator for RDKit-compatible dense Morgan fingerprints.
+class MorganGenerator {
+public:
+    /// \brief Construct a reusable generator from validated Morgan options.
+    ///
+    /// \param options Morgan generation options.
+    /// \throws std::invalid_argument: When the requested options are unsupported
+    ///     or invalid.
+    explicit MorganGenerator(MorganOptions options = MorganOptions{});
+
+    /// \brief Generate a folded dense binary Morgan fingerprint.
+    ///
+    /// Count-simulation options are supported because they still produce dense
+    /// binary output. Mapping, count, and sparse output remain on the existing
+    /// free-function APIs.
+    ///
+    /// \param mol Molecule to fingerprint.
+    /// \returns Dense binary Morgan fingerprint.
+    OEFP Fingerprint(const OEChem::OEMolBase& mol) const;
+
+    /// \brief Return the normalized generator options.
+    const MorganOptions& Options() const;
+
+private:
+    MorganOptions options_;
+    FingerprintSpec binary_spec_;
+};
+
 /// \brief Generate an RDKit-compatible folded binary Morgan fingerprint.
 ///
 /// The production implementation is OEFP-owned; RDKit is used only by
