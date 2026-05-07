@@ -265,6 +265,7 @@ from .oefp import (
 )
 from .api import (
     Metric,
+    MorganGenerator,
     OEFP,
     OEFPBatch,
     OEFPCount,
@@ -299,6 +300,7 @@ __all__ = [
     "__version__",
     "__version_info__",
     "Metric",
+    "MorganGenerator",
     "OEFP",
     "OEFPBatch",
     "OEFPCount",

@@ -101,7 +101,11 @@ public:
     /// \param options Morgan generation options.
     /// \throws std::invalid_argument: When the requested options are unsupported
     ///     or invalid.
+#ifdef SWIG
+    explicit MorganGenerator(MorganOptions options);
+#else
     explicit MorganGenerator(MorganOptions options = MorganOptions{});
+#endif
 
     /// \brief Generate a folded dense binary Morgan fingerprint.
     ///

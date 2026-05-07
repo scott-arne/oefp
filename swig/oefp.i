@@ -440,6 +440,7 @@ namespace std {
 %rename(_NativeOEFPCountBatch) OEFP::OEFPCountBatch;
 %rename(_NativeOEFPSparseBatch) OEFP::OEFPSparseBatch;
 %rename(_NativeMetric) OEFP::Metric;
+%rename(_NativeMorganGenerator) OEFP::MorganGenerator;
 
 %ignore OEFP::OEFPMappingSet::EnvironmentsForBit;
 
@@ -477,6 +478,7 @@ OEFP_GIL_RELEASE_EXCEPTION(OEFP::MakeMorganSparseCountFingerprint)
 OEFP_GIL_RELEASE_EXCEPTION(OEFP::MakeMorganSparseCountFingerprintWithMapping)
 OEFP_GIL_RELEASE_EXCEPTION(OEFP::MakeMorganSparseFingerprint)
 OEFP_GIL_RELEASE_EXCEPTION(OEFP::MakeMorganSparseFingerprintWithMapping)
+OEFP_GIL_RELEASE_EXCEPTION(OEFP::MorganGenerator::Fingerprint)
 
 %include "oefp/fingerprint.h"
 %include "oefp/count.h"
