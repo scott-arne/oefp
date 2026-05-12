@@ -168,6 +168,32 @@ TEST(FingerprintTest, CountsOnBits) {
     EXPECT_EQ(fingerprint.CountOnBits(), 3U);
 }
 
+TEST(FingerprintTest, CountOnBitsStaysStableForRepeatedBitMutations) {
+    OEFP fingerprint(binary_spec(130));
+
+    fingerprint.SetBit(64);
+    fingerprint.SetBit(64);
+    EXPECT_EQ(fingerprint.CountOnBits(), 1U);
+
+    fingerprint.ClearBit(64);
+    fingerprint.ClearBit(64);
+    EXPECT_EQ(fingerprint.CountOnBits(), 0U);
+}
+
+TEST(FingerprintTest, SetWordUpdatesCachedPopcount) {
+    OEFP fingerprint(binary_spec(130));
+
+    fingerprint.SetWord(0, ~0ULL);
+    EXPECT_EQ(fingerprint.CountOnBits(), 64U);
+
+    fingerprint.SetWord(2, ~0ULL);
+    EXPECT_EQ(fingerprint.Word(2), 0x3ULL);
+    EXPECT_EQ(fingerprint.CountOnBits(), 66U);
+
+    fingerprint.SetWord(0, 0ULL);
+    EXPECT_EQ(fingerprint.CountOnBits(), 2U);
+}
+
 TEST(FingerprintTest, ComparesSpecsAndWordsForEquality) {
     OEFP first(binary_spec(65));
     OEFP same(binary_spec(65));
@@ -186,6 +212,23 @@ TEST(FingerprintTest, ComparesSpecsAndWordsForEquality) {
 
     same.ClearBit(64);
     EXPECT_NE(first, same);
+}
+
+TEST(FingerprintTest, IgnoresSourceTypeIdWhenMetadataIsAbsent) {
+    auto first = binary_spec(65);
+    auto second = binary_spec(65);
+
+    first.has_source_type_id = false;
+    second.has_source_type_id = false;
+    first.source_type_id = 1;
+    second.source_type_id = 2;
+
+    EXPECT_EQ(first, second);
+
+    first.has_source_type_id = true;
+    second.has_source_type_id = true;
+
+    EXPECT_NE(first, second);
 }
 
 } // namespace test

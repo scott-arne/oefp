@@ -68,6 +68,8 @@ FingerprintSpec openeye_spec_from_fingerprint(const OEGraphSim::OEFingerPrint& f
         spec.source_type = type->GetFPTypeString();
         spec.source_version = type->GetFPVersionString();
         spec.parameters = parameter_summary(type);
+        spec.has_source_type_id = true;
+        spec.source_type_id = type->GetFPType();
     } else {
         spec.source_type = "OEFingerPrint";
     }
@@ -78,15 +80,24 @@ const OEGraphSim::OEFPTypeBase* resolve_openeye_type(const FingerprintSpec& spec
     if (spec.value_type != FingerprintValueType::Binary) {
         throw std::invalid_argument("Only binary OEFP fingerprints can be exported to OEFingerPrint.");
     }
-    if (spec.source_name != "OpenEye" || spec.source_type.empty()) {
+    if (spec.source_name != "OpenEye") {
         throw std::invalid_argument("OEFP spec does not contain OpenEye fingerprint type metadata.");
     }
 
-    const auto* type = OEGraphSim::OEGetFPType(spec.source_type);
-    if (type == nullptr) {
+    if (!spec.source_type.empty()) {
+        const auto* type = OEGraphSim::OEGetFPType(spec.source_type);
+        if (type != nullptr) {
+            return type;
+        }
         throw std::invalid_argument("OpenEye fingerprint type metadata could not be resolved.");
     }
-    return type;
+    if (spec.has_source_type_id) {
+        const auto* type = OEGraphSim::OEGetFPType(spec.source_type_id);
+        if (type != nullptr) {
+            return type;
+        }
+    }
+    throw std::invalid_argument("OpenEye fingerprint type metadata could not be resolved.");
 }
 
 } // namespace

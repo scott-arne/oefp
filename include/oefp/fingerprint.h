@@ -26,6 +26,8 @@ struct FingerprintSpec {
     std::string source_type;
     std::string source_version;
     std::string parameters;
+    bool has_source_type_id = false;
+    std::uint32_t source_type_id = 0;
 };
 
 bool operator==(const FingerprintSpec& lhs, const FingerprintSpec& rhs);
@@ -121,6 +123,7 @@ public:
 private:
     FingerprintSpec spec_;
     std::vector<std::uint64_t> words_;
+    std::uint64_t popcount_ = 0;
 
     void ValidateBinarySpec() const;
     void CheckBitIndex(std::uint64_t index) const;

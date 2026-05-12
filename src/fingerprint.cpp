@@ -28,6 +28,14 @@ std::uint64_t count_bits(std::uint64_t word) {
 #endif
 }
 
+std::uint64_t count_words(const std::vector<std::uint64_t>& words) {
+    std::uint64_t count = 0;
+    for (const auto word : words) {
+        count += count_bits(word);
+    }
+    return count;
+}
+
 FingerprintSpec validate_binary_spec(FingerprintSpec spec) {
     if (spec.value_type != FingerprintValueType::Binary) {
         throw std::invalid_argument("OEFP currently supports binary fingerprints only.");
@@ -40,7 +48,9 @@ FingerprintSpec validate_binary_spec(FingerprintSpec spec) {
 bool operator==(const FingerprintSpec& lhs, const FingerprintSpec& rhs) {
     return lhs.size_bits == rhs.size_bits && lhs.value_type == rhs.value_type
         && lhs.source_name == rhs.source_name && lhs.source_type == rhs.source_type
-        && lhs.source_version == rhs.source_version && lhs.parameters == rhs.parameters;
+        && lhs.source_version == rhs.source_version && lhs.parameters == rhs.parameters
+        && lhs.has_source_type_id == rhs.has_source_type_id
+        && (!lhs.has_source_type_id || lhs.source_type_id == rhs.source_type_id);
 }
 
 bool operator!=(const FingerprintSpec& lhs, const FingerprintSpec& rhs) {
@@ -65,6 +75,7 @@ OEFP::OEFP(FingerprintSpec spec, std::vector<std::uint64_t> words)
         throw std::invalid_argument("Fingerprint word count does not match size_bits.");
     }
     MaskUnusedBits();
+    popcount_ = count_words(words_);
 }
 
 const FingerprintSpec& OEFP::Spec() const {
@@ -105,20 +116,33 @@ std::uint64_t OEFP::Word(std::size_t word_index) const {
 
 void OEFP::SetWord(std::size_t word_index, std::uint64_t value) {
     CheckWordIndex(word_index);
+    const auto old_word = words_[word_index];
     words_[word_index] = value;
     if (word_index + 1 == words_.size()) {
         MaskUnusedBits();
     }
+    popcount_ -= count_bits(old_word);
+    popcount_ += count_bits(words_[word_index]);
 }
 
 void OEFP::SetBit(std::uint64_t index) {
     CheckBitIndex(index);
-    words_[index / BITS_PER_WORD] |= 1ULL << (index % BITS_PER_WORD);
+    auto& word = words_[index / BITS_PER_WORD];
+    const auto mask = 1ULL << (index % BITS_PER_WORD);
+    if ((word & mask) == 0ULL) {
+        word |= mask;
+        ++popcount_;
+    }
 }
 
 void OEFP::ClearBit(std::uint64_t index) {
     CheckBitIndex(index);
-    words_[index / BITS_PER_WORD] &= ~(1ULL << (index % BITS_PER_WORD));
+    auto& word = words_[index / BITS_PER_WORD];
+    const auto mask = 1ULL << (index % BITS_PER_WORD);
+    if ((word & mask) != 0ULL) {
+        word &= ~mask;
+        --popcount_;
+    }
 }
 
 bool OEFP::TestBit(std::uint64_t index) const {
@@ -127,11 +151,7 @@ bool OEFP::TestBit(std::uint64_t index) const {
 }
 
 std::uint64_t OEFP::CountOnBits() const {
-    std::uint64_t count = 0;
-    for (const auto word : words_) {
-        count += count_bits(word);
-    }
-    return count;
+    return popcount_;
 }
 
 void OEFP::MaskUnusedBits() {

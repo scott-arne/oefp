@@ -1142,11 +1142,17 @@ def to_openeye_fingerprint(fp: OEFP) -> Any:
     if (
         spec.value_type != _native.FingerprintValueType_Binary
         or spec.source_name != "OpenEye"
-        or not spec.source_type
     ):
         raise ValueError("OEFP spec does not contain OpenEye fingerprint type metadata.")
 
-    fp_type = oegraphsim.OEGetFPType(spec.source_type)
+    fp_type = None
+    if spec.source_type:
+        fp_type = oegraphsim.OEGetFPType(spec.source_type)
+        if fp_type is None:
+            raise ValueError("OpenEye fingerprint type metadata could not be resolved.")
+    elif spec.has_source_type_id:
+        fp_type = oegraphsim.OEGetFPType(spec.source_type_id)
+
     if fp_type is None:
         raise ValueError("OpenEye fingerprint type metadata could not be resolved.")
 

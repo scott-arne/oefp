@@ -31,6 +31,52 @@ TEST(OpenEyeInteropTest, ImportsGeneratedFingerprintAndMatchesOpenEyeTanimoto) {
     EXPECT_NEAR(Compare(fp_a, fp_b, Metric::Tanimoto()), OEGraphSim::OETanimoto(oe_a, oe_b), 1.0e-7);
 }
 
+TEST(OpenEyeInteropTest, ImportsNumericFingerprintTypeMetadata) {
+    OEChem::OEGraphMol mol;
+    ASSERT_TRUE(OEChem::OESmilesToMol(mol, "CCO"));
+
+    OEGraphSim::OEFingerPrint original;
+    ASSERT_TRUE(OEGraphSim::OEMakeCircularFP(original, mol));
+    ASSERT_NE(original.GetFPTypeBase(), nullptr);
+
+    const auto imported = FromOEFingerPrint(original);
+
+    EXPECT_TRUE(imported.Spec().has_source_type_id);
+    EXPECT_EQ(imported.Spec().source_type_id, original.GetFPTypeBase()->GetFPType());
+}
+
+TEST(OpenEyeInteropTest, ExportCanResolveTypeFromNumericMetadataFallback) {
+    OEChem::OEGraphMol mol;
+    ASSERT_TRUE(OEChem::OESmilesToMol(mol, "CCO"));
+
+    OEGraphSim::OEFingerPrint original;
+    ASSERT_TRUE(OEGraphSim::OEMakeCircularFP(original, mol));
+    const auto imported = FromOEFingerPrint(original);
+
+    auto spec = imported.Spec();
+    spec.source_type.clear();
+    const OEFP fallback(spec, imported.Words());
+    const auto exported = ToOEFingerPrint(fallback);
+
+    EXPECT_TRUE(OEGraphSim::OEIsSameFPType(original, exported));
+    EXPECT_NEAR(OEGraphSim::OETanimoto(original, exported), 1.0, 1.0e-7);
+}
+
+TEST(OpenEyeInteropTest, ExportRejectsInvalidStringTypeBeforeNumericFallback) {
+    OEChem::OEGraphMol mol;
+    ASSERT_TRUE(OEChem::OESmilesToMol(mol, "CCO"));
+
+    OEGraphSim::OEFingerPrint original;
+    ASSERT_TRUE(OEGraphSim::OEMakeCircularFP(original, mol));
+    const auto imported = FromOEFingerPrint(original);
+
+    auto spec = imported.Spec();
+    spec.source_type = "not-a-valid-openeye-fingerprint-type";
+    const OEFP fallback(spec, imported.Words());
+
+    EXPECT_THROW(ToOEFingerPrint(fallback), std::invalid_argument);
+}
+
 TEST(OpenEyeInteropTest, ExportRoundTripsGeneratedFingerprintBits) {
     OEChem::OEGraphMol mol;
     ASSERT_TRUE(OEChem::OESmilesToMol(mol, "CCO"));
