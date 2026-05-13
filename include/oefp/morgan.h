@@ -25,6 +25,7 @@ struct MorganOptions {
     std::vector<std::uint32_t> count_bounds{1u, 2u, 4u, 8u};
 };
 
+/// \cond OEFP_BINDING_DETAIL
 /// \brief Benchmark-only native stage timing summary for Morgan generation.
 struct MorganGenerationProfile {
     double graph_seconds = 0.0;
@@ -41,6 +42,7 @@ struct MorganGenerationProfile {
     /// \brief Return the sum of measured native stage times.
     double TotalSeconds() const;
 };
+/// \endcond
 
 /// \brief Dense binary Morgan fingerprint plus separate environment mappings.
 class MorganFingerprintResult {
@@ -293,6 +295,7 @@ MorganSparseFingerprintResult MakeMorganSparseFingerprintWithMapping(
     const MorganOptions& options = MorganOptions{});
 #endif
 
+/// \cond OEFP_BINDING_DETAIL
 /// \brief Profile native folded binary Morgan generation stages.
 ///
 /// This diagnostic helper is intended for benchmark tooling. It follows the
@@ -307,6 +310,7 @@ MorganGenerationProfile ProfileMorganFingerprint(
     const OEChem::OEMolBase& mol,
     const MorganOptions& options = MorganOptions{});
 #endif
+/// \endcond
 
 } // namespace OEFP
 

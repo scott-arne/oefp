@@ -10,10 +10,46 @@ from typing import Any
 
 import numpy as np
 
-from . import oefp as _native
+from . import _native
 from ._views import readonly_array_from_address
 
 _UINT32_MAX = 2**32 - 1
+_NATIVE_TOKEN = object()
+
+
+@dataclass(frozen=True)
+class FingerprintSpec:
+    """Read-only fingerprint metadata exposed by Python wrappers."""
+
+    num_bits: int
+    value_type: str
+    source_name: str
+    source_type: str
+    source_version: str
+    parameters: str
+    source_type_id: int | None
+
+
+def _value_type_name(value: Any) -> str:
+    if value == _native.FingerprintValueType_Binary:
+        return "binary"
+    if value == _native.FingerprintValueType_Counted:
+        return "counted"
+    return "unknown"
+
+
+def _fingerprint_spec(native_spec: Any) -> FingerprintSpec:
+    return FingerprintSpec(
+        num_bits=int(native_spec.size_bits),
+        value_type=_value_type_name(native_spec.value_type),
+        source_name=str(native_spec.source_name),
+        source_type=str(native_spec.source_type),
+        source_version=str(native_spec.source_version),
+        parameters=str(native_spec.parameters),
+        source_type_id=int(native_spec.source_type_id)
+        if native_spec.has_source_type_id
+        else None,
+    )
 
 
 def _mode_value(mode: str) -> Any:
@@ -161,8 +197,18 @@ def _atom_pair_options(
 class OEFP:
     """Python wrapper for a native dense-binary OEFP."""
 
-    def __init__(self, native: Any):
+    def __init__(self, native: Any, *, _token: object | None = None):
+        if _token is not _NATIVE_TOKEN:
+            raise TypeError(
+                "OEFP objects are created by OEFP.from_on_bits(), "
+                "morgan_fingerprint(), atom_pair_fingerprint(), or "
+                "from_openeye_fingerprint()."
+            )
         self._native = native
+
+    @classmethod
+    def _from_native(cls, native: Any) -> OEFP:
+        return cls(native, _token=_NATIVE_TOKEN)
 
     @classmethod
     def from_on_bits(
@@ -176,7 +222,7 @@ class OEFP:
         native = _native._NativeOEFP(_manual_spec(num_bits, algorithm))
         for bit in bits:
             native.SetBit(int(bit))
-        return cls(native)
+        return cls._from_native(native)
 
     @property
     def words(self) -> np.ndarray:
@@ -198,12 +244,26 @@ class OEFP:
         """Fixed fingerprint size in bits."""
         return int(self._native.SizeBits())
 
+    @property
+    def spec(self) -> FingerprintSpec:
+        """Read-only fingerprint metadata."""
+        return _fingerprint_spec(self._native.Spec())
+
 
 class OEFPCount:
     """Python wrapper for a native sparse counted fingerprint."""
 
-    def __init__(self, native: Any):
+    def __init__(self, native: Any, *, _token: object | None = None):
+        if _token is not _NATIVE_TOKEN:
+            raise TypeError(
+                "OEFPCount objects are created by OEFPCount factories such as "
+                "morgan_count_fingerprint() or atom_pair_count_fingerprint()."
+            )
         self._native = native
+
+    @classmethod
+    def _from_native(cls, native: Any) -> OEFPCount:
+        return cls(native, _token=_NATIVE_TOKEN)
 
     @property
     def indices(self) -> np.ndarray:
@@ -240,12 +300,26 @@ class OEFPCount:
         """Fixed folded fingerprint size."""
         return int(self._native.SizeBits())
 
+    @property
+    def spec(self) -> FingerprintSpec:
+        """Read-only fingerprint metadata."""
+        return _fingerprint_spec(self._native.Spec())
+
 
 class OEFPSparse:
     """Python wrapper for a native sparse binary fingerprint."""
 
-    def __init__(self, native: Any):
+    def __init__(self, native: Any, *, _token: object | None = None):
+        if _token is not _NATIVE_TOKEN:
+            raise TypeError(
+                "OEFPSparse objects are created by OEFPSparse factories such as "
+                "morgan_sparse_fingerprint() or atom_pair_sparse_fingerprint()."
+            )
         self._native = native
+
+    @classmethod
+    def _from_native(cls, native: Any) -> OEFPSparse:
+        return cls(native, _token=_NATIVE_TOKEN)
 
     @property
     def indices(self) -> np.ndarray:
@@ -267,12 +341,25 @@ class OEFPSparse:
         """Sparse fingerprint identifier domain size."""
         return int(self._native.SizeBits())
 
+    @property
+    def spec(self) -> FingerprintSpec:
+        """Read-only fingerprint metadata."""
+        return _fingerprint_spec(self._native.Spec())
+
 
 class OEFPMappingSet:
     """Python wrapper for native fingerprint bit environment mappings."""
 
-    def __init__(self, native: Any):
+    def __init__(self, native: Any, *, _token: object | None = None):
+        if _token is not _NATIVE_TOKEN:
+            raise TypeError(
+                "OEFPMappingSet objects are created by fingerprint mapping factories."
+            )
         self._native = native
+
+    @classmethod
+    def _from_native(cls, native: Any) -> OEFPMappingSet:
+        return cls(native, _token=_NATIVE_TOKEN)
 
     def bit_ids(self, row: int = 0) -> tuple[int, ...]:
         """Return mapped bit ids for a fingerprint row."""
@@ -299,8 +386,16 @@ class OEFPMappingSet:
 class OEFPBatch:
     """Python wrapper for a native dense-binary OEFPBatch."""
 
-    def __init__(self, native: Any):
+    def __init__(self, native: Any, *, _token: object | None = None):
+        if _token is not _NATIVE_TOKEN:
+            raise TypeError(
+                "OEFPBatch objects are created by OEFPBatch.from_fingerprints()."
+            )
         self._native = native
+
+    @classmethod
+    def _from_native(cls, native: Any) -> OEFPBatch:
+        return cls(native, _token=_NATIVE_TOKEN)
 
     @classmethod
     def from_fingerprints(cls, fingerprints: Sequence[OEFP]) -> OEFPBatch:
@@ -308,7 +403,7 @@ class OEFPBatch:
         native_fps = _native.OEFPVector()
         for fp in fingerprints:
             native_fps.push_back(fp._native)
-        return cls(_native._NativeOEFPBatch.FromFingerprints(native_fps))
+        return cls._from_native(_native._NativeOEFPBatch.FromFingerprints(native_fps))
 
     @property
     def words(self) -> np.ndarray:
@@ -340,12 +435,25 @@ class OEFPBatch:
         """Fixed fingerprint size in bits."""
         return int(self._native.SizeBits())
 
+    @property
+    def spec(self) -> FingerprintSpec:
+        """Read-only fingerprint metadata for all rows."""
+        return _fingerprint_spec(self._native.Spec())
+
 
 class OEFPCountBatch:
     """Python wrapper for a native sparse counted OEFPCountBatch."""
 
-    def __init__(self, native: Any):
+    def __init__(self, native: Any, *, _token: object | None = None):
+        if _token is not _NATIVE_TOKEN:
+            raise TypeError(
+                "OEFPCountBatch objects are created by OEFPCountBatch.from_fingerprints()."
+            )
         self._native = native
+
+    @classmethod
+    def _from_native(cls, native: Any) -> OEFPCountBatch:
+        return cls(native, _token=_NATIVE_TOKEN)
 
     @classmethod
     def from_fingerprints(cls, fingerprints: Sequence[OEFPCount]) -> OEFPCountBatch:
@@ -353,7 +461,7 @@ class OEFPCountBatch:
         native_fps = _native.OEFPCountVector()
         for fp in fingerprints:
             native_fps.push_back(fp._native)
-        return cls(_native._NativeOEFPCountBatch.FromFingerprints(native_fps))
+        return cls._from_native(_native._NativeOEFPCountBatch.FromFingerprints(native_fps))
 
     @property
     def indices(self) -> np.ndarray:
@@ -400,12 +508,25 @@ class OEFPCountBatch:
         """Fixed folded fingerprint size in bits."""
         return int(self._native.SizeBits())
 
+    @property
+    def spec(self) -> FingerprintSpec:
+        """Read-only fingerprint metadata for all rows."""
+        return _fingerprint_spec(self._native.Spec())
+
 
 class OEFPSparseBatch:
     """Python wrapper for a native sparse binary OEFPSparseBatch."""
 
-    def __init__(self, native: Any):
+    def __init__(self, native: Any, *, _token: object | None = None):
+        if _token is not _NATIVE_TOKEN:
+            raise TypeError(
+                "OEFPSparseBatch objects are created by OEFPSparseBatch.from_fingerprints()."
+            )
         self._native = native
+
+    @classmethod
+    def _from_native(cls, native: Any) -> OEFPSparseBatch:
+        return cls(native, _token=_NATIVE_TOKEN)
 
     @classmethod
     def from_fingerprints(cls, fingerprints: Sequence[OEFPSparse]) -> OEFPSparseBatch:
@@ -413,7 +534,7 @@ class OEFPSparseBatch:
         native_fps = _native.OEFPSparseVector()
         for fp in fingerprints:
             native_fps.push_back(fp._native)
-        return cls(_native._NativeOEFPSparseBatch.FromFingerprints(native_fps))
+        return cls._from_native(_native._NativeOEFPSparseBatch.FromFingerprints(native_fps))
 
     @property
     def indices(self) -> np.ndarray:
@@ -450,22 +571,46 @@ class OEFPSparseBatch:
         """Sparse fingerprint identifier domain size."""
         return int(self._native.SizeBits())
 
+    @property
+    def spec(self) -> FingerprintSpec:
+        """Read-only fingerprint metadata for all rows."""
+        return _fingerprint_spec(self._native.Spec())
 
-@dataclass(frozen=True)
+
+@dataclass(frozen=True, init=False)
 class Metric:
     """Python wrapper for native OEFP metrics."""
 
     _native: Any
 
-    @classmethod
-    def tanimoto(cls, *, mode: str = "similarity") -> Metric:
-        """Create a Tanimoto metric."""
-        return cls(_native._NativeMetric.Tanimoto(_mode_value(mode)))
+    def __init__(self, native: Any, *, _token: object | None = None):
+        if _token is not _NATIVE_TOKEN:
+            raise TypeError(
+                "Metric objects are created by Metric.tanimoto(), "
+                "Metric.jaccard(), Metric.tversky(), Metric.dice(), "
+                "Metric.cosine(), or Metric.manhattan()."
+            )
+        object.__setattr__(self, "_native", native)
 
     @classmethod
-    def jaccard(cls, *, mode: str = "similarity") -> Metric:
-        """Create a Jaccard metric."""
-        return cls(_native._NativeMetric.Jaccard(_mode_value(mode)))
+    def _from_native(cls, native: Any) -> Metric:
+        return cls(native, _token=_NATIVE_TOKEN)
+
+    @classmethod
+    def tanimoto(cls, *, mode: str = "similarity") -> Metric:
+        """Create a Tanimoto similarity metric."""
+        mode_value = _mode_value(mode)
+        if mode_value != _native.MetricMode_Similarity:
+            raise ValueError("Tanimoto is a similarity metric; use Metric.jaccard() for distance.")
+        return cls._from_native(_native._NativeMetric.Tanimoto(mode_value))
+
+    @classmethod
+    def jaccard(cls, *, mode: str = "distance") -> Metric:
+        """Create a Jaccard distance metric."""
+        mode_value = _mode_value(mode)
+        if mode_value != _native.MetricMode_Distance:
+            raise ValueError("Jaccard is a distance metric; use Metric.tanimoto() for similarity.")
+        return cls._from_native(_native._NativeMetric.Jaccard(mode_value))
 
     @classmethod
     def tversky(
@@ -476,22 +621,22 @@ class Metric:
         mode: str = "similarity",
     ) -> Metric:
         """Create a Tversky metric."""
-        return cls(_native._NativeMetric.Tversky(alpha, beta, _mode_value(mode)))
+        return cls._from_native(_native._NativeMetric.Tversky(alpha, beta, _mode_value(mode)))
 
     @classmethod
     def dice(cls, *, mode: str = "similarity") -> Metric:
         """Create a Dice metric."""
-        return cls(_native._NativeMetric.Dice(_mode_value(mode)))
+        return cls._from_native(_native._NativeMetric.Dice(_mode_value(mode)))
 
     @classmethod
     def cosine(cls, *, mode: str = "similarity") -> Metric:
         """Create a Cosine metric."""
-        return cls(_native._NativeMetric.Cosine(_mode_value(mode)))
+        return cls._from_native(_native._NativeMetric.Cosine(_mode_value(mode)))
 
     @classmethod
     def manhattan(cls, *, mode: str = "distance") -> Metric:
         """Create a Manhattan metric."""
-        return cls(_native._NativeMetric.Manhattan(_mode_value(mode)))
+        return cls._from_native(_native._NativeMetric.Manhattan(_mode_value(mode)))
 
 
 class MorganGenerator:
@@ -525,7 +670,7 @@ class MorganGenerator:
 
     def fingerprint(self, mol: Any) -> OEFP:
         """Generate a folded dense binary Morgan fingerprint."""
-        return OEFP(self._native.Fingerprint(mol))
+        return OEFP._from_native(self._native.Fingerprint(mol))
 
 
 class AtomPairGenerator:
@@ -555,7 +700,7 @@ class AtomPairGenerator:
 
     def fingerprint(self, mol: Any) -> OEFP:
         """Generate a folded dense binary Atom Pair fingerprint."""
-        return OEFP(self._native.Fingerprint(mol))
+        return OEFP._from_native(self._native.Fingerprint(mol))
 
 
 @dataclass(frozen=True)
@@ -898,7 +1043,7 @@ def atom_pair_count_fingerprint(
         False,
         None,
     )
-    return OEFPCount(_native.MakeAtomPairCountFingerprint(mol, options))
+    return OEFPCount._from_native(_native.MakeAtomPairCountFingerprint(mol, options))
 
 
 def atom_pair_sparse_fingerprint(
@@ -921,7 +1066,7 @@ def atom_pair_sparse_fingerprint(
         count_simulation,
         count_bounds,
     )
-    return OEFPSparse(_native.MakeAtomPairSparseFingerprint(mol, options))
+    return OEFPSparse._from_native(_native.MakeAtomPairSparseFingerprint(mol, options))
 
 
 def atom_pair_sparse_count_fingerprint(
@@ -942,7 +1087,7 @@ def atom_pair_sparse_count_fingerprint(
         False,
         None,
     )
-    return OEFPCount(_native.MakeAtomPairSparseCountFingerprint(mol, options))
+    return OEFPCount._from_native(_native.MakeAtomPairSparseCountFingerprint(mol, options))
 
 
 def morgan_fingerprint_with_mapping(
@@ -972,8 +1117,8 @@ def morgan_fingerprint_with_mapping(
     )
     native = _native.MakeMorganFingerprintWithMapping(mol, options)
     return MorganFingerprintResult(
-        OEFP(native.Fingerprint()),
-        OEFPMappingSet(native.Mapping()),
+        OEFP._from_native(native.Fingerprint()),
+        OEFPMappingSet._from_native(native.Mapping()),
     )
 
 
@@ -998,7 +1143,7 @@ def morgan_count_fingerprint(
         include_ring_membership,
         include_redundant_environments,
     )
-    return OEFPCount(_native.MakeMorganCountFingerprint(mol, options))
+    return OEFPCount._from_native(_native.MakeMorganCountFingerprint(mol, options))
 
 
 def morgan_count_fingerprint_with_mapping(
@@ -1024,8 +1169,8 @@ def morgan_count_fingerprint_with_mapping(
     )
     native = _native.MakeMorganCountFingerprintWithMapping(mol, options)
     return MorganCountFingerprintResult(
-        OEFPCount(native.Fingerprint()),
-        OEFPMappingSet(native.Mapping()),
+        OEFPCount._from_native(native.Fingerprint()),
+        OEFPMappingSet._from_native(native.Mapping()),
     )
 
 
@@ -1049,7 +1194,7 @@ def morgan_sparse_count_fingerprint(
         include_ring_membership,
         include_redundant_environments,
     )
-    return OEFPCount(_native.MakeMorganSparseCountFingerprint(mol, options))
+    return OEFPCount._from_native(_native.MakeMorganSparseCountFingerprint(mol, options))
 
 
 def morgan_sparse_count_fingerprint_with_mapping(
@@ -1074,8 +1219,8 @@ def morgan_sparse_count_fingerprint_with_mapping(
     )
     native = _native.MakeMorganSparseCountFingerprintWithMapping(mol, options)
     return MorganSparseCountFingerprintResult(
-        OEFPCount(native.Fingerprint()),
-        OEFPMappingSet(native.Mapping()),
+        OEFPCount._from_native(native.Fingerprint()),
+        OEFPMappingSet._from_native(native.Mapping()),
     )
 
 
@@ -1099,7 +1244,7 @@ def morgan_sparse_fingerprint(
         include_ring_membership,
         include_redundant_environments,
     )
-    return OEFPSparse(_native.MakeMorganSparseFingerprint(mol, options))
+    return OEFPSparse._from_native(_native.MakeMorganSparseFingerprint(mol, options))
 
 
 def morgan_sparse_fingerprint_with_mapping(
@@ -1124,14 +1269,14 @@ def morgan_sparse_fingerprint_with_mapping(
     )
     native = _native.MakeMorganSparseFingerprintWithMapping(mol, options)
     return MorganSparseFingerprintResult(
-        OEFPSparse(native.Fingerprint()),
-        OEFPMappingSet(native.Mapping()),
+        OEFPSparse._from_native(native.Fingerprint()),
+        OEFPMappingSet._from_native(native.Mapping()),
     )
 
 
 def from_openeye_fingerprint(fp: Any) -> OEFP:
     """Import an OpenEye OEFingerPrint as an OEFP."""
-    return OEFP(_native.FromOEFingerPrint(fp))
+    return OEFP._from_native(_native.FromOEFingerPrint(fp))
 
 
 def to_openeye_fingerprint(fp: OEFP) -> Any:

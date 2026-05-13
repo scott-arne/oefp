@@ -307,7 +307,7 @@ def test_morgan_count_compare_matches_rdkit_count_metrics():
     tversky = DataStructs.TverskySimilarity(rd_a, rd_b, 0.25, 0.75)
 
     assert oefp.compare(fp_a, fp_b, oefp.Metric.tanimoto()) == pytest.approx(tanimoto)
-    assert oefp.compare(fp_a, fp_b, oefp.Metric.tanimoto(mode="distance")) == pytest.approx(1.0 - tanimoto)
+    assert oefp.compare(fp_a, fp_b, oefp.Metric.jaccard()) == pytest.approx(1.0 - tanimoto)
     assert oefp.compare(fp_a, fp_b, oefp.Metric.dice()) == pytest.approx(dice)
     assert oefp.compare(fp_a, fp_b, oefp.Metric.tversky(0.25, 0.75)) == pytest.approx(tversky)
 

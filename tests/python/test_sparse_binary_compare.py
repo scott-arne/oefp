@@ -45,7 +45,7 @@ def test_sparse_binary_compare_matches_set_math():
     tversky = intersection / (intersection + 0.25 * only_left + 0.75 * only_right)
 
     assert oefp.compare(left, right, oefp.Metric.tanimoto()) == pytest.approx(tanimoto)
-    assert oefp.compare(left, right, oefp.Metric.tanimoto(mode="distance")) == pytest.approx(
+    assert oefp.compare(left, right, oefp.Metric.jaccard()) == pytest.approx(
         1.0 - tanimoto,
     )
     assert oefp.compare(left, right, oefp.Metric.dice()) == pytest.approx(dice)

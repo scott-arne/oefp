@@ -72,10 +72,10 @@ def test_count_cdist_matches_scalar_compare():
     a = oefp.OEFPCountBatch.from_fingerprints(fps[:2])
     b = oefp.OEFPCountBatch.from_fingerprints(fps[1:])
 
-    values = oefp.cdist(a, b, oefp.Metric.tanimoto(mode="distance"))
+    values = oefp.cdist(a, b, oefp.Metric.jaccard())
     expected = np.array([
         [
-            oefp.compare(left, right, oefp.Metric.tanimoto(mode="distance"))
+            oefp.compare(left, right, oefp.Metric.jaccard())
             for right in fps[1:]
         ]
         for left in fps[:2]

@@ -1,114 +1,27 @@
 # OEFP
 
-Improved fingerprints for the OpenEye Toolkits
+High-performance molecular fingerprints for the [OpenEye Toolkits](https://www.eyesopen.com/).
 
-This project provides a C++ library with Python bindings built using SWIG and
-[OpenEye Toolkits](https://www.eyesopen.com/). Molecules created with
-`openeye.oechem` in Python pass natively to C++ without serialization.
+OEFP generates RDKit-compatible Morgan and Atom Pair fingerprints from OpenEye
+molecules, stores them in compact C++ containers, and compares them with fast
+scalar and batch kernels. Python bindings are built with SWIG, so
+`openeye.oechem` molecules pass directly into C++ without serialization.
 
-OEFP currently includes dense binary, sparse binary, and sparse counted
-fingerprint containers; scalar, `cdist`, and `pdist` comparisons; and
-RDKit-compatible Morgan and Atom Pair generators for folded binary/count and
-sparse binary/count outputs. Morgan also exposes RDKit-style bit-info mapping
-outputs for binary and counted fingerprints.
+OEFP currently supports dense binary, sparse binary, and sparse counted
+fingerprint containers; scalar comparison; query-to-batch comparison; `cdist`;
+and SciPy-compatible condensed `pdist`.
 
-## Prerequisites
-
-- **OpenEye C++ SDK** -- Headers and libraries (download from
-  [OpenEye](https://www.eyesopen.com/))
-- **OpenEye Python Toolkits** -- `pip install openeye-toolkits`
-- **CMake** >= 3.16
-- **SWIG** >= 4.0
-- **Python** >= 3.10
-- **RDKit** -- Optional, but required for the conformance tests
-
-## Getting Started
-
-### 1. Configure the OpenEye SDK Path
-
-Set the `OPENEYE_ROOT` environment variable to point to your OpenEye C++ SDK
-installation (the directory containing `include/` and `lib/`):
+Try it out:
 
 ```bash
-export OPENEYE_ROOT=/path/to/openeye/sdk
-```
-
-The CMake presets read this variable automatically. You can also set
-`Python3_EXECUTABLE` if you need a specific Python interpreter.
-
-Alternatively, create a `CMakeUserPresets.json` (gitignored) to override
-these values permanently for your local machine.
-
-### 2. Build the C++ Library and SWIG Bindings
-
-```bash
-cmake --preset debug
-cmake --build build-debug
-```
-
-This builds the static C++ library, generates the SWIG wrapper, and places the
-compiled Python extension module in `python/oefp/`.
-
-To build in release mode:
-
-```bash
-cmake --preset release
-cmake --build build-release
-```
-
-### 3. Install for Development
-
-Install the Python package in editable mode so changes to the C++ code are
-reflected after rebuilding:
-
-```bash
-pip install --config-settings editable_mode=compat -e python/
-```
-
-The `editable_mode=compat` flag is required because scikit-build-core's default
-editable mode uses import hooks that are incompatible with compiled SWIG
-extension modules. The compat mode installs the package as a traditional
-`.egg-link`, which works reliably with native extensions.
-
-### 4. Run Tests
-
-C++ tests (built automatically with the debug preset):
-
-```bash
-cd build-debug && ctest --output-on-failure
-```
-
-Python tests:
-
-```bash
-PYTHONPATH=python python -m pytest tests/python -q
-```
-
-The Python tests cover the public wrappers, Python views over C++-owned memory,
-batch kernels, OpenEye molecule interop, and RDKit conformance for Morgan and
-Atom Pair fingerprints when RDKit is installed.
-
-### Fingerprint Kernel Benchmark
-
-OEFP includes a benchmark that compares dense-binary fingerprint `pdist`
-against the current `oecluster` fingerprint path for the same molecules,
-OpenEye circular fingerprint settings, metric, thread count, and chunk size.
-
-```bash
-python benchmarks/benchmark_oecluster_fingerprint.py --count 512 --threads 0 --chunk-size 256 --repeats 3
-```
-
-For exact C++ comparison against current `OECluster::pdist` and
-`OECluster::cdist`, build the optional benchmark with a local `oecluster`
-checkout:
-
-```bash
-cmake -S . -B build-bench -DOEFP_BUILD_BENCHMARKS=ON -DOEFP_OECLUSTER_SOURCE_DIR=/Users/johnss51/Development/cpp/oecluster
-cmake --build build-bench --target oefp_oecluster_fingerprint_benchmark
-./build-bench/benchmarks/oefp_oecluster_fingerprint_benchmark 512 0 256
+pip install oefp
 ```
 
 ## Usage
+
+Here are a few examples of using `oefp`.
+
+### Python
 
 ```python
 from openeye import oechem
@@ -117,203 +30,218 @@ import oefp
 mol = oechem.OEGraphMol()
 oechem.OESmilesToMol(mol, "CC(=O)OC1=CC=CC=C1C(=O)O")  # aspirin
 
-morgan = oefp.morgan_fingerprint(mol, radius=2, num_bits=2048)
-atom_pair_counts = oefp.atom_pair_sparse_count_fingerprint(mol)
+# Generate an RDKit-compatible Morgan fingerprint.
+fp = oefp.morgan_fingerprint(mol, radius=2, num_bits=2048)
+print(fp.popcount)
+print(fp.words[:4])
 
-score = oefp.compare(morgan, morgan, oefp.Metric.tanimoto())
-batch = oefp.OEFPBatch.from_fingerprints([morgan])
-distances = oefp.pdist(batch, oefp.Metric.tanimoto(mode="distance"))
-
-with_mapping = oefp.morgan_count_fingerprint_with_mapping(mol, radius=2)
-bit_info = with_mapping.mapping.bit_info()
+# Compare fingerprints.
+score = oefp.compare(fp, fp, oefp.Metric.tanimoto())
+print(score)
 ```
 
-The `OEGraphMol` object passes directly from Python to C++ via cross-runtime
-SWIG typemaps. Fingerprint arrays returned by Python wrappers are read-only
-NumPy views over C++-owned storage, so callers can inspect results without
-copying the backing buffers.
+Use reusable generators when applying the same options to many molecules:
 
-Current conformance scope is intentionally explicit: Morgan chirality, Atom
-Pair chirality, and Atom Pair 3D-distance generation raise `ValueError` until
-those paths have dedicated RDKit parity coverage.
+```python
+from openeye import oechem
+import oefp
 
-## Project Structure
+smiles = ["c1ccccc1", "c1ccc(O)cc1", "CC(=O)O"]
+mols = []
+for smi in smiles:
+    mol = oechem.OEGraphMol()
+    oechem.OESmilesToMol(mol, smi)
+    mols.append(mol)
 
-```
-oefp/
-    CMakeLists.txt                  # Build configuration
-    CMakePresets.json               # CMake presets (copy to CMakeUserPresets.json)
-    pyproject.toml                  # Package metadata + [tool.oe-build] config
-    vrzn.toml                       # Version locations for vrzn
-    include/oefp/
-        oefp.h                      # Umbrella public C++ header
-        fingerprint.h               # Dense binary fingerprints
-        sparse.h                    # Sparse binary fingerprints
-        count.h                     # Sparse counted fingerprints
-        batch.h                     # Dense binary batch storage
-        sparse_batch.h              # Sparse binary batch storage
-        count_batch.h               # Sparse counted batch storage
-        metric.h                    # Comparison metrics
-        compare.h                   # Scalar and batch comparison kernels
-        morgan.h                    # Morgan fingerprint generators
-        atom_pair.h                 # Atom Pair fingerprint generators
-        annotation.h                # Fingerprint mapping annotations
-    src/
-        *.cpp                       # C++ implementations
-    swig/
-        oefp.i               # SWIG interface with OEMolBase typemaps
-        CMakeLists.txt              # SWIG module build rules
-    python/
-        pyproject.toml              # Setuptools config for editable installs
-        oefp/
-            __init__.py             # Python package (imports, compat layer)
-            api.py                  # Pythonic wrappers around native bindings
-            py.typed                # PEP 561 typing marker
-    scripts/
-        build_python.py             # Build distributable wheels
-    tests/
-        cpp/
-            CMakeLists.txt          # C++ test build rules
-            test_*.cpp              # C++ unit tests
-        python/
-            conftest.py             # Pytest fixtures (molecule helpers)
-            test_*.py               # Python API and conformance tests
-    .github/workflows/
-        build-wheels.yml            # CI: multi-platform wheel builds
+generator = oefp.MorganGenerator(radius=2, num_bits=2048)
+fps = [generator.fingerprint(mol) for mol in mols]
+
+batch = oefp.OEFPBatch.from_fingerprints(fps)
+distances = oefp.pdist(batch, oefp.Metric.jaccard())
 ```
 
-## Public API Notes
+Generate sparse and counted fingerprints:
 
-The primary Python surface is the wrapper layer exported from `oefp`:
+```python
+folded_count = oefp.morgan_count_fingerprint(mol)
+sparse_binary = oefp.morgan_sparse_fingerprint(mol)
+atom_pair_count = oefp.atom_pair_sparse_count_fingerprint(mol)
 
-- Fingerprints: `OEFP`, `OEFPSparse`, `OEFPCount`
-- Batch containers: `OEFPBatch`, `OEFPSparseBatch`, `OEFPCountBatch`
-- Metrics and kernels: `Metric`, `compare`, `cdist`, `pdist`
-- Morgan generators: folded binary/count, sparse binary/count, and mapping
-  result variants
-- Atom Pair generators: folded binary/count and sparse binary/count
+print(folded_count.indices[:5])
+print(folded_count.counts[:5])
+print(sparse_binary.indices[:5])
+print(atom_pair_count.total_count)
+```
 
-When adding a native feature, keep the C++ header, implementation, SWIG
-interface, Python wrapper, Python exports, and C++/Python tests in sync.
+Inspect Morgan bit provenance:
 
-## Building Wheels
+```python
+result = oefp.morgan_fingerprint_with_mapping(mol)
+print(result.fingerprint.popcount)
+print(result.mapping.bit_info())
+```
 
-### Local Build
+Import and export OpenEye fingerprints:
 
-The `scripts/build_python.py` script builds a distributable wheel. It reads
-project-specific settings from the `[tool.oe-build]` section of `pyproject.toml`,
-so the script itself never needs modification.
+```python
+from openeye import oechem, oegraphsim
+import oefp
+
+mol = oechem.OEGraphMol()
+oechem.OESmilesToMol(mol, "CCO")
+
+oe_fp = oegraphsim.OEFingerPrint()
+oegraphsim.OEMakeCircularFP(oe_fp, mol)
+
+fp = oefp.from_openeye_fingerprint(oe_fp)
+round_tripped = oefp.to_openeye_fingerprint(fp)
+print(oegraphsim.OETanimoto(oe_fp, round_tripped))
+```
+
+### C++
+
+```cpp
+#include <oefp/oefp.h>
+#include <oechem.h>
+#include <iostream>
+
+int main() {
+    OEChem::OEGraphMol mol_a;
+    OEChem::OEGraphMol mol_b;
+    OEChem::OESmilesToMol(mol_a, "c1ccccc1");
+    OEChem::OESmilesToMol(mol_b, "c1ccc(O)cc1");
+
+    OEFP::MorganGenerator generator;
+    OEFP::OEFP fp_a = generator.Fingerprint(mol_a);
+    OEFP::OEFP fp_b = generator.Fingerprint(mol_b);
+
+    double score = OEFP::Compare(fp_a, fp_b, OEFP::Metric::Tanimoto());
+    std::cout << score << "\n";
+
+    return 0;
+}
+```
+
+## Supported Fingerprints
+
+| Family | Outputs | Notes |
+|--------|---------|-------|
+| Morgan | Folded binary, folded count, sparse binary, sparse count | Bit mapping is available for all Morgan outputs |
+| Atom Pair | Folded binary, folded count, sparse binary, sparse count | Count simulation is enabled by default for binary output |
+| OpenEye | `OEFingerPrint` import/export | Numeric type metadata is preserved when available |
+
+Current conformance scope is explicit: Morgan chirality, Atom Pair chirality,
+and Atom Pair 3D-distance generation raise `ValueError` until those paths have
+dedicated RDKit parity coverage.
+
+## Installation
+
+Install OpenEye Toolkits first:
 
 ```bash
-python scripts/build_python.py --openeye-root /path/to/openeye/sdk --verbose
+pip install --extra-index-url https://pypi.anaconda.org/openeye/simple openeye-toolkits
 ```
 
-The built wheel will be placed in `dist/`. On macOS, the script automatically
-runs `delocate` to bundle non-OpenEye dependencies and sets the correct RPATH
-for OpenEye shared libraries.
+Install OEFP:
 
-Options:
-
-```
---openeye-root PATH    Path to OpenEye C++ SDK (or set OPENEYE_ROOT env var)
---python PATH          Python executable to use
---clean                Clean dist/ before building
---upload               Upload to PyPI after building
---test-upload          Upload to TestPyPI instead
---verbose              Show build commands
+```bash
+pip install oefp
 ```
 
-If `--openeye-root` is not provided, the script checks the `OPENEYE_ROOT`
-environment variable and then `CMakePresets.json` / `CMakeUserPresets.json`.
+## Build from Source
 
-### CI Builds
+Set the OpenEye C++ SDK path:
 
-The included GitHub Actions workflow (`.github/workflows/build-wheels.yml`)
-builds wheels on:
+```bash
+export OPENEYE_ROOT=/path/to/openeye/sdk
+```
 
-- Linux x86_64 (Rocky Linux 8, manylinux_2_28)
-- Linux aarch64 (Rocky Linux 9, manylinux_2_34)
-- macOS (`macos-latest`)
-- Windows x64 (abi3 wheel)
+Build the C++ library and Python bindings:
 
-It triggers on version tags (`v*`) and `workflow_dispatch`. Wheels are published
-to PyPI via trusted publishing on tag pushes.
+```bash
+cmake --preset debug
+cmake --build build-debug
+```
 
-**Required GitHub Variables** (configured in Settings > Variables > Actions):
+Install the Python package in editable mode:
 
-| Variable | Example | Description |
-|----------|---------|-------------|
-| `OPENEYE_VERSION` | `2025.2.1` | OpenEye SDK version for CI |
-| `SDK_BUCKET` | `openeye-sdks` | Cloud storage bucket name |
-| `SDK_LINUX_X86_64` | `OpenEye-toolkits-...-x64.tar.gz` | Linux x86_64 SDK filename |
-| `SDK_LINUX_AARCH64` | `OpenEye-toolkits-...-aarch64.tar.gz` | Linux aarch64 SDK filename |
-| `SDK_MACOS` | `OpenEye-toolkits-...-universal.tar.gz` | macOS SDK filename |
-| `SDK_WINDOWS` | `OpenEye-toolkits-...-win64.zip` | Windows x64 SDK filename |
+```bash
+pip install --config-settings editable_mode=compat -e python/
+```
 
-**Required GitHub Secrets:**
+The `editable_mode=compat` flag keeps the package on a traditional editable
+path that works with compiled SWIG extension modules.
 
-| Secret | Description |
-|--------|-------------|
-| `GCP_WORKLOAD_IDENTITY_PROVIDER` | GCP Workload Identity Federation provider |
-| `GCP_SERVICE_ACCOUNT` | GCP service account for SDK downloads |
+## Tests
 
-The OpenEye C++ SDK and license file are downloaded from a GCS bucket
-(`SDK_BUCKET`) during CI.
+C++ tests:
 
-## CMake Options
+```bash
+cmake --build build-debug --target oefp_tests
+ctest --test-dir build-debug --output-on-failure
+```
 
-| Option | Default | Description |
-|--------|---------|-------------|
-| `OEFP_BUILD_TESTS` | ON | Build C++ tests |
-| `OEFP_BUILD_PYTHON` | ON | Build Python SWIG bindings |
-| `OEFP_UNIVERSAL2` | OFF | Build macOS universal2 binary |
-| `OEFP_USE_STABLE_ABI` | ON | Use Python stable ABI (abi3) |
+Python tests:
+
+```bash
+PYTHONPATH=python python -m pytest tests/python -q
+```
+
+RDKit is required for conformance tests but is not a runtime dependency.
+
+## Documentation
+
+Build the Sphinx documentation:
+
+```bash
+python -m pip install -r docs/requirements.txt
+make -C docs html
+```
+
+Open the local build:
+
+```bash
+open docs/_build/html/index.html
+```
+
+The documentation includes installation, quickstart, Python API notes, C++ API
+reference generation through Doxygen, and release build guidance.
+
+## Benchmarks
+
+Run the RDKit generation and dense `pdist` benchmark:
+
+```bash
+PYTHONPATH=python python benchmarks/benchmark_rdkit_generation.py \
+  --max-mols 1500 \
+  --trials 7 \
+  --warmup 1 \
+  --pdist-size 400 \
+  --generation-max-ratio 1.10 \
+  --atom-pair-generation-max-ratio 1.10
+```
+
+Run the optional C++ guardrail against a local `oecluster` checkout:
+
+```bash
+cmake -S . -B build-bench \
+  -DOEFP_BUILD_BENCHMARKS=ON \
+  -DOEFP_OECLUSTER_SOURCE_DIR=/path/to/oecluster
+cmake --build build-bench --target oefp_oecluster_fingerprint_benchmark
+./build-bench/benchmarks/oefp_oecluster_fingerprint_benchmark 512 0 256
+```
 
 ## Tools
 
-This project uses several tools to manage the build, packaging, and versioning:
-
 | Tool | Purpose |
 |------|---------|
-| [CMake](https://cmake.org/) | Build system for the C++ library and SWIG bindings |
-| [SWIG](https://www.swig.org/) | Generates Python bindings from C++ headers |
-| [scikit-build-core](https://scikit-build-core.readthedocs.io/) | Python build backend that delegates to CMake |
-| [cmake-openeye](https://github.com/scott-arne/cmake-openeye) | CMake modules for finding the OpenEye SDK and building SWIG targets |
-| [vrzn](https://github.com/scott-arne/vrzn) | Keeps version numbers in sync across all project files |
-| [delocate](https://github.com/matthew-brett/delocate) | Bundles shared libraries into macOS wheels |
-| [auditwheel](https://github.com/pypa/auditwheel) | Bundles shared libraries into Linux wheels |
-| [pytest](https://docs.pytest.org/) | Test framework for the Python test suite |
-
-## Version Management
-
-This project uses [vrzn](https://github.com/scott-arne/vrzn) to keep version
-numbers consistent across all project files. The `vrzn.toml` configuration
-tracks seven version locations:
-
-| File | Location Type |
-|------|---------------|
-| `pyproject.toml` | `[project] version` |
-| `python/pyproject.toml` | `[project] version` |
-| `python/oefp/__init__.py` | `__version__` |
-| `python/oefp/__init__.py` | `__version_info__` |
-| `CMakeLists.txt` | `project(... VERSION ...)` |
-| `include/oefp/oefp.h` | `#define` version macros |
-| `swig/oefp.i` | `#define` version macros |
-
-Common commands:
-
-```bash
-vrzn get          # Show current version in all tracked locations
-vrzn bump patch   # Bump patch version (e.g. 0.1.0 -> 0.1.1)
-vrzn bump minor   # Bump minor version (e.g. 0.1.0 -> 0.2.0)
-vrzn set 1.0.0    # Set an explicit version everywhere
-```
-
-Install vrzn with:
-
-```bash
-pip install vrzn
-```
+| [CMake](https://cmake.org/) | C++ build system |
+| [SWIG](https://www.swig.org/) | Python bindings |
+| [scikit-build-core](https://scikit-build-core.readthedocs.io/) | Python wheel build backend |
+| [cmake-openeye](https://github.com/scott-arne/cmake-openeye) | OpenEye CMake discovery and SWIG helpers |
+| [vrzn](https://github.com/scott-arne/vrzn) | Version synchronization |
+| [pytest](https://docs.pytest.org/) | Python tests |
+| [Sphinx](https://www.sphinx-doc.org/) | Documentation |
 
 ## License
 

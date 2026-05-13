@@ -6,8 +6,8 @@ import os
 import re
 import warnings
 
-__version__ = "0.1.0"
-__version_info__ = (0, 1, 0)
+__version__ = "0.2.0"
+__version_info__ = (0, 2, 0)
 
 
 def _find_openeye_runtime_lib_dir(expected_libs=()):
@@ -260,11 +260,9 @@ _preload_shared_libs()
 _preload_bundled_libs()
 _check_openeye_version()
 
-from .oefp import (
-    calculate_molecular_weight,
-)
 from .api import (
     AtomPairGenerator,
+    FingerprintSpec,
     Metric,
     MorganGenerator,
     OEFP,
@@ -301,6 +299,7 @@ __all__ = [
     "__version__",
     "__version_info__",
     "AtomPairGenerator",
+    "FingerprintSpec",
     "Metric",
     "MorganGenerator",
     "OEFP",
@@ -318,7 +317,6 @@ __all__ = [
     "atom_pair_fingerprint",
     "atom_pair_sparse_count_fingerprint",
     "atom_pair_sparse_fingerprint",
-    "calculate_molecular_weight",
     "cdist",
     "compare",
     "from_openeye_fingerprint",

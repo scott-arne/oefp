@@ -4,7 +4,7 @@ if(POLICY CMP0144)
     cmake_policy(SET CMP0144 NEW)
 endif()
 
-project(oefp VERSION 0.1.0 LANGUAGES CXX)
+project(oefp VERSION 0.2.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -63,7 +63,6 @@ set(OEFP_SOURCES
     src/fingerprint.cpp
     src/metric.cpp
     src/morgan.cpp
-    src/oefp.cpp
     src/openeye.cpp
     src/sparse.cpp
     src/sparse_batch.cpp

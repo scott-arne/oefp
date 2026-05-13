@@ -146,7 +146,7 @@ def main() -> int:
         atom_type_mask=args.atom_type_mask,
         bond_type_mask=args.bond_type_mask,
     )
-    metric = oefp.Metric.tanimoto(mode="distance")
+    metric = oefp.Metric.jaccard()
 
     oe_time, oe_dist = time_call(
         lambda: oecluster.pdist(

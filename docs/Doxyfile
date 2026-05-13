@@ -1,0 +1,14 @@
+# Doxygen configuration for OEFP.
+
+PROJECT_NAME           = "OEFP"
+OUTPUT_DIRECTORY       = _doxygen
+INPUT                  = ../include/oefp
+RECURSIVE              = YES
+EXTRACT_ALL            = YES
+GENERATE_XML           = YES
+XML_OUTPUT             = xml
+GENERATE_HTML          = NO
+GENERATE_LATEX         = NO
+QUIET                  = YES
+JAVADOC_AUTOBRIEF      = YES
+QT_AUTOBRIEF           = YES

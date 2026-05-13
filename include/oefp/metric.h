@@ -22,11 +22,15 @@ enum class MetricMode {
 /// \brief Value-semantic metric configuration for fingerprint comparisons.
 class Metric {
 public:
-    /// \brief Create a Tanimoto metric.
+    /// \brief Create a Tanimoto similarity metric.
+    ///
+    /// \throws std::invalid_argument: When mode is MetricMode::Distance.
     static Metric Tanimoto(MetricMode mode = MetricMode::Similarity);
 
-    /// \brief Create a Jaccard metric.
-    static Metric Jaccard(MetricMode mode = MetricMode::Similarity);
+    /// \brief Create a Jaccard distance metric.
+    ///
+    /// \throws std::invalid_argument: When mode is MetricMode::Similarity.
+    static Metric Jaccard(MetricMode mode = MetricMode::Distance);
 
     /// \brief Create a Tversky metric.
     ///

@@ -25,10 +25,18 @@ void validate_tversky_parameter(double value, const char* name) {
 } // namespace
 
 Metric Metric::Tanimoto(MetricMode mode) {
+    validate_metric_mode(mode);
+    if (mode == MetricMode::Distance) {
+        throw std::invalid_argument("Tanimoto is a similarity metric; use Jaccard for distance.");
+    }
     return Metric(MetricKind::Tanimoto, mode, 1.0, 1.0);
 }
 
 Metric Metric::Jaccard(MetricMode mode) {
+    validate_metric_mode(mode);
+    if (mode == MetricMode::Similarity) {
+        throw std::invalid_argument("Jaccard is a distance metric; use Tanimoto for similarity.");
+    }
     return Metric(MetricKind::Jaccard, mode, 1.0, 1.0);
 }
 

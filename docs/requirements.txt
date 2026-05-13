@@ -1,0 +1,18 @@
+# OEFP Documentation Build Dependencies
+# Install with: pip install -r docs/requirements.txt
+
+# Core Sphinx
+sphinx>=7.0
+
+# Theme
+sphinx-rtd-theme>=2.0
+
+# C++ Documentation (Doxygen integration)
+breathe>=4.35
+exhale>=0.3
+
+# Python Documentation
+sphinx-autodoc-typehints>=2.0
+
+# Live reload
+sphinx-autobuild>=2024.0

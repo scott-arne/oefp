@@ -75,14 +75,13 @@ TEST(CompareTest, BatchKernelOptionsDefaultsAreStable) {
     EXPECT_EQ(options.chunk_size, 256u);
 }
 
-TEST(CompareTest, ComputesTanimotoAndJaccardSimilarityAndDistance) {
-    const auto a = fingerprint_with_bits(128, {0, 1, 64, 100});
-    const auto b = fingerprint_with_bits(128, {1, 64, 65, 100, 127});
+TEST(CompareTest, ComputesTanimotoSimilarityAndJaccardDistance) {
+    const auto a = fingerprint_with_bits(128, {0, 1});
+    const auto b = fingerprint_with_bits(128, {1, 64, 100});
 
-    EXPECT_NEAR(Compare(a, b, Metric::Tanimoto()), 3.0 / 6.0, 1.0e-12);
-    EXPECT_NEAR(Compare(a, b, Metric::Tanimoto(MetricMode::Distance)), 1.0 - 3.0 / 6.0, 1.0e-12);
-    EXPECT_NEAR(Compare(a, b, Metric::Jaccard()), 3.0 / 6.0, 1.0e-12);
-    EXPECT_NEAR(Compare(a, b, Metric::Jaccard(MetricMode::Distance)), 1.0 - 3.0 / 6.0, 1.0e-12);
+    EXPECT_NEAR(Compare(a, b, Metric::Tanimoto()), 1.0 / 4.0, 1.0e-12);
+    EXPECT_NEAR(Compare(a, b, Metric::Jaccard()), 1.0 - 1.0 / 4.0, 1.0e-12);
+    EXPECT_NEAR(Compare(a, b, Metric::Jaccard(MetricMode::Distance)), 1.0 - 1.0 / 4.0, 1.0e-12);
 }
 
 TEST(CompareTest, ComputesDiceCosineAndTversky) {
@@ -136,8 +135,7 @@ TEST(CompareTest, UsesZeroSimilarityForEmptyDenominators) {
     const auto b = fingerprint_with_bits(64, {});
 
     EXPECT_EQ(Compare(a, b, Metric::Tanimoto()), 0.0);
-    EXPECT_EQ(Compare(a, b, Metric::Tanimoto(MetricMode::Distance)), 1.0);
-    EXPECT_EQ(Compare(a, b, Metric::Jaccard()), 0.0);
+    EXPECT_EQ(Compare(a, b, Metric::Jaccard()), 1.0);
     EXPECT_EQ(Compare(a, b, Metric::Dice()), 0.0);
     EXPECT_EQ(Compare(a, b, Metric::Dice(MetricMode::Distance)), 1.0);
     EXPECT_EQ(Compare(a, b, Metric::Cosine()), 0.0);
@@ -152,7 +150,6 @@ TEST(CompareTest, HandlesZeroWidthFingerprintsWithEmptyDenominatorRule) {
     OEFP b(binary_spec(0));
 
     EXPECT_EQ(Compare(a, b, Metric::Tanimoto()), 0.0);
-    EXPECT_EQ(Compare(a, b, Metric::Tanimoto(MetricMode::Distance)), 1.0);
     EXPECT_EQ(Compare(a, b, Metric::Dice()), 0.0);
     EXPECT_EQ(Compare(a, b, Metric::Dice(MetricMode::Distance)), 1.0);
     EXPECT_EQ(Compare(a, b, Metric::Cosine()), 0.0);
@@ -167,8 +164,7 @@ TEST(CompareCountTest, ComputesWeightedCountSimilaritiesAndDistances) {
     const auto b = count_fingerprint(16, {1u, 2u, 8u}, {1u, 5u, 3u});
 
     EXPECT_NEAR(Compare(a, b, Metric::Tanimoto()), 2.0 / 14.0, 1.0e-12);
-    EXPECT_NEAR(Compare(a, b, Metric::Tanimoto(MetricMode::Distance)), 1.0 - 2.0 / 14.0, 1.0e-12);
-    EXPECT_NEAR(Compare(a, b, Metric::Jaccard()), 2.0 / 14.0, 1.0e-12);
+    EXPECT_NEAR(Compare(a, b, Metric::Jaccard()), 1.0 - 2.0 / 14.0, 1.0e-12);
     EXPECT_NEAR(Compare(a, b, Metric::Dice()), 4.0 / 16.0, 1.0e-12);
     EXPECT_NEAR(Compare(a, b, Metric::Tversky(0.25, 0.75)), 2.0 / 8.5, 1.0e-12);
     EXPECT_NEAR(Compare(a, b, Metric::Cosine()), 5.0 / std::sqrt(735.0), 1.0e-12);
@@ -192,8 +188,7 @@ TEST(CompareCountTest, UsesZeroSimilarityForEmptyCountDenominators) {
     const OEFPCount b(count_spec(16));
 
     EXPECT_EQ(Compare(a, b, Metric::Tanimoto()), 0.0);
-    EXPECT_EQ(Compare(a, b, Metric::Tanimoto(MetricMode::Distance)), 1.0);
-    EXPECT_EQ(Compare(a, b, Metric::Jaccard()), 0.0);
+    EXPECT_EQ(Compare(a, b, Metric::Jaccard()), 1.0);
     EXPECT_EQ(Compare(a, b, Metric::Dice()), 0.0);
     EXPECT_EQ(Compare(a, b, Metric::Dice(MetricMode::Distance)), 1.0);
     EXPECT_EQ(Compare(a, b, Metric::Cosine()), 0.0);
@@ -208,8 +203,7 @@ TEST(CompareSparseBinaryTest, ComputesBinarySparseSimilaritiesAndDistances) {
     const auto b = sparse_fingerprint({3u, 9u, 10u});
 
     EXPECT_NEAR(Compare(a, b, Metric::Tanimoto()), 2.0 / 5.0, 1.0e-12);
-    EXPECT_NEAR(Compare(a, b, Metric::Tanimoto(MetricMode::Distance)), 1.0 - 2.0 / 5.0, 1.0e-12);
-    EXPECT_NEAR(Compare(a, b, Metric::Jaccard()), 2.0 / 5.0, 1.0e-12);
+    EXPECT_NEAR(Compare(a, b, Metric::Jaccard()), 1.0 - 2.0 / 5.0, 1.0e-12);
     EXPECT_NEAR(Compare(a, b, Metric::Dice()), 4.0 / 7.0, 1.0e-12);
     EXPECT_NEAR(Compare(a, b, Metric::Cosine()), 2.0 / std::sqrt(12.0), 1.0e-12);
     EXPECT_NEAR(Compare(a, b, Metric::Tversky(0.25, 0.75)), 2.0 / 3.25, 1.0e-12);
@@ -241,8 +235,7 @@ TEST(CompareSparseBinaryTest, UsesZeroSimilarityForEmptyDenominators) {
     const OEFPSparse b(sparse_binary_spec());
 
     EXPECT_EQ(Compare(a, b, Metric::Tanimoto()), 0.0);
-    EXPECT_EQ(Compare(a, b, Metric::Tanimoto(MetricMode::Distance)), 1.0);
-    EXPECT_EQ(Compare(a, b, Metric::Jaccard()), 0.0);
+    EXPECT_EQ(Compare(a, b, Metric::Jaccard()), 1.0);
     EXPECT_EQ(Compare(a, b, Metric::Dice()), 0.0);
     EXPECT_EQ(Compare(a, b, Metric::Dice(MetricMode::Distance)), 1.0);
     EXPECT_EQ(Compare(a, b, Metric::Cosine()), 0.0);

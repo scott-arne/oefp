@@ -29,13 +29,25 @@ type = "c-define"
 prefix = "OEFP"
 
 [[locations]]
-file = "tests/python/test_oefp.py"
+file = "swig/oefp.i"
 type = "custom"
-template = 'oefp\.__version__ == "{version}"'
-label = "test-version-string"
+template = '__version__ = "{version}"'
+label = "swig-python-version"
 
 [[locations]]
-file = "tests/python/test_oefp.py"
+file = "docs/conf.py"
 type = "custom"
-template = 'oefp\.__version_info__ == \({info_tuple}\)'
-label = "test-version-info"
+template = 'release = "{version}"'
+label = "docs-release"
+
+[[locations]]
+file = "docs/conf.py"
+type = "custom"
+template = 'version = "{major}\.\d+"'
+label = "docs-version-major"
+
+[[locations]]
+file = "docs/conf.py"
+type = "custom"
+template = 'version = "\d+\.{minor}"'
+label = "docs-version-minor"

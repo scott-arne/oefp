@@ -16,7 +16,7 @@ TEST(MetricTest, FactoriesSetKindModeAndDefaultParameters) {
     EXPECT_EQ(tanimoto.Beta(), 1.0);
     EXPECT_TRUE(tanimoto.IsSymmetric());
 
-    const auto jaccard = Metric::Jaccard(MetricMode::Distance);
+    const auto jaccard = Metric::Jaccard();
     EXPECT_EQ(jaccard.Kind(), MetricKind::Jaccard);
     EXPECT_EQ(jaccard.Mode(), MetricMode::Distance);
     EXPECT_TRUE(jaccard.IsSymmetric());
@@ -64,6 +64,11 @@ TEST(MetricTest, TverskyRejectsAlphaOrBetaOutsideUnitInterval) {
 
 TEST(MetricTest, ManhattanRejectsSimilarityMode) {
     EXPECT_THROW(Metric::Manhattan(MetricMode::Similarity), std::invalid_argument);
+}
+
+TEST(MetricTest, SetMetricsRejectOppositeSemanticModes) {
+    EXPECT_THROW(Metric::Tanimoto(MetricMode::Distance), std::invalid_argument);
+    EXPECT_THROW(Metric::Jaccard(MetricMode::Similarity), std::invalid_argument);
 }
 
 TEST(MetricTest, FactoriesRejectInvalidModes) {

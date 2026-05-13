@@ -4,7 +4,7 @@ build-backend = "scikit_build_core.build"
 
 [project]
 name = "oefp"
-version = "0.1.0"
+version = "0.2.0"
 description = "Improved fingerprints for the OpenEye Toolkits"
 readme = "README.md"
 license = "MIT"
@@ -43,18 +43,18 @@ addopts = "-v"
 
 [tool.ruff.lint.per-file-ignores]
 "python/oefp/__init__.py" = ["E402"]
-"python/oefp/oefp.py" = ["F401"]
+"python/oefp/_native.py" = ["F401"]
 
 [tool.mypy]
 exclude = [
     "^python/oefp/_build_info\\.py$",
-    "^python/oefp/oefp\\.py$",
+    "^python/oefp/_native\\.py$",
 ]
 
 [[tool.mypy.overrides]]
 module = [
     "oefp._build_info",
-    "oefp.oefp",
+    "oefp._native",
 ]
 ignore_errors = true
 

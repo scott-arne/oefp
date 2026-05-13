@@ -201,6 +201,7 @@ void PDistInto(
     std::size_t output_length,
     const BatchKernelOptions& options = {});
 
+/// \cond OEFP_BINDING_DETAIL
 /// \brief Address-based query-to-batch output helper for Python bindings.
 void CompareIntoAddress(
     const OEFP& query,
@@ -278,6 +279,7 @@ void PDistIntoAddress(
     std::uint64_t output_address,
     std::size_t output_length,
     const BatchKernelOptions& options = {});
+/// \endcond
 
 } // namespace OEFP
 
