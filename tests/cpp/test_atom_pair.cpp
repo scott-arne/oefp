@@ -147,6 +147,26 @@ TEST(AtomPairGeneratorTest, CountSimulationMatchesFunctionalApi) {
     EXPECT_EQ(generated.Words(), functional.Words());
 }
 
+TEST(AtomPairGeneratorTest, ProfileReportsStageTimingsAndGeneratedBits) {
+    const auto mol = mol_from_smiles("CC(=O)Oc1ccccc1C(=O)O");
+    AtomPairOptions options;
+    options.num_bits = 256;
+
+    const auto profile = ProfileAtomPairFingerprint(mol, options);
+    const auto fingerprint = MakeAtomPairFingerprint(mol, options);
+
+    EXPECT_EQ(profile.atom_count, mol.NumAtoms());
+    EXPECT_GT(profile.event_count, 0u);
+    EXPECT_EQ(profile.on_bit_count, fingerprint.CountOnBits());
+    EXPECT_GE(profile.molecule_preparation_seconds, 0.0);
+    EXPECT_GE(profile.graph_seconds, 0.0);
+    EXPECT_GE(profile.atom_code_seconds, 0.0);
+    EXPECT_GE(profile.distance_seconds, 0.0);
+    EXPECT_GE(profile.pair_enumeration_seconds, 0.0);
+    EXPECT_GE(profile.bit_folding_seconds, 0.0);
+    EXPECT_GT(profile.TotalSeconds(), 0.0);
+}
+
 TEST(AtomPairGeneratorTest, ConstructorRejectsInvalidOptions) {
     AtomPairOptions zero_bits;
     zero_bits.num_bits = 0;

@@ -1,6 +1,7 @@
 #include "oefp/morgan.h"
 
 #include <algorithm>
+#include <chrono>
 #include <cstdint>
 #include <limits>
 #include <map>
@@ -9,6 +10,7 @@
 #include <stdexcept>
 #include <string>
 #include <tuple>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -25,6 +27,8 @@ constexpr std::uint32_t BROMINE_ATOMIC_NUM = 35u;
 constexpr std::uint32_t IODINE_ATOMIC_NUM = 53u;
 constexpr std::uint32_t UNFOLDED_MORGAN_IDS = 0u;
 constexpr std::uint64_t BITS_PER_WORD = 64u;
+
+using Clock = std::chrono::steady_clock;
 
 struct MorganEvent {
     std::uint32_t atom_id = 0;
@@ -45,14 +49,15 @@ struct NeighborInvariant {
 struct BondRecord {
     std::uint32_t index = 0;
     std::uint32_t sort_index = 0;
-    std::uint32_t begin = 0;
-    std::uint32_t end = 0;
+    std::uint32_t begin_atom = 0;
+    std::uint32_t end_atom = 0;
     std::int32_t invariant = 1;
 };
 
 struct AtomRecord {
     const OEChem::OEAtomBase* atom = nullptr;
     std::uint32_t index = 0;
+    std::uint32_t compact_index = 0;
     std::int32_t formal_charge_adjustment = 0;
     std::vector<std::uint32_t> bond_indices;
 };
@@ -60,56 +65,115 @@ struct AtomRecord {
 struct MoleculeGraph {
     std::vector<AtomRecord> atoms;
     std::vector<BondRecord> bonds;
+    std::vector<std::uint32_t> atom_id_to_compact;
 };
 
-using BondSet = std::vector<std::uint32_t>;
+using BondBitset = std::vector<std::uint64_t>;
 
-struct BondSetLess {
-    bool operator()(const BondSet& lhs, const BondSet& rhs) const {
-        auto lhs_it = lhs.rbegin();
-        auto rhs_it = rhs.rbegin();
-        while (lhs_it != lhs.rend() || rhs_it != rhs.rend()) {
-            if (lhs_it == lhs.rend()) {
-                return true;
-            }
-            if (rhs_it == rhs.rend()) {
-                return false;
-            }
-            if (*lhs_it != *rhs_it) {
-                return *lhs_it < *rhs_it;
-            }
-            ++lhs_it;
-            ++rhs_it;
+struct BondBitsetHash {
+    std::size_t operator()(const BondBitset& bits) const {
+        std::size_t seed = 0;
+        for (const auto word : bits) {
+            seed ^= static_cast<std::size_t>(word) + 0x9e3779b97f4a7c15ULL + (seed << 6u)
+                    + (seed >> 2u);
         }
-        return false;
+        return seed;
     }
 };
 
-using RoundEnvironment = std::tuple<BondSet, std::uint32_t, std::uint32_t>;
+struct BondBitsetStorage {
+    std::vector<std::uint64_t> words;
+    std::size_t atom_count = 0;
+    std::size_t words_per_atom = 0;
 
-bool round_environment_less(const RoundEnvironment& lhs, const RoundEnvironment& rhs) {
-    const BondSetLess bond_set_less;
-    if (bond_set_less(std::get<0>(lhs), std::get<0>(rhs))) {
+    BondBitsetStorage() = default;
+
+    BondBitsetStorage(std::size_t atom_count_value, std::size_t bond_count)
+        : words(
+              atom_count_value * ((bond_count + BITS_PER_WORD - 1u) / BITS_PER_WORD),
+              0ULL),
+          atom_count(atom_count_value),
+          words_per_atom((bond_count + BITS_PER_WORD - 1u) / BITS_PER_WORD) {
+    }
+
+    std::uint64_t* atom_words(std::uint32_t atom_id) {
+        return words.data() + static_cast<std::size_t>(atom_id) * words_per_atom;
+    }
+
+    const std::uint64_t* atom_words(std::uint32_t atom_id) const {
+        return words.data() + static_cast<std::size_t>(atom_id) * words_per_atom;
+    }
+
+    BondBitset copy_atom(std::uint32_t atom_id) const {
+        if (words_per_atom == 0u) {
+            return {};
+        }
+        const auto* begin = atom_words(atom_id);
+        return BondBitset(begin, begin + words_per_atom);
+    }
+};
+
+struct RoundEnvironment {
+    std::uint32_t raw_id = 0;
+    std::uint32_t atom_id = 0;
+};
+
+double elapsed_seconds(Clock::time_point start, Clock::time_point end) {
+    return std::chrono::duration<double>(end - start).count();
+}
+
+bool atom_neighborhood_less(
+    const BondBitsetStorage& neighborhoods,
+    std::uint32_t lhs_atom,
+    std::uint32_t rhs_atom) {
+    const auto* lhs = neighborhoods.atom_words(lhs_atom);
+    const auto* rhs = neighborhoods.atom_words(rhs_atom);
+    for (std::size_t reverse_index = neighborhoods.words_per_atom; reverse_index > 0u;
+         --reverse_index) {
+        const auto word_index = reverse_index - 1u;
+        if (lhs[word_index] != rhs[word_index]) {
+            return lhs[word_index] < rhs[word_index];
+        }
+    }
+    return false;
+}
+
+bool round_environment_less(
+    const BondBitsetStorage& neighborhoods,
+    const RoundEnvironment& lhs,
+    const RoundEnvironment& rhs) {
+    if (atom_neighborhood_less(neighborhoods, lhs.atom_id, rhs.atom_id)) {
         return true;
     }
-    if (bond_set_less(std::get<0>(rhs), std::get<0>(lhs))) {
+    if (atom_neighborhood_less(neighborhoods, rhs.atom_id, lhs.atom_id)) {
         return false;
     }
-    return std::tie(std::get<1>(lhs), std::get<2>(lhs))
-           < std::tie(std::get<1>(rhs), std::get<2>(rhs));
+    return std::tie(lhs.raw_id, lhs.atom_id) < std::tie(rhs.raw_id, rhs.atom_id);
 }
 
-void add_bond_to_neighborhood(BondSet& neighborhood, std::uint32_t bond_id) {
-    const auto position = std::lower_bound(neighborhood.begin(), neighborhood.end(), bond_id);
-    if (position == neighborhood.end() || *position != bond_id) {
-        neighborhood.insert(position, bond_id);
+void add_bond_to_neighborhood(
+    BondBitsetStorage& neighborhoods,
+    std::uint32_t atom_id,
+    std::uint32_t bond_id) {
+    if (neighborhoods.words_per_atom == 0u) {
+        return;
     }
+    auto* words = neighborhoods.atom_words(atom_id);
+    words[bond_id / BITS_PER_WORD] |= 1ULL << (bond_id % BITS_PER_WORD);
 }
 
-void add_neighborhood(BondSet& neighborhood, const BondSet& additions) {
-    neighborhood.reserve(neighborhood.size() + additions.size());
-    for (const auto bond_id : additions) {
-        add_bond_to_neighborhood(neighborhood, bond_id);
+void add_neighborhood(
+    BondBitsetStorage& neighborhoods,
+    std::uint32_t atom_id,
+    const BondBitsetStorage& additions,
+    std::uint32_t other_atom_id) {
+    if (neighborhoods.words_per_atom == 0u) {
+        return;
+    }
+    auto* target = neighborhoods.atom_words(atom_id);
+    const auto* source = additions.atom_words(other_atom_id);
+    for (std::size_t word_index = 0; word_index < neighborhoods.words_per_atom; ++word_index) {
+        target[word_index] |= source[word_index];
     }
 }
 
@@ -345,8 +409,8 @@ void assign_rdkit_bond_order(MoleculeGraph& graph, const std::vector<std::uint32
 
     for (const auto bond_id : bond_ids) {
         const auto& bond = graph.bonds[bond_id];
-        const auto child = std::max(bond.begin, bond.end);
-        const auto parent = std::min(bond.begin, bond.end);
+        const auto child = std::max(bond.begin_atom, bond.end_atom);
+        const auto parent = std::min(bond.begin_atom, bond.end_atom);
         if (child >= parent_bonds.size()) {
             continue;
         }
@@ -361,8 +425,8 @@ void assign_rdkit_bond_order(MoleculeGraph& graph, const std::vector<std::uint32
     ordered_bonds.reserve(bond_ids.size());
     for (const auto bond_id : bond_ids) {
         const auto& bond = graph.bonds[bond_id];
-        const auto child = std::max(bond.begin, bond.end);
-        const auto parent = std::min(bond.begin, bond.end);
+        const auto child = std::max(bond.begin_atom, bond.end_atom);
+        const auto parent = std::min(bond.begin_atom, bond.end_atom);
         const auto order_group =
             child < parent_bonds.size() && parent_bonds[child] == bond_id ? 0u : 1u;
         ordered_bonds.emplace_back(order_group, child, parent, bond_id);
@@ -378,37 +442,75 @@ void assign_rdkit_bond_order(MoleculeGraph& graph, const std::vector<std::uint32
 
 MoleculeGraph build_graph(const OEChem::OEMolBase& mol, const MorganOptions& options) {
     MoleculeGraph graph;
-    graph.atoms.resize(mol.GetMaxAtomIdx());
-    graph.bonds.resize(mol.GetMaxBondIdx());
+    const auto missing_index = std::numeric_limits<std::uint32_t>::max();
+    graph.atoms.reserve(mol.NumAtoms());
+    graph.bonds.reserve(mol.NumBonds());
+    graph.atom_id_to_compact.assign(mol.GetMaxAtomIdx(), missing_index);
 
+    std::vector<const OEChem::OEAtomBase*> atoms;
+    atoms.reserve(mol.NumAtoms());
     for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        atoms.push_back(atom);
+    }
+    std::sort(
+        atoms.begin(),
+        atoms.end(),
+        [](const OEChem::OEAtomBase* lhs, const OEChem::OEAtomBase* rhs) {
+            return lhs->GetIdx() < rhs->GetIdx();
+        });
+
+    for (const auto* atom : atoms) {
         const auto idx = atom->GetIdx();
-        if (idx >= graph.atoms.size()) {
+        if (idx >= graph.atom_id_to_compact.size()) {
             throw std::runtime_error("OpenEye atom index exceeds molecule atom storage.");
         }
-        graph.atoms[idx].atom = atom;
-        graph.atoms[idx].index = idx;
-        graph.atoms[idx].bond_indices.reserve(atom->GetDegree());
+        const auto compact_index = static_cast<std::uint32_t>(graph.atoms.size());
+        graph.atom_id_to_compact[idx] = compact_index;
+        AtomRecord record;
+        record.atom = atom;
+        record.index = idx;
+        record.compact_index = compact_index;
+        record.bond_indices.reserve(atom->GetDegree());
+        graph.atoms.push_back(std::move(record));
     }
 
     std::vector<std::uint32_t> bond_ids;
     bond_ids.reserve(mol.NumBonds());
+    std::vector<const OEChem::OEBondBase*> bonds;
+    bonds.reserve(mol.NumBonds());
     for (OESystem::OEIter<OEChem::OEBondBase> bond = mol.GetBonds(); bond; ++bond) {
+        bonds.push_back(bond);
+    }
+    std::sort(
+        bonds.begin(),
+        bonds.end(),
+        [](const OEChem::OEBondBase* lhs, const OEChem::OEBondBase* rhs) {
+            return lhs->GetIdx() < rhs->GetIdx();
+        });
+
+    for (const auto* bond : bonds) {
         const auto idx = bond->GetIdx();
-        if (idx >= graph.bonds.size()) {
-            throw std::runtime_error("OpenEye bond index exceeds molecule bond storage.");
+        const auto begin_idx = bond->GetBgnIdx();
+        const auto end_idx = bond->GetEndIdx();
+        if (begin_idx >= graph.atom_id_to_compact.size()
+            || end_idx >= graph.atom_id_to_compact.size()
+            || graph.atom_id_to_compact[begin_idx] == missing_index
+            || graph.atom_id_to_compact[end_idx] == missing_index) {
+            throw std::runtime_error("OpenEye bond references an atom outside molecule storage.");
         }
-        bond_ids.push_back(idx);
-        auto& record = graph.bonds[idx];
+        const auto compact_bond_id = static_cast<std::uint32_t>(graph.bonds.size());
+        bond_ids.push_back(compact_bond_id);
+        BondRecord record;
         record.index = idx;
-        record.begin = bond->GetBgnIdx();
-        record.end = bond->GetEndIdx();
-        auto& begin = graph.atoms[record.begin];
-        auto& end = graph.atoms[record.end];
+        record.begin_atom = graph.atom_id_to_compact[begin_idx];
+        record.end_atom = graph.atom_id_to_compact[end_idx];
+        auto& begin = graph.atoms[record.begin_atom];
+        auto& end = graph.atoms[record.end_atom];
         apply_rdkit_halogen_oxide_normalization(begin, end, *bond);
         record.invariant = bond_invariant(*bond, begin, end, options);
-        graph.atoms[record.begin].bond_indices.push_back(idx);
-        graph.atoms[record.end].bond_indices.push_back(idx);
+        graph.atoms[record.begin_atom].bond_indices.push_back(compact_bond_id);
+        graph.atoms[record.end_atom].bond_indices.push_back(compact_bond_id);
+        graph.bonds.push_back(record);
     }
 
     assign_rdkit_bond_order(graph, bond_ids);
@@ -416,7 +518,7 @@ MoleculeGraph build_graph(const OEChem::OEMolBase& mol, const MorganOptions& opt
 }
 
 std::uint32_t other_atom(const BondRecord& bond, std::uint32_t atom_id) {
-    return bond.begin == atom_id ? bond.end : bond.begin;
+    return bond.begin_atom == atom_id ? bond.end_atom : bond.begin_atom;
 }
 
 std::vector<std::uint32_t> atom_iteration_order(
@@ -446,33 +548,55 @@ void enumerate_events_into(
     const OEChem::OEMolBase& mol,
     const MorganOptions& options,
     std::uint32_t fold_size,
-    EventSink&& emit_event) {
+    EventSink&& emit_event,
+    MorganGenerationProfile* profile = nullptr) {
+    const auto graph_start = Clock::now();
     const auto graph = build_graph(mol, options);
+    const auto graph_end = Clock::now();
+    if (profile != nullptr) {
+        profile->graph_seconds += elapsed_seconds(graph_start, graph_end);
+        profile->atom_count = static_cast<std::uint32_t>(mol.NumAtoms());
+        profile->bond_count = static_cast<std::uint32_t>(mol.NumBonds());
+    }
 
+    const auto invariant_start = Clock::now();
     std::vector<std::uint32_t> atom_invariants(graph.atoms.size(), 0u);
     for (const auto& atom_record : graph.atoms) {
         if (atom_record.atom != nullptr) {
-            atom_invariants[atom_record.index] = atom_invariant(atom_record, options);
+            atom_invariants[atom_record.compact_index] = atom_invariant(atom_record, options);
         }
     }
 
     std::vector<std::uint32_t> current = atom_invariants;
     std::vector<std::uint32_t> next(graph.atoms.size(), 0u);
-    std::vector<BondSet> neighborhoods(graph.atoms.size());
-    std::vector<BondSet> round_neighborhoods = neighborhoods;
+    BondBitsetStorage neighborhoods(graph.atoms.size(), graph.bonds.size());
+    BondBitsetStorage round_neighborhoods(graph.atoms.size(), graph.bonds.size());
     std::vector<bool> dead_atoms(graph.atoms.size(), false);
-    std::set<BondSet, BondSetLess> seen_neighborhoods;
+    std::unordered_set<std::uint64_t> seen_single_word_neighborhoods;
+    std::unordered_set<BondBitset, BondBitsetHash> seen_multi_word_neighborhoods;
     const auto atom_order = atom_iteration_order(current, options);
+    const auto invariant_end = Clock::now();
+    if (profile != nullptr) {
+        profile->invariant_seconds += elapsed_seconds(invariant_start, invariant_end);
+    }
 
+    const auto radius_zero_start = Clock::now();
     for (const auto& atom_record : graph.atoms) {
         if (atom_record.atom == nullptr) {
             continue;
         }
-        if (!options.only_nonzero_invariants || current[atom_record.index] != 0u) {
+        if (!options.only_nonzero_invariants || current[atom_record.compact_index] != 0u) {
+            if (profile != nullptr) {
+                ++profile->event_count;
+            }
             emit_event(
-                MorganEvent{atom_record.index, 0u, current[atom_record.index],
-                            event_bit_id(current[atom_record.index], fold_size)});
+                MorganEvent{atom_record.index, 0u, current[atom_record.compact_index],
+                            event_bit_id(current[atom_record.compact_index], fold_size)});
         }
+    }
+    const auto radius_zero_end = Clock::now();
+    if (profile != nullptr) {
+        profile->radius_zero_seconds += elapsed_seconds(radius_zero_start, radius_zero_end);
     }
 
     for (std::uint32_t layer = 0; layer < options.radius; ++layer) {
@@ -480,6 +604,7 @@ void enumerate_events_into(
         this_round.reserve(graph.atoms.size());
         std::vector<NeighborInvariant> neighbors;
 
+        const auto neighborhood_start = Clock::now();
         for (const auto atom_id : atom_order) {
             if (atom_id >= graph.atoms.size()) {
                 continue;
@@ -498,9 +623,9 @@ void enumerate_events_into(
 
             for (const auto bond_id : atom_record.bond_indices) {
                 const auto& bond = graph.bonds[bond_id];
-                add_bond_to_neighborhood(round_neighborhoods[atom_id], bond.sort_index);
+                add_bond_to_neighborhood(round_neighborhoods, atom_id, bond.sort_index);
                 const auto nbr = other_atom(bond, atom_id);
-                add_neighborhood(round_neighborhoods[atom_id], neighborhoods[nbr]);
+                add_neighborhood(round_neighborhoods, atom_id, neighborhoods, nbr);
                 neighbors.push_back(NeighborInvariant{bond.invariant, current[nbr]});
             }
 
@@ -513,36 +638,71 @@ void enumerate_events_into(
             }
 
             next[atom_id] = invariant;
-            this_round.emplace_back(round_neighborhoods[atom_id], invariant, atom_id);
+            this_round.push_back(RoundEnvironment{invariant, atom_id});
+        }
+        const auto neighborhood_end = Clock::now();
+        if (profile != nullptr) {
+            profile->neighborhood_seconds +=
+                elapsed_seconds(neighborhood_start, neighborhood_end);
         }
 
         // RDKit sorts boost::dynamic_bitset neighborhoods before duplicate
         // suppression, so compare the stored bond ids from the highest bit down.
-        std::sort(this_round.begin(), this_round.end(), round_environment_less);
+        const auto duplicate_start = Clock::now();
+        std::sort(
+            this_round.begin(),
+            this_round.end(),
+            [&round_neighborhoods](const RoundEnvironment& lhs, const RoundEnvironment& rhs) {
+                return round_environment_less(round_neighborhoods, lhs, rhs);
+            });
         for (const auto& item : this_round) {
-            const auto& neighborhood = std::get<0>(item);
-            const auto raw_id = std::get<1>(item);
-            const auto atom_id = std::get<2>(item);
+            const auto raw_id = item.raw_id;
+            const auto atom_id = item.atom_id;
+            const auto output_atom_id = graph.atoms[atom_id].index;
+            bool seen = false;
+            BondBitset multi_word_neighborhood;
+            std::uint64_t single_word_neighborhood = 0ULL;
+            if (!options.include_redundant_environments) {
+                if (round_neighborhoods.words_per_atom == 1u) {
+                    single_word_neighborhood = *round_neighborhoods.atom_words(atom_id);
+                    seen = seen_single_word_neighborhoods.count(single_word_neighborhood) != 0u;
+                } else {
+                    multi_word_neighborhood = round_neighborhoods.copy_atom(atom_id);
+                    seen = seen_multi_word_neighborhoods.count(multi_word_neighborhood) != 0u;
+                }
+            }
 
-            if (options.include_redundant_environments
-                || seen_neighborhoods.count(neighborhood) == 0u) {
+            if (options.include_redundant_environments || !seen) {
                 if (!options.only_nonzero_invariants || atom_invariants[atom_id] != 0u) {
+                    if (profile != nullptr) {
+                        ++profile->event_count;
+                    }
                     emit_event(MorganEvent{
-                        atom_id,
+                        output_atom_id,
                         layer + 1u,
                         raw_id,
                         event_bit_id(raw_id, fold_size),
                     });
-                    seen_neighborhoods.insert(neighborhood);
+                    if (!options.include_redundant_environments) {
+                        if (round_neighborhoods.words_per_atom == 1u) {
+                            seen_single_word_neighborhoods.insert(single_word_neighborhood);
+                        } else {
+                            seen_multi_word_neighborhoods.insert(std::move(multi_word_neighborhood));
+                        }
+                    }
                 }
             } else {
                 dead_atoms[atom_id] = true;
             }
         }
+        const auto duplicate_end = Clock::now();
+        if (profile != nullptr) {
+            profile->duplicate_seconds += elapsed_seconds(duplicate_start, duplicate_end);
+        }
 
         current.swap(next);
         std::fill(next.begin(), next.end(), 0u);
-        neighborhoods = round_neighborhoods;
+        neighborhoods.words = round_neighborhoods.words;
     }
 }
 
@@ -603,6 +763,60 @@ OEFP make_binary_fingerprint_from_events(
             words[event.bit_id / BITS_PER_WORD] |= 1ULL << (event.bit_id % BITS_PER_WORD);
         });
     return OEFP(spec, std::move(words));
+}
+
+OEFP make_profiled_fingerprint_from_events(
+    const OEChem::OEMolBase& mol,
+    const MorganOptions& options,
+    MorganGenerationProfile& profile) {
+    const auto spec = morgan_spec(options, FingerprintValueType::Binary);
+    const auto fold_size =
+        options.count_simulation
+            ? options.num_bits / static_cast<std::uint32_t>(options.count_bounds.size())
+            : options.num_bits;
+    std::vector<MorganEvent> events;
+    events.reserve((static_cast<std::size_t>(options.radius) + 1u) * mol.NumAtoms());
+    enumerate_events_into(
+        mol,
+        options,
+        fold_size,
+        [&events](MorganEvent event) {
+            events.push_back(event);
+        },
+        &profile);
+
+    const auto bit_folding_start = Clock::now();
+    std::vector<std::uint64_t> words(DenseWordCount(spec.size_bits), 0ULL);
+    if (options.count_simulation) {
+        const auto bound_count = options.count_bounds.size();
+        std::map<std::uint32_t, std::uint32_t> effective_counts;
+        for (const auto& event : events) {
+            auto& count = effective_counts[event.bit_id];
+            if (count == std::numeric_limits<std::uint32_t>::max()) {
+                throw std::overflow_error("Morgan count simulation count exceeds uint32 storage.");
+            }
+            ++count;
+        }
+        for (const auto& [base_bit, count] : effective_counts) {
+            for (std::size_t i = 0; i < bound_count; ++i) {
+                if (count >= options.count_bounds[i]) {
+                    const auto bit_id =
+                        static_cast<std::uint64_t>(base_bit) * bound_count
+                        + static_cast<std::uint64_t>(i);
+                    words[bit_id / BITS_PER_WORD] |= 1ULL << (bit_id % BITS_PER_WORD);
+                }
+            }
+        }
+    } else {
+        for (const auto& event : events) {
+            words[event.bit_id / BITS_PER_WORD] |= 1ULL << (event.bit_id % BITS_PER_WORD);
+        }
+    }
+    const auto fingerprint = OEFP(spec, std::move(words));
+    const auto bit_folding_end = Clock::now();
+    profile.bit_folding_seconds += elapsed_seconds(bit_folding_start, bit_folding_end);
+    profile.on_bit_count = static_cast<std::uint32_t>(fingerprint.CountOnBits());
+    return fingerprint;
 }
 
 MorganFingerprintResult make_count_simulated_fingerprint_with_mapping(
@@ -676,6 +890,11 @@ OEFPCount count_fingerprint_from_events(
 }
 
 } // namespace
+
+double MorganGenerationProfile::TotalSeconds() const {
+    return graph_seconds + invariant_seconds + radius_zero_seconds + neighborhood_seconds
+           + duplicate_seconds + bit_folding_seconds;
+}
 
 MorganFingerprintResult::MorganFingerprintResult(OEFP fingerprint, OEFPMappingSet mapping)
     : fingerprint_(std::move(fingerprint)), mapping_(std::move(mapping)) {
@@ -876,6 +1095,15 @@ MorganSparseFingerprintResult MakeMorganSparseFingerprintWithMapping(
     return MorganSparseFingerprintResult(
         OEFPSparse(morgan_sparse_binary_spec(options), std::move(indices)),
         mapping_from_events(events));
+}
+
+MorganGenerationProfile ProfileMorganFingerprint(
+    const OEChem::OEMolBase& mol,
+    const MorganOptions& options) {
+    validate_options(options);
+    MorganGenerationProfile profile;
+    static_cast<void>(make_profiled_fingerprint_from_events(mol, options, profile));
+    return profile;
 }
 
 } // namespace OEFP

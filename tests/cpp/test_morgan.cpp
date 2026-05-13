@@ -144,6 +144,27 @@ TEST(MorganGeneratorTest, CountSimulationMatchesFunctionalApi) {
     EXPECT_EQ(generated.CountOnBits(), functional.CountOnBits());
 }
 
+TEST(MorganGeneratorTest, ProfileReportsStageTimingsAndGeneratedBits) {
+    const auto mol = mol_from_smiles("CC(=O)Oc1ccccc1C(=O)O");
+    MorganOptions options;
+    options.num_bits = 256;
+
+    const auto profile = ProfileMorganFingerprint(mol, options);
+    const auto fingerprint = MakeMorganFingerprint(mol, options);
+
+    EXPECT_EQ(profile.atom_count, mol.NumAtoms());
+    EXPECT_EQ(profile.bond_count, mol.NumBonds());
+    EXPECT_GT(profile.event_count, 0u);
+    EXPECT_EQ(profile.on_bit_count, fingerprint.CountOnBits());
+    EXPECT_GE(profile.graph_seconds, 0.0);
+    EXPECT_GE(profile.invariant_seconds, 0.0);
+    EXPECT_GE(profile.radius_zero_seconds, 0.0);
+    EXPECT_GE(profile.neighborhood_seconds, 0.0);
+    EXPECT_GE(profile.duplicate_seconds, 0.0);
+    EXPECT_GE(profile.bit_folding_seconds, 0.0);
+    EXPECT_GT(profile.TotalSeconds(), 0.0);
+}
+
 TEST(MorganGeneratorTest, ConstructorRejectsInvalidOptions) {
     MorganOptions zero_bits;
     zero_bits.num_bits = 0;

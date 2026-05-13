@@ -442,6 +442,8 @@ namespace std {
 %rename(_NativeMetric) OEFP::Metric;
 %rename(_NativeAtomPairGenerator) OEFP::AtomPairGenerator;
 %rename(_NativeMorganGenerator) OEFP::MorganGenerator;
+%rename(_ProfileAtomPairFingerprintStages) OEFP::ProfileAtomPairFingerprint;
+%rename(_ProfileMorganFingerprintStages) OEFP::ProfileMorganFingerprint;
 
 %ignore OEFP::OEFPMappingSet::EnvironmentsForBit;
 
@@ -472,6 +474,7 @@ OEFP_GIL_RELEASE_EXCEPTION(OEFP::MakeAtomPairCountFingerprint)
 OEFP_GIL_RELEASE_EXCEPTION(OEFP::MakeAtomPairSparseFingerprint)
 OEFP_GIL_RELEASE_EXCEPTION(OEFP::MakeAtomPairSparseCountFingerprint)
 OEFP_GIL_RELEASE_EXCEPTION(OEFP::AtomPairGenerator::Fingerprint)
+OEFP_GIL_RELEASE_EXCEPTION(OEFP::ProfileAtomPairFingerprint)
 OEFP_GIL_RELEASE_EXCEPTION(OEFP::MakeMorganFingerprint)
 OEFP_GIL_RELEASE_EXCEPTION(OEFP::MakeMorganFingerprintWithMapping)
 OEFP_GIL_RELEASE_EXCEPTION(OEFP::MakeMorganCountFingerprint)
@@ -481,6 +484,7 @@ OEFP_GIL_RELEASE_EXCEPTION(OEFP::MakeMorganSparseCountFingerprintWithMapping)
 OEFP_GIL_RELEASE_EXCEPTION(OEFP::MakeMorganSparseFingerprint)
 OEFP_GIL_RELEASE_EXCEPTION(OEFP::MakeMorganSparseFingerprintWithMapping)
 OEFP_GIL_RELEASE_EXCEPTION(OEFP::MorganGenerator::Fingerprint)
+OEFP_GIL_RELEASE_EXCEPTION(OEFP::ProfileMorganFingerprint)
 
 %include "oefp/fingerprint.h"
 %include "oefp/count.h"

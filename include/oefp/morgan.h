@@ -25,6 +25,23 @@ struct MorganOptions {
     std::vector<std::uint32_t> count_bounds{1u, 2u, 4u, 8u};
 };
 
+/// \brief Benchmark-only native stage timing summary for Morgan generation.
+struct MorganGenerationProfile {
+    double graph_seconds = 0.0;
+    double invariant_seconds = 0.0;
+    double radius_zero_seconds = 0.0;
+    double neighborhood_seconds = 0.0;
+    double duplicate_seconds = 0.0;
+    double bit_folding_seconds = 0.0;
+    std::uint32_t atom_count = 0;
+    std::uint32_t bond_count = 0;
+    std::uint32_t event_count = 0;
+    std::uint32_t on_bit_count = 0;
+
+    /// \brief Return the sum of measured native stage times.
+    double TotalSeconds() const;
+};
+
 /// \brief Dense binary Morgan fingerprint plus separate environment mappings.
 class MorganFingerprintResult {
 public:
@@ -272,6 +289,21 @@ MorganSparseFingerprintResult MakeMorganSparseFingerprintWithMapping(
     const MorganOptions& options);
 #else
 MorganSparseFingerprintResult MakeMorganSparseFingerprintWithMapping(
+    const OEChem::OEMolBase& mol,
+    const MorganOptions& options = MorganOptions{});
+#endif
+
+/// \brief Profile native folded binary Morgan generation stages.
+///
+/// This diagnostic helper is intended for benchmark tooling. It follows the
+/// same compatibility logic as ``MakeMorganFingerprint`` and reports elapsed
+/// native stage times without changing public fingerprint behavior.
+#ifdef SWIG
+MorganGenerationProfile ProfileMorganFingerprint(
+    const OEChem::OEMolBase& mol,
+    const MorganOptions& options);
+#else
+MorganGenerationProfile ProfileMorganFingerprint(
     const OEChem::OEMolBase& mol,
     const MorganOptions& options = MorganOptions{});
 #endif

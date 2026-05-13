@@ -22,6 +22,22 @@ struct AtomPairOptions {
     std::vector<std::uint32_t> count_bounds{1u, 2u, 4u, 8u};
 };
 
+/// \brief Benchmark-only native stage timing summary for Atom Pair generation.
+struct AtomPairGenerationProfile {
+    double molecule_preparation_seconds = 0.0;
+    double graph_seconds = 0.0;
+    double atom_code_seconds = 0.0;
+    double distance_seconds = 0.0;
+    double pair_enumeration_seconds = 0.0;
+    double bit_folding_seconds = 0.0;
+    std::uint32_t atom_count = 0;
+    std::uint32_t event_count = 0;
+    std::uint32_t on_bit_count = 0;
+
+    /// \brief Return the sum of measured native stage times.
+    double TotalSeconds() const;
+};
+
 /// \brief Reusable generator for RDKit-compatible dense Atom Pair fingerprints.
 class AtomPairGenerator {
 public:
@@ -134,6 +150,21 @@ OEFPCount MakeAtomPairSparseCountFingerprint(
     const AtomPairOptions& options);
 #else
 OEFPCount MakeAtomPairSparseCountFingerprint(
+    const OEChem::OEMolBase& mol,
+    const AtomPairOptions& options = AtomPairOptions{});
+#endif
+
+/// \brief Profile native folded binary Atom Pair generation stages.
+///
+/// This diagnostic helper is intended for benchmark tooling. It follows the
+/// same compatibility logic as ``MakeAtomPairFingerprint`` and reports elapsed
+/// native stage times without changing public fingerprint behavior.
+#ifdef SWIG
+AtomPairGenerationProfile ProfileAtomPairFingerprint(
+    const OEChem::OEMolBase& mol,
+    const AtomPairOptions& options);
+#else
+AtomPairGenerationProfile ProfileAtomPairFingerprint(
     const OEChem::OEMolBase& mol,
     const AtomPairOptions& options = AtomPairOptions{});
 #endif
