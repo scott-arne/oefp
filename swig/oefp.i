@@ -408,7 +408,7 @@ OE_CROSS_RUNTIME_REF_TYPEMAPS(OEDocking::OEReceptor, _oefp_is_oereceptor, "Expec
 namespace std {
 %template(SizeTVector) vector< size_t >;
 %template(UInt32Vector) vector< unsigned int >;
-%template(UInt64Vector) vector< unsigned long long >;
+%template(UInt64Vector) vector< std::uint64_t >;
 %template(DoubleVector) vector< double >;
 }
 
@@ -430,7 +430,7 @@ namespace std {
 // ============================================================================
 #define OEFP_VERSION_MAJOR 0
 #define OEFP_VERSION_MINOR 2
-#define OEFP_VERSION_PATCH 2
+#define OEFP_VERSION_PATCH 3
 
 // ============================================================================
 // Wrapped API
@@ -510,5 +510,5 @@ namespace std {
 // Module-level Python convenience code
 // ============================================================================
 %pythoncode %{
-__version__ = "0.2.2"
+__version__ = "0.2.3"
 %}

@@ -1,12 +1,17 @@
 include(OpenEyeSWIG)
 
+set(_oefp_swig_flags "-doxygen" "-I${CMAKE_SOURCE_DIR}/include")
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    list(APPEND _oefp_swig_flags "-DSWIGWORDSIZE64")
+endif()
+
 openeye_add_swig_module(
     NAME oefp
     SWIG_FILE oefp.i
     LINK_LIBS oefp
     PYTHON_OUTPUT_DIR ${CMAKE_SOURCE_DIR}/python/oefp
     STABLE_ABI ${OEFP_USE_STABLE_ABI}
-    SWIG_FLAGS "-doxygen" "-I${CMAKE_SOURCE_DIR}/include"
+    SWIG_FLAGS ${_oefp_swig_flags}
     EXPECTED_LIB_VARS
         OECHEM_LIBRARY OESYSTEM_LIBRARY OEPLATFORM_LIBRARY
         OEMATH_LIBRARY OEZSTD_LIBRARY
