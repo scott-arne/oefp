@@ -4,7 +4,7 @@
 // Version information
 #define OEFP_VERSION_MAJOR 0
 #define OEFP_VERSION_MINOR 2
-#define OEFP_VERSION_PATCH 1
+#define OEFP_VERSION_PATCH 2
 
 #include "oefp/annotation.h"
 #include "oefp/atom_pair.h"
