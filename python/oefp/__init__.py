@@ -13,8 +13,8 @@ import warnings
 from importlib import metadata
 from pathlib import Path
 
-__version__ = "0.2.3"
-__version_info__ = (0, 2, 3)
+__version__ = "0.2.4"
+__version_info__ = (0, 2, 4)
 
 
 _OPENEYE_COMPAT_PRELOAD_PATHS: list[str] = []
