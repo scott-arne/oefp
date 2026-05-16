@@ -81,22 +81,73 @@ TEST(CompareTest, ComputesTanimotoSimilarityAndJaccardDistance) {
 
     EXPECT_NEAR(Compare(a, b, Metric::Tanimoto()), 1.0 / 4.0, 1.0e-12);
     EXPECT_NEAR(Compare(a, b, Metric::Jaccard()), 1.0 - 1.0 / 4.0, 1.0e-12);
-    EXPECT_NEAR(Compare(a, b, Metric::Jaccard(MetricMode::Distance)), 1.0 - 1.0 / 4.0, 1.0e-12);
 }
 
-TEST(CompareTest, ComputesDiceCosineAndTversky) {
+TEST(CompareTest, ComputesBooleanDistancesAndTverskySimilarity) {
     const auto a = fingerprint_with_bits(130, {0, 1, 64, 129});
     const auto b = fingerprint_with_bits(130, {1, 64, 100});
 
-    EXPECT_NEAR(Compare(a, b, Metric::Dice()), 4.0 / 7.0, 1.0e-12);
-    EXPECT_NEAR(Compare(a, b, Metric::Dice(MetricMode::Distance)), 1.0 - 4.0 / 7.0, 1.0e-12);
-    EXPECT_NEAR(Compare(a, b, Metric::Cosine()), 2.0 / std::sqrt(12.0), 1.0e-12);
-    EXPECT_NEAR(Compare(a, b, Metric::Cosine(MetricMode::Distance)), 1.0 - 2.0 / std::sqrt(12.0), 1.0e-12);
+    EXPECT_NEAR(Compare(a, b, Metric::Dice()), 3.0 / 7.0, 1.0e-12);
+    EXPECT_NEAR(Compare(a, b, Metric::Matching()), 3.0 / 130.0, 1.0e-12);
+    EXPECT_NEAR(Compare(a, b, Metric::RogersTanimoto()), 6.0 / 133.0, 1.0e-12);
+    EXPECT_NEAR(Compare(a, b, Metric::RussellRao()), 128.0 / 130.0, 1.0e-12);
+    EXPECT_NEAR(Compare(a, b, Metric::SokalSneath()), 3.0 / 4.0, 1.0e-12);
     EXPECT_NEAR(Compare(a, b, Metric::Tversky(0.25, 0.75)), 2.0 / 3.25, 1.0e-12);
+}
+
+TEST(CompareTest, ComputesScikitLearnBooleanDistanceCatalog) {
+    const auto a = fingerprint_with_bits(6, {0, 2, 5});
+    const auto b = fingerprint_with_bits(6, {0, 1});
+
+    EXPECT_NEAR(Compare(a, b, Metric::Jaccard()), 3.0 / 4.0, 1.0e-12);
+    EXPECT_NEAR(Compare(a, b, Metric::Matching()), 3.0 / 6.0, 1.0e-12);
+    EXPECT_NEAR(Compare(a, b, Metric::Dice()), 3.0 / 5.0, 1.0e-12);
+    EXPECT_NEAR(Compare(a, b, Metric::Kulsinski()), 8.0 / 9.0, 1.0e-12);
+    EXPECT_NEAR(Compare(a, b, Metric::RogersTanimoto()), 6.0 / 9.0, 1.0e-12);
+    EXPECT_NEAR(Compare(a, b, Metric::RussellRao()), 5.0 / 6.0, 1.0e-12);
+    EXPECT_NEAR(Compare(a, b, Metric::SokalMichener()), 6.0 / 9.0, 1.0e-12);
+    EXPECT_NEAR(Compare(a, b, Metric::SokalSneath()), 6.0 / 7.0, 1.0e-12);
+}
+
+TEST(CompareTest, ComputesScikitLearnRealAndIntegerDistanceCatalog) {
+    const auto a = fingerprint_with_bits(4, {1, 2});
+    const auto b = fingerprint_with_bits(4, {0, 1, 3});
+
+    EXPECT_NEAR(Compare(a, b, Metric::Euclidean()), std::sqrt(3.0), 1.0e-12);
+    EXPECT_EQ(Compare(a, b, Metric::Manhattan()), 3.0);
+    EXPECT_EQ(Compare(a, b, Metric::Chebyshev()), 1.0);
+    EXPECT_NEAR(Compare(a, b, Metric::Minkowski(3.0)), std::pow(3.0, 1.0 / 3.0), 1.0e-12);
+    EXPECT_NEAR(Compare(a, b, Metric::Minkowski(3.0, {1.0, 2.0, 3.0, 4.0})), 2.0, 1.0e-12);
     EXPECT_NEAR(
-        Compare(a, b, Metric::Tversky(0.25, 0.75, MetricMode::Distance)),
-        1.0 - 2.0 / 3.25,
+        Compare(a, b, Metric::StandardizedEuclidean({1.0, 2.0, 4.0, 8.0})),
+        std::sqrt(1.0 + 1.0 / 4.0 + 1.0 / 8.0),
         1.0e-12);
+    EXPECT_NEAR(
+        Compare(
+            a,
+            b,
+            Metric::Mahalanobis({
+                1.0, 0.0, 0.0, 0.0,
+                0.0, 2.0, 0.0, 0.0,
+                0.0, 0.0, 3.0, 0.0,
+                0.0, 0.0, 0.0, 4.0,
+            })),
+        std::sqrt(8.0),
+        1.0e-12);
+    EXPECT_NEAR(Compare(a, b, Metric::Hamming()), 3.0 / 4.0, 1.0e-12);
+    EXPECT_EQ(Compare(a, b, Metric::Canberra()), 3.0);
+    EXPECT_NEAR(Compare(a, b, Metric::BrayCurtis()), 3.0 / 5.0, 1.0e-12);
+}
+
+TEST(CompareTest, ComputesHaversineDistanceForTwoDimensionalFingerprints) {
+    const auto a = fingerprint_with_bits(2, {0});
+    const auto b = fingerprint_with_bits(2, {1});
+
+    const auto expected = 2.0 * std::asin(std::sqrt(
+        std::sin(0.5) * std::sin(0.5)
+        + std::cos(1.0) * std::cos(0.0) * std::sin(-0.5) * std::sin(-0.5)));
+    EXPECT_NEAR(Compare(a, b, Metric::Haversine()), expected, 1.0e-12);
+    EXPECT_THROW(Compare(fingerprint_with_bits(3, {0}), fingerprint_with_bits(3, {1}), Metric::Haversine()), std::invalid_argument);
 }
 
 TEST(CompareTest, AsymmetricTverskyDependsOnDirection) {
@@ -135,13 +186,15 @@ TEST(CompareTest, UsesZeroSimilarityForEmptyDenominators) {
     const auto b = fingerprint_with_bits(64, {});
 
     EXPECT_EQ(Compare(a, b, Metric::Tanimoto()), 0.0);
-    EXPECT_EQ(Compare(a, b, Metric::Jaccard()), 1.0);
-    EXPECT_EQ(Compare(a, b, Metric::Dice()), 0.0);
-    EXPECT_EQ(Compare(a, b, Metric::Dice(MetricMode::Distance)), 1.0);
-    EXPECT_EQ(Compare(a, b, Metric::Cosine()), 0.0);
-    EXPECT_EQ(Compare(a, b, Metric::Cosine(MetricMode::Distance)), 1.0);
+    EXPECT_EQ(Compare(a, b, Metric::Jaccard()), 0.0);
+    EXPECT_TRUE(std::isnan(Compare(a, b, Metric::Dice())));
+    EXPECT_EQ(Compare(a, b, Metric::Matching()), 0.0);
+    EXPECT_EQ(Compare(a, b, Metric::Kulsinski()), 1.0);
+    EXPECT_EQ(Compare(a, b, Metric::RogersTanimoto()), 0.0);
+    EXPECT_EQ(Compare(a, b, Metric::RussellRao()), 1.0);
+    EXPECT_EQ(Compare(a, b, Metric::SokalMichener()), 0.0);
+    EXPECT_TRUE(std::isnan(Compare(a, b, Metric::SokalSneath())));
     EXPECT_EQ(Compare(a, b, Metric::Tversky(0.5, 0.5)), 0.0);
-    EXPECT_EQ(Compare(a, b, Metric::Tversky(0.5, 0.5, MetricMode::Distance)), 1.0);
     EXPECT_EQ(Compare(a, b, Metric::Manhattan()), 0.0);
 }
 
@@ -150,25 +203,24 @@ TEST(CompareTest, HandlesZeroWidthFingerprintsWithEmptyDenominatorRule) {
     OEFP b(binary_spec(0));
 
     EXPECT_EQ(Compare(a, b, Metric::Tanimoto()), 0.0);
-    EXPECT_EQ(Compare(a, b, Metric::Dice()), 0.0);
-    EXPECT_EQ(Compare(a, b, Metric::Dice(MetricMode::Distance)), 1.0);
-    EXPECT_EQ(Compare(a, b, Metric::Cosine()), 0.0);
-    EXPECT_EQ(Compare(a, b, Metric::Cosine(MetricMode::Distance)), 1.0);
     EXPECT_EQ(Compare(a, b, Metric::Tversky(1.0, 0.0)), 0.0);
-    EXPECT_EQ(Compare(a, b, Metric::Tversky(1.0, 0.0, MetricMode::Distance)), 1.0);
     EXPECT_EQ(Compare(a, b, Metric::Manhattan()), 0.0);
 }
 
-TEST(CompareCountTest, ComputesWeightedCountSimilaritiesAndDistances) {
+TEST(CompareCountTest, ComputesBooleanSimilaritiesAndNumericDistances) {
     const auto a = count_fingerprint(16, {1u, 3u, 8u}, {2u, 4u, 1u});
     const auto b = count_fingerprint(16, {1u, 2u, 8u}, {1u, 5u, 3u});
 
-    EXPECT_NEAR(Compare(a, b, Metric::Tanimoto()), 2.0 / 14.0, 1.0e-12);
-    EXPECT_NEAR(Compare(a, b, Metric::Jaccard()), 1.0 - 2.0 / 14.0, 1.0e-12);
-    EXPECT_NEAR(Compare(a, b, Metric::Dice()), 4.0 / 16.0, 1.0e-12);
-    EXPECT_NEAR(Compare(a, b, Metric::Tversky(0.25, 0.75)), 2.0 / 8.5, 1.0e-12);
-    EXPECT_NEAR(Compare(a, b, Metric::Cosine()), 5.0 / std::sqrt(735.0), 1.0e-12);
+    EXPECT_NEAR(Compare(a, b, Metric::Tanimoto()), 2.0 / 4.0, 1.0e-12);
+    EXPECT_NEAR(Compare(a, b, Metric::Jaccard()), 2.0 / 4.0, 1.0e-12);
+    EXPECT_NEAR(Compare(a, b, Metric::Dice()), 2.0 / 6.0, 1.0e-12);
+    EXPECT_NEAR(Compare(a, b, Metric::Tversky(0.25, 0.75)), 2.0 / 3.0, 1.0e-12);
+    EXPECT_NEAR(Compare(a, b, Metric::Euclidean()), std::sqrt(46.0), 1.0e-12);
     EXPECT_EQ(Compare(a, b, Metric::Manhattan()), 12.0);
+    EXPECT_EQ(Compare(a, b, Metric::Chebyshev()), 5.0);
+    EXPECT_NEAR(Compare(a, b, Metric::Hamming()), 4.0 / 16.0, 1.0e-12);
+    EXPECT_NEAR(Compare(a, b, Metric::Canberra()), 17.0 / 6.0, 1.0e-12);
+    EXPECT_NEAR(Compare(a, b, Metric::BrayCurtis()), 12.0 / 16.0, 1.0e-12);
 }
 
 TEST(CompareCountTest, RejectsMismatchedCountSpecs) {
@@ -188,13 +240,10 @@ TEST(CompareCountTest, UsesZeroSimilarityForEmptyCountDenominators) {
     const OEFPCount b(count_spec(16));
 
     EXPECT_EQ(Compare(a, b, Metric::Tanimoto()), 0.0);
-    EXPECT_EQ(Compare(a, b, Metric::Jaccard()), 1.0);
-    EXPECT_EQ(Compare(a, b, Metric::Dice()), 0.0);
-    EXPECT_EQ(Compare(a, b, Metric::Dice(MetricMode::Distance)), 1.0);
-    EXPECT_EQ(Compare(a, b, Metric::Cosine()), 0.0);
-    EXPECT_EQ(Compare(a, b, Metric::Cosine(MetricMode::Distance)), 1.0);
+    EXPECT_EQ(Compare(a, b, Metric::Jaccard()), 0.0);
+    EXPECT_TRUE(std::isnan(Compare(a, b, Metric::Dice())));
+    EXPECT_EQ(Compare(a, b, Metric::Matching()), 0.0);
     EXPECT_EQ(Compare(a, b, Metric::Tversky(0.5, 0.5)), 0.0);
-    EXPECT_EQ(Compare(a, b, Metric::Tversky(0.5, 0.5, MetricMode::Distance)), 1.0);
     EXPECT_EQ(Compare(a, b, Metric::Manhattan()), 0.0);
 }
 
@@ -204,8 +253,7 @@ TEST(CompareSparseBinaryTest, ComputesBinarySparseSimilaritiesAndDistances) {
 
     EXPECT_NEAR(Compare(a, b, Metric::Tanimoto()), 2.0 / 5.0, 1.0e-12);
     EXPECT_NEAR(Compare(a, b, Metric::Jaccard()), 1.0 - 2.0 / 5.0, 1.0e-12);
-    EXPECT_NEAR(Compare(a, b, Metric::Dice()), 4.0 / 7.0, 1.0e-12);
-    EXPECT_NEAR(Compare(a, b, Metric::Cosine()), 2.0 / std::sqrt(12.0), 1.0e-12);
+    EXPECT_NEAR(Compare(a, b, Metric::Dice()), 3.0 / 7.0, 1.0e-12);
     EXPECT_NEAR(Compare(a, b, Metric::Tversky(0.25, 0.75)), 2.0 / 3.25, 1.0e-12);
     EXPECT_EQ(Compare(a, b, Metric::Manhattan()), 3.0);
 }
@@ -235,13 +283,10 @@ TEST(CompareSparseBinaryTest, UsesZeroSimilarityForEmptyDenominators) {
     const OEFPSparse b(sparse_binary_spec());
 
     EXPECT_EQ(Compare(a, b, Metric::Tanimoto()), 0.0);
-    EXPECT_EQ(Compare(a, b, Metric::Jaccard()), 1.0);
-    EXPECT_EQ(Compare(a, b, Metric::Dice()), 0.0);
-    EXPECT_EQ(Compare(a, b, Metric::Dice(MetricMode::Distance)), 1.0);
-    EXPECT_EQ(Compare(a, b, Metric::Cosine()), 0.0);
-    EXPECT_EQ(Compare(a, b, Metric::Cosine(MetricMode::Distance)), 1.0);
+    EXPECT_EQ(Compare(a, b, Metric::Jaccard()), 0.0);
+    EXPECT_TRUE(std::isnan(Compare(a, b, Metric::Dice())));
+    EXPECT_EQ(Compare(a, b, Metric::Matching()), 0.0);
     EXPECT_EQ(Compare(a, b, Metric::Tversky(0.5, 0.5)), 0.0);
-    EXPECT_EQ(Compare(a, b, Metric::Tversky(0.5, 0.5, MetricMode::Distance)), 1.0);
     EXPECT_EQ(Compare(a, b, Metric::Manhattan()), 0.0);
 }
 
@@ -419,7 +464,7 @@ TEST(CompareBatchTest, QueryToBatchMatchesScalarComparison) {
     const auto third = fingerprint_with_bits(128, {70});
     const auto batch = OEFPBatch::FromFingerprints({first, second, third});
 
-    const auto values = Compare(query, batch, Metric::Tanimoto(MetricMode::Similarity));
+    const auto values = Compare(query, batch, Metric::Tanimoto());
 
     ASSERT_EQ(values.size(), batch.Size());
     EXPECT_DOUBLE_EQ(values[0], Compare(query, first, Metric::Tanimoto()));
@@ -438,7 +483,7 @@ TEST(CompareBatchTest, CDistReturnsRowMajorValues) {
         fingerprint_with_bits(64, {9}),
     });
 
-    const auto values = CDist(a, b, Metric::Tanimoto(MetricMode::Similarity));
+    const auto values = CDist(a, b, Metric::Tanimoto());
 
     ASSERT_EQ(values.size(), 6u);
     EXPECT_DOUBLE_EQ(values[0], 1.0);
@@ -456,7 +501,7 @@ TEST(CompareBatchTest, PDistReturnsCondensedValues) {
         fingerprint_with_bits(64, {2}),
     });
 
-    const auto values = PDist(batch, Metric::Tanimoto(MetricMode::Similarity));
+    const auto values = PDist(batch, Metric::Tanimoto());
 
     ASSERT_EQ(values.size(), 3u);
     EXPECT_DOUBLE_EQ(values[0], 0.5);

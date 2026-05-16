@@ -56,12 +56,32 @@ def test_tanimoto_is_similarity_and_jaccard_is_distance():
 
     a = oefp.OEFP.from_on_bits(8, [0, 1], algorithm="unit-test")
     b = oefp.OEFP.from_on_bits(8, [1, 2, 3], algorithm="unit-test")
+    tanimoto = oefp.Metric.tanimoto()
+    jaccard = oefp.Metric.jaccard()
 
-    assert oefp.compare(a, b, oefp.Metric.tanimoto()) == pytest.approx(0.25)
-    assert oefp.compare(a, b, oefp.Metric.jaccard()) == pytest.approx(0.75)
+    assert tanimoto.name == "tanimoto"
+    assert tanimoto.type == "similarity"
+    assert tanimoto.space == "boolean"
+    assert jaccard.name == "jaccard"
+    assert jaccard.type == "distance"
+    assert jaccard.space == "boolean"
 
-    with pytest.raises(ValueError, match="Tanimoto is a similarity metric"):
-        oefp.Metric.tanimoto(mode="distance")
+    assert oefp.compare(a, b, tanimoto) == pytest.approx(0.25)
+    assert oefp.compare(a, b, jaccard) == pytest.approx(0.75)
 
-    with pytest.raises(ValueError, match="Jaccard is a distance metric"):
-        oefp.Metric.jaccard(mode="similarity")
+
+def test_metric_factories_expose_scikit_style_distances():
+    import oefp
+
+    minkowski = oefp.Metric.minkowski(3.0, [1.0, 2.0])
+    standardized = oefp.Metric.standardized_euclidean([1.0, 2.0])
+    mahalanobis = oefp.Metric.mahalanobis([1.0, 0.0, 0.0, 2.0])
+
+    assert oefp.Metric.euclidean().space == "real"
+    assert oefp.Metric.hamming().space == "integer"
+    assert oefp.Metric.dice().type == "distance"
+    assert minkowski.name == "minkowski"
+    assert minkowski.p == 3.0
+    assert minkowski.weights == (1.0, 2.0)
+    assert standardized.variances == (1.0, 2.0)
+    assert mahalanobis.inverse_covariance == (1.0, 0.0, 0.0, 2.0)

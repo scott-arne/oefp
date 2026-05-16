@@ -17,8 +17,8 @@ The main Python components are:
 - :class:`OEFPSparseBatch` - Sparse binary batch storage
 - :class:`OEFPCountBatch` - Sparse counted batch storage
 - :class:`FingerprintSpec` - Read-only fingerprint metadata
-- :class:`Metric` - Tanimoto similarity, Jaccard distance, Dice, Cosine,
-  Tversky, and Manhattan metrics
+- :class:`Metric` - Scikit-learn-style distance metrics plus Tanimoto and
+  Tversky similarity metrics
 - :class:`MorganGenerator` - Reusable Morgan dense-binary generator
 - :class:`AtomPairGenerator` - Reusable Atom Pair dense-binary generator
 
@@ -197,16 +197,31 @@ Metrics and Comparison
 
    Metric configuration used by scalar and batch comparison functions.
 
-   .. method:: Metric.tanimoto(*, mode="similarity")
-   .. method:: Metric.jaccard(*, mode="distance")
-   .. method:: Metric.dice(*, mode="similarity")
-   .. method:: Metric.cosine(*, mode="similarity")
-   .. method:: Metric.tversky(alpha, beta, *, mode="similarity")
-   .. method:: Metric.manhattan(*, mode="distance")
+   .. method:: Metric.euclidean()
+   .. method:: Metric.manhattan()
+   .. method:: Metric.chebyshev()
+   .. method:: Metric.minkowski(p=2.0, weights=None)
+   .. method:: Metric.standardized_euclidean(variances)
+   .. method:: Metric.seuclidean(variances)
+   .. method:: Metric.mahalanobis(inverse_covariance)
+   .. method:: Metric.haversine()
+   .. method:: Metric.hamming()
+   .. method:: Metric.canberra()
+   .. method:: Metric.bray_curtis()
+   .. method:: Metric.jaccard()
+   .. method:: Metric.matching()
+   .. method:: Metric.dice()
+   .. method:: Metric.kulsinski()
+   .. method:: Metric.rogers_tanimoto()
+   .. method:: Metric.russell_rao()
+   .. method:: Metric.sokal_michener()
+   .. method:: Metric.sokal_sneath()
+   .. method:: Metric.tanimoto()
+   .. method:: Metric.tversky(alpha, beta)
 
-      Create a metric. Tanimoto is a similarity metric. Jaccard is the
-      corresponding distance metric. Dice, Cosine, and Tversky accept either
-      ``"similarity"`` or ``"distance"``.
+      Create a metric. The scikit-learn-style factories are distance metrics.
+      ``tanimoto()`` and ``tversky()`` are boolean-space similarity metrics.
+      Metric objects expose ``name``, ``type``, and ``space`` metadata.
 
 .. function:: compare(a, b, metric, *, num_threads=0, chunk_size=256)
 

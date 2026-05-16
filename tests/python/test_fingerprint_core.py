@@ -25,6 +25,6 @@ def test_scalar_compare_from_python():
 
     a = oefp.OEFP.from_on_bits(8, [0, 1, 2], algorithm="unit-test")
     b = oefp.OEFP.from_on_bits(8, [1, 2, 3], algorithm="unit-test")
-    metric = oefp.Metric.tanimoto(mode="similarity")
+    metric = oefp.Metric.tanimoto()
 
     assert oefp.compare(a, b, metric) == pytest.approx(0.5)

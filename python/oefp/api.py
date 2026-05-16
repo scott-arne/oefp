@@ -52,13 +52,48 @@ def _fingerprint_spec(native_spec: Any) -> FingerprintSpec:
     )
 
 
-def _mode_value(mode: str) -> Any:
-    normalized = mode.lower()
-    if normalized == "similarity":
-        return _native.MetricMode_Similarity
-    if normalized == "distance":
-        return _native.MetricMode_Distance
-    raise ValueError(f"Unknown metric mode: {mode}")
+def _metric_name_name(value: Any) -> str:
+    names = {
+        _native.MetricName_Euclidean: "euclidean",
+        _native.MetricName_Manhattan: "manhattan",
+        _native.MetricName_Chebyshev: "chebyshev",
+        _native.MetricName_Minkowski: "minkowski",
+        _native.MetricName_StandardizedEuclidean: "standardized_euclidean",
+        _native.MetricName_Mahalanobis: "mahalanobis",
+        _native.MetricName_Haversine: "haversine",
+        _native.MetricName_Hamming: "hamming",
+        _native.MetricName_Canberra: "canberra",
+        _native.MetricName_BrayCurtis: "bray_curtis",
+        _native.MetricName_Jaccard: "jaccard",
+        _native.MetricName_Matching: "matching",
+        _native.MetricName_Dice: "dice",
+        _native.MetricName_Kulsinski: "kulsinski",
+        _native.MetricName_RogersTanimoto: "rogers_tanimoto",
+        _native.MetricName_RussellRao: "russell_rao",
+        _native.MetricName_SokalMichener: "sokal_michener",
+        _native.MetricName_SokalSneath: "sokal_sneath",
+        _native.MetricName_Tanimoto: "tanimoto",
+        _native.MetricName_Tversky: "tversky",
+    }
+    return names.get(value, "unknown")
+
+
+def _metric_type_name(value: Any) -> str:
+    if value == _native.MetricType_Distance:
+        return "distance"
+    if value == _native.MetricType_Similarity:
+        return "similarity"
+    return "unknown"
+
+
+def _metric_space_name(value: Any) -> str:
+    if value == _native.MetricSpace_Real:
+        return "real"
+    if value == _native.MetricSpace_Integer:
+        return "integer"
+    if value == _native.MetricSpace_Boolean:
+        return "boolean"
+    return "unknown"
 
 
 def _batch_options(num_threads: int, chunk_size: int) -> Any:
@@ -117,6 +152,13 @@ def _native_uint32_vector(values: Sequence[int]) -> Any:
     vector = _native.UInt32Vector()
     for value in values:
         vector.push_back(int(value))
+    return vector
+
+
+def _native_double_vector(values: Sequence[float]) -> Any:
+    vector = _native.DoubleVector()
+    for value in values:
+        vector.push_back(float(value))
     return vector
 
 
@@ -586,9 +628,8 @@ class Metric:
     def __init__(self, native: Any, *, _token: object | None = None):
         if _token is not _NATIVE_TOKEN:
             raise TypeError(
-                "Metric objects are created by Metric.tanimoto(), "
-                "Metric.jaccard(), Metric.tversky(), Metric.dice(), "
-                "Metric.cosine(), or Metric.manhattan()."
+                "Metric objects are created by Metric factory methods such as "
+                "Metric.euclidean(), Metric.jaccard(), or Metric.tanimoto()."
             )
         object.__setattr__(self, "_native", native)
 
@@ -596,47 +637,161 @@ class Metric:
     def _from_native(cls, native: Any) -> Metric:
         return cls(native, _token=_NATIVE_TOKEN)
 
-    @classmethod
-    def tanimoto(cls, *, mode: str = "similarity") -> Metric:
-        """Create a Tanimoto similarity metric."""
-        mode_value = _mode_value(mode)
-        if mode_value != _native.MetricMode_Similarity:
-            raise ValueError("Tanimoto is a similarity metric; use Metric.jaccard() for distance.")
-        return cls._from_native(_native._NativeMetric.Tanimoto(mode_value))
+    @property
+    def name(self) -> str:
+        """Metric formula name."""
+        return _metric_name_name(self._native.Name())
+
+    @property
+    def type(self) -> str:
+        """Whether the metric returns distance or similarity values."""
+        return _metric_type_name(self._native.Type())
+
+    @property
+    def space(self) -> str:
+        """Vector space the metric is intended to compare."""
+        return _metric_space_name(self._native.Space())
+
+    @property
+    def p(self) -> float:
+        """Minkowski exponent."""
+        return float(self._native.P())
+
+    @property
+    def alpha(self) -> float:
+        """Tversky alpha parameter."""
+        return float(self._native.Alpha())
+
+    @property
+    def beta(self) -> float:
+        """Tversky beta parameter."""
+        return float(self._native.Beta())
+
+    @property
+    def weights(self) -> tuple[float, ...]:
+        """Weighted Minkowski weights."""
+        return tuple(float(value) for value in self._native.Weights())
+
+    @property
+    def variances(self) -> tuple[float, ...]:
+        """Standardized Euclidean variances."""
+        return tuple(float(value) for value in self._native.Variances())
+
+    @property
+    def inverse_covariance(self) -> tuple[float, ...]:
+        """Mahalanobis inverse covariance matrix in row-major order."""
+        return tuple(float(value) for value in self._native.InverseCovariance())
 
     @classmethod
-    def jaccard(cls, *, mode: str = "distance") -> Metric:
+    def euclidean(cls) -> Metric:
+        """Create a Euclidean distance metric."""
+        return cls._from_native(_native._NativeMetric.Euclidean())
+
+    @classmethod
+    def manhattan(cls) -> Metric:
+        """Create a Manhattan distance metric."""
+        return cls._from_native(_native._NativeMetric.Manhattan())
+
+    @classmethod
+    def chebyshev(cls) -> Metric:
+        """Create a Chebyshev distance metric."""
+        return cls._from_native(_native._NativeMetric.Chebyshev())
+
+    @classmethod
+    def minkowski(cls, p: float = 2.0, weights: Sequence[float] | None = None) -> Metric:
+        """Create a Minkowski distance metric."""
+        if weights is None:
+            return cls._from_native(_native._NativeMetric.Minkowski(float(p)))
+        return cls._from_native(_native._NativeMetric.Minkowski(float(p), _native_double_vector(weights)))
+
+    @classmethod
+    def standardized_euclidean(cls, variances: Sequence[float]) -> Metric:
+        """Create a standardized Euclidean distance metric."""
+        return cls._from_native(_native._NativeMetric.StandardizedEuclidean(_native_double_vector(variances)))
+
+    @classmethod
+    def seuclidean(cls, variances: Sequence[float]) -> Metric:
+        """Create a standardized Euclidean distance metric."""
+        return cls.standardized_euclidean(variances)
+
+    @classmethod
+    def mahalanobis(cls, inverse_covariance: Sequence[float]) -> Metric:
+        """Create a Mahalanobis distance metric from an inverse covariance matrix."""
+        return cls._from_native(_native._NativeMetric.Mahalanobis(_native_double_vector(inverse_covariance)))
+
+    @classmethod
+    def haversine(cls) -> Metric:
+        """Create a Haversine distance metric."""
+        return cls._from_native(_native._NativeMetric.Haversine())
+
+    @classmethod
+    def hamming(cls) -> Metric:
+        """Create a Hamming distance metric."""
+        return cls._from_native(_native._NativeMetric.Hamming())
+
+    @classmethod
+    def canberra(cls) -> Metric:
+        """Create a Canberra distance metric."""
+        return cls._from_native(_native._NativeMetric.Canberra())
+
+    @classmethod
+    def bray_curtis(cls) -> Metric:
+        """Create a Bray-Curtis distance metric."""
+        return cls._from_native(_native._NativeMetric.BrayCurtis())
+
+    @classmethod
+    def jaccard(cls) -> Metric:
         """Create a Jaccard distance metric."""
-        mode_value = _mode_value(mode)
-        if mode_value != _native.MetricMode_Distance:
-            raise ValueError("Jaccard is a distance metric; use Metric.tanimoto() for similarity.")
-        return cls._from_native(_native._NativeMetric.Jaccard(mode_value))
+        return cls._from_native(_native._NativeMetric.Jaccard())
+
+    @classmethod
+    def matching(cls) -> Metric:
+        """Create a Matching distance metric."""
+        return cls._from_native(_native._NativeMetric.Matching())
+
+    @classmethod
+    def dice(cls) -> Metric:
+        """Create a Dice distance metric."""
+        return cls._from_native(_native._NativeMetric.Dice())
+
+    @classmethod
+    def kulsinski(cls) -> Metric:
+        """Create a Kulsinski distance metric."""
+        return cls._from_native(_native._NativeMetric.Kulsinski())
+
+    @classmethod
+    def rogers_tanimoto(cls) -> Metric:
+        """Create a Rogers-Tanimoto distance metric."""
+        return cls._from_native(_native._NativeMetric.RogersTanimoto())
+
+    @classmethod
+    def russell_rao(cls) -> Metric:
+        """Create a Russell-Rao distance metric."""
+        return cls._from_native(_native._NativeMetric.RussellRao())
+
+    @classmethod
+    def sokal_michener(cls) -> Metric:
+        """Create a Sokal-Michener distance metric."""
+        return cls._from_native(_native._NativeMetric.SokalMichener())
+
+    @classmethod
+    def sokal_sneath(cls) -> Metric:
+        """Create a Sokal-Sneath distance metric."""
+        return cls._from_native(_native._NativeMetric.SokalSneath())
+
+    @classmethod
+    def tanimoto(cls) -> Metric:
+        """Create a Tanimoto similarity metric."""
+        return cls._from_native(_native._NativeMetric.Tanimoto())
 
     @classmethod
     def tversky(
         cls,
         alpha: float,
         beta: float,
-        *,
-        mode: str = "similarity",
     ) -> Metric:
-        """Create a Tversky metric."""
-        return cls._from_native(_native._NativeMetric.Tversky(alpha, beta, _mode_value(mode)))
-
-    @classmethod
-    def dice(cls, *, mode: str = "similarity") -> Metric:
-        """Create a Dice metric."""
-        return cls._from_native(_native._NativeMetric.Dice(_mode_value(mode)))
-
-    @classmethod
-    def cosine(cls, *, mode: str = "similarity") -> Metric:
-        """Create a Cosine metric."""
-        return cls._from_native(_native._NativeMetric.Cosine(_mode_value(mode)))
-
-    @classmethod
-    def manhattan(cls, *, mode: str = "distance") -> Metric:
-        """Create a Manhattan metric."""
-        return cls._from_native(_native._NativeMetric.Manhattan(_mode_value(mode)))
+        """Create a Tversky similarity metric."""
+        return cls._from_native(_native._NativeMetric.Tversky(alpha, beta))
 
 
 class MorganGenerator:

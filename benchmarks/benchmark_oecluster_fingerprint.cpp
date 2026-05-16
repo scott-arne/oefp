@@ -116,7 +116,7 @@ int main(int argc, char** argv) {
     auto mols = build_molecules(count);
     auto ptrs = mol_ptrs(mols);
     const auto batch = build_oefp_batch(mols);
-    const auto metric = OEFP::Metric::Tanimoto(OEFP::MetricMode::Distance);
+    const auto metric = OEFP::Metric::Jaccard();
     OEFP::BatchKernelOptions oe_options;
     oe_options.num_threads = threads;
     oe_options.chunk_size = chunk_size;

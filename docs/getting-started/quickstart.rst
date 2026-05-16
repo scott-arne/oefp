@@ -360,7 +360,7 @@ Batch ``pdist``
 
        OEFP::OEFPBatch batch = OEFP::OEFPBatch::FromFingerprints(fps);
        std::vector<double> distances =
-           OEFP::PDist(batch, OEFP::Metric::Tanimoto(OEFP::MetricMode::Distance));
+           OEFP::PDist(batch, OEFP::Metric::Jaccard());
 
        return distances.empty() ? 1 : 0;
    }

@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import math
-
 import pytest
 
 pytest.importorskip("openeye.oechem", reason="OpenEye Toolkits not installed")
@@ -40,16 +38,14 @@ def test_sparse_binary_compare_matches_set_math():
     )
 
     tanimoto = intersection / (intersection + only_left + only_right)
-    dice = 2 * intersection / (len(left.indices) + len(right.indices))
-    cosine = intersection / math.sqrt(len(left.indices) * len(right.indices))
+    dice_distance = xor_count / (intersection + len(left.indices) + only_right)
     tversky = intersection / (intersection + 0.25 * only_left + 0.75 * only_right)
 
     assert oefp.compare(left, right, oefp.Metric.tanimoto()) == pytest.approx(tanimoto)
     assert oefp.compare(left, right, oefp.Metric.jaccard()) == pytest.approx(
         1.0 - tanimoto,
     )
-    assert oefp.compare(left, right, oefp.Metric.dice()) == pytest.approx(dice)
-    assert oefp.compare(left, right, oefp.Metric.cosine()) == pytest.approx(cosine)
+    assert oefp.compare(left, right, oefp.Metric.dice()) == pytest.approx(dice_distance)
     assert oefp.compare(left, right, oefp.Metric.tversky(0.25, 0.75)) == pytest.approx(
         tversky,
     )

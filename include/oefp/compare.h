@@ -30,7 +30,7 @@ struct BatchKernelOptions {
 /// \param a First fingerprint.
 /// \param b Second fingerprint.
 /// \param metric Metric configuration.
-/// \returns Similarity or distance according to metric.Mode().
+/// \returns Similarity or distance according to metric.Type().
 /// \throws std::invalid_argument: When fingerprint specifications or storage
 ///     widths differ.
 double Compare(const OEFP& a, const OEFP& b, const Metric& metric);
@@ -44,7 +44,7 @@ double Compare(const OEFP& a, const OEFP& b, const Metric& metric);
 /// \param a First counted fingerprint.
 /// \param b Second counted fingerprint.
 /// \param metric Metric configuration.
-/// \returns Similarity or distance according to metric.Mode().
+/// \returns Similarity or distance according to metric.Type().
 /// \throws std::invalid_argument: When fingerprint specifications differ.
 double Compare(const OEFPCount& a, const OEFPCount& b, const Metric& metric);
 
@@ -56,7 +56,7 @@ double Compare(const OEFPCount& a, const OEFPCount& b, const Metric& metric);
 /// \param a First sparse binary fingerprint.
 /// \param b Second sparse binary fingerprint.
 /// \param metric Metric configuration.
-/// \returns Similarity or distance according to metric.Mode().
+/// \returns Similarity or distance according to metric.Type().
 /// \throws std::invalid_argument: When fingerprint specifications differ.
 double Compare(const OEFPSparse& a, const OEFPSparse& b, const Metric& metric);
 

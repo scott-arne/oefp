@@ -6,7 +6,6 @@ import numpy as np
 import pytest
 
 Chem = pytest.importorskip("rdkit.Chem", reason="RDKit is required for Morgan count conformance tests")
-DataStructs = pytest.importorskip("rdkit.DataStructs", reason="RDKit is required for count metric conformance tests")
 rdFingerprintGenerator = pytest.importorskip(
     "rdkit.Chem.rdFingerprintGenerator",
     reason="RDKit is required for Morgan count conformance tests",
@@ -141,13 +140,19 @@ def _rdkit_count_fingerprint(
     return generator.GetCountFingerprint(_rdkit_mol(smiles))
 
 
-def _count_stats(a: dict[int, int], b: dict[int, int]) -> tuple[int, int, int]:
+def _count_stats(a: dict[int, int], b: dict[int, int]) -> tuple[int, int, int, int, float, int]:
     keys = set(a) | set(b)
-    dot = sum(a.get(key, 0) * b.get(key, 0) for key in keys)
-    a_square = sum(count * count for count in a.values())
-    b_square = sum(count * count for count in b.values())
     l1 = sum(abs(a.get(key, 0) - b.get(key, 0)) for key in keys)
-    return dot, a_square * b_square, l1
+    squared_l2 = sum((a.get(key, 0) - b.get(key, 0)) ** 2 for key in keys)
+    chebyshev = max((abs(a.get(key, 0) - b.get(key, 0)) for key in keys), default=0)
+    unequal = sum(1 for key in keys if a.get(key, 0) != b.get(key, 0))
+    canberra = sum(
+        abs(a.get(key, 0) - b.get(key, 0)) / (abs(a.get(key, 0)) + abs(b.get(key, 0)))
+        for key in keys
+        if abs(a.get(key, 0)) + abs(b.get(key, 0)) != 0
+    )
+    sum_abs = sum(abs(count) for count in a.values()) + sum(abs(count) for count in b.values())
+    return l1, squared_l2, chebyshev, unequal, canberra, sum_abs
 
 
 @pytest.mark.parametrize(
@@ -293,35 +298,41 @@ def test_morgan_count_reuses_public_option_validation():
         oefp.morgan_sparse_count_fingerprint(mol, use_chirality=True)
 
 
-def test_morgan_count_compare_matches_rdkit_count_metrics():
+def test_morgan_count_compare_uses_nonzero_boolean_metrics():
     import oefp
 
     kwargs = {"radius": 2, "num_bits": 256}
     fp_a = oefp.morgan_count_fingerprint(_openeye_mol("CCO"), **kwargs)
     fp_b = oefp.morgan_count_fingerprint(_openeye_mol("CCN"), **kwargs)
-    rd_a = _rdkit_count_fingerprint("CCO", **kwargs)
-    rd_b = _rdkit_count_fingerprint("CCN", **kwargs)
+    indices_a = set(_oefp_counts(fp_a))
+    indices_b = set(_oefp_counts(fp_b))
 
-    tanimoto = DataStructs.TanimotoSimilarity(rd_a, rd_b)
-    dice = DataStructs.DiceSimilarity(rd_a, rd_b)
-    tversky = DataStructs.TverskySimilarity(rd_a, rd_b, 0.25, 0.75)
+    intersection = len(indices_a & indices_b)
+    only_a = len(indices_a - indices_b)
+    only_b = len(indices_b - indices_a)
+    nonzero = intersection + only_a + only_b
+    unequal = only_a + only_b
 
-    assert oefp.compare(fp_a, fp_b, oefp.Metric.tanimoto()) == pytest.approx(tanimoto)
-    assert oefp.compare(fp_a, fp_b, oefp.Metric.jaccard()) == pytest.approx(1.0 - tanimoto)
-    assert oefp.compare(fp_a, fp_b, oefp.Metric.dice()) == pytest.approx(dice)
-    assert oefp.compare(fp_a, fp_b, oefp.Metric.tversky(0.25, 0.75)) == pytest.approx(tversky)
+    assert oefp.compare(fp_a, fp_b, oefp.Metric.tanimoto()) == pytest.approx(intersection / nonzero)
+    assert oefp.compare(fp_a, fp_b, oefp.Metric.jaccard()) == pytest.approx(unequal / nonzero)
+    assert oefp.compare(fp_a, fp_b, oefp.Metric.dice()) == pytest.approx(unequal / (intersection + nonzero))
+    assert oefp.compare(fp_a, fp_b, oefp.Metric.tversky(0.25, 0.75)) == pytest.approx(
+        intersection / (intersection + 0.25 * only_a + 0.75 * only_b),
+    )
 
 
-def test_morgan_count_compare_supports_cosine_and_manhattan():
+def test_morgan_count_compare_supports_real_and_integer_distances():
     import oefp
 
     fp_a = oefp.morgan_count_fingerprint(_openeye_mol("CCO"), num_bits=128)
     fp_b = oefp.morgan_count_fingerprint(_openeye_mol("CCN"), num_bits=128)
     counts_a = _oefp_counts(fp_a)
     counts_b = _oefp_counts(fp_b)
-    dot, square_product, l1 = _count_stats(counts_a, counts_b)
-    expected_cosine = 0.0 if square_product == 0 else dot / np.sqrt(square_product)
+    l1, squared_l2, chebyshev, unequal, canberra, sum_abs = _count_stats(counts_a, counts_b)
 
-    assert oefp.compare(fp_a, fp_b, oefp.Metric.cosine()) == pytest.approx(expected_cosine)
-    assert oefp.compare(fp_a, fp_b, oefp.Metric.cosine(mode="distance")) == pytest.approx(1.0 - expected_cosine)
+    assert oefp.compare(fp_a, fp_b, oefp.Metric.euclidean()) == pytest.approx(np.sqrt(squared_l2))
     assert oefp.compare(fp_a, fp_b, oefp.Metric.manhattan()) == pytest.approx(l1)
+    assert oefp.compare(fp_a, fp_b, oefp.Metric.chebyshev()) == pytest.approx(chebyshev)
+    assert oefp.compare(fp_a, fp_b, oefp.Metric.hamming()) == pytest.approx(unequal / fp_a.num_bits)
+    assert oefp.compare(fp_a, fp_b, oefp.Metric.canberra()) == pytest.approx(canberra)
+    assert oefp.compare(fp_a, fp_b, oefp.Metric.bray_curtis()) == pytest.approx(l1 / sum_abs)

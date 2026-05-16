@@ -4,94 +4,79 @@
 
 #include <limits>
 #include <stdexcept>
+#include <vector>
 
 namespace OEFP {
 namespace test {
 
-TEST(MetricTest, FactoriesSetKindModeAndDefaultParameters) {
-    const auto tanimoto = Metric::Tanimoto();
-    EXPECT_EQ(tanimoto.Kind(), MetricKind::Tanimoto);
-    EXPECT_EQ(tanimoto.Mode(), MetricMode::Similarity);
-    EXPECT_EQ(tanimoto.Alpha(), 1.0);
-    EXPECT_EQ(tanimoto.Beta(), 1.0);
-    EXPECT_TRUE(tanimoto.IsSymmetric());
+TEST(MetricTest, DistanceFactoriesSetNameTypeAndSpace) {
+    const auto euclidean = Metric::Euclidean();
+    EXPECT_EQ(euclidean.Name(), MetricName::Euclidean);
+    EXPECT_EQ(euclidean.Type(), MetricType::Distance);
+    EXPECT_EQ(euclidean.Space(), MetricSpace::Real);
+
+    const auto hamming = Metric::Hamming();
+    EXPECT_EQ(hamming.Name(), MetricName::Hamming);
+    EXPECT_EQ(hamming.Type(), MetricType::Distance);
+    EXPECT_EQ(hamming.Space(), MetricSpace::Integer);
 
     const auto jaccard = Metric::Jaccard();
-    EXPECT_EQ(jaccard.Kind(), MetricKind::Jaccard);
-    EXPECT_EQ(jaccard.Mode(), MetricMode::Distance);
-    EXPECT_TRUE(jaccard.IsSymmetric());
-
-    const auto dice = Metric::Dice(MetricMode::Distance);
-    EXPECT_EQ(dice.Kind(), MetricKind::Dice);
-    EXPECT_EQ(dice.Mode(), MetricMode::Distance);
-    EXPECT_TRUE(dice.IsSymmetric());
-
-    const auto cosine = Metric::Cosine();
-    EXPECT_EQ(cosine.Kind(), MetricKind::Cosine);
-    EXPECT_EQ(cosine.Mode(), MetricMode::Similarity);
-    EXPECT_TRUE(cosine.IsSymmetric());
-
-    const auto manhattan = Metric::Manhattan();
-    EXPECT_EQ(manhattan.Kind(), MetricKind::Manhattan);
-    EXPECT_EQ(manhattan.Mode(), MetricMode::Distance);
-    EXPECT_TRUE(manhattan.IsSymmetric());
+    EXPECT_EQ(jaccard.Name(), MetricName::Jaccard);
+    EXPECT_EQ(jaccard.Type(), MetricType::Distance);
+    EXPECT_EQ(jaccard.Space(), MetricSpace::Boolean);
 }
 
-TEST(MetricTest, TverskyStoresAlphaBetaModeAndSymmetry) {
-    const auto symmetric = Metric::Tversky(0.5, 0.5, MetricMode::Distance);
-    EXPECT_EQ(symmetric.Kind(), MetricKind::Tversky);
-    EXPECT_EQ(symmetric.Mode(), MetricMode::Distance);
-    EXPECT_EQ(symmetric.Alpha(), 0.5);
-    EXPECT_EQ(symmetric.Beta(), 0.5);
-    EXPECT_TRUE(symmetric.IsSymmetric());
+TEST(MetricTest, SimilarityFactoriesSetNameTypeAndSpace) {
+    const auto tanimoto = Metric::Tanimoto();
+    EXPECT_EQ(tanimoto.Name(), MetricName::Tanimoto);
+    EXPECT_EQ(tanimoto.Type(), MetricType::Similarity);
+    EXPECT_EQ(tanimoto.Space(), MetricSpace::Boolean);
+    EXPECT_EQ(tanimoto.Alpha(), 1.0);
+    EXPECT_EQ(tanimoto.Beta(), 1.0);
 
-    const auto asymmetric = Metric::Tversky(0.2, 0.8);
-    EXPECT_EQ(asymmetric.Mode(), MetricMode::Similarity);
-    EXPECT_EQ(asymmetric.Alpha(), 0.2);
-    EXPECT_EQ(asymmetric.Beta(), 0.8);
-    EXPECT_FALSE(asymmetric.IsSymmetric());
+    const auto tversky = Metric::Tversky(0.2, 0.8);
+    EXPECT_EQ(tversky.Name(), MetricName::Tversky);
+    EXPECT_EQ(tversky.Type(), MetricType::Similarity);
+    EXPECT_EQ(tversky.Space(), MetricSpace::Boolean);
+    EXPECT_EQ(tversky.Alpha(), 0.2);
+    EXPECT_EQ(tversky.Beta(), 0.8);
 }
 
-TEST(MetricTest, TverskyRejectsAlphaOrBetaOutsideUnitInterval) {
+TEST(MetricTest, ParameterizedDistanceFactoriesStoreParameters) {
+    const auto minkowski = Metric::Minkowski(3.0, {1.0, 0.5, 2.0});
+    EXPECT_EQ(minkowski.Name(), MetricName::Minkowski);
+    EXPECT_EQ(minkowski.Type(), MetricType::Distance);
+    EXPECT_EQ(minkowski.Space(), MetricSpace::Real);
+    EXPECT_EQ(minkowski.P(), 3.0);
+    EXPECT_EQ(minkowski.Weights(), std::vector<double>({1.0, 0.5, 2.0}));
+
+    const auto standardized = Metric::StandardizedEuclidean({1.0, 2.0, 4.0});
+    EXPECT_EQ(standardized.Name(), MetricName::StandardizedEuclidean);
+    EXPECT_EQ(standardized.Variances(), std::vector<double>({1.0, 2.0, 4.0}));
+
+    const auto mahalanobis = Metric::Mahalanobis({1.0, 0.0, 0.0, 2.0});
+    EXPECT_EQ(mahalanobis.Name(), MetricName::Mahalanobis);
+    EXPECT_EQ(mahalanobis.InverseCovariance(), std::vector<double>({1.0, 0.0, 0.0, 2.0}));
+}
+
+TEST(MetricTest, RejectsInvalidMetricParameters) {
+    EXPECT_THROW(Metric::Minkowski(0.0), std::invalid_argument);
+    EXPECT_THROW(Metric::Minkowski(-1.0), std::invalid_argument);
+    EXPECT_THROW(Metric::Minkowski(std::numeric_limits<double>::quiet_NaN()), std::invalid_argument);
+    EXPECT_THROW(Metric::Minkowski(2.0, {1.0, -1.0}), std::invalid_argument);
     EXPECT_THROW(Metric::Tversky(-0.1, 0.5), std::invalid_argument);
     EXPECT_THROW(Metric::Tversky(1.1, 0.5), std::invalid_argument);
     EXPECT_THROW(Metric::Tversky(0.5, -0.1), std::invalid_argument);
     EXPECT_THROW(Metric::Tversky(0.5, 1.1), std::invalid_argument);
     EXPECT_THROW(Metric::Tversky(std::numeric_limits<double>::quiet_NaN(), 0.5), std::invalid_argument);
     EXPECT_THROW(Metric::Tversky(0.5, std::numeric_limits<double>::quiet_NaN()), std::invalid_argument);
-    EXPECT_NO_THROW(Metric::Tversky(0.0, 1.0));
 }
 
-TEST(MetricTest, ManhattanRejectsSimilarityMode) {
-    EXPECT_THROW(Metric::Manhattan(MetricMode::Similarity), std::invalid_argument);
-}
-
-TEST(MetricTest, SetMetricsRejectOppositeSemanticModes) {
-    EXPECT_THROW(Metric::Tanimoto(MetricMode::Distance), std::invalid_argument);
-    EXPECT_THROW(Metric::Jaccard(MetricMode::Similarity), std::invalid_argument);
-}
-
-TEST(MetricTest, FactoriesRejectInvalidModes) {
-    const auto invalid_mode = static_cast<MetricMode>(999);
-
-    EXPECT_THROW(Metric::Tanimoto(invalid_mode), std::invalid_argument);
-    EXPECT_THROW(Metric::Jaccard(invalid_mode), std::invalid_argument);
-    EXPECT_THROW(Metric::Tversky(0.5, 0.5, invalid_mode), std::invalid_argument);
-    EXPECT_THROW(Metric::Dice(invalid_mode), std::invalid_argument);
-    EXPECT_THROW(Metric::Cosine(invalid_mode), std::invalid_argument);
-    EXPECT_THROW(Metric::Manhattan(invalid_mode), std::invalid_argument);
-}
-
-TEST(MetricTest, ValidateForPDistAcceptsSymmetricMetrics) {
-    EXPECT_NO_THROW(Metric::Tanimoto().ValidateForPDist());
+TEST(MetricTest, ValidateForPDistRejectsAsymmetricTverskyOnly) {
+    EXPECT_NO_THROW(Metric::Euclidean().ValidateForPDist());
     EXPECT_NO_THROW(Metric::Jaccard().ValidateForPDist());
+    EXPECT_NO_THROW(Metric::Tanimoto().ValidateForPDist());
     EXPECT_NO_THROW(Metric::Tversky(0.3, 0.3).ValidateForPDist());
-    EXPECT_NO_THROW(Metric::Dice().ValidateForPDist());
-    EXPECT_NO_THROW(Metric::Cosine().ValidateForPDist());
-    EXPECT_NO_THROW(Metric::Manhattan().ValidateForPDist());
-}
-
-TEST(MetricTest, ValidateForPDistRejectsAsymmetricMetrics) {
     EXPECT_THROW(Metric::Tversky(0.2, 0.8).ValidateForPDist(), std::invalid_argument);
 }
 

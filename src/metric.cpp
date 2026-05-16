@@ -1,19 +1,25 @@
 #include "oefp/metric.h"
 
+#include <cmath>
 #include <stdexcept>
 #include <string>
+#include <utility>
 
 namespace OEFP {
 namespace {
 
-void validate_metric_mode(MetricMode mode) {
-    switch (mode) {
-    case MetricMode::Similarity:
-    case MetricMode::Distance:
-        return;
+void validate_positive(double value, const char* name) {
+    if (!(value > 0.0)) {
+        throw std::invalid_argument(std::string(name) + " must be greater than zero.");
     }
+}
 
-    throw std::invalid_argument("Metric mode is invalid.");
+void validate_non_negative_weights(const std::vector<double>& weights) {
+    for (const auto weight : weights) {
+        if (!(weight >= 0.0)) {
+            throw std::invalid_argument("Minkowski weights cannot be negative.");
+        }
+    }
 }
 
 void validate_tversky_parameter(double value, const char* name) {
@@ -24,50 +30,154 @@ void validate_tversky_parameter(double value, const char* name) {
 
 } // namespace
 
-Metric Metric::Tanimoto(MetricMode mode) {
-    validate_metric_mode(mode);
-    if (mode == MetricMode::Distance) {
-        throw std::invalid_argument("Tanimoto is a similarity metric; use Jaccard for distance.");
-    }
-    return Metric(MetricKind::Tanimoto, mode, 1.0, 1.0);
+Metric Metric::Euclidean() {
+    return Metric(MetricName::Euclidean, MetricType::Distance, MetricSpace::Real, 2.0, 1.0, 1.0, {}, {}, {});
 }
 
-Metric Metric::Jaccard(MetricMode mode) {
-    validate_metric_mode(mode);
-    if (mode == MetricMode::Similarity) {
-        throw std::invalid_argument("Jaccard is a distance metric; use Tanimoto for similarity.");
-    }
-    return Metric(MetricKind::Jaccard, mode, 1.0, 1.0);
+Metric Metric::Manhattan() {
+    return Metric(MetricName::Manhattan, MetricType::Distance, MetricSpace::Real, 2.0, 1.0, 1.0, {}, {}, {});
 }
 
-Metric Metric::Tversky(double alpha, double beta, MetricMode mode) {
+Metric Metric::Chebyshev() {
+    return Metric(MetricName::Chebyshev, MetricType::Distance, MetricSpace::Real, 2.0, 1.0, 1.0, {}, {}, {});
+}
+
+Metric Metric::Minkowski(double p) {
+    validate_positive(p, "Minkowski p");
+    return Metric(MetricName::Minkowski, MetricType::Distance, MetricSpace::Real, p, 1.0, 1.0, {}, {}, {});
+}
+
+Metric Metric::Minkowski(double p, std::vector<double> weights) {
+    validate_positive(p, "Minkowski p");
+    validate_non_negative_weights(weights);
+    return Metric(
+        MetricName::Minkowski,
+        MetricType::Distance,
+        MetricSpace::Real,
+        p,
+        1.0,
+        1.0,
+        std::move(weights),
+        {},
+        {});
+}
+
+Metric Metric::StandardizedEuclidean(std::vector<double> variances) {
+    return Metric(
+        MetricName::StandardizedEuclidean,
+        MetricType::Distance,
+        MetricSpace::Real,
+        2.0,
+        1.0,
+        1.0,
+        {},
+        std::move(variances),
+        {});
+}
+
+Metric Metric::Mahalanobis(std::vector<double> inverse_covariance) {
+    return Metric(
+        MetricName::Mahalanobis,
+        MetricType::Distance,
+        MetricSpace::Real,
+        2.0,
+        1.0,
+        1.0,
+        {},
+        {},
+        std::move(inverse_covariance));
+}
+
+Metric Metric::Haversine() {
+    return Metric(MetricName::Haversine, MetricType::Distance, MetricSpace::Real, 2.0, 1.0, 1.0, {}, {}, {});
+}
+
+Metric Metric::Hamming() {
+    return Metric(MetricName::Hamming, MetricType::Distance, MetricSpace::Integer, 2.0, 1.0, 1.0, {}, {}, {});
+}
+
+Metric Metric::Canberra() {
+    return Metric(MetricName::Canberra, MetricType::Distance, MetricSpace::Integer, 2.0, 1.0, 1.0, {}, {}, {});
+}
+
+Metric Metric::BrayCurtis() {
+    return Metric(MetricName::BrayCurtis, MetricType::Distance, MetricSpace::Integer, 2.0, 1.0, 1.0, {}, {}, {});
+}
+
+Metric Metric::Jaccard() {
+    return Metric(MetricName::Jaccard, MetricType::Distance, MetricSpace::Boolean, 2.0, 1.0, 1.0, {}, {}, {});
+}
+
+Metric Metric::Matching() {
+    return Metric(MetricName::Matching, MetricType::Distance, MetricSpace::Boolean, 2.0, 1.0, 1.0, {}, {}, {});
+}
+
+Metric Metric::Dice() {
+    return Metric(MetricName::Dice, MetricType::Distance, MetricSpace::Boolean, 2.0, 1.0, 1.0, {}, {}, {});
+}
+
+Metric Metric::Kulsinski() {
+    return Metric(MetricName::Kulsinski, MetricType::Distance, MetricSpace::Boolean, 2.0, 1.0, 1.0, {}, {}, {});
+}
+
+Metric Metric::RogersTanimoto() {
+    return Metric(MetricName::RogersTanimoto, MetricType::Distance, MetricSpace::Boolean, 2.0, 1.0, 1.0, {}, {}, {});
+}
+
+Metric Metric::RussellRao() {
+    return Metric(MetricName::RussellRao, MetricType::Distance, MetricSpace::Boolean, 2.0, 1.0, 1.0, {}, {}, {});
+}
+
+Metric Metric::SokalMichener() {
+    return Metric(MetricName::SokalMichener, MetricType::Distance, MetricSpace::Boolean, 2.0, 1.0, 1.0, {}, {}, {});
+}
+
+Metric Metric::SokalSneath() {
+    return Metric(MetricName::SokalSneath, MetricType::Distance, MetricSpace::Boolean, 2.0, 1.0, 1.0, {}, {}, {});
+}
+
+Metric Metric::Tanimoto() {
+    return Metric(
+        MetricName::Tanimoto,
+        MetricType::Similarity,
+        MetricSpace::Boolean,
+        2.0,
+        1.0,
+        1.0,
+        {},
+        {},
+        {});
+}
+
+Metric Metric::Tversky(double alpha, double beta) {
     validate_tversky_parameter(alpha, "alpha");
     validate_tversky_parameter(beta, "beta");
-    return Metric(MetricKind::Tversky, mode, alpha, beta);
+    return Metric(
+        MetricName::Tversky,
+        MetricType::Similarity,
+        MetricSpace::Boolean,
+        2.0,
+        alpha,
+        beta,
+        {},
+        {},
+        {});
 }
 
-Metric Metric::Dice(MetricMode mode) {
-    return Metric(MetricKind::Dice, mode, 1.0, 1.0);
+MetricName Metric::Name() const {
+    return name_;
 }
 
-Metric Metric::Cosine(MetricMode mode) {
-    return Metric(MetricKind::Cosine, mode, 1.0, 1.0);
+MetricType Metric::Type() const {
+    return type_;
 }
 
-Metric Metric::Manhattan(MetricMode mode) {
-    validate_metric_mode(mode);
-    if (mode == MetricMode::Similarity) {
-        throw std::invalid_argument("Manhattan similarity is not defined for binary fingerprints.");
-    }
-    return Metric(MetricKind::Manhattan, mode, 1.0, 1.0);
+MetricSpace Metric::Space() const {
+    return space_;
 }
 
-MetricKind Metric::Kind() const {
-    return kind_;
-}
-
-MetricMode Metric::Mode() const {
-    return mode_;
+double Metric::P() const {
+    return p_;
 }
 
 double Metric::Alpha() const {
@@ -78,8 +188,20 @@ double Metric::Beta() const {
     return beta_;
 }
 
+const std::vector<double>& Metric::Weights() const {
+    return weights_;
+}
+
+const std::vector<double>& Metric::Variances() const {
+    return variances_;
+}
+
+const std::vector<double>& Metric::InverseCovariance() const {
+    return inverse_covariance_;
+}
+
 bool Metric::IsSymmetric() const {
-    return kind_ != MetricKind::Tversky || alpha_ == beta_;
+    return name_ != MetricName::Tversky || alpha_ == beta_;
 }
 
 void Metric::ValidateForPDist() const {
@@ -88,12 +210,25 @@ void Metric::ValidateForPDist() const {
     }
 }
 
-Metric::Metric(MetricKind kind, MetricMode mode, double alpha, double beta)
-    : kind_(kind),
-      mode_(mode),
+Metric::Metric(
+    MetricName name,
+    MetricType type,
+    MetricSpace space,
+    double p,
+    double alpha,
+    double beta,
+    std::vector<double> weights,
+    std::vector<double> variances,
+    std::vector<double> inverse_covariance)
+    : name_(name),
+      type_(type),
+      space_(space),
+      p_(p),
       alpha_(alpha),
-      beta_(beta) {
-    validate_metric_mode(mode_);
+      beta_(beta),
+      weights_(std::move(weights)),
+      variances_(std::move(variances)),
+      inverse_covariance_(std::move(inverse_covariance)) {
 }
 
 } // namespace OEFP
