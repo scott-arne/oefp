@@ -4,6 +4,7 @@
 #include "oefp/batch.h"
 #include "oefp/count.h"
 #include "oefp/count_batch.h"
+#include "oefp/descriptor.h"
 #include "oefp/fingerprint.h"
 #include "oefp/metric.h"
 #include "oefp/sparse.h"
@@ -59,6 +60,26 @@ double Compare(const OEFPCount& a, const OEFPCount& b, const Metric& metric);
 /// \returns Similarity or distance according to metric.Type().
 /// \throws std::invalid_argument: When fingerprint specifications differ.
 double Compare(const OEFPSparse& a, const OEFPSparse& b, const Metric& metric);
+
+/// \brief Compare two scalar descriptor sets with the requested metric.
+///
+/// Descriptor specifications must compare exactly equal. Count-overlap mode
+/// evaluates count-aware descriptor overlap by default, presence mode collapses
+/// counts to binary key presence, and exact-count mode treats each key/count
+/// pair as its own binary feature.
+///
+/// \param a First descriptor set.
+/// \param b Second descriptor set.
+/// \param metric Metric configuration.
+/// \param mode Descriptor count interpretation mode.
+/// \returns Similarity or distance according to metric.Type().
+/// \throws std::invalid_argument: When descriptor specifications differ or the
+///     metric is not valid for descriptor comparison.
+double Compare(
+    const DescriptorSet& a,
+    const DescriptorSet& b,
+    const Metric& metric,
+    DescriptorComparisonMode mode = DescriptorComparisonMode::CountOverlap);
 
 /// \brief Compare one sparse binary query fingerprint against each row in a sparse batch.
 std::vector<double> Compare(

@@ -85,6 +85,12 @@ struct Difference {
     double value = 0.0;
 };
 
+struct DescriptorMetricData {
+    BooleanStats boolean_stats;
+    NumericStats numeric_stats;
+    std::vector<Difference> differences;
+};
+
 std::size_t checked_product(std::size_t a, std::size_t b, const char* label) {
     if (a != 0 && b > std::numeric_limits<std::size_t>::max() / a) {
         throw std::invalid_argument(label);
@@ -355,6 +361,211 @@ double evaluate_metric_with_differences(
     }
 
     return evaluate_numeric_metric(stats, metric);
+}
+
+bool is_descriptor_boolean_metric(const Metric& metric) {
+    switch (metric.Name()) {
+    case MetricName::Jaccard:
+    case MetricName::Matching:
+    case MetricName::Dice:
+    case MetricName::Kulsinski:
+    case MetricName::RogersTanimoto:
+    case MetricName::RussellRao:
+    case MetricName::SokalMichener:
+    case MetricName::SokalSneath:
+    case MetricName::Tanimoto:
+    case MetricName::Tversky:
+        return true;
+    default:
+        break;
+    }
+    return false;
+}
+
+void reject_invalid_descriptor_metric(const Metric& metric) {
+    switch (metric.Name()) {
+    case MetricName::StandardizedEuclidean:
+    case MetricName::Mahalanobis:
+    case MetricName::Haversine:
+        throw std::invalid_argument("Metric is not valid for descriptor comparison.");
+    default:
+        break;
+    }
+}
+
+void add_descriptor_dimension(
+    DescriptorMetricData& data,
+    double a_value,
+    double b_value,
+    std::uint64_t true_true,
+    std::uint64_t true_false,
+    std::uint64_t false_true,
+    std::uint64_t boolean_dimensions) {
+    const auto difference = a_value - b_value;
+    const auto abs_difference = std::abs(difference);
+    const auto dimension = data.numeric_stats.dimensions;
+
+    data.boolean_stats.dimensions += boolean_dimensions;
+    data.boolean_stats.true_true += true_true;
+    data.boolean_stats.true_false += true_false;
+    data.boolean_stats.false_true += false_true;
+
+    ++data.numeric_stats.dimensions;
+    data.numeric_stats.l1 += abs_difference;
+    data.numeric_stats.squared_l2 += difference * difference;
+    data.numeric_stats.max_abs = std::max(data.numeric_stats.max_abs, abs_difference);
+    if (difference != 0.0) {
+        data.numeric_stats.unequal += 1.0;
+        data.differences.push_back({dimension, difference});
+    }
+    if (a_value != 0.0 || b_value != 0.0) {
+        data.numeric_stats.canberra += abs_difference / (std::abs(a_value) + std::abs(b_value));
+    }
+    data.numeric_stats.sum_abs += std::abs(a_value) + std::abs(b_value);
+}
+
+void add_count_overlap_descriptor_dimension(
+    DescriptorMetricData& data,
+    std::uint32_t a_count,
+    std::uint32_t b_count,
+    DescriptorComparisonMode mode) {
+    const auto a_value = mode == DescriptorComparisonMode::Presence && a_count != 0u ? 1u : a_count;
+    const auto b_value = mode == DescriptorComparisonMode::Presence && b_count != 0u ? 1u : b_count;
+    const auto overlap = std::min(a_value, b_value);
+    add_descriptor_dimension(
+        data,
+        static_cast<double>(a_value),
+        static_cast<double>(b_value),
+        overlap,
+        a_value - overlap,
+        b_value - overlap,
+        std::max(a_value, b_value));
+}
+
+void add_exact_count_descriptor_dimension(
+    DescriptorMetricData& data,
+    double a_value,
+    double b_value) {
+    const auto true_true = a_value != 0.0 && b_value != 0.0 ? 1u : 0u;
+    const auto true_false = a_value != 0.0 && b_value == 0.0 ? 1u : 0u;
+    const auto false_true = a_value == 0.0 && b_value != 0.0 ? 1u : 0u;
+    add_descriptor_dimension(data, a_value, b_value, true_true, true_false, false_true, 1u);
+}
+
+template <typename Key>
+DescriptorMetricData collect_descriptor_count_overlap_data(
+    const std::vector<Key>& a_keys,
+    const std::vector<std::uint32_t>& a_counts,
+    const std::vector<Key>& b_keys,
+    const std::vector<std::uint32_t>& b_counts,
+    DescriptorComparisonMode mode) {
+    DescriptorMetricData data;
+    data.differences.reserve(a_keys.size() + b_keys.size());
+
+    std::size_t a_row = 0;
+    std::size_t b_row = 0;
+    while (a_row < a_keys.size() || b_row < b_keys.size()) {
+        if (b_row == b_keys.size() || (a_row < a_keys.size() && a_keys[a_row] < b_keys[b_row])) {
+            add_count_overlap_descriptor_dimension(data, a_counts[a_row], 0u, mode);
+            ++a_row;
+        } else if (a_row == a_keys.size() || b_keys[b_row] < a_keys[a_row]) {
+            add_count_overlap_descriptor_dimension(data, 0u, b_counts[b_row], mode);
+            ++b_row;
+        } else {
+            add_count_overlap_descriptor_dimension(data, a_counts[a_row], b_counts[b_row], mode);
+            ++a_row;
+            ++b_row;
+        }
+    }
+    return data;
+}
+
+template <typename Key>
+DescriptorMetricData collect_descriptor_exact_count_data(
+    const std::vector<Key>& a_keys,
+    const std::vector<std::uint32_t>& a_counts,
+    const std::vector<Key>& b_keys,
+    const std::vector<std::uint32_t>& b_counts) {
+    DescriptorMetricData data;
+    data.differences.reserve(a_keys.size() + b_keys.size());
+
+    std::size_t a_row = 0;
+    std::size_t b_row = 0;
+    while (a_row < a_keys.size() || b_row < b_keys.size()) {
+        if (b_row == b_keys.size() || (a_row < a_keys.size() && a_keys[a_row] < b_keys[b_row])) {
+            add_exact_count_descriptor_dimension(data, 1.0, 0.0);
+            ++a_row;
+        } else if (a_row == a_keys.size() || b_keys[b_row] < a_keys[a_row]) {
+            add_exact_count_descriptor_dimension(data, 0.0, 1.0);
+            ++b_row;
+        } else {
+            if (a_counts[a_row] == b_counts[b_row]) {
+                add_exact_count_descriptor_dimension(data, 1.0, 1.0);
+            } else {
+                add_exact_count_descriptor_dimension(data, 1.0, 0.0);
+                add_exact_count_descriptor_dimension(data, 0.0, 1.0);
+            }
+            ++a_row;
+            ++b_row;
+        }
+    }
+    return data;
+}
+
+template <typename Key>
+DescriptorMetricData collect_descriptor_data(
+    const std::vector<Key>& a_keys,
+    const std::vector<std::uint32_t>& a_counts,
+    const std::vector<Key>& b_keys,
+    const std::vector<std::uint32_t>& b_counts,
+    DescriptorComparisonMode mode) {
+    if (mode == DescriptorComparisonMode::ExactCount) {
+        return collect_descriptor_exact_count_data(a_keys, a_counts, b_keys, b_counts);
+    }
+    return collect_descriptor_count_overlap_data(a_keys, a_counts, b_keys, b_counts, mode);
+}
+
+DescriptorMetricData collect_descriptor_data(
+    const DescriptorSet& a,
+    const DescriptorSet& b,
+    DescriptorComparisonMode mode) {
+    switch (a.ValueType()) {
+    case DescriptorValueType::Integer:
+        return collect_descriptor_data(
+            a.IntegerKeys(),
+            a.Counts(),
+            b.IntegerKeys(),
+            b.Counts(),
+            mode);
+    case DescriptorValueType::Float:
+        return collect_descriptor_data(
+            a.FloatKeys(),
+            a.Counts(),
+            b.FloatKeys(),
+            b.Counts(),
+            mode);
+    case DescriptorValueType::String:
+        return collect_descriptor_data(
+            a.StringKeys(),
+            a.Counts(),
+            b.StringKeys(),
+            b.Counts(),
+            mode);
+    }
+    throw std::invalid_argument("Unsupported descriptor value type.");
+}
+
+double evaluate_descriptor_metric(
+    const DescriptorMetricData& data,
+    const Metric& metric) {
+    reject_invalid_descriptor_metric(metric);
+    if (is_descriptor_boolean_metric(metric)) {
+        return evaluate_boolean_metric(data.boolean_stats, metric);
+    }
+    if (metric.Name() == MetricName::Minkowski) {
+        return evaluate_minkowski(data.differences, data.numeric_stats, metric);
+    }
+    return evaluate_numeric_metric(data.numeric_stats, metric);
 }
 
 DenseCounts count_dense_pair(
@@ -1051,6 +1262,21 @@ double Compare(const OEFPSparse& a, const OEFPSparse& b, const Metric& metric) {
     }
 
     return evaluate_sparse_binary_metric(a, b, count_sparse_binary_pair(a, b), metric);
+}
+
+double Compare(
+    const DescriptorSet& a,
+    const DescriptorSet& b,
+    const Metric& metric,
+    DescriptorComparisonMode mode) {
+    if (a.Spec() != b.Spec()) {
+        throw std::invalid_argument("Descriptor specifications must match for comparison.");
+    }
+    if (a.ValueType() != b.ValueType()) {
+        throw std::invalid_argument("Descriptor value types must match for comparison.");
+    }
+
+    return evaluate_descriptor_metric(collect_descriptor_data(a, b, mode), metric);
 }
 
 std::vector<double> Compare(
