@@ -13,6 +13,7 @@
 #include "oefp/count.h"
 #include "oefp/count_batch.h"
 #include "oefp/descriptor.h"
+#include "oefp/descriptor_batch.h"
 #include "oefp/fingerprint.h"
 #include "oefp/metric.h"
 #include "oefp/morgan.h"

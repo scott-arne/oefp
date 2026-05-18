@@ -16,6 +16,7 @@ add_executable(oefp_tests
     test_count.cpp
     test_count_batch.cpp
     test_descriptor.cpp
+    test_descriptor_batch.cpp
     test_fingerprint.cpp
     test_metric.cpp
     test_morgan.cpp
