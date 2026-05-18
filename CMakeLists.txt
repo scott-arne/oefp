@@ -76,6 +76,7 @@ set(OEFP_SOURCES
     src/count_batch.cpp
     src/descriptor.cpp
     src/descriptor_batch.cpp
+    src/descriptor_schema.cpp
     src/fingerprint.cpp
     src/metric.cpp
     src/mordred.cpp

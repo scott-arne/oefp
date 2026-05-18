@@ -14,6 +14,7 @@
 #include "oefp/count_batch.h"
 #include "oefp/descriptor.h"
 #include "oefp/descriptor_batch.h"
+#include "oefp/descriptor_schema.h"
 #include "oefp/fingerprint.h"
 #include "oefp/metric.h"
 #include "oefp/mordred.h"
