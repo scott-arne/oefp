@@ -30,6 +30,17 @@ class FingerprintSpec:
     source_type_id: int | None
 
 
+@dataclass(frozen=True)
+class DescriptorSpec:
+    """Read-only descriptor metadata exposed by Python wrappers."""
+
+    value_type: str
+    source_name: str
+    source_type: str
+    source_version: str
+    parameters: str
+
+
 def _value_type_name(value: Any) -> str:
     if value == _native.FingerprintValueType_Binary:
         return "binary"
@@ -50,6 +61,72 @@ def _fingerprint_spec(native_spec: Any) -> FingerprintSpec:
         if native_spec.has_source_type_id
         else None,
     )
+
+
+def _descriptor_value_type_name(value: Any) -> str:
+    if value == _native.DescriptorValueType_Integer:
+        return "integer"
+    if value == _native.DescriptorValueType_Float:
+        return "float"
+    if value == _native.DescriptorValueType_String:
+        return "string"
+    return "unknown"
+
+
+def _native_descriptor_value_type(value_type: str) -> Any:
+    if value_type == "integer":
+        return _native.DescriptorValueType_Integer
+    if value_type == "float":
+        return _native.DescriptorValueType_Float
+    if value_type == "string":
+        return _native.DescriptorValueType_String
+    raise ValueError(f"Unknown descriptor value type: {value_type!r}.")
+
+
+def _descriptor_spec(native_spec: Any) -> DescriptorSpec:
+    return DescriptorSpec(
+        value_type=_descriptor_value_type_name(native_spec.value_type),
+        source_name=str(native_spec.source_name),
+        source_type=str(native_spec.source_type),
+        source_version=str(native_spec.source_version),
+        parameters=str(native_spec.parameters),
+    )
+
+
+def _native_descriptor_spec(spec: DescriptorSpec) -> Any:
+    native_spec = _native.DescriptorSpec()
+    native_spec.value_type = _native_descriptor_value_type(spec.value_type)
+    native_spec.source_name = spec.source_name
+    native_spec.source_type = spec.source_type
+    native_spec.source_version = spec.source_version
+    native_spec.parameters = spec.parameters
+    return native_spec
+
+
+def _manual_descriptor_spec(
+    value_type: str,
+    source_name: str,
+    source_type: str,
+    source_version: str,
+    parameters: str,
+) -> DescriptorSpec:
+    return DescriptorSpec(
+        value_type=value_type,
+        source_name=source_name,
+        source_type=source_type,
+        source_version=source_version,
+        parameters=parameters,
+    )
+
+
+def _descriptor_mode_value(mode: str) -> Any:
+    if mode == "count_overlap":
+        return _native.DescriptorComparisonMode_CountOverlap
+    if mode == "exact_count":
+        return _native.DescriptorComparisonMode_ExactCount
+    if mode == "presence":
+        return _native.DescriptorComparisonMode_Presence
+    raise ValueError(f"Unknown descriptor comparison mode: {mode!r}.")
 
 
 def _metric_name_name(value: Any) -> str:
@@ -152,6 +229,20 @@ def _native_uint32_vector(values: Sequence[int]) -> Any:
     vector = _native.UInt32Vector()
     for value in values:
         vector.push_back(int(value))
+    return vector
+
+
+def _native_int64_vector(values: Sequence[int]) -> Any:
+    vector = _native.Int64Vector()
+    for value in values:
+        vector.push_back(int(value))
+    return vector
+
+
+def _native_string_vector(values: Sequence[str]) -> Any:
+    vector = _native.StringVector()
+    for value in values:
+        vector.push_back(str(value))
     return vector
 
 
@@ -387,6 +478,279 @@ class OEFPSparse:
     def spec(self) -> FingerprintSpec:
         """Read-only fingerprint metadata."""
         return _fingerprint_spec(self._native.Spec())
+
+
+class DescriptorSet:
+    """Python wrapper for a native descriptor set."""
+
+    def __init__(self, native: Any, *, _token: object | None = None):
+        if _token is not _NATIVE_TOKEN:
+            raise TypeError(
+                "DescriptorSet objects are created by DescriptorSet.from_strings(), "
+                "DescriptorSet.from_integers(), DescriptorSet.from_floats(), or "
+                "descriptor factories."
+            )
+        self._native = native
+
+    @classmethod
+    def _from_native(cls, native: Any) -> DescriptorSet:
+        return cls(native, _token=_NATIVE_TOKEN)
+
+    @classmethod
+    def from_strings(
+        cls,
+        keys: Sequence[str],
+        counts: Sequence[int] | None = None,
+        *,
+        spec: DescriptorSpec | None = None,
+        source_name: str = "OEFP",
+        source_type: str = "manual",
+        source_version: str = "",
+        parameters: str = "",
+    ) -> DescriptorSet:
+        """Create counted string-key descriptors."""
+        descriptor_spec = spec or _manual_descriptor_spec(
+            "string",
+            source_name,
+            source_type,
+            source_version,
+            parameters,
+        )
+        native_spec = _native_descriptor_spec(descriptor_spec)
+        native_keys = _native_string_vector(keys)
+        if counts is None:
+            return cls._from_native(_native._NativeDescriptorSet.FromStrings(native_spec, native_keys))
+        return cls._from_native(
+            _native._NativeDescriptorSet.FromStringCounts(
+                native_spec,
+                native_keys,
+                _native_uint32_vector(counts),
+            )
+        )
+
+    @classmethod
+    def from_integers(
+        cls,
+        keys: Sequence[int],
+        counts: Sequence[int] | None = None,
+        *,
+        spec: DescriptorSpec | None = None,
+        source_name: str = "OEFP",
+        source_type: str = "manual",
+        source_version: str = "",
+        parameters: str = "",
+    ) -> DescriptorSet:
+        """Create counted integer-key descriptors."""
+        descriptor_spec = spec or _manual_descriptor_spec(
+            "integer",
+            source_name,
+            source_type,
+            source_version,
+            parameters,
+        )
+        native_spec = _native_descriptor_spec(descriptor_spec)
+        native_keys = _native_int64_vector(keys)
+        if counts is None:
+            return cls._from_native(_native._NativeDescriptorSet.FromIntegers(native_spec, native_keys))
+        return cls._from_native(
+            _native._NativeDescriptorSet.FromIntegerCounts(
+                native_spec,
+                native_keys,
+                _native_uint32_vector(counts),
+            )
+        )
+
+    @classmethod
+    def from_floats(
+        cls,
+        keys: Sequence[float],
+        counts: Sequence[int] | None = None,
+        *,
+        spec: DescriptorSpec | None = None,
+        source_name: str = "OEFP",
+        source_type: str = "manual",
+        source_version: str = "",
+        parameters: str = "",
+    ) -> DescriptorSet:
+        """Create counted float-key descriptors."""
+        descriptor_spec = spec or _manual_descriptor_spec(
+            "float",
+            source_name,
+            source_type,
+            source_version,
+            parameters,
+        )
+        native_spec = _native_descriptor_spec(descriptor_spec)
+        native_keys = _native_double_vector(keys)
+        if counts is None:
+            return cls._from_native(_native._NativeDescriptorSet.FromFloats(native_spec, native_keys))
+        return cls._from_native(
+            _native._NativeDescriptorSet.FromFloatCounts(
+                native_spec,
+                native_keys,
+                _native_uint32_vector(counts),
+            )
+        )
+
+    @property
+    def value_type(self) -> str:
+        """Descriptor key value type."""
+        return _descriptor_value_type_name(self._native.ValueType())
+
+    @property
+    def size(self) -> int:
+        """Number of unique descriptor keys."""
+        return int(self._native.Size())
+
+    @property
+    def total_count(self) -> int:
+        """Sum of all descriptor counts."""
+        return int(self._native.TotalCount())
+
+    @property
+    def string_keys(self) -> tuple[str, ...]:
+        """Canonical sorted string keys."""
+        if self.value_type != "string":
+            return ()
+        return tuple(str(value) for value in self._native.StringKeys())
+
+    @property
+    def integer_keys(self) -> tuple[int, ...]:
+        """Canonical sorted integer keys."""
+        if self.value_type != "integer":
+            return ()
+        keys = readonly_array_from_address(
+            self,
+            self._native.IntegerKeyDataAddress(),
+            (self._native.Size(),),
+            np.dtype(np.int64),
+        )
+        return tuple(int(value) for value in keys)
+
+    @property
+    def float_keys(self) -> tuple[float, ...]:
+        """Canonical sorted float keys."""
+        if self.value_type != "float":
+            return ()
+        keys = readonly_array_from_address(
+            self,
+            self._native.FloatKeyDataAddress(),
+            (self._native.Size(),),
+            np.dtype(np.float64),
+        )
+        return tuple(float(value) for value in keys)
+
+    @property
+    def counts(self) -> np.ndarray:
+        """Read-only view of descriptor counts parallel to active keys."""
+        return readonly_array_from_address(
+            self,
+            self._native.CountDataAddress(),
+            (self._native.Size(),),
+            np.dtype(np.uint32),
+        )
+
+    @property
+    def spec(self) -> DescriptorSpec:
+        """Read-only descriptor metadata."""
+        return _descriptor_spec(self._native.Spec())
+
+
+class DescriptorBatch:
+    """Python wrapper for a native descriptor batch."""
+
+    def __init__(self, native: Any, *, _token: object | None = None):
+        if _token is not _NATIVE_TOKEN:
+            raise TypeError(
+                "DescriptorBatch objects are created by "
+                "DescriptorBatch.from_descriptors()."
+            )
+        self._native = native
+
+    @classmethod
+    def _from_native(cls, native: Any) -> DescriptorBatch:
+        return cls(native, _token=_NATIVE_TOKEN)
+
+    @classmethod
+    def from_descriptors(cls, descriptors: Sequence[DescriptorSet]) -> DescriptorBatch:
+        """Create a contiguous descriptor batch from descriptor sets."""
+        native_descriptors = _native.DescriptorSetVector()
+        for descriptor_set in descriptors:
+            native_descriptors.push_back(descriptor_set._native)
+        return cls._from_native(_native._NativeDescriptorBatch.FromDescriptorSets(native_descriptors))
+
+    @property
+    def value_type(self) -> str:
+        """Shared descriptor key value type."""
+        return _descriptor_value_type_name(self._native.ValueType())
+
+    @property
+    def size(self) -> int:
+        """Number of descriptor rows."""
+        return int(self._native.Size())
+
+    @property
+    def entry_count(self) -> int:
+        """Number of flattened descriptor entries."""
+        return int(self._native.EntryCount())
+
+    @property
+    def string_keys(self) -> tuple[str, ...]:
+        """Flattened string keys."""
+        if self.value_type != "string":
+            return ()
+        return tuple(str(value) for value in self._native.StringKeys())
+
+    @property
+    def integer_keys(self) -> tuple[int, ...]:
+        """Flattened integer keys."""
+        if self.value_type != "integer":
+            return ()
+        keys = readonly_array_from_address(
+            self,
+            self._native.IntegerKeyDataAddress(),
+            (self._native.EntryCount(),),
+            np.dtype(np.int64),
+        )
+        return tuple(int(value) for value in keys)
+
+    @property
+    def float_keys(self) -> tuple[float, ...]:
+        """Flattened float keys."""
+        if self.value_type != "float":
+            return ()
+        keys = readonly_array_from_address(
+            self,
+            self._native.FloatKeyDataAddress(),
+            (self._native.EntryCount(),),
+            np.dtype(np.float64),
+        )
+        return tuple(float(value) for value in keys)
+
+    @property
+    def counts(self) -> np.ndarray:
+        """Read-only view of flattened descriptor counts."""
+        return readonly_array_from_address(
+            self,
+            self._native.CountDataAddress(),
+            (self._native.EntryCount(),),
+            np.dtype(np.uint32),
+        )
+
+    @property
+    def offsets(self) -> np.ndarray:
+        """Read-only view of row offsets into flattened keys and counts."""
+        return readonly_array_from_address(
+            self,
+            self._native.RowOffsetDataAddress(),
+            (self._native.Size() + 1,),
+            np.dtype(np.uint64),
+        )
+
+    @property
+    def spec(self) -> DescriptorSpec:
+        """Read-only descriptor metadata for all rows."""
+        return _descriptor_spec(self._native.Spec())
 
 
 class OEFPMappingSet:
@@ -891,20 +1255,39 @@ class MorganSparseCountFingerprintResult:
 
 
 def compare(
-    a: OEFP | OEFPCount | OEFPSparse,
-    b: OEFP | OEFPBatch | OEFPCount | OEFPCountBatch | OEFPSparse | OEFPSparseBatch,
+    a: OEFP | OEFPCount | OEFPSparse | DescriptorSet,
+    b: (
+        OEFP
+        | OEFPBatch
+        | OEFPCount
+        | OEFPCountBatch
+        | OEFPSparse
+        | OEFPSparseBatch
+        | DescriptorSet
+        | DescriptorBatch
+    ),
     metric: Metric,
     *,
+    descriptor_mode: str = "count_overlap",
     num_threads: int = 0,
     chunk_size: int = 256,
 ) -> float | np.ndarray:
-    """Compare one fingerprint with another fingerprint or batch."""
+    """Compare one fingerprint or descriptor set with another object or batch."""
     if isinstance(a, OEFP) and isinstance(b, OEFP):
         return float(_native.Compare(a._native, b._native, metric._native))
     if isinstance(a, OEFPCount) and isinstance(b, OEFPCount):
         return float(_native.Compare(a._native, b._native, metric._native))
     if isinstance(a, OEFPSparse) and isinstance(b, OEFPSparse):
         return float(_native.Compare(a._native, b._native, metric._native))
+    if isinstance(a, DescriptorSet) and isinstance(b, DescriptorSet):
+        return float(
+            _native.Compare(
+                a._native,
+                b._native,
+                metric._native,
+                _descriptor_mode_value(descriptor_mode),
+            )
+        )
     if isinstance(a, OEFP) and isinstance(b, OEFPBatch):
         output = np.empty((b.size,), dtype=np.float64)
         _native.CompareIntoAddress(
@@ -938,19 +1321,33 @@ def compare(
             _batch_options(num_threads, chunk_size),
         )
         return output
+    if isinstance(a, DescriptorSet) and isinstance(b, DescriptorBatch):
+        output = np.empty((b.size,), dtype=np.float64)
+        _native.CompareIntoAddress(
+            a._native,
+            b._native,
+            metric._native,
+            _descriptor_mode_value(descriptor_mode),
+            int(output.ctypes.data),
+            output.size,
+            _batch_options(num_threads, chunk_size),
+        )
+        return output
 
     raise TypeError(
         "compare expects OEFP/OEFP, OEFP/OEFPBatch, OEFPCount/OEFPCount, "
         "OEFPCount/OEFPCountBatch, OEFPSparse/OEFPSparse, or "
-        "OEFPSparse/OEFPSparseBatch inputs."
+        "OEFPSparse/OEFPSparseBatch, DescriptorSet/DescriptorSet, or "
+        "DescriptorSet/DescriptorBatch inputs."
     )
 
 
 def cdist(
-    a: OEFPBatch | OEFPCountBatch | OEFPSparseBatch,
-    b: OEFPBatch | OEFPCountBatch | OEFPSparseBatch,
+    a: OEFPBatch | OEFPCountBatch | OEFPSparseBatch | DescriptorBatch,
+    b: OEFPBatch | OEFPCountBatch | OEFPSparseBatch | DescriptorBatch,
     metric: Metric,
     *,
+    descriptor_mode: str = "count_overlap",
     num_threads: int = 0,
     chunk_size: int = 256,
 ) -> np.ndarray:
@@ -959,43 +1356,70 @@ def cdist(
         (isinstance(a, OEFPBatch) and isinstance(b, OEFPBatch))
         or (isinstance(a, OEFPCountBatch) and isinstance(b, OEFPCountBatch))
         or (isinstance(a, OEFPSparseBatch) and isinstance(b, OEFPSparseBatch))
+        or (isinstance(a, DescriptorBatch) and isinstance(b, DescriptorBatch))
     ):
         raise TypeError(
             "cdist expects OEFPBatch/OEFPBatch, OEFPCountBatch/OEFPCountBatch, "
-            "or OEFPSparseBatch/OEFPSparseBatch inputs."
+            "OEFPSparseBatch/OEFPSparseBatch, or DescriptorBatch/DescriptorBatch "
+            "inputs."
         )
 
     output = np.empty((a.size, b.size), dtype=np.float64)
-    _native.CDistIntoAddress(
-        a._native,
-        b._native,
-        metric._native,
-        int(output.ctypes.data),
-        output.size,
-        _batch_options(num_threads, chunk_size),
-    )
+    if isinstance(a, DescriptorBatch) and isinstance(b, DescriptorBatch):
+        _native.CDistIntoAddress(
+            a._native,
+            b._native,
+            metric._native,
+            _descriptor_mode_value(descriptor_mode),
+            int(output.ctypes.data),
+            output.size,
+            _batch_options(num_threads, chunk_size),
+        )
+    else:
+        _native.CDistIntoAddress(
+            a._native,
+            b._native,
+            metric._native,
+            int(output.ctypes.data),
+            output.size,
+            _batch_options(num_threads, chunk_size),
+        )
     return output
 
 
 def pdist(
-    batch: OEFPBatch | OEFPCountBatch | OEFPSparseBatch,
+    batch: OEFPBatch | OEFPCountBatch | OEFPSparseBatch | DescriptorBatch,
     metric: Metric,
     *,
+    descriptor_mode: str = "count_overlap",
     num_threads: int = 0,
     chunk_size: int = 256,
 ) -> np.ndarray:
     """Return SciPy-compatible condensed pairwise values."""
-    if not isinstance(batch, (OEFPBatch, OEFPCountBatch, OEFPSparseBatch)):
-        raise TypeError("pdist expects an OEFPBatch, OEFPCountBatch, or OEFPSparseBatch input.")
+    if not isinstance(batch, (OEFPBatch, OEFPCountBatch, OEFPSparseBatch, DescriptorBatch)):
+        raise TypeError(
+            "pdist expects an OEFPBatch, OEFPCountBatch, OEFPSparseBatch, "
+            "or DescriptorBatch input."
+        )
 
     output = np.empty((batch.size * (batch.size - 1) // 2,), dtype=np.float64)
-    _native.PDistIntoAddress(
-        batch._native,
-        metric._native,
-        int(output.ctypes.data),
-        output.size,
-        _batch_options(num_threads, chunk_size),
-    )
+    if isinstance(batch, DescriptorBatch):
+        _native.PDistIntoAddress(
+            batch._native,
+            metric._native,
+            _descriptor_mode_value(descriptor_mode),
+            int(output.ctypes.data),
+            output.size,
+            _batch_options(num_threads, chunk_size),
+        )
+    else:
+        _native.PDistIntoAddress(
+            batch._native,
+            metric._native,
+            int(output.ctypes.data),
+            output.size,
+            _batch_options(num_threads, chunk_size),
+        )
     return output
 
 
@@ -1243,6 +1667,50 @@ def atom_pair_sparse_count_fingerprint(
         None,
     )
     return OEFPCount._from_native(_native.MakeAtomPairSparseCountFingerprint(mol, options))
+
+
+def _atom_pair_descriptor_options(
+    min_distance: int,
+    max_distance: int,
+    use_chirality: bool,
+    use_2d: bool,
+) -> Any:
+    min_distance_int = _uint32_option("Atom Pair", "min_distance", min_distance, positive=False)
+    max_distance_int = _uint32_option("Atom Pair", "max_distance", max_distance, positive=False)
+    if min_distance_int > max_distance_int:
+        raise ValueError("Atom Pair min_distance cannot exceed max_distance.")
+    if max_distance_int >= 31:
+        raise ValueError("Atom Pair max_distance must be smaller than 31.")
+    if use_chirality:
+        raise ValueError("Atom Pair chirality conformance is not implemented yet.")
+    if not use_2d:
+        raise ValueError("Atom Pair 3D distance conformance is not implemented yet.")
+
+    options = _native.AtomPairOptions()
+    options.min_distance = min_distance_int
+    options.max_distance = max_distance_int
+    options.use_chirality = bool(use_chirality)
+    options.use_2d = bool(use_2d)
+    options.count_simulation = False
+    return options
+
+
+def atom_pair_descriptors(
+    mol: Any,
+    *,
+    min_distance: int = 1,
+    max_distance: int = 30,
+    use_chirality: bool = False,
+    use_2d: bool = True,
+) -> DescriptorSet:
+    """Generate raw Atom Pair descriptors as counted string keys."""
+    options = _atom_pair_descriptor_options(
+        min_distance,
+        max_distance,
+        use_chirality,
+        use_2d,
+    )
+    return DescriptorSet._from_native(_native.MakeAtomPairDescriptors(mol, options))
 
 
 def morgan_fingerprint_with_mapping(

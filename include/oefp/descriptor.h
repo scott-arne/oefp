@@ -56,6 +56,18 @@ public:
     static DescriptorSet FromFloats(
         DescriptorSpec spec,
         const std::vector<double>& keys);
+    static DescriptorSet FromStringCounts(
+        DescriptorSpec spec,
+        const std::vector<std::string>& keys,
+        const std::vector<std::uint32_t>& counts);
+    static DescriptorSet FromIntegerCounts(
+        DescriptorSpec spec,
+        const std::vector<std::int64_t>& keys,
+        const std::vector<std::uint32_t>& counts);
+    static DescriptorSet FromFloatCounts(
+        DescriptorSpec spec,
+        const std::vector<double>& keys,
+        const std::vector<std::uint32_t>& counts);
 
     const DescriptorSpec& Spec() const;
     DescriptorValueType ValueType() const;
@@ -69,6 +81,10 @@ public:
 
     const std::uint32_t* CountData() const;
     std::uint64_t CountDataAddress() const;
+    const std::int64_t* IntegerKeyData() const;
+    std::uint64_t IntegerKeyDataAddress() const;
+    const double* FloatKeyData() const;
+    std::uint64_t FloatKeyDataAddress() const;
 
 private:
     DescriptorSpec spec_;

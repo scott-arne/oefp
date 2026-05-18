@@ -60,6 +60,12 @@ TEST(DescriptorBatchTest, BuildsCsrStorageFromDescriptorSets) {
     EXPECT_TRUE(batch.FloatKeys().empty());
     EXPECT_EQ(batch.Counts(), std::vector<std::uint32_t>({1u, 2u, 1u, 1u}));
     EXPECT_EQ(batch.RowOffsets(), std::vector<std::uint64_t>({0u, 2u, 4u, 4u}));
+    ASSERT_NE(batch.CountData(), nullptr);
+    EXPECT_EQ(batch.CountData()[1], 2u);
+    EXPECT_NE(batch.CountDataAddress(), 0u);
+    ASSERT_NE(batch.RowOffsetData(), nullptr);
+    EXPECT_EQ(batch.RowOffsetData()[2], 4u);
+    EXPECT_NE(batch.RowOffsetDataAddress(), 0u);
 
     auto appended = DescriptorBatch(string_spec());
     appended.Append(first);
@@ -77,6 +83,11 @@ TEST(DescriptorBatchTest, StoresOnlyActiveKeyVector) {
     EXPECT_EQ(integers.IntegerKeys(), std::vector<std::int64_t>({-2, 7}));
     EXPECT_TRUE(integers.FloatKeys().empty());
     EXPECT_EQ(integers.Counts(), std::vector<std::uint32_t>({1u, 2u}));
+    ASSERT_NE(integers.IntegerKeyData(), nullptr);
+    EXPECT_EQ(integers.IntegerKeyData()[0], -2);
+    EXPECT_NE(integers.IntegerKeyDataAddress(), 0u);
+    EXPECT_EQ(integers.FloatKeyData(), nullptr);
+    EXPECT_EQ(integers.FloatKeyDataAddress(), 0u);
 
     const auto floats =
         DescriptorBatch::FromDescriptorSets({DescriptorSet::FromFloats(float_spec(), {2.5, 1.0})});
@@ -86,6 +97,11 @@ TEST(DescriptorBatchTest, StoresOnlyActiveKeyVector) {
     EXPECT_TRUE(floats.IntegerKeys().empty());
     EXPECT_EQ(floats.FloatKeys(), std::vector<double>({1.0, 2.5}));
     EXPECT_EQ(floats.Counts(), std::vector<std::uint32_t>({1u, 1u}));
+    ASSERT_NE(floats.FloatKeyData(), nullptr);
+    EXPECT_EQ(floats.FloatKeyData()[0], 1.0);
+    EXPECT_NE(floats.FloatKeyDataAddress(), 0u);
+    EXPECT_EQ(floats.IntegerKeyData(), nullptr);
+    EXPECT_EQ(floats.IntegerKeyDataAddress(), 0u);
 }
 
 TEST(DescriptorBatchTest, EmptyBatchKeepsSpecAndSingleZeroOffset) {
@@ -101,6 +117,11 @@ TEST(DescriptorBatchTest, EmptyBatchKeepsSpecAndSingleZeroOffset) {
     EXPECT_TRUE(batch.FloatKeys().empty());
     EXPECT_TRUE(batch.Counts().empty());
     EXPECT_EQ(batch.RowOffsets(), std::vector<std::uint64_t>({0u}));
+    EXPECT_EQ(batch.CountData(), nullptr);
+    EXPECT_EQ(batch.CountDataAddress(), 0u);
+    ASSERT_NE(batch.RowOffsetData(), nullptr);
+    EXPECT_EQ(batch.RowOffsetData()[0], 0u);
+    EXPECT_NE(batch.RowOffsetDataAddress(), 0u);
 }
 
 TEST(DescriptorBatchTest, EmptyFromDescriptorSetsReturnsDefaultBatch) {

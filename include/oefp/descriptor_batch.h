@@ -72,6 +72,22 @@ public:
     /// \brief Return read-only access to row offsets.
     const std::vector<std::uint64_t>& RowOffsets() const;
 
+    /// \brief Return read-only access to flattened descriptor counts.
+    const std::uint32_t* CountData() const;
+    std::uint64_t CountDataAddress() const;
+
+    /// \brief Return read-only access to row offsets.
+    const std::uint64_t* RowOffsetData() const;
+    std::uint64_t RowOffsetDataAddress() const;
+
+    /// \brief Return read-only access to flattened integer keys.
+    const std::int64_t* IntegerKeyData() const;
+    std::uint64_t IntegerKeyDataAddress() const;
+
+    /// \brief Return read-only access to flattened float keys.
+    const double* FloatKeyData() const;
+    std::uint64_t FloatKeyDataAddress() const;
+
 private:
     DescriptorSpec spec_;
     std::vector<std::string> string_keys_;

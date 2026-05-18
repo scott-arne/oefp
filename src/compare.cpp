@@ -2104,6 +2104,17 @@ void CompareIntoAddress(
     CompareInto(query, library, metric, address_to_output(output_address), output_length, options);
 }
 
+void CompareIntoAddress(
+    const DescriptorSet& query,
+    const DescriptorBatch& library,
+    const Metric& metric,
+    DescriptorComparisonMode mode,
+    std::uint64_t output_address,
+    std::size_t output_length,
+    const BatchKernelOptions& options) {
+    CompareInto(query, library, metric, mode, address_to_output(output_address), output_length, options);
+}
+
 void CDistIntoAddress(
     const OEFPBatch& a,
     const OEFPBatch& b,
@@ -2134,6 +2145,17 @@ void CDistIntoAddress(
     CDistInto(a, b, metric, address_to_output(output_address), output_length, options);
 }
 
+void CDistIntoAddress(
+    const DescriptorBatch& a,
+    const DescriptorBatch& b,
+    const Metric& metric,
+    DescriptorComparisonMode mode,
+    std::uint64_t output_address,
+    std::size_t output_length,
+    const BatchKernelOptions& options) {
+    CDistInto(a, b, metric, mode, address_to_output(output_address), output_length, options);
+}
+
 void PDistIntoAddress(
     const OEFPBatch& batch,
     const Metric& metric,
@@ -2159,6 +2181,16 @@ void PDistIntoAddress(
     std::size_t output_length,
     const BatchKernelOptions& options) {
     PDistInto(batch, metric, address_to_output(output_address), output_length, options);
+}
+
+void PDistIntoAddress(
+    const DescriptorBatch& batch,
+    const Metric& metric,
+    DescriptorComparisonMode mode,
+    std::uint64_t output_address,
+    std::size_t output_length,
+    const BatchKernelOptions& options) {
+    PDistInto(batch, metric, mode, address_to_output(output_address), output_length, options);
 }
 
 } // namespace OEFP

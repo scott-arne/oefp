@@ -9,9 +9,11 @@ from typing import Any
 import numpy as np
 
 
-_CTYPES_BY_DTYPE = {
+_CTYPES_BY_DTYPE: dict[np.dtype[Any], Any] = {
     np.dtype(np.uint64): ctypes.c_uint64,
     np.dtype(np.uint32): ctypes.c_uint32,
+    np.dtype(np.int64): ctypes.c_int64,
+    np.dtype(np.float64): ctypes.c_double,
 }
 
 

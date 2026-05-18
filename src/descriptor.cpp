@@ -137,6 +137,27 @@ DescriptorSet DescriptorSet::FromFloats(
     return DescriptorSet(std::move(spec), std::move(canonical_keys), std::move(counts));
 }
 
+DescriptorSet DescriptorSet::FromStringCounts(
+    DescriptorSpec spec,
+    const std::vector<std::string>& keys,
+    const std::vector<std::uint32_t>& counts) {
+    return DescriptorSet(std::move(spec), keys, counts);
+}
+
+DescriptorSet DescriptorSet::FromIntegerCounts(
+    DescriptorSpec spec,
+    const std::vector<std::int64_t>& keys,
+    const std::vector<std::uint32_t>& counts) {
+    return DescriptorSet(std::move(spec), keys, counts);
+}
+
+DescriptorSet DescriptorSet::FromFloatCounts(
+    DescriptorSpec spec,
+    const std::vector<double>& keys,
+    const std::vector<std::uint32_t>& counts) {
+    return DescriptorSet(std::move(spec), keys, counts);
+}
+
 const DescriptorSpec& DescriptorSet::Spec() const {
     return spec_;
 }
@@ -190,6 +211,36 @@ const std::uint32_t* DescriptorSet::CountData() const {
 
 std::uint64_t DescriptorSet::CountDataAddress() const {
     const auto* data = CountData();
+    if (data == nullptr) {
+        return 0;
+    }
+    return static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>(data));
+}
+
+const std::int64_t* DescriptorSet::IntegerKeyData() const {
+    if (integer_keys_.empty()) {
+        return nullptr;
+    }
+    return integer_keys_.data();
+}
+
+std::uint64_t DescriptorSet::IntegerKeyDataAddress() const {
+    const auto* data = IntegerKeyData();
+    if (data == nullptr) {
+        return 0;
+    }
+    return static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>(data));
+}
+
+const double* DescriptorSet::FloatKeyData() const {
+    if (float_keys_.empty()) {
+        return nullptr;
+    }
+    return float_keys_.data();
+}
+
+std::uint64_t DescriptorSet::FloatKeyDataAddress() const {
+    const auto* data = FloatKeyData();
     if (data == nullptr) {
         return 0;
     }

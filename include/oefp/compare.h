@@ -303,6 +303,16 @@ void CompareIntoAddress(
     std::size_t output_length,
     const BatchKernelOptions& options = {});
 
+/// \brief Address-based descriptor query-to-batch output helper for Python bindings.
+void CompareIntoAddress(
+    const DescriptorSet& query,
+    const DescriptorBatch& library,
+    const Metric& metric,
+    DescriptorComparisonMode mode,
+    std::uint64_t output_address,
+    std::size_t output_length,
+    const BatchKernelOptions& options = {});
+
 /// \brief Address-based cdist output helper for Python bindings.
 void CDistIntoAddress(
     const OEFPBatch& a,
@@ -330,6 +340,16 @@ void CDistIntoAddress(
     std::size_t output_length,
     const BatchKernelOptions& options = {});
 
+/// \brief Address-based descriptor cdist output helper for Python bindings.
+void CDistIntoAddress(
+    const DescriptorBatch& a,
+    const DescriptorBatch& b,
+    const Metric& metric,
+    DescriptorComparisonMode mode,
+    std::uint64_t output_address,
+    std::size_t output_length,
+    const BatchKernelOptions& options = {});
+
 /// \brief Address-based pdist output helper for Python bindings.
 void PDistIntoAddress(
     const OEFPBatch& batch,
@@ -350,6 +370,15 @@ void PDistIntoAddress(
 void PDistIntoAddress(
     const OEFPSparseBatch& batch,
     const Metric& metric,
+    std::uint64_t output_address,
+    std::size_t output_length,
+    const BatchKernelOptions& options = {});
+
+/// \brief Address-based descriptor pdist output helper for Python bindings.
+void PDistIntoAddress(
+    const DescriptorBatch& batch,
+    const Metric& metric,
+    DescriptorComparisonMode mode,
     std::uint64_t output_address,
     std::size_t output_length,
     const BatchKernelOptions& options = {});

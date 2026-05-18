@@ -406,7 +406,9 @@ OE_CROSS_RUNTIME_REF_TYPEMAPS(OEDocking::OEReceptor, _oefp_is_oereceptor, "Expec
 %include "exception.i"
 
 namespace std {
+%template(StringVector) vector< std::string >;
 %template(UInt32Vector) vector< unsigned int >;
+%template(Int64Vector) vector< std::int64_t >;
 %template(UInt64Vector) vector< std::uint64_t >;
 %template(DoubleVector) vector< double >;
 }
@@ -438,6 +440,8 @@ namespace std {
 %rename(_NativeOEFPBatch) OEFP::OEFPBatch;
 %rename(_NativeOEFPCountBatch) OEFP::OEFPCountBatch;
 %rename(_NativeOEFPSparseBatch) OEFP::OEFPSparseBatch;
+%rename(_NativeDescriptorSet) OEFP::DescriptorSet;
+%rename(_NativeDescriptorBatch) OEFP::DescriptorBatch;
 %rename(_NativeMetric) OEFP::Metric;
 %rename(_NativeAtomPairGenerator) OEFP::AtomPairGenerator;
 %rename(_NativeMorganGenerator) OEFP::MorganGenerator;
@@ -445,6 +449,7 @@ namespace std {
 %rename(_ProfileMorganFingerprintStages) OEFP::ProfileMorganFingerprint;
 
 %ignore OEFP::OEFPMappingSet::EnvironmentsForBit;
+%ignore OEFP::DescriptorSet::DescriptorSet;
 
 %define OEFP_GIL_RELEASE_EXCEPTION(FUNC)
 %exception FUNC {
@@ -472,6 +477,7 @@ OEFP_GIL_RELEASE_EXCEPTION(OEFP::MakeAtomPairFingerprint)
 OEFP_GIL_RELEASE_EXCEPTION(OEFP::MakeAtomPairCountFingerprint)
 OEFP_GIL_RELEASE_EXCEPTION(OEFP::MakeAtomPairSparseFingerprint)
 OEFP_GIL_RELEASE_EXCEPTION(OEFP::MakeAtomPairSparseCountFingerprint)
+OEFP_GIL_RELEASE_EXCEPTION(OEFP::MakeAtomPairDescriptors)
 OEFP_GIL_RELEASE_EXCEPTION(OEFP::AtomPairGenerator::Fingerprint)
 OEFP_GIL_RELEASE_EXCEPTION(OEFP::ProfileAtomPairFingerprint)
 OEFP_GIL_RELEASE_EXCEPTION(OEFP::MakeMorganFingerprint)
@@ -489,19 +495,22 @@ OEFP_GIL_RELEASE_EXCEPTION(OEFP::ProfileMorganFingerprint)
 %include "oefp/count.h"
 %include "oefp/sparse.h"
 %include "oefp/annotation.h"
+%include "oefp/descriptor.h"
+%include "oefp/descriptor_batch.h"
 %include "oefp/atom_pair.h"
 
 namespace std {
 %template(OEFPVector) vector< ::OEFP::OEFP >;
 %template(OEFPCountVector) vector< ::OEFP::OEFPCount >;
 %template(OEFPSparseVector) vector< ::OEFP::OEFPSparse >;
+%template(DescriptorSetVector) vector< ::OEFP::DescriptorSet >;
 }
 
 %include "oefp/batch.h"
 %include "oefp/count_batch.h"
 %include "oefp/sparse_batch.h"
-%include "oefp/metric.h"
 %include "oefp/morgan.h"
+%include "oefp/metric.h"
 %include "oefp/compare.h"
 %include "oefp/openeye.h"
 

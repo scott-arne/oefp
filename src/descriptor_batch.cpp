@@ -140,6 +140,66 @@ const std::vector<std::uint64_t>& DescriptorBatch::RowOffsets() const {
     return row_offsets_;
 }
 
+const std::uint32_t* DescriptorBatch::CountData() const {
+    if (counts_.empty()) {
+        return nullptr;
+    }
+    return counts_.data();
+}
+
+std::uint64_t DescriptorBatch::CountDataAddress() const {
+    const auto* data = CountData();
+    if (data == nullptr) {
+        return 0;
+    }
+    return static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>(data));
+}
+
+const std::uint64_t* DescriptorBatch::RowOffsetData() const {
+    if (row_offsets_.empty()) {
+        return nullptr;
+    }
+    return row_offsets_.data();
+}
+
+std::uint64_t DescriptorBatch::RowOffsetDataAddress() const {
+    const auto* data = RowOffsetData();
+    if (data == nullptr) {
+        return 0;
+    }
+    return static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>(data));
+}
+
+const std::int64_t* DescriptorBatch::IntegerKeyData() const {
+    if (integer_keys_.empty()) {
+        return nullptr;
+    }
+    return integer_keys_.data();
+}
+
+std::uint64_t DescriptorBatch::IntegerKeyDataAddress() const {
+    const auto* data = IntegerKeyData();
+    if (data == nullptr) {
+        return 0;
+    }
+    return static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>(data));
+}
+
+const double* DescriptorBatch::FloatKeyData() const {
+    if (float_keys_.empty()) {
+        return nullptr;
+    }
+    return float_keys_.data();
+}
+
+std::uint64_t DescriptorBatch::FloatKeyDataAddress() const {
+    const auto* data = FloatKeyData();
+    if (data == nullptr) {
+        return 0;
+    }
+    return static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>(data));
+}
+
 void DescriptorBatch::ValidateDescriptorSet(const DescriptorSet& descriptors) const {
     if (has_spec_ && descriptors.Spec() != spec_) {
         throw std::invalid_argument("Descriptor set spec does not match batch spec.");

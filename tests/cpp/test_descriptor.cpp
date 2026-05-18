@@ -68,12 +68,22 @@ TEST(DescriptorSetTest, StoresIntegerAndFloatKeys) {
     EXPECT_EQ(integers.IntegerKeys(), std::vector<std::int64_t>({-2, 7, 11}));
     EXPECT_EQ(integers.Counts(), std::vector<std::uint32_t>({1u, 4u, 2u}));
     EXPECT_EQ(integers.TotalCount(), 7u);
+    ASSERT_NE(integers.IntegerKeyData(), nullptr);
+    EXPECT_EQ(integers.IntegerKeyData()[0], -2);
+    EXPECT_NE(integers.IntegerKeyDataAddress(), 0u);
+    EXPECT_EQ(integers.FloatKeyData(), nullptr);
+    EXPECT_EQ(integers.FloatKeyDataAddress(), 0u);
 
     const auto floats = DescriptorSet::FromFloats(float_spec(), {2.5, 1.0, 2.5});
     EXPECT_EQ(floats.ValueType(), DescriptorValueType::Float);
     EXPECT_EQ(floats.FloatKeys(), std::vector<double>({1.0, 2.5}));
     EXPECT_EQ(floats.Counts(), std::vector<std::uint32_t>({1u, 2u}));
     EXPECT_EQ(floats.TotalCount(), 3u);
+    ASSERT_NE(floats.FloatKeyData(), nullptr);
+    EXPECT_EQ(floats.FloatKeyData()[0], 1.0);
+    EXPECT_NE(floats.FloatKeyDataAddress(), 0u);
+    EXPECT_EQ(floats.IntegerKeyData(), nullptr);
+    EXPECT_EQ(floats.IntegerKeyDataAddress(), 0u);
 }
 
 TEST(DescriptorSetTest, RejectsInvalidCanonicalStorage) {
