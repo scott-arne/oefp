@@ -98,9 +98,10 @@ Compare Raw Descriptors
 
 Raw descriptors keep unfurled feature keys and counts instead of folding them
 into a fixed-length fingerprint. Use ``morgan_descriptors()`` for raw Morgan
-environment identifiers or ``atom_pair_descriptors()`` for raw Atom Pair
-features. Descriptor sets use the same ``compare``, ``cdist``, and ``pdist``
-functions as fingerprints.
+environment identifiers, ``atom_pair_descriptors()`` for raw Atom Pair
+features, or ``mordred_descriptors()`` for the supported Mordred-compatible
+count subset. Descriptor sets use the same ``compare``, ``cdist``, and
+``pdist`` functions as fingerprints.
 
 .. code-block:: python
 
@@ -233,7 +234,7 @@ OEGraphSim provides native OpenEye fingerprint generation and similarity.
      - Sparse count fingerprints expose raw identifiers for supported
        generators
      - ``morgan_descriptors()``, ``atom_pair_descriptors()``, and
-       ``DescriptorBatch``
+       ``mordred_descriptors()`` with ``DescriptorBatch``
      - No raw descriptor batch comparison surface
    * - Morgan bit provenance
      - ``AdditionalOutput`` with ``GetBitInfoMap()``

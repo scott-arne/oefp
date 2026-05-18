@@ -1739,6 +1739,11 @@ def morgan_descriptors(
     return DescriptorSet._from_native(_native.MakeMorganDescriptors(mol, options))
 
 
+def mordred_descriptors(mol: Any) -> DescriptorSet:
+    """Generate the supported Mordred-compatible count descriptor subset."""
+    return DescriptorSet._from_native(_native.MakeMordredDescriptors(mol))
+
+
 def morgan_fingerprint_with_mapping(
     mol: Any,
     *,

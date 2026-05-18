@@ -441,6 +441,17 @@ Atom Pair Fingerprints
    :class:`DescriptorSet` objects. Descriptor generation currently supports
    2D, non-chiral Atom Pair features.
 
+Mordred-Compatible Descriptors
+------------------------------
+
+.. function:: mordred_descriptors(mol)
+
+   Generate the supported Mordred-compatible integer count descriptor subset as
+   a string-key :class:`DescriptorSet`. The current subset includes aromatic
+   atom/bond counts, atom and element counts, and bond-count descriptors.
+   Zero-valued supported descriptors are omitted from storage and should be
+   interpreted as zero by consumers.
+
 Mapping Results
 ---------------
 

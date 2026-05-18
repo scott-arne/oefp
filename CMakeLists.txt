@@ -64,6 +64,7 @@ set(OEFP_SOURCES
     src/descriptor_batch.cpp
     src/fingerprint.cpp
     src/metric.cpp
+    src/mordred.cpp
     src/morgan.cpp
     src/openeye.cpp
     src/sparse.cpp

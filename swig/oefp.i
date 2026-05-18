@@ -491,6 +491,7 @@ OEFP_GIL_RELEASE_EXCEPTION(OEFP::MakeMorganSparseFingerprint)
 OEFP_GIL_RELEASE_EXCEPTION(OEFP::MakeMorganSparseFingerprintWithMapping)
 OEFP_GIL_RELEASE_EXCEPTION(OEFP::MorganGenerator::Fingerprint)
 OEFP_GIL_RELEASE_EXCEPTION(OEFP::ProfileMorganFingerprint)
+OEFP_GIL_RELEASE_EXCEPTION(OEFP::MakeMordredDescriptors)
 
 %include "oefp/fingerprint.h"
 %include "oefp/count.h"
@@ -510,6 +511,7 @@ namespace std {
 %include "oefp/batch.h"
 %include "oefp/count_batch.h"
 %include "oefp/sparse_batch.h"
+%include "oefp/mordred.h"
 %include "oefp/morgan.h"
 %include "oefp/metric.h"
 %include "oefp/compare.h"

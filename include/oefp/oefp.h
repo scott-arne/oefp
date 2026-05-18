@@ -16,6 +16,7 @@
 #include "oefp/descriptor_batch.h"
 #include "oefp/fingerprint.h"
 #include "oefp/metric.h"
+#include "oefp/mordred.h"
 #include "oefp/morgan.h"
 #include "oefp/openeye.h"
 #include "oefp/sparse.h"
