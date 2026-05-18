@@ -49,6 +49,12 @@ struct AtomPairEvent {
     std::uint32_t bit_id = 0;
 };
 
+struct AtomPairCodeEvent {
+    std::uint32_t first_code = 0;
+    std::uint32_t second_code = 0;
+    std::uint32_t distance = 0;
+};
+
 enum class AtomPairIdentifierKind {
     Hashed,
     Encoded,
@@ -108,6 +114,16 @@ std::string canonical_sparse_count_parameters(const AtomPairOptions& options) {
     return params.str();
 }
 
+std::string canonical_descriptor_parameters(const AtomPairOptions& options) {
+    std::ostringstream params;
+    params << "min_distance=" << options.min_distance
+           << ";max_distance=" << options.max_distance
+           << ";use_chirality=" << bool_parameter(options.use_chirality)
+           << ";use_2d=" << bool_parameter(options.use_2d)
+           << ";output=descriptors";
+    return params.str();
+}
+
 FingerprintSpec atom_pair_spec(const AtomPairOptions& options) {
     FingerprintSpec spec;
     spec.size_bits = options.num_bits;
@@ -131,6 +147,16 @@ FingerprintSpec atom_pair_sparse_count_spec(const AtomPairOptions& options) {
     spec.size_bits = ATOM_PAIR_SPARSE_SIZE;
     spec.value_type = FingerprintValueType::Counted;
     spec.parameters = canonical_sparse_count_parameters(options);
+    return spec;
+}
+
+DescriptorSpec atom_pair_descriptor_spec(const AtomPairOptions& options) {
+    DescriptorSpec spec;
+    spec.value_type = DescriptorValueType::String;
+    spec.source_name = "OEFP";
+    spec.source_type = "AtomPair";
+    spec.source_version = ATOM_PAIR_COMPAT_VERSION;
+    spec.parameters = canonical_descriptor_parameters(options);
     return spec;
 }
 
@@ -210,6 +236,21 @@ void validate_sparse_options(const AtomPairOptions& options) {
 }
 
 void validate_sparse_count_options(const AtomPairOptions& options) {
+    if (options.min_distance > options.max_distance) {
+        throw std::invalid_argument("Atom Pair min_distance cannot exceed max_distance.");
+    }
+    if (options.max_distance >= MAX_PATH_LENGTH) {
+        throw std::invalid_argument("Atom Pair max_distance must be smaller than 31.");
+    }
+    if (options.use_chirality) {
+        throw std::invalid_argument("Atom Pair chirality conformance is not implemented yet.");
+    }
+    if (!options.use_2d) {
+        throw std::invalid_argument("Atom Pair 3D distance conformance is not implemented yet.");
+    }
+}
+
+void validate_descriptor_options(const AtomPairOptions& options) {
     if (options.min_distance > options.max_distance) {
         throw std::invalid_argument("Atom Pair min_distance cannot exceed max_distance.");
     }
@@ -362,11 +403,9 @@ void fill_shortest_distances(
 }
 
 template <typename EventSink>
-void enumerate_events_into(
+void enumerate_code_events_into(
     const OEChem::OEMolBase& mol,
     const AtomPairOptions& options,
-    std::uint32_t fold_size,
-    AtomPairIdentifierKind identifier_kind,
     EventSink&& emit_event) {
     OEChem::OEGraphMol working_mol(mol);
     OEChem::OEAssignHybridization(working_mol);
@@ -396,14 +435,32 @@ void enumerate_events_into(
             if (distance < options.min_distance || distance > options.max_distance) {
                 continue;
             }
-            const auto raw_id = atom_pair_identifier(
+            emit_event(AtomPairCodeEvent{
                 atom_codes[atom_record.index],
                 atom_codes[other],
-                distance,
-                identifier_kind);
-            emit_event(AtomPairEvent{raw_id, event_bit_id(raw_id, fold_size)});
+                distance});
         }
     }
+}
+
+template <typename EventSink>
+void enumerate_events_into(
+    const OEChem::OEMolBase& mol,
+    const AtomPairOptions& options,
+    std::uint32_t fold_size,
+    AtomPairIdentifierKind identifier_kind,
+    EventSink&& emit_event) {
+    enumerate_code_events_into(
+        mol,
+        options,
+        [fold_size, identifier_kind, &emit_event](const AtomPairCodeEvent& code_event) {
+            const auto raw_id = atom_pair_identifier(
+                code_event.first_code,
+                code_event.second_code,
+                code_event.distance,
+                identifier_kind);
+            emit_event(AtomPairEvent{raw_id, event_bit_id(raw_id, fold_size)});
+        });
 }
 
 std::vector<AtomPairEvent> enumerate_events(
@@ -681,6 +738,33 @@ OEFPCount make_sparse_count_fingerprint(
     return OEFPCount(atom_pair_sparse_count_spec(options), std::move(indices), std::move(counts));
 }
 
+std::string atom_pair_descriptor_key(
+    std::uint32_t first_code,
+    std::uint32_t second_code,
+    std::uint32_t distance) {
+    const auto smaller_code = std::min(first_code, second_code);
+    const auto larger_code = std::max(first_code, second_code);
+    std::ostringstream key;
+    key << smaller_code << '_' << distance << '_' << larger_code;
+    return key.str();
+}
+
+DescriptorSet make_descriptors(
+    const OEChem::OEMolBase& mol,
+    const AtomPairOptions& options) {
+    std::vector<std::string> keys;
+    keys.reserve(mol.NumAtoms() * (mol.NumAtoms() - 1u) / 2u);
+    enumerate_code_events_into(
+        mol,
+        options,
+        [&keys](const AtomPairCodeEvent& event) {
+            keys.push_back(
+                atom_pair_descriptor_key(event.first_code, event.second_code, event.distance));
+        });
+
+    return DescriptorSet::FromStrings(atom_pair_descriptor_spec(options), keys);
+}
+
 } // namespace
 
 double AtomPairGenerationProfile::TotalSeconds() const {
@@ -731,6 +815,13 @@ OEFPCount MakeAtomPairSparseCountFingerprint(
     const AtomPairOptions& options) {
     validate_sparse_count_options(options);
     return make_sparse_count_fingerprint(mol, options);
+}
+
+DescriptorSet MakeAtomPairDescriptors(
+    const OEChem::OEMolBase& mol,
+    const AtomPairOptions& options) {
+    validate_descriptor_options(options);
+    return make_descriptors(mol, options);
 }
 
 AtomPairGenerationProfile ProfileAtomPairFingerprint(

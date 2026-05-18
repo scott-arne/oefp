@@ -273,5 +273,136 @@ TEST(AtomPairTest, GeneratesNonEmptySparseCountFingerprintForSimpleMolecule) {
     EXPECT_EQ(fp.TotalCount(), 3u);
 }
 
+TEST(AtomPairTest, GeneratedDescriptorsCarryStrictAtomPairSpec) {
+    const auto mol = mol_from_smiles("CCO");
+    AtomPairOptions options;
+    options.min_distance = 1;
+    options.max_distance = 2;
+    options.num_bits = 128;
+    options.count_simulation = false;
+
+    const auto descriptors = MakeAtomPairDescriptors(mol, options);
+    const auto& spec = descriptors.Spec();
+
+    EXPECT_EQ(descriptors.ValueType(), DescriptorValueType::String);
+    EXPECT_EQ(spec.value_type, DescriptorValueType::String);
+    EXPECT_EQ(spec.source_name, "OEFP");
+    EXPECT_EQ(spec.source_type, "AtomPair");
+    EXPECT_EQ(spec.source_version, "AtomPair-1.1.0");
+    EXPECT_EQ(
+        spec.parameters,
+        "min_distance=1;max_distance=2;use_chirality=false;"
+        "use_2d=true;output=descriptors");
+}
+
+TEST(AtomPairTest, GeneratedDescriptorsUseRawAtomPairKeysAndCounts) {
+    const auto ethane = mol_from_smiles("CC");
+    const auto ethane_descriptors = MakeAtomPairDescriptors(ethane);
+
+    EXPECT_EQ(ethane_descriptors.TotalCount(), 1u);
+    EXPECT_EQ(ethane_descriptors.StringKeys(), std::vector<std::string>({"33_1_33"}));
+    EXPECT_EQ(ethane_descriptors.Counts(), std::vector<std::uint32_t>({1u}));
+
+    const auto ethanol = mol_from_smiles("CCO");
+    const auto ethanol_descriptors = MakeAtomPairDescriptors(ethanol);
+
+    EXPECT_EQ(ethanol_descriptors.TotalCount(), 3u);
+    EXPECT_EQ(
+        ethanol_descriptors.StringKeys(),
+        std::vector<std::string>({"33_1_34", "33_2_97", "34_1_97"}));
+    EXPECT_EQ(
+        ethanol_descriptors.Counts(),
+        std::vector<std::uint32_t>({1u, 1u, 1u}));
+}
+
+TEST(AtomPairTest, DescriptorDistanceOptionsFilterRawAtomPairs) {
+    const auto mol = mol_from_smiles("CCO");
+
+    AtomPairOptions options;
+    options.min_distance = 1;
+    options.max_distance = 1;
+
+    const auto descriptors = MakeAtomPairDescriptors(mol, options);
+
+    EXPECT_EQ(descriptors.TotalCount(), 2u);
+    EXPECT_EQ(
+        descriptors.StringKeys(),
+        std::vector<std::string>({"33_1_34", "34_1_97"}));
+    EXPECT_EQ(
+        descriptors.Counts(),
+        std::vector<std::uint32_t>({1u, 1u}));
+}
+
+TEST(AtomPairTest, GeneratedDescriptorsCoverAromaticityValenceAndBranching) {
+    const auto benzene_descriptors = MakeAtomPairDescriptors(mol_from_smiles("c1ccccc1"));
+    EXPECT_EQ(benzene_descriptors.TotalCount(), 15u);
+    EXPECT_EQ(
+        benzene_descriptors.StringKeys(),
+        std::vector<std::string>({"42_1_42", "42_2_42", "42_3_42"}));
+    EXPECT_EQ(
+        benzene_descriptors.Counts(),
+        std::vector<std::uint32_t>({6u, 6u, 3u}));
+
+    const auto pyridine_descriptors = MakeAtomPairDescriptors(mol_from_smiles("c1ccncc1"));
+    EXPECT_EQ(pyridine_descriptors.TotalCount(), 15u);
+    EXPECT_EQ(
+        pyridine_descriptors.StringKeys(),
+        std::vector<std::string>(
+            {"42_1_42", "42_1_74", "42_2_42", "42_2_74", "42_3_42", "42_3_74"}));
+    EXPECT_EQ(
+        pyridine_descriptors.Counts(),
+        std::vector<std::uint32_t>({4u, 2u, 4u, 2u, 2u, 1u}));
+
+    const auto acetaldehyde_descriptors = MakeAtomPairDescriptors(mol_from_smiles("CC=O"));
+    EXPECT_EQ(acetaldehyde_descriptors.TotalCount(), 3u);
+    EXPECT_EQ(
+        acetaldehyde_descriptors.StringKeys(),
+        std::vector<std::string>({"33_1_42", "33_2_105", "42_1_105"}));
+    EXPECT_EQ(
+        acetaldehyde_descriptors.Counts(),
+        std::vector<std::uint32_t>({1u, 1u, 1u}));
+
+    const auto acetonitrile_descriptors = MakeAtomPairDescriptors(mol_from_smiles("CC#N"));
+    EXPECT_EQ(acetonitrile_descriptors.TotalCount(), 3u);
+    EXPECT_EQ(
+        acetonitrile_descriptors.StringKeys(),
+        std::vector<std::string>({"33_1_50", "33_2_81", "50_1_81"}));
+    EXPECT_EQ(
+        acetonitrile_descriptors.Counts(),
+        std::vector<std::uint32_t>({1u, 1u, 1u}));
+
+    const auto tertiary_chloride_descriptors =
+        MakeAtomPairDescriptors(mol_from_smiles("CC(C)(C)Cl"));
+    EXPECT_EQ(tertiary_chloride_descriptors.TotalCount(), 10u);
+    EXPECT_EQ(
+        tertiary_chloride_descriptors.StringKeys(),
+        std::vector<std::string>(
+            {"33_1_36", "33_2_257", "33_2_33", "36_1_257"}));
+    EXPECT_EQ(
+        tertiary_chloride_descriptors.Counts(),
+        std::vector<std::uint32_t>({3u, 3u, 3u, 1u}));
+}
+
+TEST(AtomPairTest, DescriptorGenerationRejectsUnsupportedOptions) {
+    const auto mol = mol_from_smiles("CCO");
+
+    AtomPairOptions inverted_distances;
+    inverted_distances.min_distance = 3;
+    inverted_distances.max_distance = 2;
+    EXPECT_THROW(MakeAtomPairDescriptors(mol, inverted_distances), std::invalid_argument);
+
+    AtomPairOptions too_long_distance;
+    too_long_distance.max_distance = 31;
+    EXPECT_THROW(MakeAtomPairDescriptors(mol, too_long_distance), std::invalid_argument);
+
+    AtomPairOptions chiral;
+    chiral.use_chirality = true;
+    EXPECT_THROW(MakeAtomPairDescriptors(mol, chiral), std::invalid_argument);
+
+    AtomPairOptions three_dimensional;
+    three_dimensional.use_2d = false;
+    EXPECT_THROW(MakeAtomPairDescriptors(mol, three_dimensional), std::invalid_argument);
+}
+
 } // namespace test
 } // namespace OEFP

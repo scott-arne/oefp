@@ -2,6 +2,7 @@
 #define OEFP_ATOM_PAIR_H
 
 #include "oefp/count.h"
+#include "oefp/descriptor.h"
 #include "oefp/fingerprint.h"
 #include "oefp/sparse.h"
 
@@ -150,6 +151,29 @@ OEFPCount MakeAtomPairSparseCountFingerprint(
     const AtomPairOptions& options);
 #else
 OEFPCount MakeAtomPairSparseCountFingerprint(
+    const OEChem::OEMolBase& mol,
+    const AtomPairOptions& options = AtomPairOptions{});
+#endif
+
+/// \brief Generate raw Atom Pair descriptors as typed string keys with counts.
+///
+/// The descriptor keys are OEFP-owned, unfurled Atom Pair feature identifiers
+/// of the form ``smaller_atom_code_distance_larger_atom_code``. They reuse the
+/// same atom-code and graph-distance model as the Atom Pair fingerprint
+/// generators but do not fold into a fixed-size fingerprint domain.
+///
+/// \param mol Molecule to describe.
+/// \param options Atom Pair generation options. ``num_bits`` and count
+///     simulation options do not affect descriptor output.
+/// \returns Counted string-key Atom Pair descriptors.
+/// \throws std::invalid_argument: When the requested options are unsupported
+///     or invalid.
+#ifdef SWIG
+DescriptorSet MakeAtomPairDescriptors(
+    const OEChem::OEMolBase& mol,
+    const AtomPairOptions& options);
+#else
+DescriptorSet MakeAtomPairDescriptors(
     const OEChem::OEMolBase& mol,
     const AtomPairOptions& options = AtomPairOptions{});
 #endif
