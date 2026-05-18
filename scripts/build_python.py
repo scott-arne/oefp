@@ -293,6 +293,25 @@ print(f'PLATFORM:{platform_name}')
         return None
 
 
+def get_pyarrow_library_dirs(python_exe):
+    """Return PyArrow library directories for external Arrow/Parquet runtime.
+
+    :param python_exe: Path to the Python executable.
+    :returns: List of PyArrow library directory strings.
+    """
+    result = subprocess.run(
+        [
+            python_exe,
+            '-c',
+            "import pyarrow as pa; print('\\n'.join(pa.get_library_dirs()))",
+        ],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    return [line for line in result.stdout.splitlines() if line]
+
+
 def verify_openeye_root(openeye_root):
     """Verify OpenEye C++ SDK path has headers.
 
@@ -477,12 +496,17 @@ def run_delocate(project_dir, python_exe, wheel_file, openeye_info, config,
     expected_missing = set(config.get('expected-missing-libs', []))
 
     try:
+        exclude_args = []
+        for lib_dir in get_pyarrow_library_dirs(python_exe):
+            exclude_args.extend(['--exclude', lib_dir])
+
         # Run delocate and capture output to filter expected missing library warnings
         result = subprocess.run([
             python_exe, '-m', 'delocate.cmd.delocate_wheel',
             '-w', str(delocated_dir),
             '-v',
             '--ignore-missing-dependencies',
+            *exclude_args,
             str(wheel_file)
         ], capture_output=True, text=True)
 
@@ -587,6 +611,11 @@ def fix_rpath_and_sign(wheel_file, openeye_info, config):
                 subprocess.run([
                     'install_name_tool', '-add_rpath',
                     rpath,
+                    str(so_file)
+                ], check=False, capture_output=True)
+                subprocess.run([
+                    'install_name_tool', '-add_rpath',
+                    '@loader_path/../pyarrow',
                     str(so_file)
                 ], check=False, capture_output=True)
 

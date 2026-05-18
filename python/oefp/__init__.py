@@ -13,9 +13,13 @@ import warnings
 from importlib import metadata
 from pathlib import Path
 
+import pyarrow as _pyarrow  # noqa: F401
+
 __version__ = "0.2.4"
 __version_info__ = (0, 2, 4)
 
+# PyArrow owns the Arrow/Parquet shared libraries that the native extension
+# links against. Import it before any direct or cached _oefp load.
 
 _OPENEYE_COMPAT_PRELOAD_PATHS: list[str] = []
 _OPENEYE_COMPAT_EXTENSION_DIR: Path | None = None

@@ -30,6 +30,8 @@ if(APPLE AND NOT CMAKE_OSX_DEPLOYMENT_TARGET)
 endif()
 
 # Dependencies
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+
 include(FetchContent)
 
 FetchContent_Declare(
@@ -51,6 +53,18 @@ if(OPENEYE_USE_SHARED)
 endif()
 
 find_package(OpenEye REQUIRED)
+
+find_package(Arrow CONFIG QUIET)
+find_package(Parquet CONFIG QUIET)
+
+if(TARGET Arrow::arrow_shared AND TARGET Parquet::parquet_shared)
+    set(OEFP_ARROW_TARGET Arrow::arrow_shared)
+    set(OEFP_PARQUET_TARGET Parquet::parquet_shared)
+else()
+    find_package(ArrowPython REQUIRED)
+    set(OEFP_ARROW_TARGET ArrowPython::Arrow)
+    set(OEFP_PARQUET_TARGET ArrowPython::Parquet)
+endif()
 
 # Library
 set(OEFP_SOURCES
@@ -85,6 +99,8 @@ target_link_libraries(oefp
     PUBLIC
         OpenEye::OEChem
         OpenEye::OEGraphSim
+        ${OEFP_ARROW_TARGET}
+        ${OEFP_PARQUET_TARGET}
 )
 
 if(TARGET OpenEye::OEGrid)
