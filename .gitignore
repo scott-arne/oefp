@@ -48,3 +48,8 @@ docs/cpp-api/
 docs/superpowers
 docs/plans
 docs/specs
+
+# Caches
+.ruff_cache/
+.mypy_cache/
+.pytest_cache/
