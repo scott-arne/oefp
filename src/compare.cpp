@@ -456,19 +456,23 @@ template <typename Key>
 DescriptorMetricData collect_descriptor_count_overlap_data(
     const std::vector<Key>& a_keys,
     const std::vector<std::uint32_t>& a_counts,
+    std::size_t a_begin,
+    std::size_t a_end,
     const std::vector<Key>& b_keys,
     const std::vector<std::uint32_t>& b_counts,
+    std::size_t b_begin,
+    std::size_t b_end,
     DescriptorComparisonMode mode) {
     DescriptorMetricData data;
-    data.differences.reserve(a_keys.size() + b_keys.size());
+    data.differences.reserve((a_end - a_begin) + (b_end - b_begin));
 
-    std::size_t a_row = 0;
-    std::size_t b_row = 0;
-    while (a_row < a_keys.size() || b_row < b_keys.size()) {
-        if (b_row == b_keys.size() || (a_row < a_keys.size() && a_keys[a_row] < b_keys[b_row])) {
+    std::size_t a_row = a_begin;
+    std::size_t b_row = b_begin;
+    while (a_row < a_end || b_row < b_end) {
+        if (b_row == b_end || (a_row < a_end && a_keys[a_row] < b_keys[b_row])) {
             add_count_overlap_descriptor_dimension(data, a_counts[a_row], 0u, mode);
             ++a_row;
-        } else if (a_row == a_keys.size() || b_keys[b_row] < a_keys[a_row]) {
+        } else if (a_row == a_end || b_keys[b_row] < a_keys[a_row]) {
             add_count_overlap_descriptor_dimension(data, 0u, b_counts[b_row], mode);
             ++b_row;
         } else {
@@ -481,21 +485,44 @@ DescriptorMetricData collect_descriptor_count_overlap_data(
 }
 
 template <typename Key>
-DescriptorMetricData collect_descriptor_exact_count_data(
+DescriptorMetricData collect_descriptor_count_overlap_data(
     const std::vector<Key>& a_keys,
     const std::vector<std::uint32_t>& a_counts,
     const std::vector<Key>& b_keys,
-    const std::vector<std::uint32_t>& b_counts) {
-    DescriptorMetricData data;
-    data.differences.reserve(a_keys.size() + b_keys.size());
+    const std::vector<std::uint32_t>& b_counts,
+    DescriptorComparisonMode mode) {
+    return collect_descriptor_count_overlap_data(
+        a_keys,
+        a_counts,
+        0,
+        a_keys.size(),
+        b_keys,
+        b_counts,
+        0,
+        b_keys.size(),
+        mode);
+}
 
-    std::size_t a_row = 0;
-    std::size_t b_row = 0;
-    while (a_row < a_keys.size() || b_row < b_keys.size()) {
-        if (b_row == b_keys.size() || (a_row < a_keys.size() && a_keys[a_row] < b_keys[b_row])) {
+template <typename Key>
+DescriptorMetricData collect_descriptor_exact_count_data(
+    const std::vector<Key>& a_keys,
+    const std::vector<std::uint32_t>& a_counts,
+    std::size_t a_begin,
+    std::size_t a_end,
+    const std::vector<Key>& b_keys,
+    const std::vector<std::uint32_t>& b_counts,
+    std::size_t b_begin,
+    std::size_t b_end) {
+    DescriptorMetricData data;
+    data.differences.reserve((a_end - a_begin) + (b_end - b_begin));
+
+    std::size_t a_row = a_begin;
+    std::size_t b_row = b_begin;
+    while (a_row < a_end || b_row < b_end) {
+        if (b_row == b_end || (a_row < a_end && a_keys[a_row] < b_keys[b_row])) {
             add_exact_count_descriptor_dimension(data, 1.0, 0.0);
             ++a_row;
-        } else if (a_row == a_keys.size() || b_keys[b_row] < a_keys[a_row]) {
+        } else if (a_row == a_end || b_keys[b_row] < a_keys[a_row]) {
             add_exact_count_descriptor_dimension(data, 0.0, 1.0);
             ++b_row;
         } else {
@@ -510,6 +537,57 @@ DescriptorMetricData collect_descriptor_exact_count_data(
         }
     }
     return data;
+}
+
+template <typename Key>
+DescriptorMetricData collect_descriptor_exact_count_data(
+    const std::vector<Key>& a_keys,
+    const std::vector<std::uint32_t>& a_counts,
+    const std::vector<Key>& b_keys,
+    const std::vector<std::uint32_t>& b_counts) {
+    return collect_descriptor_exact_count_data(
+        a_keys,
+        a_counts,
+        0,
+        a_keys.size(),
+        b_keys,
+        b_counts,
+        0,
+        b_keys.size());
+}
+
+template <typename Key>
+DescriptorMetricData collect_descriptor_data(
+    const std::vector<Key>& a_keys,
+    const std::vector<std::uint32_t>& a_counts,
+    std::size_t a_begin,
+    std::size_t a_end,
+    const std::vector<Key>& b_keys,
+    const std::vector<std::uint32_t>& b_counts,
+    std::size_t b_begin,
+    std::size_t b_end,
+    DescriptorComparisonMode mode) {
+    if (mode == DescriptorComparisonMode::ExactCount) {
+        return collect_descriptor_exact_count_data(
+            a_keys,
+            a_counts,
+            a_begin,
+            a_end,
+            b_keys,
+            b_counts,
+            b_begin,
+            b_end);
+    }
+    return collect_descriptor_count_overlap_data(
+        a_keys,
+        a_counts,
+        a_begin,
+        a_end,
+        b_keys,
+        b_counts,
+        b_begin,
+        b_end,
+        mode);
 }
 
 template <typename Key>
@@ -555,6 +633,25 @@ DescriptorMetricData collect_descriptor_data(
     throw std::invalid_argument("Unsupported descriptor value type.");
 }
 
+std::size_t checked_descriptor_offset(std::uint64_t offset) {
+    if (offset > static_cast<std::uint64_t>(std::numeric_limits<std::size_t>::max())) {
+        throw std::invalid_argument("Descriptor batch row offset is too large.");
+    }
+    return static_cast<std::size_t>(offset);
+}
+
+struct DescriptorRowBounds {
+    std::size_t begin = 0;
+    std::size_t end = 0;
+};
+
+DescriptorRowBounds descriptor_row_bounds(const DescriptorBatch& batch, std::size_t row) {
+    return {
+        checked_descriptor_offset(batch.RowOffset(row)),
+        checked_descriptor_offset(batch.RowOffset(row + 1)),
+    };
+}
+
 double evaluate_descriptor_metric(
     const DescriptorMetricData& data,
     const Metric& metric) {
@@ -566,6 +663,116 @@ double evaluate_descriptor_metric(
         return evaluate_minkowski(data.differences, data.numeric_stats, metric);
     }
     return evaluate_numeric_metric(data.numeric_stats, metric);
+}
+
+template <typename Key>
+double evaluate_descriptor_row_metric(
+    const std::vector<Key>& a_keys,
+    const std::vector<std::uint32_t>& a_counts,
+    DescriptorRowBounds a_bounds,
+    const std::vector<Key>& b_keys,
+    const std::vector<std::uint32_t>& b_counts,
+    DescriptorRowBounds b_bounds,
+    const Metric& metric,
+    DescriptorComparisonMode mode) {
+    return evaluate_descriptor_metric(
+        collect_descriptor_data(
+            a_keys,
+            a_counts,
+            a_bounds.begin,
+            a_bounds.end,
+            b_keys,
+            b_counts,
+            b_bounds.begin,
+            b_bounds.end,
+            mode),
+        metric);
+}
+
+double evaluate_descriptor_batch_row_metric(
+    const DescriptorSet& query,
+    const DescriptorBatch& library,
+    std::size_t row,
+    const Metric& metric,
+    DescriptorComparisonMode mode) {
+    const auto row_bounds = descriptor_row_bounds(library, row);
+    switch (query.ValueType()) {
+    case DescriptorValueType::Integer:
+        return evaluate_descriptor_row_metric(
+            query.IntegerKeys(),
+            query.Counts(),
+            {0, query.Size()},
+            library.IntegerKeys(),
+            library.Counts(),
+            row_bounds,
+            metric,
+            mode);
+    case DescriptorValueType::Float:
+        return evaluate_descriptor_row_metric(
+            query.FloatKeys(),
+            query.Counts(),
+            {0, query.Size()},
+            library.FloatKeys(),
+            library.Counts(),
+            row_bounds,
+            metric,
+            mode);
+    case DescriptorValueType::String:
+        return evaluate_descriptor_row_metric(
+            query.StringKeys(),
+            query.Counts(),
+            {0, query.Size()},
+            library.StringKeys(),
+            library.Counts(),
+            row_bounds,
+            metric,
+            mode);
+    }
+    throw std::invalid_argument("Unsupported descriptor value type.");
+}
+
+double evaluate_descriptor_batch_row_metric(
+    const DescriptorBatch& a,
+    std::size_t row_a,
+    const DescriptorBatch& b,
+    std::size_t row_b,
+    const Metric& metric,
+    DescriptorComparisonMode mode) {
+    const auto a_bounds = descriptor_row_bounds(a, row_a);
+    const auto b_bounds = descriptor_row_bounds(b, row_b);
+    switch (a.ValueType()) {
+    case DescriptorValueType::Integer:
+        return evaluate_descriptor_row_metric(
+            a.IntegerKeys(),
+            a.Counts(),
+            a_bounds,
+            b.IntegerKeys(),
+            b.Counts(),
+            b_bounds,
+            metric,
+            mode);
+    case DescriptorValueType::Float:
+        return evaluate_descriptor_row_metric(
+            a.FloatKeys(),
+            a.Counts(),
+            a_bounds,
+            b.FloatKeys(),
+            b.Counts(),
+            b_bounds,
+            metric,
+            mode);
+    case DescriptorValueType::String:
+        return evaluate_descriptor_row_metric(
+            a.StringKeys(),
+            a.Counts(),
+            a_bounds,
+            b.StringKeys(),
+            b.Counts(),
+            b_bounds,
+            metric,
+            mode);
+    }
+    throw std::invalid_argument("Unsupported descriptor value type.");
 }
 
 DenseCounts count_dense_pair(
@@ -1222,6 +1429,32 @@ void validate_sparse_batch_compatibility(const OEFPSparseBatch& a, const OEFPSpa
     }
 }
 
+void validate_descriptor_batch_compatibility(
+    const DescriptorSet& query,
+    const DescriptorBatch& library) {
+    if (library.Size() == 0) {
+        return;
+    }
+    if (query.Spec() != library.Spec()) {
+        throw std::invalid_argument("Descriptor specification must match batch specification.");
+    }
+    if (query.ValueType() != library.ValueType()) {
+        throw std::invalid_argument("Descriptor value type must match batch value type.");
+    }
+}
+
+void validate_descriptor_batch_compatibility(const DescriptorBatch& a, const DescriptorBatch& b) {
+    if (a.Size() == 0 || b.Size() == 0) {
+        return;
+    }
+    if (a.Spec() != b.Spec()) {
+        throw std::invalid_argument("Descriptor batch specifications must match.");
+    }
+    if (a.ValueType() != b.ValueType()) {
+        throw std::invalid_argument("Descriptor batch value types must match.");
+    }
+}
+
 double* address_to_output(std::uint64_t output_address) {
     return reinterpret_cast<double*>(static_cast<std::uintptr_t>(output_address));
 }
@@ -1277,6 +1510,35 @@ double Compare(
     }
 
     return evaluate_descriptor_metric(collect_descriptor_data(a, b, mode), metric);
+}
+
+std::vector<double> Compare(
+    const DescriptorSet& query,
+    const DescriptorBatch& library,
+    const Metric& metric,
+    DescriptorComparisonMode mode,
+    const BatchKernelOptions& options) {
+    std::vector<double> output(library.Size(), 0.0);
+    CompareInto(query, library, metric, mode, output.data(), output.size(), options);
+    return output;
+}
+
+void CompareInto(
+    const DescriptorSet& query,
+    const DescriptorBatch& library,
+    const Metric& metric,
+    DescriptorComparisonMode mode,
+    double* output,
+    std::size_t output_length,
+    const BatchKernelOptions& options) {
+    validate_output(output, output_length, library.Size());
+    validate_descriptor_batch_compatibility(query, library);
+
+    detail::ParallelFor(0, library.Size(), options.chunk_size, options.num_threads, [&](std::size_t begin, std::size_t end) {
+        for (std::size_t row = begin; row < end; ++row) {
+            output[row] = evaluate_descriptor_batch_row_metric(query, library, row, metric, mode);
+        }
+    });
 }
 
 std::vector<double> Compare(
@@ -1557,6 +1819,51 @@ void CDistInto(
     });
 }
 
+std::vector<double> CDist(
+    const DescriptorBatch& a,
+    const DescriptorBatch& b,
+    const Metric& metric,
+    DescriptorComparisonMode mode,
+    const BatchKernelOptions& options) {
+    std::vector<double> output(checked_product(a.Size(), b.Size(), "CDist output size is too large."), 0.0);
+    CDistInto(a, b, metric, mode, output.data(), output.size(), options);
+    return output;
+}
+
+void CDistInto(
+    const DescriptorBatch& a,
+    const DescriptorBatch& b,
+    const Metric& metric,
+    DescriptorComparisonMode mode,
+    double* output,
+    std::size_t output_length,
+    const BatchKernelOptions& options) {
+    const auto expected_length = checked_product(a.Size(), b.Size(), "CDist output size is too large.");
+    validate_output(output, output_length, expected_length);
+    validate_descriptor_batch_compatibility(a, b);
+
+    const auto b_size = b.Size();
+    detail::ParallelFor(0, expected_length, options.chunk_size, options.num_threads, [&](std::size_t begin, std::size_t end) {
+        auto row_a = begin / b_size;
+        auto row_b = begin % b_size;
+        for (std::size_t output_index = begin; output_index < end; ++output_index) {
+            output[output_index] = evaluate_descriptor_batch_row_metric(
+                a,
+                row_a,
+                b,
+                row_b,
+                metric,
+                mode);
+
+            ++row_b;
+            if (row_b == b_size) {
+                row_b = 0;
+                ++row_a;
+            }
+        }
+    });
+}
+
 std::vector<double> PDist(
     const OEFPBatch& batch,
     const Metric& metric,
@@ -1712,6 +2019,51 @@ void PDistInto(
                 batch.RowEntryCount(row_b),
                 dimensions,
                 metric);
+
+            ++row_b;
+            if (row_b == batch_size) {
+                ++row_a;
+                row_b = row_a + 1;
+            }
+        }
+    });
+}
+
+std::vector<double> PDist(
+    const DescriptorBatch& batch,
+    const Metric& metric,
+    DescriptorComparisonMode mode,
+    const BatchKernelOptions& options) {
+    std::vector<double> output(condensed_size(batch.Size()), 0.0);
+    PDistInto(batch, metric, mode, output.data(), output.size(), options);
+    return output;
+}
+
+void PDistInto(
+    const DescriptorBatch& batch,
+    const Metric& metric,
+    DescriptorComparisonMode mode,
+    double* output,
+    std::size_t output_length,
+    const BatchKernelOptions& options) {
+    metric.ValidateForPDist();
+    const auto expected_length = condensed_size(batch.Size());
+    validate_output(output, output_length, expected_length);
+
+    const auto batch_size = batch.Size();
+    detail::ParallelFor(0, expected_length, options.chunk_size, options.num_threads, [&](std::size_t begin, std::size_t end) {
+        std::size_t row_a = 0;
+        std::size_t row_b = 0;
+        condensed_pair_from_index(begin, batch_size, row_a, row_b);
+
+        for (std::size_t output_index = begin; output_index < end; ++output_index) {
+            output[output_index] = evaluate_descriptor_batch_row_metric(
+                batch,
+                row_a,
+                batch,
+                row_b,
+                metric,
+                mode);
 
             ++row_b;
             if (row_b == batch_size) {

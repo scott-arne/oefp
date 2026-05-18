@@ -5,6 +5,7 @@
 #include "oefp/count.h"
 #include "oefp/count_batch.h"
 #include "oefp/descriptor.h"
+#include "oefp/descriptor_batch.h"
 #include "oefp/fingerprint.h"
 #include "oefp/metric.h"
 #include "oefp/sparse.h"
@@ -80,6 +81,24 @@ double Compare(
     const DescriptorSet& b,
     const Metric& metric,
     DescriptorComparisonMode mode = DescriptorComparisonMode::CountOverlap);
+
+/// \brief Compare one descriptor query against each row in a descriptor batch.
+std::vector<double> Compare(
+    const DescriptorSet& query,
+    const DescriptorBatch& library,
+    const Metric& metric,
+    DescriptorComparisonMode mode = DescriptorComparisonMode::CountOverlap,
+    const BatchKernelOptions& options = {});
+
+/// \brief Fill output with one descriptor query-to-batch comparison per row.
+void CompareInto(
+    const DescriptorSet& query,
+    const DescriptorBatch& library,
+    const Metric& metric,
+    DescriptorComparisonMode mode,
+    double* output,
+    std::size_t output_length,
+    const BatchKernelOptions& options = {});
 
 /// \brief Compare one sparse binary query fingerprint against each row in a sparse batch.
 std::vector<double> Compare(
@@ -180,6 +199,24 @@ void CDistInto(
     std::size_t output_length,
     const BatchKernelOptions& options = {});
 
+/// \brief Compute row-major cross-distance/comparison values for descriptor batches.
+std::vector<double> CDist(
+    const DescriptorBatch& a,
+    const DescriptorBatch& b,
+    const Metric& metric,
+    DescriptorComparisonMode mode = DescriptorComparisonMode::CountOverlap,
+    const BatchKernelOptions& options = {});
+
+/// \brief Fill output with row-major descriptor cross-distance/comparison values.
+void CDistInto(
+    const DescriptorBatch& a,
+    const DescriptorBatch& b,
+    const Metric& metric,
+    DescriptorComparisonMode mode,
+    double* output,
+    std::size_t output_length,
+    const BatchKernelOptions& options = {});
+
 /// \brief Compute SciPy-compatible condensed pairwise values for one batch.
 std::vector<double> PDist(
     const OEFPBatch& batch,
@@ -218,6 +255,22 @@ std::vector<double> PDist(
 void PDistInto(
     const OEFPSparseBatch& batch,
     const Metric& metric,
+    double* output,
+    std::size_t output_length,
+    const BatchKernelOptions& options = {});
+
+/// \brief Compute SciPy-compatible condensed pairwise values for one descriptor batch.
+std::vector<double> PDist(
+    const DescriptorBatch& batch,
+    const Metric& metric,
+    DescriptorComparisonMode mode = DescriptorComparisonMode::CountOverlap,
+    const BatchKernelOptions& options = {});
+
+/// \brief Fill output with SciPy-compatible descriptor pairwise values.
+void PDistInto(
+    const DescriptorBatch& batch,
+    const Metric& metric,
+    DescriptorComparisonMode mode,
     double* output,
     std::size_t output_length,
     const BatchKernelOptions& options = {});

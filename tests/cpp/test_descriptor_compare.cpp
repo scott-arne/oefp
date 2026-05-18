@@ -124,5 +124,90 @@ TEST(DescriptorCompareTest, SupportsIntegerAndFloatKeys) {
     EXPECT_NEAR(Compare(floats_a, floats_b, Metric::Tanimoto()), 1.0 / 4.0, 1.0e-12);
 }
 
+TEST(DescriptorCompareTest, QueryToBatchComparisonUsesDescriptorMode) {
+    const auto query = DescriptorSet::FromStrings(string_spec(), {"alpha", "alpha", "beta"});
+    const auto first = DescriptorSet::FromStrings(string_spec(), {"alpha", "alpha", "beta"});
+    const auto second = DescriptorSet::FromStrings(
+        string_spec(),
+        {"alpha", "beta", "beta", "gamma"});
+    const auto batch = DescriptorBatch::FromDescriptorSets({first, second});
+
+    const auto values = Compare(
+        query,
+        batch,
+        Metric::Tanimoto(),
+        DescriptorComparisonMode::Presence);
+
+    ASSERT_EQ(values.size(), 2u);
+    EXPECT_DOUBLE_EQ(values[0], 1.0);
+    EXPECT_NEAR(values[1], 2.0 / 3.0, 1.0e-12);
+}
+
+TEST(DescriptorCompareTest, CDistAndPDistSupportDescriptorBatches) {
+    const auto first = DescriptorSet::FromStrings(string_spec(), {"alpha"});
+    const auto second = DescriptorSet::FromStrings(string_spec(), {"beta"});
+    const auto mixed = DescriptorSet::FromStrings(string_spec(), {"alpha", "beta"});
+    const auto a = DescriptorBatch::FromDescriptorSets({first, second});
+    const auto b = DescriptorBatch::FromDescriptorSets({first, mixed});
+
+    const auto cdist = CDist(a, b, Metric::Jaccard(), DescriptorComparisonMode::Presence);
+    const auto pdist = PDist(b, Metric::Jaccard(), DescriptorComparisonMode::Presence);
+
+    ASSERT_EQ(cdist.size(), 4u);
+    EXPECT_DOUBLE_EQ(cdist[0], 0.0);
+    EXPECT_DOUBLE_EQ(cdist[1], 0.5);
+    EXPECT_DOUBLE_EQ(cdist[2], 1.0);
+    EXPECT_DOUBLE_EQ(cdist[3], 0.5);
+    ASSERT_EQ(pdist.size(), 1u);
+    EXPECT_DOUBLE_EQ(pdist[0], 0.5);
+}
+
+TEST(DescriptorCompareTest, PDistRejectsAsymmetricMetric) {
+    const auto batch = DescriptorBatch::FromDescriptorSets({
+        DescriptorSet::FromStrings(string_spec(), {"alpha"}),
+        DescriptorSet::FromStrings(string_spec(), {"beta"}),
+    });
+
+    EXPECT_THROW(
+        PDist(batch, Metric::Tversky(0.2, 0.8)),
+        std::invalid_argument);
+}
+
+TEST(DescriptorCompareTest, IntoFunctionsRejectIncorrectOutputLengths) {
+    const auto query = DescriptorSet::FromStrings(string_spec(), {"alpha"});
+    const auto batch = DescriptorBatch::FromDescriptorSets({
+        DescriptorSet::FromStrings(string_spec(), {"alpha"}),
+        DescriptorSet::FromStrings(string_spec(), {"beta"}),
+    });
+    std::vector<double> output(1, 0.0);
+
+    EXPECT_THROW(
+        CompareInto(
+            query,
+            batch,
+            Metric::Tanimoto(),
+            DescriptorComparisonMode::Presence,
+            output.data(),
+            output.size()),
+        std::invalid_argument);
+    EXPECT_THROW(
+        CDistInto(
+            batch,
+            batch,
+            Metric::Tanimoto(),
+            DescriptorComparisonMode::Presence,
+            output.data(),
+            output.size()),
+        std::invalid_argument);
+    EXPECT_THROW(
+        PDistInto(
+            batch,
+            Metric::Tanimoto(),
+            DescriptorComparisonMode::Presence,
+            nullptr,
+            0),
+        std::invalid_argument);
+}
+
 } // namespace test
 } // namespace OEFP
