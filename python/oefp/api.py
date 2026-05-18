@@ -1713,6 +1713,32 @@ def atom_pair_descriptors(
     return DescriptorSet._from_native(_native.MakeAtomPairDescriptors(mol, options))
 
 
+def morgan_descriptors(
+    mol: Any,
+    *,
+    radius: int = 2,
+    use_chirality: bool = False,
+    use_bond_types: bool = True,
+    only_nonzero_invariants: bool = False,
+    include_ring_membership: bool = True,
+    include_redundant_environments: bool = False,
+    count_simulation: bool = False,
+) -> DescriptorSet:
+    """Generate raw Morgan descriptors as counted integer keys."""
+    if count_simulation:
+        raise ValueError("Morgan count simulation is only supported for binary fingerprints.")
+    options = _morgan_options(
+        radius,
+        2048,
+        use_chirality,
+        use_bond_types,
+        only_nonzero_invariants,
+        include_ring_membership,
+        include_redundant_environments,
+    )
+    return DescriptorSet._from_native(_native.MakeMorganDescriptors(mol, options))
+
+
 def morgan_fingerprint_with_mapping(
     mol: Any,
     *,

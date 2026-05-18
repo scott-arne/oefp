@@ -173,3 +173,50 @@ def test_atom_pair_descriptors_expose_raw_keys_for_aromatic_heterocycle():
     assert distance_one.total_count == 6
     assert distance_one.string_keys == ("42_1_42", "42_1_74")
     assert distance_one.counts.tolist() == [4, 2]
+
+
+def test_morgan_descriptors_expose_raw_integer_keys_for_complex_molecules():
+    import oefp
+
+    descriptors = oefp.morgan_descriptors(_openeye_mol("c1ccncc1"), radius=1)
+
+    assert descriptors.value_type == "integer"
+    assert descriptors.size == 5
+    assert descriptors.total_count == 12
+    assert descriptors.integer_keys == (
+        98513984,
+        2041434490,
+        3118255683,
+        3218693969,
+        3776905034,
+    )
+    assert descriptors.counts.tolist() == [3, 1, 1, 5, 2]
+    assert descriptors.spec.value_type == "integer"
+    assert descriptors.spec.source_name == "OEFP"
+    assert descriptors.spec.source_type == "Morgan"
+    assert descriptors.spec.source_version == "Morgan-2026.03.1"
+    assert descriptors.spec.parameters == (
+        "radius=1;use_chirality=false;use_bond_types=true;"
+        "only_nonzero_invariants=false;include_ring_membership=true;"
+        "include_redundant_environments=false;output=descriptors"
+    )
+
+
+def test_morgan_descriptors_compare_as_descriptor_sets():
+    import oefp
+
+    query = oefp.morgan_descriptors(_openeye_mol("CCO"), radius=1)
+    library = [
+        query,
+        oefp.morgan_descriptors(_openeye_mol("CC=O"), radius=1),
+        oefp.morgan_descriptors(_openeye_mol("CC(C)(C)Cl"), radius=1),
+    ]
+    batch = oefp.DescriptorBatch.from_descriptors(library)
+
+    np.testing.assert_allclose(
+        oefp.compare(query, batch, oefp.Metric.tanimoto()),
+        np.array([1.0, 1 / 11, 1 / 15]),
+    )
+
+    with pytest.raises(ValueError, match="count simulation is only supported"):
+        oefp.morgan_descriptors(_openeye_mol("CCO"), count_simulation=True)

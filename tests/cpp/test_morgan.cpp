@@ -468,5 +468,100 @@ TEST(MorganTest, GeneratesSparseFingerprintWithRawIdentifiers) {
     EXPECT_GT(fp.Indices().back(), options.num_bits);
 }
 
+TEST(MorganTest, GeneratedDescriptorsCarryStrictMorganSpec) {
+    const auto mol = mol_from_smiles("c1ccccc1");
+    MorganOptions options;
+    options.radius = 1;
+    options.num_bits = 128;
+    options.use_bond_types = false;
+    options.only_nonzero_invariants = true;
+    options.include_ring_membership = false;
+    options.include_redundant_environments = true;
+
+    const auto descriptors = MakeMorganDescriptors(mol, options);
+    const auto& spec = descriptors.Spec();
+
+    EXPECT_EQ(descriptors.ValueType(), DescriptorValueType::Integer);
+    EXPECT_EQ(spec.value_type, DescriptorValueType::Integer);
+    EXPECT_EQ(spec.source_name, "OEFP");
+    EXPECT_EQ(spec.source_type, "Morgan");
+    EXPECT_EQ(spec.source_version, "Morgan-2026.03.1");
+    EXPECT_EQ(
+        spec.parameters,
+        "radius=1;use_chirality=false;use_bond_types=false;"
+        "only_nonzero_invariants=true;include_ring_membership=false;"
+        "include_redundant_environments=true;output=descriptors");
+}
+
+TEST(MorganTest, GeneratedDescriptorsUseRawMorganIdsAndCounts) {
+    const auto mol = mol_from_smiles("CCO");
+    MorganOptions options;
+    options.radius = 1;
+
+    const auto descriptors = MakeMorganDescriptors(mol, options);
+
+    EXPECT_EQ(descriptors.TotalCount(), 6u);
+    EXPECT_EQ(
+        descriptors.IntegerKeys(),
+        std::vector<std::int64_t>(
+            {864662311, 1535166686, 2245384272, 2246728737, 3542456614, 4018048386}));
+    EXPECT_EQ(descriptors.Counts(), std::vector<std::uint32_t>({1u, 1u, 1u, 1u, 1u, 1u}));
+}
+
+TEST(MorganTest, GeneratedDescriptorsCoverAromaticityValenceAndBranching) {
+    struct Expectation {
+        std::string smiles;
+        std::vector<std::int64_t> keys;
+        std::vector<std::uint32_t> counts;
+    };
+
+    const std::vector<Expectation> cases{
+        {
+            "CC(C)(C)Cl",
+            {170894115, 1016841875, 1396662131, 2245277810, 2246728737, 3537123720},
+            {1u, 1u, 1u, 1u, 3u, 3u},
+        },
+        {
+            "c1ccccc1",
+            {98513984, 3218693969},
+            {6u, 6u},
+        },
+        {
+            "c1ccncc1",
+            {98513984, 2041434490, 3118255683, 3218693969, 3776905034},
+            {3u, 1u, 1u, 5u, 2u},
+        },
+        {
+            "CC=O",
+            {446538036, 864942730, 1510337516, 2246703798, 2246728737, 3545353036},
+            {1u, 1u, 1u, 1u, 1u, 1u},
+        },
+        {
+            "C1CCCCC1",
+            {2142032900, 2968968094},
+            {6u, 6u},
+        },
+    };
+
+    MorganOptions options;
+    options.radius = 1;
+
+    for (const auto& expected : cases) {
+        SCOPED_TRACE(expected.smiles);
+        const auto descriptors = MakeMorganDescriptors(mol_from_smiles(expected.smiles), options);
+        EXPECT_EQ(descriptors.TotalCount(), 2u * mol_from_smiles(expected.smiles).NumAtoms());
+        EXPECT_EQ(descriptors.IntegerKeys(), expected.keys);
+        EXPECT_EQ(descriptors.Counts(), expected.counts);
+    }
+}
+
+TEST(MorganTest, DescriptorGenerationRejectsCountSimulation) {
+    const auto mol = mol_from_smiles("CCO");
+    MorganOptions options;
+    options.count_simulation = true;
+
+    EXPECT_THROW(MakeMorganDescriptors(mol, options), std::invalid_argument);
+}
+
 } // namespace test
 } // namespace OEFP

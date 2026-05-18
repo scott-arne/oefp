@@ -97,8 +97,10 @@ Compare Raw Descriptors
 ^^^^^^^^^^^^^^^^^^^^^^^
 
 Raw descriptors keep unfurled feature keys and counts instead of folding them
-into a fixed-length fingerprint. They use the same ``compare``, ``cdist``, and
-``pdist`` functions as fingerprints.
+into a fixed-length fingerprint. Use ``morgan_descriptors()`` for raw Morgan
+environment identifiers or ``atom_pair_descriptors()`` for raw Atom Pair
+features. Descriptor sets use the same ``compare``, ``cdist``, and ``pdist``
+functions as fingerprints.
 
 .. code-block:: python
 
@@ -230,7 +232,8 @@ OEGraphSim provides native OpenEye fingerprint generation and similarity.
    * - Raw counted descriptors
      - Sparse count fingerprints expose raw identifiers for supported
        generators
-     - ``atom_pair_descriptors()`` and ``DescriptorBatch``
+     - ``morgan_descriptors()``, ``atom_pair_descriptors()``, and
+       ``DescriptorBatch``
      - No raw descriptor batch comparison surface
    * - Morgan bit provenance
      - ``AdditionalOutput`` with ``GetBitInfoMap()``
@@ -439,7 +442,8 @@ Supported Generator Scope
      - Supported outputs
      - Notes
    * - Morgan
-     - Folded binary, folded count, sparse binary, sparse count
+     - Folded binary, folded count, sparse binary, sparse count, raw
+       descriptors
      - Bit mapping is available for all Morgan outputs
    * - Atom Pair
      - Folded binary, folded count, sparse binary, sparse count, raw

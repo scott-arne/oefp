@@ -385,6 +385,12 @@ Morgan Fingerprints
 
    Generate a sparse count Morgan fingerprint with raw identifiers.
 
+.. function:: morgan_descriptors(mol, *, radius=2, use_chirality=False, use_bond_types=True, only_nonzero_invariants=False, include_ring_membership=True, include_redundant_environments=False)
+
+   Generate raw counted Morgan descriptors as integer-key
+   :class:`DescriptorSet` objects. Descriptor keys are the unfurled Morgan raw
+   environment identifiers used by sparse count output.
+
 .. function:: morgan_fingerprint_with_mapping(mol, *, ...)
               morgan_count_fingerprint_with_mapping(mol, *, ...)
               morgan_sparse_fingerprint_with_mapping(mol, *, ...)

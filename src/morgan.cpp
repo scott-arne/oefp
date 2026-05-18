@@ -243,6 +243,19 @@ std::string canonical_sparse_binary_parameters(const MorganOptions& options) {
     return params.str();
 }
 
+std::string canonical_descriptor_parameters(const MorganOptions& options) {
+    std::ostringstream params;
+    params << "radius=" << options.radius
+           << ";use_chirality=" << bool_parameter(options.use_chirality)
+           << ";use_bond_types=" << bool_parameter(options.use_bond_types)
+           << ";only_nonzero_invariants=" << bool_parameter(options.only_nonzero_invariants)
+           << ";include_ring_membership=" << bool_parameter(options.include_ring_membership)
+           << ";include_redundant_environments="
+           << bool_parameter(options.include_redundant_environments)
+           << ";output=descriptors";
+    return params.str();
+}
+
 FingerprintSpec morgan_spec(const MorganOptions& options, FingerprintValueType value_type) {
     FingerprintSpec spec;
     spec.size_bits = options.num_bits;
@@ -265,6 +278,16 @@ FingerprintSpec morgan_sparse_binary_spec(const MorganOptions& options) {
     FingerprintSpec spec = morgan_spec(options, FingerprintValueType::Binary);
     spec.size_bits = std::numeric_limits<std::uint64_t>::max();
     spec.parameters = canonical_sparse_binary_parameters(options);
+    return spec;
+}
+
+DescriptorSpec morgan_descriptor_spec(const MorganOptions& options) {
+    DescriptorSpec spec;
+    spec.value_type = DescriptorValueType::Integer;
+    spec.source_name = "OEFP";
+    spec.source_type = "Morgan";
+    spec.source_version = MORGAN_COMPAT_VERSION;
+    spec.parameters = canonical_descriptor_parameters(options);
     return spec;
 }
 
@@ -889,6 +912,31 @@ OEFPCount count_fingerprint_from_events(
     return OEFPCount(std::move(spec), std::move(indices), std::move(counts));
 }
 
+DescriptorSet descriptors_from_events(
+    DescriptorSpec spec,
+    const std::vector<MorganEvent>& events,
+    const char* overflow_message) {
+    std::map<std::uint32_t, std::uint32_t> raw_counts;
+    for (const auto& event : events) {
+        auto& count = raw_counts[event.raw_id];
+        if (count == std::numeric_limits<std::uint32_t>::max()) {
+            throw std::overflow_error(overflow_message);
+        }
+        ++count;
+    }
+
+    std::vector<std::int64_t> keys;
+    std::vector<std::uint32_t> counts;
+    keys.reserve(raw_counts.size());
+    counts.reserve(raw_counts.size());
+    for (const auto& [raw_id, count] : raw_counts) {
+        keys.push_back(static_cast<std::int64_t>(raw_id));
+        counts.push_back(count);
+    }
+
+    return DescriptorSet(std::move(spec), std::move(keys), std::move(counts));
+}
+
 } // namespace
 
 double MorganGenerationProfile::TotalSeconds() const {
@@ -1048,6 +1096,21 @@ MorganSparseCountFingerprintResult MakeMorganSparseCountFingerprintWithMapping(
             events,
             "Morgan sparse count fingerprint count exceeds uint32 storage."),
         mapping_from_events(events));
+}
+
+DescriptorSet MakeMorganDescriptors(
+    const OEChem::OEMolBase& mol,
+    const MorganOptions& options) {
+    validate_options(options);
+    if (options.count_simulation) {
+        throw std::invalid_argument("Morgan count simulation is only supported for binary fingerprints.");
+    }
+
+    const auto events = enumerate_events(mol, options, UNFOLDED_MORGAN_IDS);
+    return descriptors_from_events(
+        morgan_descriptor_spec(options),
+        events,
+        "Morgan descriptor count exceeds uint32 storage.");
 }
 
 OEFPSparse MakeMorganSparseFingerprint(

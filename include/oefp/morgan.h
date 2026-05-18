@@ -3,6 +3,7 @@
 
 #include "oefp/annotation.h"
 #include "oefp/count.h"
+#include "oefp/descriptor.h"
 #include "oefp/fingerprint.h"
 #include "oefp/sparse.h"
 
@@ -254,6 +255,28 @@ MorganSparseCountFingerprintResult MakeMorganSparseCountFingerprintWithMapping(
     const MorganOptions& options);
 #else
 MorganSparseCountFingerprintResult MakeMorganSparseCountFingerprintWithMapping(
+    const OEChem::OEMolBase& mol,
+    const MorganOptions& options = MorganOptions{});
+#endif
+
+/// \brief Generate raw Morgan descriptors as typed integer keys with counts.
+///
+/// Descriptor keys are the same RDKit-compatible raw Morgan environment
+/// identifiers used by sparse count output. Count simulation is only defined
+/// for binary fingerprints and is rejected for this API.
+///
+/// \param mol Molecule to fingerprint.
+/// \param options Morgan generation options. ``num_bits`` and count simulation
+///     options do not affect descriptor output.
+/// \returns Counted integer-key Morgan descriptors.
+/// \throws std::invalid_argument: When the requested options are unsupported
+///     or invalid.
+#ifdef SWIG
+DescriptorSet MakeMorganDescriptors(
+    const OEChem::OEMolBase& mol,
+    const MorganOptions& options);
+#else
+DescriptorSet MakeMorganDescriptors(
     const OEChem::OEMolBase& mol,
     const MorganOptions& options = MorganOptions{});
 #endif
