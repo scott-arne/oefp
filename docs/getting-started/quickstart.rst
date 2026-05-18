@@ -93,6 +93,64 @@ Use Counted and Sparse Outputs
    print(sparse_binary.indices[:5])
    print(atom_pair_count.total_count)
 
+Compare Raw Descriptors
+^^^^^^^^^^^^^^^^^^^^^^^
+
+Raw descriptors keep unfurled feature keys and counts instead of folding them
+into a fixed-length fingerprint. They use the same ``compare``, ``cdist``, and
+``pdist`` functions as fingerprints.
+
+.. code-block:: python
+
+   from openeye import oechem
+   import oefp
+
+   def mol_from_smiles(smiles: str) -> oechem.OEGraphMol:
+       mol = oechem.OEGraphMol()
+       oechem.OESmilesToMol(mol, smiles)
+       return mol
+
+   query = oefp.atom_pair_descriptors(mol_from_smiles("c1ccncc1"))
+   library = [
+       oefp.atom_pair_descriptors(mol_from_smiles("c1ccccc1")),
+       oefp.atom_pair_descriptors(mol_from_smiles("c1ccc(O)cc1")),
+       oefp.atom_pair_descriptors(mol_from_smiles("CC(C)(C)Cl")),
+   ]
+
+   batch = oefp.DescriptorBatch.from_descriptors(library)
+
+   scores = oefp.compare(
+       query,
+       batch,
+       oefp.Metric.tanimoto(),
+       descriptor_mode="presence",
+   )
+   distances = oefp.cdist(
+       oefp.DescriptorBatch.from_descriptors([query]),
+       batch,
+       oefp.Metric.jaccard(),
+       descriptor_mode="count_overlap",
+   )
+   pairwise = oefp.pdist(
+       batch,
+       oefp.Metric.tanimoto(),
+       descriptor_mode="exact_count",
+   )
+
+   print(query.string_keys[:5])
+   print(query.counts[:5])
+   print(scores)
+   print(distances)
+   print(pairwise)
+
+Descriptor comparison modes control how counts are interpreted:
+
+- ``count_overlap`` compares count-aware overlap with per-key minimum and
+  maximum counts.
+- ``presence`` ignores counts and compares only whether a key is present.
+- ``exact_count`` treats a key as shared only when both molecules have the same
+  count for that key.
+
 Inspect Morgan Bit Mappings
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -169,6 +227,11 @@ OEGraphSim provides native OpenEye fingerprint generation and similarity.
      - ``morgan_count_fingerprint()``, ``morgan_sparse_fingerprint()``,
        ``morgan_sparse_count_fingerprint()``
      - Dense binary ``OEFingerPrint`` workflow
+   * - Raw counted descriptors
+     - Sparse count fingerprints expose raw identifiers for supported
+       generators
+     - ``atom_pair_descriptors()`` and ``DescriptorBatch``
+     - No raw descriptor batch comparison surface
    * - Morgan bit provenance
      - ``AdditionalOutput`` with ``GetBitInfoMap()``
      - ``morgan_*_with_mapping(...).mapping.bit_info()``
@@ -379,7 +442,8 @@ Supported Generator Scope
      - Folded binary, folded count, sparse binary, sparse count
      - Bit mapping is available for all Morgan outputs
    * - Atom Pair
-     - Folded binary, folded count, sparse binary, sparse count
+     - Folded binary, folded count, sparse binary, sparse count, raw
+       descriptors
      - Count simulation is enabled by default for binary output
    * - OpenEye
      - Import/export of ``OEFingerPrint``

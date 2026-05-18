@@ -16,7 +16,10 @@ The main Python components are:
 - :class:`OEFPBatch` - Dense binary batch storage
 - :class:`OEFPSparseBatch` - Sparse binary batch storage
 - :class:`OEFPCountBatch` - Sparse counted batch storage
+- :class:`DescriptorSet` - Raw typed feature keys with counts
+- :class:`DescriptorBatch` - Batch storage for descriptor sets
 - :class:`FingerprintSpec` - Read-only fingerprint metadata
+- :class:`DescriptorSpec` - Read-only descriptor metadata
 - :class:`Metric` - Scikit-learn-style distance metrics plus Tanimoto and
   Tversky similarity metrics
 - :class:`MorganGenerator` - Reusable Morgan dense-binary generator
@@ -190,6 +193,94 @@ Batch Containers
       print(fp.spec.num_bits)
       print(fp.spec.source_type)
 
+Descriptor Containers
+---------------------
+
+.. class:: DescriptorSet
+
+   Counted raw descriptors backed by typed feature keys. A set stores one key
+   vector for its active value type and a parallel ``uint32`` count vector.
+
+   .. method:: DescriptorSet.from_strings(keys, counts=None, *, spec=None, source_name="OEFP", source_type="manual", source_version="", parameters="")
+
+      Create counted string-key descriptors.
+
+   .. method:: DescriptorSet.from_integers(keys, counts=None, *, spec=None, source_name="OEFP", source_type="manual", source_version="", parameters="")
+
+      Create counted integer-key descriptors.
+
+   .. method:: DescriptorSet.from_floats(keys, counts=None, *, spec=None, source_name="OEFP", source_type="manual", source_version="", parameters="")
+
+      Create counted float-key descriptors.
+
+   .. attribute:: value_type
+
+      Descriptor key type: ``"string"``, ``"integer"``, or ``"float"``.
+
+   .. attribute:: string_keys
+                  integer_keys
+                  float_keys
+
+      Canonical sorted keys for the active descriptor type. Non-active key
+      attributes return an empty tuple.
+
+   .. attribute:: counts
+
+      Read-only NumPy view of counts parallel to the active keys.
+
+   .. attribute:: total_count
+
+      Sum of all descriptor counts.
+
+   .. attribute:: spec
+
+      Read-only :class:`DescriptorSpec` metadata.
+
+   Example::
+
+      desc = oefp.DescriptorSet.from_strings(
+          ["aromatic_N", "aromatic_C", "aromatic_C"],
+          source_type="example",
+      )
+      print(desc.string_keys)
+      print(desc.counts)
+
+.. class:: DescriptorBatch
+
+   Contiguous descriptor batch using flattened keys, counts, and row offsets.
+   All rows must have matching :class:`DescriptorSpec` metadata.
+
+   .. method:: DescriptorBatch.from_descriptors(descriptors)
+
+      Create a batch from compatible :class:`DescriptorSet` objects.
+
+   .. attribute:: string_keys
+                  integer_keys
+                  float_keys
+
+      Flattened keys for the active descriptor type.
+
+   .. attribute:: counts
+
+      Read-only NumPy view of flattened counts.
+
+   .. attribute:: offsets
+
+      Read-only NumPy view of row offsets into the flattened arrays.
+
+   .. attribute:: size
+
+      Number of descriptor rows.
+
+   .. attribute:: spec
+
+      Shared :class:`DescriptorSpec` metadata.
+
+.. class:: DescriptorSpec
+
+   Immutable metadata describing descriptor key type, source, source version,
+   and generator parameters.
+
 Metrics and Comparison
 ----------------------
 
@@ -223,20 +314,35 @@ Metrics and Comparison
       ``tanimoto()`` and ``tversky()`` are boolean-space similarity metrics.
       Metric objects expose ``name``, ``type``, and ``space`` metadata.
 
-.. function:: compare(a, b, metric, *, num_threads=0, chunk_size=256)
+.. function:: compare(a, b, metric, *, descriptor_mode="count_overlap", num_threads=0, chunk_size=256)
 
-   Compare two fingerprints or one query fingerprint against a matching batch.
+   Compare two fingerprints, two descriptor sets, or one query object against a
+   matching batch.
 
    Example::
 
       score = oefp.compare(fp_a, fp_b, oefp.Metric.tanimoto())
       scores = oefp.compare(fp_a, batch, oefp.Metric.tanimoto())
+      descriptor_score = oefp.compare(
+          desc_a,
+          desc_b,
+          oefp.Metric.tanimoto(),
+          descriptor_mode="presence",
+      )
 
-.. function:: cdist(a, b, metric, *, num_threads=0, chunk_size=256)
+   Descriptor comparisons accept three modes:
+
+   - ``"count_overlap"`` compares count-aware overlap with per-key minimum and
+     maximum counts.
+   - ``"presence"`` ignores counts and compares only whether a key is present.
+   - ``"exact_count"`` treats a key as shared only when both rows have the same
+     count for that key.
+
+.. function:: cdist(a, b, metric, *, descriptor_mode="count_overlap", num_threads=0, chunk_size=256)
 
    Return row-major cross-comparison values for two matching batch containers.
 
-.. function:: pdist(batch, metric, *, num_threads=0, chunk_size=256)
+.. function:: pdist(batch, metric, *, descriptor_mode="count_overlap", num_threads=0, chunk_size=256)
 
    Return SciPy-compatible condensed pairwise values for one batch.
 
@@ -322,6 +428,12 @@ Atom Pair Fingerprints
 .. function:: atom_pair_sparse_count_fingerprint(mol, *, ...)
 
    Generate a sparse count Atom Pair fingerprint.
+
+.. function:: atom_pair_descriptors(mol, *, min_distance=1, max_distance=30, use_chirality=False, use_2d=True)
+
+   Generate raw counted Atom Pair descriptors as string-key
+   :class:`DescriptorSet` objects. Descriptor generation currently supports
+   2D, non-chiral Atom Pair features.
 
 Mapping Results
 ---------------
