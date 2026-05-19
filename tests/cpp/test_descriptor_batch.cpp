@@ -1,8 +1,10 @@
 #include <gtest/gtest.h>
 
 #include "oefp/descriptor_batch.h"
+#include "oefp/descriptor_selection.h"
 
 #include <cstdint>
+#include <memory>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -35,7 +37,79 @@ DescriptorSpec float_spec() {
     return spec;
 }
 
+std::shared_ptr<const DescriptorSchema> scalar_schema() {
+    DescriptorSchemaBuilder builder;
+    builder.Add(DescriptorDefinition{"MW", DescriptorValueKind::Float, "mordred:constitutional"});
+    builder.Add(DescriptorDefinition{"nAtom", DescriptorValueKind::Int, "mordred:atom_count"});
+    builder.Add(DescriptorDefinition{"Lipinski", DescriptorValueKind::Bool, "mordred:filter"});
+    builder.Add(DescriptorDefinition{"Class", DescriptorValueKind::String, "manual:category"});
+    return builder.Build();
+}
+
 } // namespace
+
+TEST(DescriptorBatchTest, BuildsColumnarBatchFromTypedRows) {
+    const auto schema = scalar_schema();
+
+    DescriptorSetBuilder first(schema);
+    first.Set("MW", DescriptorValue::Float(46.069));
+    first.Set("nAtom", DescriptorValue::Int(9));
+    first.Set("Lipinski", DescriptorValue::Bool(true));
+    first.Set("Class", DescriptorValue::String("alcohol"));
+
+    DescriptorSetBuilder second(schema);
+    second.Set("MW", DescriptorValue::Float(78.114));
+    second.Set("nAtom", DescriptorValue::Int(12));
+    second.Set("Lipinski", DescriptorValue::Bool(false));
+    second.Set("Class", DescriptorValue::String("aromatic"));
+
+    const auto batch =
+        DescriptorBatch::FromDescriptorSets({first.Build("ethanol"), second.Build("benzene")});
+
+    EXPECT_EQ(batch.Size(), 2u);
+    EXPECT_EQ(batch.Schema().SchemaId(), schema->SchemaId());
+    EXPECT_DOUBLE_EQ(batch.FloatColumn("MW")[0], 46.069);
+    EXPECT_DOUBLE_EQ(batch.FloatColumn("MW")[1], 78.114);
+    EXPECT_EQ(batch.IntColumn("nAtom"), std::vector<std::int64_t>({9, 12}));
+    EXPECT_EQ(batch.BoolColumn("Lipinski"), std::vector<std::uint8_t>({1u, 0u}));
+    EXPECT_EQ(batch.StringColumn("Class"), std::vector<std::string>({"alcohol", "aromatic"}));
+    EXPECT_EQ(batch.RowIds(), std::vector<std::string>({"ethanol", "benzene"}));
+}
+
+TEST(DescriptorBatchTest, SubsetsColumnsBySelection) {
+    const auto schema = scalar_schema();
+
+    DescriptorSetBuilder row(schema);
+    row.Set("MW", DescriptorValue::Float(46.069));
+    row.Set("nAtom", DescriptorValue::Int(9));
+    row.Set("Lipinski", DescriptorValue::Bool(true));
+    row.Set("Class", DescriptorValue::String("alcohol"));
+
+    const auto batch = DescriptorBatch::FromDescriptorSets({row.Build("ethanol")});
+    const auto subset = batch.Subset(DescriptorSelection::Names({"nAtom", "MW"}));
+
+    EXPECT_EQ(subset.Size(), 1u);
+    EXPECT_EQ(subset.Schema().Size(), 2u);
+    EXPECT_EQ(subset.Schema().Definition(0).name, "nAtom");
+    EXPECT_EQ(subset.Schema().Definition(1).name, "MW");
+    EXPECT_EQ(subset.IntColumn("nAtom")[0], 9);
+    EXPECT_DOUBLE_EQ(subset.FloatColumn("MW")[0], 46.069);
+    EXPECT_EQ(subset.RowIds(), std::vector<std::string>({"ethanol"}));
+}
+
+TEST(DescriptorBatchTest, ColumnarBatchPreservesMissingScalarDefaults) {
+    const auto schema = scalar_schema();
+
+    DescriptorSetBuilder row(schema);
+    row.Set("Class", DescriptorValue::String("partial"));
+
+    const auto batch = DescriptorBatch::FromDescriptorSets({row.Build("partial")});
+
+    EXPECT_EQ(batch.FloatColumn("MW"), std::vector<double>({0.0}));
+    EXPECT_EQ(batch.IntColumn("nAtom"), std::vector<std::int64_t>({0}));
+    EXPECT_EQ(batch.BoolColumn("Lipinski"), std::vector<std::uint8_t>({0u}));
+    EXPECT_EQ(batch.StringColumn("Class"), std::vector<std::string>({"partial"}));
+}
 
 TEST(DescriptorBatchTest, BuildsCsrStorageFromDescriptorSets) {
     const auto first = DescriptorSet::FromStrings(string_spec(), {"beta", "alpha", "beta"});

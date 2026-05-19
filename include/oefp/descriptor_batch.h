@@ -2,9 +2,11 @@
 #define OEFP_DESCRIPTOR_BATCH_H
 
 #include "oefp/descriptor.h"
+#include "oefp/descriptor_selection.h"
 
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -39,8 +41,29 @@ public:
     /// \brief Return the shared descriptor value type.
     DescriptorValueType ValueType() const;
 
+    /// \brief Return the shared descriptor schema for schema-backed batches.
+    const DescriptorSchema& Schema() const;
+
     /// \brief Return the number of descriptor rows.
     std::size_t Size() const;
+
+    /// \brief Return row identifiers for schema-backed batches.
+    const std::vector<std::string>& RowIds() const;
+
+    /// \brief Return a copied float descriptor column.
+    std::vector<double> FloatColumn(const std::string& name) const;
+
+    /// \brief Return a copied integer descriptor column.
+    std::vector<std::int64_t> IntColumn(const std::string& name) const;
+
+    /// \brief Return a copied boolean descriptor column.
+    std::vector<std::uint8_t> BoolColumn(const std::string& name) const;
+
+    /// \brief Return a copied string descriptor column.
+    std::vector<std::string> StringColumn(const std::string& name) const;
+
+    /// \brief Return a column subset in selection order.
+    DescriptorBatch Subset(const DescriptorSelection& selection) const;
 
     /// \brief Return the total number of flattened descriptor entries.
     std::size_t EntryCount() const;
@@ -89,6 +112,15 @@ public:
     std::uint64_t FloatKeyDataAddress() const;
 
 private:
+    struct DescriptorColumnBlock {
+        DescriptorValueKind value_kind = DescriptorValueKind::Float;
+        std::vector<std::uint8_t> validity;
+        std::vector<std::int64_t> int_values;
+        std::vector<double> float_values;
+        std::vector<std::uint8_t> bool_values;
+        std::vector<std::string> string_values;
+    };
+
     DescriptorSpec spec_;
     std::vector<std::string> string_keys_;
     std::vector<std::int64_t> integer_keys_;
@@ -96,12 +128,20 @@ private:
     std::vector<std::uint32_t> counts_;
     std::vector<std::uint64_t> row_offsets_{0u};
     bool has_spec_ = false;
+    std::shared_ptr<const DescriptorSchema> schema_;
+    std::vector<std::string> row_ids_;
+    std::vector<DescriptorColumnBlock> columns_;
 
     void ReserveRowsAndEntries(std::size_t row_count, std::size_t entry_count);
     void AppendActiveKeys(const DescriptorSet& descriptors);
+    void AppendTypedRow(const DescriptorSet& descriptors);
+    void InitializeColumns(std::shared_ptr<const DescriptorSchema> schema);
     void ValidateDescriptorSet(const DescriptorSet& descriptors) const;
+    void ValidateTypedDescriptorSet(const DescriptorSet& descriptors) const;
     void CheckRowIndex(std::size_t row) const;
     void CheckOffsetIndex(std::size_t row) const;
+    void RequireLegacyStorage() const;
+    const DescriptorColumnBlock& Column(const std::string& name, DescriptorValueKind kind) const;
 
     friend bool operator==(const DescriptorBatch& lhs, const DescriptorBatch& rhs);
 };
