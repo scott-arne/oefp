@@ -51,8 +51,8 @@ TEST(MordredDescriptorTest, DescriptorRowCarriesFullSchema) {
     EXPECT_TRUE(descriptors.Schema().Contains("GhoseFilter"));
     EXPECT_TRUE(descriptors.Has("nAtom"));
     EXPECT_TRUE(descriptors.Has("MW"));
-    EXPECT_FALSE(descriptors.Has("Lipinski"));
-    EXPECT_FALSE(descriptors.Has("GhoseFilter"));
+    EXPECT_TRUE(descriptors.Has("Lipinski"));
+    EXPECT_TRUE(descriptors.Has("GhoseFilter"));
     EXPECT_FALSE(descriptors.Has("ABC"));
 }
 
@@ -166,6 +166,31 @@ TEST(MordredDescriptorTest, CrippenDescriptorsMatchCopiedMordredReferences) {
         EXPECT_TRUE(descriptors.Has("SMR"));
         EXPECT_NEAR(descriptors.Float("SLogP"), expected.slogp, 1.0e-8);
         EXPECT_NEAR(descriptors.Float("SMR"), expected.smr, 1.0e-8);
+    }
+}
+
+TEST(MordredDescriptorTest, FilterDescriptorsMatchCopiedMordredReferences) {
+    struct Case {
+        std::string smiles;
+        bool lipinski;
+        bool ghose_filter;
+    };
+
+    const std::vector<Case> cases{
+        {"CCO", true, false},
+        {"c1ccncc1", true, false},
+        {"CCCCCCCCCCCCCCCC", false, false},
+        {"CCOC(=O)c1ccc(OCC)c(O)c1C(=O)OCC", true, true},
+    };
+
+    for (const auto& expected : cases) {
+        SCOPED_TRACE(expected.smiles);
+        const auto descriptors = MakeMordredDescriptors(mol_from_smiles(expected.smiles));
+
+        EXPECT_TRUE(descriptors.Has("Lipinski"));
+        EXPECT_TRUE(descriptors.Has("GhoseFilter"));
+        EXPECT_EQ(descriptors.Bool("Lipinski"), expected.lipinski);
+        EXPECT_EQ(descriptors.Bool("GhoseFilter"), expected.ghose_filter);
     }
 }
 

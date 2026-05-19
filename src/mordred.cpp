@@ -587,6 +587,18 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
         builder,
         "AMW",
         all_atoms == 0u ? 0.0 : values.exact_weight / static_cast<double>(all_atoms));
+    set_bool(
+        builder,
+        "Lipinski",
+        values.hbond_donors <= 5u && values.hbond_acceptors <= 10u
+            && values.exact_weight <= 500.0 && values.crippen_logp <= 5.0);
+    set_bool(
+        builder,
+        "GhoseFilter",
+        values.exact_weight >= 160.0 && values.exact_weight <= 480.0
+            && values.heavy_atoms >= 20u && values.heavy_atoms <= 70u
+            && values.crippen_logp >= -0.4 && values.crippen_logp <= 5.6
+            && values.crippen_mr >= 40.0 && values.crippen_mr <= 130.0);
 
     return builder.Build();
 }

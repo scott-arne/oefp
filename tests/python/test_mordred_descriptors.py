@@ -81,6 +81,7 @@ FIRST_BATCH_SOURCE_TYPES = {
     "BondCount",
     "CarbonTypes",
     "HydrogenBond",
+    "Lipinski",
     "RotatableBond",
     "SLogP",
     "TopoPSA",
@@ -208,7 +209,7 @@ def test_mordred_descriptors_match_first_batch_reference_values():
     payload = _reference_payload()
     names = _first_batch_names(payload)
 
-    assert len(names) == 51
+    assert len(names) == 53
     for row in payload["reference_rows"]:
         descriptors = oefp.mordred_descriptors(_openeye_mol(row["smiles"]))
         expected_by_name = _reference_values_by_name(payload, row)
@@ -227,17 +228,9 @@ def test_mordred_descriptors_match_first_batch_reference_values():
                 assert actual == expected
 
 
-def test_manifest_deferred_mordred_descriptors_are_missing_at_runtime():
-    import oefp
-
-    deferred_names = _policy_descriptors_by_status("deferred")
-    assert deferred_names == ("Lipinski", "GhoseFilter")
-
-    for row in _reference_payload()["reference_rows"]:
-        descriptors = oefp.mordred_descriptors(_openeye_mol(row["smiles"]))
-
-        for name in deferred_names:
-            assert descriptors[name] is None
+def test_no_mordred_filter_descriptors_remain_deferred():
+    assert "Lipinski" not in _policy_descriptors_by_status("deferred")
+    assert "GhoseFilter" not in _policy_descriptors_by_status("deferred")
 
 
 def test_parity_harness_rejects_concrete_values_for_deferred_descriptors(

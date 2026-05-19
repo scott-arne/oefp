@@ -417,17 +417,17 @@
       "descriptor": "Lipinski",
       "family": "Lipinski",
       "source": "/Users/johnss51/Development/python/mordred/mordred/Lipinski.py",
-      "status": "deferred",
+      "status": "exact",
       "primitive": "Composite Lipinski rule using SLogP, molecular weight, and hydrogen-bond counts",
-      "reason": "Mordred Lipinski uses RDKit-derived SLogP and hydrogen-bond primitives; OEFP parity is deferred until those primitive dependencies are implemented and validated."
+      "reason": "OEFP matches Mordred Lipinski values on the committed 16-row first-batch fixture."
     },
     {
       "descriptor": "GhoseFilter",
       "family": "Lipinski",
       "source": "/Users/johnss51/Development/python/mordred/mordred/Lipinski.py",
-      "status": "deferred",
-      "primitive": "Composite Ghose filter using SLogP, SMR, molecular weight, and atom-count thresholds",
-      "reason": "Mordred GhoseFilter depends on SLogP, SMR, molecular weight, and atom-count thresholds; OEFP parity is deferred until SLogP/SMR-compatible primitives are available."
+      "status": "exact",
+      "primitive": "Composite Ghose filter using SLogP, SMR, molecular weight, and RDKit GetNumAtoms heavy-atom thresholds",
+      "reason": "OEFP matches Mordred GhoseFilter values on the committed 16-row first-batch fixture."
     }
   ],
   "row_divergences": []
