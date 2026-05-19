@@ -138,6 +138,14 @@ def _policy_descriptors_by_status(status: str) -> tuple[str, ...]:
     )
 
 
+def _row_divergence_policy() -> dict[tuple[str, str], dict[str, Any]]:
+    return {
+        (row["descriptor"], row["smiles"]): row
+        for row in _divergence_payload()["row_divergences"]
+        if row["status"] == "openeye_divergent"
+    }
+
+
 def _reference_values_by_name(payload: dict[str, Any], row: dict[str, Any]) -> dict[str, Any]:
     return dict(zip(_definition_names(payload), row["values"], strict=True))
 
@@ -208,9 +216,11 @@ def test_mordred_descriptors_match_first_batch_reference_values():
 
     payload = _reference_payload()
     names = _first_batch_names(payload)
+    row_divergences = _row_divergence_policy()
 
     assert len(names) == 53
     for row in payload["reference_rows"]:
+        smiles = row["smiles"]
         descriptors = oefp.mordred_descriptors(_openeye_mol(row["smiles"]))
         expected_by_name = _reference_values_by_name(payload, row)
 
@@ -218,6 +228,11 @@ def test_mordred_descriptors_match_first_batch_reference_values():
         for name in names:
             expected = expected_by_name[name]
             actual = descriptors[name]
+            row_divergence = row_divergences.get((name, smiles))
+            if row_divergence is not None:
+                assert expected == row_divergence["reference"]
+                assert actual == row_divergence["observed"]
+                continue
             if isinstance(expected, dict):
                 assert expected["state"] in {"missing", "error", "nonfinite"}
                 assert actual is None
@@ -321,7 +336,7 @@ def test_mordred_reference_fixture_contains_full_schema_and_panel():
     assert names.index("nAtom") == 18
     assert names.index("Lipinski") == 1351
     assert names.index("GhoseFilter") == 1352
-    assert len(payload["reference_rows"]) == 16
+    assert len(payload["reference_rows"]) == 17
     assert definitions_by_name["ABC"]["value_kind"] == "float"
     assert definitions_by_name["nAtom"]["value_kind"] == "int"
     assert definitions_by_name["Lipinski"]["value_kind"] == "bool"

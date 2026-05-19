@@ -36,6 +36,7 @@ SMILES_PANEL = [
     "[13CH4]",
     "CCCCCCCCCCCCCCCC",
     "O=[Se]=O",
+    "COC(=O)c1ccc(OCC)c(O)c1C(=O)OCC",
 ]
 
 

@@ -596,7 +596,7 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
         builder,
         "GhoseFilter",
         values.exact_weight >= 160.0 && values.exact_weight <= 480.0
-            && values.heavy_atoms >= 20u && values.heavy_atoms <= 70u
+            && all_atoms >= 20u && all_atoms <= 70u
             && values.crippen_logp >= -0.4 && values.crippen_logp <= 5.6
             && values.crippen_mr >= 40.0 && values.crippen_mr <= 130.0);
 

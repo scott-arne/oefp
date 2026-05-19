@@ -181,6 +181,7 @@ TEST(MordredDescriptorTest, FilterDescriptorsMatchCopiedMordredReferences) {
         {"c1ccncc1", true, false},
         {"CCCCCCCCCCCCCCCC", false, false},
         {"CCOC(=O)c1ccc(OCC)c(O)c1C(=O)OCC", true, true},
+        {"COC(=O)c1ccc(OCC)c(O)c1C(=O)OCC", true, true},
     };
 
     for (const auto& expected : cases) {
