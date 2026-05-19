@@ -6,10 +6,403 @@
   },
   "policies": [
     {
+      "descriptor": "nAcid",
+      "family": "AcidBase",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/AcidBase.py",
+      "status": "exact",
+      "primitive": "OpenEye SMARTS acid substructure counts",
+      "reason": "OEFP matches Mordred nAcid values on the committed 16-row first-batch fixture."
+    },
+    {
+      "descriptor": "nBase",
+      "family": "AcidBase",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/AcidBase.py",
+      "status": "exact",
+      "primitive": "OpenEye SMARTS base substructure counts",
+      "reason": "OEFP matches Mordred nBase values on the committed 16-row first-batch fixture."
+    },
+    {
+      "descriptor": "nAromAtom",
+      "family": "Aromatic",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Aromatic.py",
+      "status": "exact",
+      "primitive": "OpenEye aromatic atom flags",
+      "reason": "OEFP matches Mordred aromatic atom counts on the committed 16-row first-batch fixture."
+    },
+    {
+      "descriptor": "nAromBond",
+      "family": "Aromatic",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Aromatic.py",
+      "status": "exact",
+      "primitive": "OpenEye aromatic bond flags",
+      "reason": "OEFP matches Mordred aromatic bond counts on the committed 16-row first-batch fixture."
+    },
+    {
+      "descriptor": "nAtom",
+      "family": "AtomCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/AtomCount.py",
+      "status": "exact",
+      "primitive": "OpenEye atom count including hydrogens",
+      "reason": "OEFP matches Mordred total atom counts on the committed 16-row first-batch fixture."
+    },
+    {
+      "descriptor": "nHeavyAtom",
+      "family": "AtomCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/AtomCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy atom count",
+      "reason": "OEFP matches Mordred heavy atom counts on the committed 16-row first-batch fixture."
+    },
+    {
+      "descriptor": "nSpiro",
+      "family": "AtomCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/AtomCount.py",
+      "status": "exact",
+      "primitive": "OpenEye ring topology spiro atom count",
+      "reason": "OEFP matches Mordred spiro atom counts on the committed 16-row first-batch fixture."
+    },
+    {
+      "descriptor": "nBridgehead",
+      "family": "AtomCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/AtomCount.py",
+      "status": "exact",
+      "primitive": "OpenEye ring topology bridgehead atom count",
+      "reason": "OEFP matches Mordred bridgehead atom counts on the committed 16-row first-batch fixture."
+    },
+    {
+      "descriptor": "nHetero",
+      "family": "AtomCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/AtomCount.py",
+      "status": "exact",
+      "primitive": "OpenEye hetero atom count",
+      "reason": "OEFP matches Mordred hetero atom counts on the committed 16-row first-batch fixture."
+    },
+    {
+      "descriptor": "nH",
+      "family": "AtomCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/AtomCount.py",
+      "status": "exact",
+      "primitive": "OpenEye explicit and implicit hydrogen count",
+      "reason": "OEFP matches Mordred hydrogen counts on the committed 16-row first-batch fixture."
+    },
+    {
+      "descriptor": "nB",
+      "family": "AtomCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/AtomCount.py",
+      "status": "exact",
+      "primitive": "OpenEye boron atom count",
+      "reason": "OEFP matches Mordred boron atom counts on the committed 16-row first-batch fixture."
+    },
+    {
+      "descriptor": "nC",
+      "family": "AtomCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/AtomCount.py",
+      "status": "exact",
+      "primitive": "OpenEye carbon atom count",
+      "reason": "OEFP matches Mordred carbon atom counts on the committed 16-row first-batch fixture."
+    },
+    {
+      "descriptor": "nN",
+      "family": "AtomCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/AtomCount.py",
+      "status": "exact",
+      "primitive": "OpenEye nitrogen atom count",
+      "reason": "OEFP matches Mordred nitrogen atom counts on the committed 16-row first-batch fixture."
+    },
+    {
+      "descriptor": "nO",
+      "family": "AtomCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/AtomCount.py",
+      "status": "exact",
+      "primitive": "OpenEye oxygen atom count",
+      "reason": "OEFP matches Mordred oxygen atom counts on the committed 16-row first-batch fixture."
+    },
+    {
+      "descriptor": "nS",
+      "family": "AtomCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/AtomCount.py",
+      "status": "exact",
+      "primitive": "OpenEye sulfur atom count",
+      "reason": "OEFP matches Mordred sulfur atom counts on the committed 16-row first-batch fixture."
+    },
+    {
+      "descriptor": "nP",
+      "family": "AtomCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/AtomCount.py",
+      "status": "exact",
+      "primitive": "OpenEye phosphorus atom count",
+      "reason": "OEFP matches Mordred phosphorus atom counts on the committed 16-row first-batch fixture."
+    },
+    {
+      "descriptor": "nF",
+      "family": "AtomCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/AtomCount.py",
+      "status": "exact",
+      "primitive": "OpenEye fluorine atom count",
+      "reason": "OEFP matches Mordred fluorine atom counts on the committed 16-row first-batch fixture."
+    },
+    {
+      "descriptor": "nCl",
+      "family": "AtomCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/AtomCount.py",
+      "status": "exact",
+      "primitive": "OpenEye chlorine atom count",
+      "reason": "OEFP matches Mordred chlorine atom counts on the committed 16-row first-batch fixture."
+    },
+    {
+      "descriptor": "nBr",
+      "family": "AtomCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/AtomCount.py",
+      "status": "exact",
+      "primitive": "OpenEye bromine atom count",
+      "reason": "OEFP matches Mordred bromine atom counts on the committed 16-row first-batch fixture."
+    },
+    {
+      "descriptor": "nI",
+      "family": "AtomCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/AtomCount.py",
+      "status": "exact",
+      "primitive": "OpenEye iodine atom count",
+      "reason": "OEFP matches Mordred iodine atom counts on the committed 16-row first-batch fixture."
+    },
+    {
+      "descriptor": "nX",
+      "family": "AtomCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/AtomCount.py",
+      "status": "exact",
+      "primitive": "OpenEye halogen atom count",
+      "reason": "OEFP matches Mordred halogen atom counts on the committed 16-row first-batch fixture."
+    },
+    {
+      "descriptor": "nBonds",
+      "family": "BondCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/BondCount.py",
+      "status": "exact",
+      "primitive": "OpenEye total bond count",
+      "reason": "OEFP matches Mordred total bond counts on the committed 16-row first-batch fixture."
+    },
+    {
+      "descriptor": "nBondsO",
+      "family": "BondCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/BondCount.py",
+      "status": "exact",
+      "primitive": "OpenEye original bond count",
+      "reason": "OEFP matches Mordred original bond counts on the committed 16-row first-batch fixture."
+    },
+    {
+      "descriptor": "nBondsS",
+      "family": "BondCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/BondCount.py",
+      "status": "exact",
+      "primitive": "OpenEye single bond count",
+      "reason": "OEFP matches Mordred single bond counts on the committed 16-row first-batch fixture."
+    },
+    {
+      "descriptor": "nBondsD",
+      "family": "BondCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/BondCount.py",
+      "status": "exact",
+      "primitive": "OpenEye double bond count",
+      "reason": "OEFP matches Mordred double bond counts on the committed 16-row first-batch fixture."
+    },
+    {
+      "descriptor": "nBondsT",
+      "family": "BondCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/BondCount.py",
+      "status": "exact",
+      "primitive": "OpenEye triple bond count",
+      "reason": "OEFP matches Mordred triple bond counts on the committed 16-row first-batch fixture."
+    },
+    {
+      "descriptor": "nBondsA",
+      "family": "BondCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/BondCount.py",
+      "status": "exact",
+      "primitive": "OpenEye aromatic bond count",
+      "reason": "OEFP matches Mordred aromatic bond counts on the committed 16-row first-batch fixture."
+    },
+    {
+      "descriptor": "nBondsM",
+      "family": "BondCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/BondCount.py",
+      "status": "exact",
+      "primitive": "OpenEye multiple bond count",
+      "reason": "OEFP matches Mordred multiple bond counts on the committed 16-row first-batch fixture."
+    },
+    {
+      "descriptor": "nBondsKS",
+      "family": "BondCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/BondCount.py",
+      "status": "exact",
+      "primitive": "OpenEye kekulized single bond count",
+      "reason": "OEFP matches Mordred kekulized single bond counts on the committed 16-row first-batch fixture."
+    },
+    {
+      "descriptor": "nBondsKD",
+      "family": "BondCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/BondCount.py",
+      "status": "exact",
+      "primitive": "OpenEye kekulized double bond count",
+      "reason": "OEFP matches Mordred kekulized double bond counts on the committed 16-row first-batch fixture."
+    },
+    {
+      "descriptor": "C1SP1",
+      "family": "CarbonTypes",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CarbonTypes.py",
+      "status": "exact",
+      "primitive": "OpenEye carbon hybridization and hydrogen count",
+      "reason": "OEFP matches Mordred C1SP1 values on the committed 16-row first-batch fixture."
+    },
+    {
+      "descriptor": "C2SP1",
+      "family": "CarbonTypes",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CarbonTypes.py",
+      "status": "exact",
+      "primitive": "OpenEye carbon hybridization and hydrogen count",
+      "reason": "OEFP matches Mordred C2SP1 values on the committed 16-row first-batch fixture."
+    },
+    {
+      "descriptor": "C1SP2",
+      "family": "CarbonTypes",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CarbonTypes.py",
+      "status": "exact",
+      "primitive": "OpenEye carbon hybridization and hydrogen count",
+      "reason": "OEFP matches Mordred C1SP2 values on the committed 16-row first-batch fixture."
+    },
+    {
+      "descriptor": "C2SP2",
+      "family": "CarbonTypes",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CarbonTypes.py",
+      "status": "exact",
+      "primitive": "OpenEye carbon hybridization and hydrogen count",
+      "reason": "OEFP matches Mordred C2SP2 values on the committed 16-row first-batch fixture."
+    },
+    {
+      "descriptor": "C3SP2",
+      "family": "CarbonTypes",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CarbonTypes.py",
+      "status": "exact",
+      "primitive": "OpenEye carbon hybridization and hydrogen count",
+      "reason": "OEFP matches Mordred C3SP2 values on the committed 16-row first-batch fixture."
+    },
+    {
+      "descriptor": "C1SP3",
+      "family": "CarbonTypes",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CarbonTypes.py",
+      "status": "exact",
+      "primitive": "OpenEye carbon hybridization and hydrogen count",
+      "reason": "OEFP matches Mordred C1SP3 values on the committed 16-row first-batch fixture."
+    },
+    {
+      "descriptor": "C2SP3",
+      "family": "CarbonTypes",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CarbonTypes.py",
+      "status": "exact",
+      "primitive": "OpenEye carbon hybridization and hydrogen count",
+      "reason": "OEFP matches Mordred C2SP3 values on the committed 16-row first-batch fixture."
+    },
+    {
+      "descriptor": "C3SP3",
+      "family": "CarbonTypes",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CarbonTypes.py",
+      "status": "exact",
+      "primitive": "OpenEye carbon hybridization and hydrogen count",
+      "reason": "OEFP matches Mordred C3SP3 values on the committed 16-row first-batch fixture."
+    },
+    {
+      "descriptor": "C4SP3",
+      "family": "CarbonTypes",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CarbonTypes.py",
+      "status": "exact",
+      "primitive": "OpenEye carbon hybridization and hydrogen count",
+      "reason": "OEFP matches Mordred C4SP3 values on the committed 16-row first-batch fixture."
+    },
+    {
+      "descriptor": "HybRatio",
+      "family": "CarbonTypes",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CarbonTypes.py",
+      "status": "exact",
+      "primitive": "OpenEye SP3/SP2 carbon ratio",
+      "reason": "OEFP matches Mordred HybRatio values on the committed 16-row first-batch fixture."
+    },
+    {
+      "descriptor": "FCSP3",
+      "family": "CarbonTypes",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CarbonTypes.py",
+      "status": "exact",
+      "primitive": "OpenEye SP3 carbon fraction",
+      "reason": "OEFP matches Mordred FCSP3 values on the committed 16-row first-batch fixture."
+    },
+    {
+      "descriptor": "nHBAcc",
+      "family": "HydrogenBond",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/HydrogenBond.py",
+      "status": "exact",
+      "primitive": "OpenEye hydrogen-bond acceptor SMARTS count",
+      "reason": "OEFP matches Mordred hydrogen-bond acceptor counts on the committed 16-row first-batch fixture."
+    },
+    {
+      "descriptor": "nHBDon",
+      "family": "HydrogenBond",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/HydrogenBond.py",
+      "status": "exact",
+      "primitive": "OpenEye hydrogen-bond donor SMARTS count",
+      "reason": "OEFP matches Mordred hydrogen-bond donor counts on the committed 16-row first-batch fixture."
+    },
+    {
+      "descriptor": "nRot",
+      "family": "RotatableBond",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/RotatableBond.py",
+      "status": "exact",
+      "primitive": "OpenEye rotatable bond count",
+      "reason": "OEFP matches Mordred rotatable bond counts on the committed 16-row first-batch fixture."
+    },
+    {
+      "descriptor": "RotRatio",
+      "family": "RotatableBond",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/RotatableBond.py",
+      "status": "exact",
+      "primitive": "OpenEye rotatable-to-total bond ratio",
+      "reason": "OEFP matches Mordred RotRatio values on the committed 16-row first-batch fixture."
+    },
+    {
+      "descriptor": "TopoPSA(NO)",
+      "family": "TopoPSA",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/TopoPSA.py",
+      "status": "exact",
+      "primitive": "OpenEye topological polar surface area without sulfur or phosphorus",
+      "reason": "OEFP matches Mordred TopoPSA(NO) values on the committed 16-row first-batch fixture."
+    },
+    {
+      "descriptor": "TopoPSA",
+      "family": "TopoPSA",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/TopoPSA.py",
+      "status": "exact",
+      "primitive": "OpenEye topological polar surface area",
+      "reason": "OEFP matches Mordred TopoPSA values on the committed 16-row first-batch fixture."
+    },
+    {
+      "descriptor": "MW",
+      "family": "Weight",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Weight.py",
+      "status": "exact",
+      "primitive": "OpenEye molecular weight",
+      "reason": "OEFP matches Mordred molecular weight values on the committed 16-row first-batch fixture."
+    },
+    {
+      "descriptor": "AMW",
+      "family": "Weight",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Weight.py",
+      "status": "exact",
+      "primitive": "OpenEye average molecular weight",
+      "reason": "OEFP matches Mordred average molecular weight values on the committed 16-row first-batch fixture."
+    },
+    {
       "descriptor": "Lipinski",
       "family": "Lipinski",
       "source": "/Users/johnss51/Development/python/mordred/mordred/Lipinski.py",
       "status": "deferred",
+      "primitive": "Composite Lipinski rule using SLogP, molecular weight, and hydrogen-bond counts",
       "reason": "Mordred Lipinski uses RDKit-derived SLogP and hydrogen-bond primitives; OEFP parity is deferred until those primitive dependencies are implemented and validated."
     },
     {
@@ -17,6 +410,7 @@
       "family": "Lipinski",
       "source": "/Users/johnss51/Development/python/mordred/mordred/Lipinski.py",
       "status": "deferred",
+      "primitive": "Composite Ghose filter using SLogP, SMR, molecular weight, and atom-count thresholds",
       "reason": "Mordred GhoseFilter depends on SLogP, SMR, molecular weight, and atom-count thresholds; OEFP parity is deferred until SLogP/SMR-compatible primitives are available."
     }
   ],

@@ -17,7 +17,16 @@ import compare_mordred_parity
 REFERENCE_FIXTURE = Path(__file__).with_name("mordred_references.json")
 DIVERGENCE_FIXTURE = Path(__file__).with_name("mordred_divergences.json")
 POLICY_STATUSES = {"exact", "openeye_divergent", "deferred", "not_applicable"}
+POLICY_REQUIRED_FIELDS = {
+    "descriptor",
+    "family",
+    "status",
+    "source",
+    "primitive",
+    "reason",
+}
 ROW_DIVERGENCE_REQUIRED_FIELDS = {
+    "status",
     "descriptor",
     "smiles",
     "reference",
@@ -314,6 +323,8 @@ def test_mordred_reference_fixture_contains_full_schema_and_panel():
 
 def test_mordred_divergence_policy_manifest_is_valid():
     payload = _divergence_payload()
+    expected_descriptors = set(_first_batch_names(_reference_payload()))
+    expected_descriptors.update({"Lipinski", "GhoseFilter"})
 
     assert {
         "schema_version",
@@ -325,7 +336,9 @@ def test_mordred_divergence_policy_manifest_is_valid():
 
     policies = payload["policies"]
     assert isinstance(policies, list)
+    assert {policy["descriptor"] for policy in policies} == expected_descriptors
     for policy in policies:
+        assert POLICY_REQUIRED_FIELDS <= set(policy)
         assert policy["status"] in POLICY_STATUSES
 
 
@@ -333,6 +346,7 @@ def test_mordred_divergence_rows_include_required_context():
     payload = _divergence_payload()
 
     for row in payload["row_divergences"]:
+        assert row["status"] in POLICY_STATUSES
         if row["status"] == "openeye_divergent":
             assert ROW_DIVERGENCE_REQUIRED_FIELDS <= set(row)
 
