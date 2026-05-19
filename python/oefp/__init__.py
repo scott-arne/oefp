@@ -532,6 +532,8 @@ _check_openeye_version()
 from .api import (
     AtomPairGenerator,
     DescriptorBatch,
+    DescriptorDefinition,
+    DescriptorSchema,
     DescriptorSet,
     DescriptorSpec,
     FingerprintSpec,
@@ -575,6 +577,8 @@ __all__ = [
     "__version_info__",
     "AtomPairGenerator",
     "DescriptorBatch",
+    "DescriptorDefinition",
+    "DescriptorSchema",
     "DescriptorSet",
     "DescriptorSpec",
     "FingerprintSpec",
