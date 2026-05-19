@@ -11,7 +11,7 @@
       "source": "/Users/johnss51/Development/python/mordred/mordred/AcidBase.py",
       "status": "exact",
       "primitive": "OpenEye SMARTS acid substructure counts",
-      "reason": "OEFP matches Mordred nAcid values on the committed 17-row first-batch fixture."
+      "reason": "OEFP matches Mordred nAcid values on the committed Mordred parity fixture."
     },
     {
       "descriptor": "nBase",
@@ -19,7 +19,7 @@
       "source": "/Users/johnss51/Development/python/mordred/mordred/AcidBase.py",
       "status": "exact",
       "primitive": "OpenEye SMARTS base substructure counts",
-      "reason": "OEFP matches Mordred nBase values on the committed 17-row first-batch fixture."
+      "reason": "OEFP matches Mordred nBase values on the committed Mordred parity fixture."
     },
     {
       "descriptor": "nAromAtom",
@@ -27,7 +27,7 @@
       "source": "/Users/johnss51/Development/python/mordred/mordred/Aromatic.py",
       "status": "exact",
       "primitive": "OpenEye aromatic atom flags",
-      "reason": "OEFP matches Mordred aromatic atom counts on the committed 17-row first-batch fixture."
+      "reason": "OEFP matches Mordred aromatic atom counts on the committed Mordred parity fixture."
     },
     {
       "descriptor": "nAromBond",
@@ -35,7 +35,7 @@
       "source": "/Users/johnss51/Development/python/mordred/mordred/Aromatic.py",
       "status": "exact",
       "primitive": "OpenEye aromatic bond flags",
-      "reason": "OEFP matches Mordred aromatic bond counts on the committed 17-row first-batch fixture."
+      "reason": "OEFP matches Mordred aromatic bond counts on the committed Mordred parity fixture."
     },
     {
       "descriptor": "nAtom",
@@ -43,7 +43,7 @@
       "source": "/Users/johnss51/Development/python/mordred/mordred/AtomCount.py",
       "status": "exact",
       "primitive": "OpenEye atom count including hydrogens",
-      "reason": "OEFP matches Mordred total atom counts on the committed 17-row first-batch fixture."
+      "reason": "OEFP matches Mordred total atom counts on the committed Mordred parity fixture."
     },
     {
       "descriptor": "nHeavyAtom",
@@ -51,7 +51,7 @@
       "source": "/Users/johnss51/Development/python/mordred/mordred/AtomCount.py",
       "status": "exact",
       "primitive": "OpenEye heavy atom count",
-      "reason": "OEFP matches Mordred heavy atom counts on the committed 17-row first-batch fixture."
+      "reason": "OEFP matches Mordred heavy atom counts on the committed Mordred parity fixture."
     },
     {
       "descriptor": "nSpiro",
@@ -59,7 +59,7 @@
       "source": "/Users/johnss51/Development/python/mordred/mordred/AtomCount.py",
       "status": "exact",
       "primitive": "OpenEye ring topology spiro atom count",
-      "reason": "OEFP matches Mordred spiro atom counts on the committed 17-row first-batch fixture."
+      "reason": "OEFP matches Mordred spiro atom counts on the committed Mordred parity fixture."
     },
     {
       "descriptor": "nBridgehead",
@@ -67,7 +67,7 @@
       "source": "/Users/johnss51/Development/python/mordred/mordred/AtomCount.py",
       "status": "exact",
       "primitive": "OpenEye ring topology bridgehead atom count",
-      "reason": "OEFP matches Mordred bridgehead atom counts on the committed 17-row first-batch fixture."
+      "reason": "OEFP matches Mordred bridgehead atom counts on the committed Mordred parity fixture."
     },
     {
       "descriptor": "nHetero",
@@ -75,7 +75,7 @@
       "source": "/Users/johnss51/Development/python/mordred/mordred/AtomCount.py",
       "status": "exact",
       "primitive": "OpenEye hetero atom count",
-      "reason": "OEFP matches Mordred hetero atom counts on the committed 17-row first-batch fixture."
+      "reason": "OEFP matches Mordred hetero atom counts on the committed Mordred parity fixture."
     },
     {
       "descriptor": "nH",
@@ -83,7 +83,7 @@
       "source": "/Users/johnss51/Development/python/mordred/mordred/AtomCount.py",
       "status": "exact",
       "primitive": "OpenEye explicit and implicit hydrogen count",
-      "reason": "OEFP matches Mordred hydrogen counts on the committed 17-row first-batch fixture."
+      "reason": "OEFP matches Mordred hydrogen counts on the committed Mordred parity fixture."
     },
     {
       "descriptor": "nB",
@@ -91,7 +91,7 @@
       "source": "/Users/johnss51/Development/python/mordred/mordred/AtomCount.py",
       "status": "exact",
       "primitive": "OpenEye boron atom count",
-      "reason": "OEFP matches Mordred boron atom counts on the committed 17-row first-batch fixture."
+      "reason": "OEFP matches Mordred boron atom counts on the committed Mordred parity fixture."
     },
     {
       "descriptor": "nC",
@@ -99,7 +99,7 @@
       "source": "/Users/johnss51/Development/python/mordred/mordred/AtomCount.py",
       "status": "exact",
       "primitive": "OpenEye carbon atom count",
-      "reason": "OEFP matches Mordred carbon atom counts on the committed 17-row first-batch fixture."
+      "reason": "OEFP matches Mordred carbon atom counts on the committed Mordred parity fixture."
     },
     {
       "descriptor": "nN",
@@ -107,7 +107,7 @@
       "source": "/Users/johnss51/Development/python/mordred/mordred/AtomCount.py",
       "status": "exact",
       "primitive": "OpenEye nitrogen atom count",
-      "reason": "OEFP matches Mordred nitrogen atom counts on the committed 17-row first-batch fixture."
+      "reason": "OEFP matches Mordred nitrogen atom counts on the committed Mordred parity fixture."
     },
     {
       "descriptor": "nO",
@@ -115,7 +115,7 @@
       "source": "/Users/johnss51/Development/python/mordred/mordred/AtomCount.py",
       "status": "exact",
       "primitive": "OpenEye oxygen atom count",
-      "reason": "OEFP matches Mordred oxygen atom counts on the committed 17-row first-batch fixture."
+      "reason": "OEFP matches Mordred oxygen atom counts on the committed Mordred parity fixture."
     },
     {
       "descriptor": "nS",
@@ -123,7 +123,7 @@
       "source": "/Users/johnss51/Development/python/mordred/mordred/AtomCount.py",
       "status": "exact",
       "primitive": "OpenEye sulfur atom count",
-      "reason": "OEFP matches Mordred sulfur atom counts on the committed 17-row first-batch fixture."
+      "reason": "OEFP matches Mordred sulfur atom counts on the committed Mordred parity fixture."
     },
     {
       "descriptor": "nP",
@@ -131,7 +131,7 @@
       "source": "/Users/johnss51/Development/python/mordred/mordred/AtomCount.py",
       "status": "exact",
       "primitive": "OpenEye phosphorus atom count",
-      "reason": "OEFP matches Mordred phosphorus atom counts on the committed 17-row first-batch fixture."
+      "reason": "OEFP matches Mordred phosphorus atom counts on the committed Mordred parity fixture."
     },
     {
       "descriptor": "nF",
@@ -139,7 +139,7 @@
       "source": "/Users/johnss51/Development/python/mordred/mordred/AtomCount.py",
       "status": "exact",
       "primitive": "OpenEye fluorine atom count",
-      "reason": "OEFP matches Mordred fluorine atom counts on the committed 17-row first-batch fixture."
+      "reason": "OEFP matches Mordred fluorine atom counts on the committed Mordred parity fixture."
     },
     {
       "descriptor": "nCl",
@@ -147,7 +147,7 @@
       "source": "/Users/johnss51/Development/python/mordred/mordred/AtomCount.py",
       "status": "exact",
       "primitive": "OpenEye chlorine atom count",
-      "reason": "OEFP matches Mordred chlorine atom counts on the committed 17-row first-batch fixture."
+      "reason": "OEFP matches Mordred chlorine atom counts on the committed Mordred parity fixture."
     },
     {
       "descriptor": "nBr",
@@ -155,7 +155,7 @@
       "source": "/Users/johnss51/Development/python/mordred/mordred/AtomCount.py",
       "status": "exact",
       "primitive": "OpenEye bromine atom count",
-      "reason": "OEFP matches Mordred bromine atom counts on the committed 17-row first-batch fixture."
+      "reason": "OEFP matches Mordred bromine atom counts on the committed Mordred parity fixture."
     },
     {
       "descriptor": "nI",
@@ -163,7 +163,7 @@
       "source": "/Users/johnss51/Development/python/mordred/mordred/AtomCount.py",
       "status": "exact",
       "primitive": "OpenEye iodine atom count",
-      "reason": "OEFP matches Mordred iodine atom counts on the committed 17-row first-batch fixture."
+      "reason": "OEFP matches Mordred iodine atom counts on the committed Mordred parity fixture."
     },
     {
       "descriptor": "nX",
@@ -171,7 +171,7 @@
       "source": "/Users/johnss51/Development/python/mordred/mordred/AtomCount.py",
       "status": "exact",
       "primitive": "OpenEye halogen atom count",
-      "reason": "OEFP matches Mordred halogen atom counts on the committed 17-row first-batch fixture."
+      "reason": "OEFP matches Mordred halogen atom counts on the committed Mordred parity fixture."
     },
     {
       "descriptor": "nBonds",
@@ -179,7 +179,7 @@
       "source": "/Users/johnss51/Development/python/mordred/mordred/BondCount.py",
       "status": "exact",
       "primitive": "OpenEye total bond count",
-      "reason": "OEFP matches Mordred total bond counts on the committed 17-row first-batch fixture."
+      "reason": "OEFP matches Mordred total bond counts on the committed Mordred parity fixture."
     },
     {
       "descriptor": "nBondsO",
@@ -187,7 +187,7 @@
       "source": "/Users/johnss51/Development/python/mordred/mordred/BondCount.py",
       "status": "exact",
       "primitive": "OpenEye original bond count",
-      "reason": "OEFP matches Mordred original bond counts on the committed 17-row first-batch fixture."
+      "reason": "OEFP matches Mordred original bond counts on the committed Mordred parity fixture."
     },
     {
       "descriptor": "nBondsS",
@@ -195,7 +195,7 @@
       "source": "/Users/johnss51/Development/python/mordred/mordred/BondCount.py",
       "status": "exact",
       "primitive": "OpenEye single bond count",
-      "reason": "OEFP matches Mordred single bond counts on the committed 17-row first-batch fixture."
+      "reason": "OEFP matches Mordred single bond counts on the committed Mordred parity fixture."
     },
     {
       "descriptor": "nBondsD",
@@ -203,7 +203,7 @@
       "source": "/Users/johnss51/Development/python/mordred/mordred/BondCount.py",
       "status": "exact",
       "primitive": "OpenEye double bond count",
-      "reason": "OEFP matches Mordred double bond counts on the committed 17-row first-batch fixture."
+      "reason": "OEFP matches Mordred double bond counts on the committed Mordred parity fixture."
     },
     {
       "descriptor": "nBondsT",
@@ -211,7 +211,7 @@
       "source": "/Users/johnss51/Development/python/mordred/mordred/BondCount.py",
       "status": "exact",
       "primitive": "OpenEye triple bond count",
-      "reason": "OEFP matches Mordred triple bond counts on the committed 17-row first-batch fixture."
+      "reason": "OEFP matches Mordred triple bond counts on the committed Mordred parity fixture."
     },
     {
       "descriptor": "nBondsA",
@@ -219,7 +219,7 @@
       "source": "/Users/johnss51/Development/python/mordred/mordred/BondCount.py",
       "status": "exact",
       "primitive": "OpenEye aromatic bond count",
-      "reason": "OEFP matches Mordred aromatic bond counts on the committed 17-row first-batch fixture."
+      "reason": "OEFP matches Mordred aromatic bond counts on the committed Mordred parity fixture."
     },
     {
       "descriptor": "nBondsM",
@@ -227,7 +227,7 @@
       "source": "/Users/johnss51/Development/python/mordred/mordred/BondCount.py",
       "status": "exact",
       "primitive": "OpenEye multiple bond count",
-      "reason": "OEFP matches Mordred multiple bond counts on the committed 17-row first-batch fixture."
+      "reason": "OEFP matches Mordred multiple bond counts on the committed Mordred parity fixture."
     },
     {
       "descriptor": "nBondsKS",
@@ -235,7 +235,7 @@
       "source": "/Users/johnss51/Development/python/mordred/mordred/BondCount.py",
       "status": "exact",
       "primitive": "OpenEye kekulized single bond count",
-      "reason": "OEFP matches Mordred kekulized single bond counts on the committed 17-row first-batch fixture."
+      "reason": "OEFP matches Mordred kekulized single bond counts on the committed Mordred parity fixture."
     },
     {
       "descriptor": "nBondsKD",
@@ -243,7 +243,7 @@
       "source": "/Users/johnss51/Development/python/mordred/mordred/BondCount.py",
       "status": "exact",
       "primitive": "OpenEye kekulized double bond count",
-      "reason": "OEFP matches Mordred kekulized double bond counts on the committed 17-row first-batch fixture."
+      "reason": "OEFP matches Mordred kekulized double bond counts on the committed Mordred parity fixture."
     },
     {
       "descriptor": "C1SP1",
@@ -251,7 +251,7 @@
       "source": "/Users/johnss51/Development/python/mordred/mordred/CarbonTypes.py",
       "status": "exact",
       "primitive": "OpenEye carbon hybridization and hydrogen count",
-      "reason": "OEFP matches Mordred C1SP1 values on the committed 17-row first-batch fixture."
+      "reason": "OEFP matches Mordred C1SP1 values on the committed Mordred parity fixture."
     },
     {
       "descriptor": "C2SP1",
@@ -259,7 +259,7 @@
       "source": "/Users/johnss51/Development/python/mordred/mordred/CarbonTypes.py",
       "status": "exact",
       "primitive": "OpenEye carbon hybridization and hydrogen count",
-      "reason": "OEFP matches Mordred C2SP1 values on the committed 17-row first-batch fixture."
+      "reason": "OEFP matches Mordred C2SP1 values on the committed Mordred parity fixture."
     },
     {
       "descriptor": "C1SP2",
@@ -267,7 +267,7 @@
       "source": "/Users/johnss51/Development/python/mordred/mordred/CarbonTypes.py",
       "status": "exact",
       "primitive": "OpenEye carbon hybridization and hydrogen count",
-      "reason": "OEFP matches Mordred C1SP2 values on the committed 17-row first-batch fixture."
+      "reason": "OEFP matches Mordred C1SP2 values on the committed Mordred parity fixture."
     },
     {
       "descriptor": "C2SP2",
@@ -275,7 +275,7 @@
       "source": "/Users/johnss51/Development/python/mordred/mordred/CarbonTypes.py",
       "status": "exact",
       "primitive": "OpenEye carbon hybridization and hydrogen count",
-      "reason": "OEFP matches Mordred C2SP2 values on the committed 17-row first-batch fixture."
+      "reason": "OEFP matches Mordred C2SP2 values on the committed Mordred parity fixture."
     },
     {
       "descriptor": "C3SP2",
@@ -283,7 +283,7 @@
       "source": "/Users/johnss51/Development/python/mordred/mordred/CarbonTypes.py",
       "status": "exact",
       "primitive": "OpenEye carbon hybridization and hydrogen count",
-      "reason": "OEFP matches Mordred C3SP2 values on the committed 17-row first-batch fixture."
+      "reason": "OEFP matches Mordred C3SP2 values on the committed Mordred parity fixture."
     },
     {
       "descriptor": "C1SP3",
@@ -291,7 +291,7 @@
       "source": "/Users/johnss51/Development/python/mordred/mordred/CarbonTypes.py",
       "status": "exact",
       "primitive": "OpenEye carbon hybridization and hydrogen count",
-      "reason": "OEFP matches Mordred C1SP3 values on the committed 17-row first-batch fixture."
+      "reason": "OEFP matches Mordred C1SP3 values on the committed Mordred parity fixture."
     },
     {
       "descriptor": "C2SP3",
@@ -299,7 +299,7 @@
       "source": "/Users/johnss51/Development/python/mordred/mordred/CarbonTypes.py",
       "status": "exact",
       "primitive": "OpenEye carbon hybridization and hydrogen count",
-      "reason": "OEFP matches Mordred C2SP3 values on the committed 17-row first-batch fixture."
+      "reason": "OEFP matches Mordred C2SP3 values on the committed Mordred parity fixture."
     },
     {
       "descriptor": "C3SP3",
@@ -307,7 +307,7 @@
       "source": "/Users/johnss51/Development/python/mordred/mordred/CarbonTypes.py",
       "status": "exact",
       "primitive": "OpenEye carbon hybridization and hydrogen count",
-      "reason": "OEFP matches Mordred C3SP3 values on the committed 17-row first-batch fixture."
+      "reason": "OEFP matches Mordred C3SP3 values on the committed Mordred parity fixture."
     },
     {
       "descriptor": "C4SP3",
@@ -315,7 +315,7 @@
       "source": "/Users/johnss51/Development/python/mordred/mordred/CarbonTypes.py",
       "status": "exact",
       "primitive": "OpenEye carbon hybridization and hydrogen count",
-      "reason": "OEFP matches Mordred C4SP3 values on the committed 17-row first-batch fixture."
+      "reason": "OEFP matches Mordred C4SP3 values on the committed Mordred parity fixture."
     },
     {
       "descriptor": "HybRatio",
@@ -323,7 +323,7 @@
       "source": "/Users/johnss51/Development/python/mordred/mordred/CarbonTypes.py",
       "status": "exact",
       "primitive": "OpenEye SP3/SP2 carbon ratio",
-      "reason": "OEFP matches Mordred HybRatio values on the committed 17-row first-batch fixture."
+      "reason": "OEFP matches Mordred HybRatio values on the committed Mordred parity fixture."
     },
     {
       "descriptor": "FCSP3",
@@ -331,7 +331,7 @@
       "source": "/Users/johnss51/Development/python/mordred/mordred/CarbonTypes.py",
       "status": "exact",
       "primitive": "OpenEye SP3 carbon fraction",
-      "reason": "OEFP matches Mordred FCSP3 values on the committed 17-row first-batch fixture."
+      "reason": "OEFP matches Mordred FCSP3 values on the committed Mordred parity fixture."
     },
     {
       "descriptor": "nHBAcc",
@@ -339,7 +339,7 @@
       "source": "/Users/johnss51/Development/python/mordred/mordred/HydrogenBond.py",
       "status": "exact",
       "primitive": "OpenEye hydrogen-bond acceptor SMARTS count",
-      "reason": "OEFP matches Mordred hydrogen-bond acceptor counts on the committed 17-row first-batch fixture except documented row-level OpenEye SMARTS divergence."
+      "reason": "OEFP matches Mordred hydrogen-bond acceptor counts on the committed Mordred parity fixture except documented row-level OpenEye SMARTS divergence."
     },
     {
       "descriptor": "nHBDon",
@@ -347,7 +347,7 @@
       "source": "/Users/johnss51/Development/python/mordred/mordred/HydrogenBond.py",
       "status": "exact",
       "primitive": "OpenEye hydrogen-bond donor SMARTS count",
-      "reason": "OEFP matches Mordred hydrogen-bond donor counts on the committed 17-row first-batch fixture."
+      "reason": "OEFP matches Mordred hydrogen-bond donor counts on the committed Mordred parity fixture."
     },
     {
       "descriptor": "nRot",
@@ -355,7 +355,7 @@
       "source": "/Users/johnss51/Development/python/mordred/mordred/RotatableBond.py",
       "status": "exact",
       "primitive": "OpenEye rotatable bond count",
-      "reason": "OEFP matches Mordred rotatable bond counts on the committed 17-row first-batch fixture except documented row-level OpenEye rotor perception divergence."
+      "reason": "OEFP matches Mordred rotatable bond counts on the committed Mordred parity fixture except documented row-level OpenEye rotor perception divergence."
     },
     {
       "descriptor": "RotRatio",
@@ -363,7 +363,7 @@
       "source": "/Users/johnss51/Development/python/mordred/mordred/RotatableBond.py",
       "status": "exact",
       "primitive": "OpenEye rotatable-to-total bond ratio",
-      "reason": "OEFP matches Mordred RotRatio values on the committed 17-row first-batch fixture except documented row-level OpenEye rotor perception divergence."
+      "reason": "OEFP matches Mordred RotRatio values on the committed Mordred parity fixture except documented row-level OpenEye rotor perception divergence."
     },
     {
       "descriptor": "TopoPSA(NO)",
@@ -371,7 +371,7 @@
       "source": "/Users/johnss51/Development/python/mordred/mordred/TopoPSA.py",
       "status": "exact",
       "primitive": "OpenEye topological polar surface area without sulfur or phosphorus",
-      "reason": "OEFP matches Mordred TopoPSA(NO) values on the committed 17-row first-batch fixture."
+      "reason": "OEFP matches Mordred TopoPSA(NO) values on the committed Mordred parity fixture."
     },
     {
       "descriptor": "TopoPSA",
@@ -379,7 +379,7 @@
       "source": "/Users/johnss51/Development/python/mordred/mordred/TopoPSA.py",
       "status": "exact",
       "primitive": "OpenEye topological polar surface area",
-      "reason": "OEFP matches Mordred TopoPSA values on the committed 17-row first-batch fixture."
+      "reason": "OEFP matches Mordred TopoPSA values on the committed Mordred parity fixture."
     },
     {
       "descriptor": "MW",
@@ -403,7 +403,7 @@
       "source": "/Users/johnss51/Development/python/mordred/mordred/SLogP.py",
       "status": "exact",
       "primitive": "OpenEye substructure search over the RDKit Wildman-Crippen SMARTS contribution table from RDKit Crippen.cpp/Crippen.txt",
-      "reason": "OEFP matches Mordred SLogP values on the committed 17-row first-batch fixture."
+      "reason": "OEFP matches Mordred SLogP values on the committed Mordred parity fixture."
     },
     {
       "descriptor": "SMR",
@@ -411,7 +411,7 @@
       "source": "/Users/johnss51/Development/python/mordred/mordred/SLogP.py",
       "status": "exact",
       "primitive": "OpenEye substructure search over the RDKit Wildman-Crippen SMARTS contribution table from RDKit Crippen.cpp/Crippen.txt",
-      "reason": "OEFP matches Mordred SMR values on the committed 17-row first-batch fixture."
+      "reason": "OEFP matches Mordred SMR values on the committed Mordred parity fixture."
     },
     {
       "descriptor": "Lipinski",
@@ -419,7 +419,7 @@
       "source": "/Users/johnss51/Development/python/mordred/mordred/Lipinski.py",
       "status": "exact",
       "primitive": "Composite Lipinski rule using SLogP, molecular weight, and hydrogen-bond counts",
-      "reason": "OEFP matches Mordred Lipinski values on the committed 17-row first-batch fixture."
+      "reason": "OEFP matches Mordred Lipinski values on the committed Mordred parity fixture."
     },
     {
       "descriptor": "GhoseFilter",
@@ -427,7 +427,7 @@
       "source": "/Users/johnss51/Development/python/mordred/mordred/Lipinski.py",
       "status": "exact",
       "primitive": "Composite Ghose filter using SLogP, SMR, molecular weight, and Mordred total atom count thresholds",
-      "reason": "OEFP matches Mordred GhoseFilter values on the committed 17-row first-batch fixture."
+      "reason": "OEFP matches Mordred GhoseFilter values on the committed Mordred parity fixture."
     },
     {
       "descriptor": "SZ",
@@ -435,7 +435,7 @@
       "source": "/Users/johnss51/Development/python/mordred/mordred/Constitutional.py",
       "status": "exact",
       "primitive": "Mordred atomic number table over explicit-hydrogen OpenEye molecule",
-      "reason": "OEFP matches Mordred SZ values on the committed 17-row first-batch fixture."
+      "reason": "OEFP matches Mordred SZ values on the committed Mordred parity fixture."
     },
     {
       "descriptor": "Sm",
@@ -443,7 +443,7 @@
       "source": "/Users/johnss51/Development/python/mordred/mordred/Constitutional.py",
       "status": "exact",
       "primitive": "Mordred atomic mass table over explicit-hydrogen OpenEye molecule",
-      "reason": "OEFP matches Mordred Sm values on the committed 17-row first-batch fixture."
+      "reason": "OEFP matches Mordred Sm values on the committed Mordred parity fixture."
     },
     {
       "descriptor": "Sv",
@@ -451,7 +451,7 @@
       "source": "/Users/johnss51/Development/python/mordred/mordred/Constitutional.py",
       "status": "exact",
       "primitive": "Mordred van der Waals volume table over explicit-hydrogen OpenEye molecule",
-      "reason": "OEFP matches Mordred Sv values on the committed 17-row first-batch fixture."
+      "reason": "OEFP matches Mordred Sv values on the committed Mordred parity fixture."
     },
     {
       "descriptor": "Sse",
@@ -459,7 +459,7 @@
       "source": "/Users/johnss51/Development/python/mordred/mordred/Constitutional.py",
       "status": "exact",
       "primitive": "Mordred Sanderson electronegativity table over explicit-hydrogen OpenEye molecule",
-      "reason": "OEFP matches Mordred Sse values on the committed 17-row first-batch fixture."
+      "reason": "OEFP matches Mordred Sse values on the committed Mordred parity fixture."
     },
     {
       "descriptor": "Spe",
@@ -467,7 +467,7 @@
       "source": "/Users/johnss51/Development/python/mordred/mordred/Constitutional.py",
       "status": "exact",
       "primitive": "Mordred Pauling electronegativity table over explicit-hydrogen OpenEye molecule",
-      "reason": "OEFP matches Mordred Spe values on the committed 17-row first-batch fixture."
+      "reason": "OEFP matches Mordred Spe values on the committed Mordred parity fixture."
     },
     {
       "descriptor": "Sare",
@@ -475,7 +475,7 @@
       "source": "/Users/johnss51/Development/python/mordred/mordred/Constitutional.py",
       "status": "exact",
       "primitive": "Mordred Allred-Rocow electronegativity table over explicit-hydrogen OpenEye molecule",
-      "reason": "OEFP matches Mordred Sare values on the committed 17-row first-batch fixture."
+      "reason": "OEFP matches Mordred Sare values on the committed Mordred parity fixture."
     },
     {
       "descriptor": "Sp",
@@ -483,7 +483,7 @@
       "source": "/Users/johnss51/Development/python/mordred/mordred/Constitutional.py",
       "status": "exact",
       "primitive": "Mordred 1994 polarizability table over explicit-hydrogen OpenEye molecule",
-      "reason": "OEFP matches Mordred Sp values on the committed 17-row first-batch fixture."
+      "reason": "OEFP matches Mordred Sp values on the committed Mordred parity fixture."
     },
     {
       "descriptor": "Si",
@@ -491,7 +491,7 @@
       "source": "/Users/johnss51/Development/python/mordred/mordred/Constitutional.py",
       "status": "exact",
       "primitive": "Mordred ionization potential table over explicit-hydrogen OpenEye molecule",
-      "reason": "OEFP matches Mordred Si values on the committed 17-row first-batch fixture."
+      "reason": "OEFP matches Mordred Si values on the committed Mordred parity fixture."
     },
     {
       "descriptor": "MZ",
@@ -499,7 +499,7 @@
       "source": "/Users/johnss51/Development/python/mordred/mordred/Constitutional.py",
       "status": "exact",
       "primitive": "Mordred atomic number table sum divided by explicit-hydrogen atom count",
-      "reason": "OEFP matches Mordred MZ values on the committed 17-row first-batch fixture."
+      "reason": "OEFP matches Mordred MZ values on the committed Mordred parity fixture."
     },
     {
       "descriptor": "Mm",
@@ -507,7 +507,7 @@
       "source": "/Users/johnss51/Development/python/mordred/mordred/Constitutional.py",
       "status": "exact",
       "primitive": "Mordred atomic mass table sum divided by explicit-hydrogen atom count",
-      "reason": "OEFP matches Mordred Mm values on the committed 17-row first-batch fixture."
+      "reason": "OEFP matches Mordred Mm values on the committed Mordred parity fixture."
     },
     {
       "descriptor": "Mv",
@@ -515,7 +515,7 @@
       "source": "/Users/johnss51/Development/python/mordred/mordred/Constitutional.py",
       "status": "exact",
       "primitive": "Mordred van der Waals volume table sum divided by explicit-hydrogen atom count",
-      "reason": "OEFP matches Mordred Mv values on the committed 17-row first-batch fixture."
+      "reason": "OEFP matches Mordred Mv values on the committed Mordred parity fixture."
     },
     {
       "descriptor": "Mse",
@@ -523,7 +523,7 @@
       "source": "/Users/johnss51/Development/python/mordred/mordred/Constitutional.py",
       "status": "exact",
       "primitive": "Mordred Sanderson electronegativity table sum divided by explicit-hydrogen atom count",
-      "reason": "OEFP matches Mordred Mse values on the committed 17-row first-batch fixture."
+      "reason": "OEFP matches Mordred Mse values on the committed Mordred parity fixture."
     },
     {
       "descriptor": "Mpe",
@@ -531,7 +531,7 @@
       "source": "/Users/johnss51/Development/python/mordred/mordred/Constitutional.py",
       "status": "exact",
       "primitive": "Mordred Pauling electronegativity table sum divided by explicit-hydrogen atom count",
-      "reason": "OEFP matches Mordred Mpe values on the committed 17-row first-batch fixture."
+      "reason": "OEFP matches Mordred Mpe values on the committed Mordred parity fixture."
     },
     {
       "descriptor": "Mare",
@@ -539,7 +539,7 @@
       "source": "/Users/johnss51/Development/python/mordred/mordred/Constitutional.py",
       "status": "exact",
       "primitive": "Mordred Allred-Rocow electronegativity table sum divided by explicit-hydrogen atom count",
-      "reason": "OEFP matches Mordred Mare values on the committed 17-row first-batch fixture."
+      "reason": "OEFP matches Mordred Mare values on the committed Mordred parity fixture."
     },
     {
       "descriptor": "Mp",
@@ -547,7 +547,7 @@
       "source": "/Users/johnss51/Development/python/mordred/mordred/Constitutional.py",
       "status": "exact",
       "primitive": "Mordred 1994 polarizability table sum divided by explicit-hydrogen atom count",
-      "reason": "OEFP matches Mordred Mp values on the committed 17-row first-batch fixture."
+      "reason": "OEFP matches Mordred Mp values on the committed Mordred parity fixture."
     },
     {
       "descriptor": "Mi",
@@ -555,7 +555,7 @@
       "source": "/Users/johnss51/Development/python/mordred/mordred/Constitutional.py",
       "status": "exact",
       "primitive": "Mordred ionization potential table sum divided by explicit-hydrogen atom count",
-      "reason": "OEFP matches Mordred Mi values on the committed 17-row first-batch fixture."
+      "reason": "OEFP matches Mordred Mi values on the committed Mordred parity fixture."
     },
     {
       "descriptor": "VMcGowan",
@@ -563,7 +563,7 @@
       "source": "/Users/johnss51/Development/python/mordred/mordred/McGowanVolume.py",
       "status": "exact",
       "primitive": "Mordred McGowan volume table over explicit-hydrogen OpenEye molecule and all explicit bonds",
-      "reason": "OEFP matches Mordred VMcGowan values on the committed 17-row first-batch fixture."
+      "reason": "OEFP matches Mordred VMcGowan values on the committed Mordred parity fixture."
     },
     {
       "descriptor": "apol",
@@ -571,7 +571,7 @@
       "source": "/Users/johnss51/Development/python/mordred/mordred/Polarizability.py",
       "status": "exact",
       "primitive": "Mordred 1994 polarizability table over explicit-hydrogen OpenEye molecule",
-      "reason": "OEFP matches Mordred apol values on the committed 17-row first-batch fixture."
+      "reason": "OEFP matches Mordred apol values on the committed Mordred parity fixture."
     },
     {
       "descriptor": "bpol",
@@ -579,7 +579,7 @@
       "source": "/Users/johnss51/Development/python/mordred/mordred/Polarizability.py",
       "status": "exact",
       "primitive": "Mordred 1994 polarizability table absolute bond differences over explicit-hydrogen OpenEye molecule",
-      "reason": "OEFP matches Mordred bpol values on the committed 17-row first-batch fixture."
+      "reason": "OEFP matches Mordred bpol values on the committed Mordred parity fixture."
     },
     {
       "descriptor": "Vabc",
