@@ -33,16 +33,6 @@ const std::vector<std::string>& supported_count_names() {
     return names;
 }
 
-std::map<std::string, std::uint32_t> counts_by_key(const DescriptorSet& descriptors) {
-    std::map<std::string, std::uint32_t> counts;
-    const auto& keys = descriptors.StringKeys();
-    const auto& values = descriptors.Counts();
-    for (std::size_t i = 0; i < keys.size(); ++i) {
-        counts[keys[i]] = values[i];
-    }
-    return counts;
-}
-
 std::uint32_t count_or_zero(
     const std::map<std::string, std::uint32_t>& counts,
     const std::string& key) {
@@ -52,16 +42,15 @@ std::uint32_t count_or_zero(
 
 } // namespace
 
-TEST(MordredDescriptorTest, CountSubsetCarriesStrictSpec) {
+TEST(MordredDescriptorTest, DescriptorRowCarriesFullSchema) {
     const auto descriptors = MakeMordredDescriptors(mol_from_smiles("c1ccncc1"));
-    const auto& spec = descriptors.Spec();
 
-    EXPECT_EQ(descriptors.ValueType(), DescriptorValueType::String);
-    EXPECT_EQ(spec.value_type, DescriptorValueType::String);
-    EXPECT_EQ(spec.source_name, "Mordred-compatible");
-    EXPECT_EQ(spec.source_type, "MordredCount");
-    EXPECT_EQ(spec.source_version, "Mordred-1.2.0");
-    EXPECT_EQ(spec.parameters, "preset=atom_bond_count;zero_counts=omitted");
+    EXPECT_EQ(descriptors.Schema().Size(), 1826u);
+    EXPECT_EQ(descriptors.Schema().SchemaId(), MordredDescriptorSchema()->SchemaId());
+    EXPECT_TRUE(descriptors.Has("nAtom"));
+    EXPECT_TRUE(descriptors.Has("MW"));
+    EXPECT_TRUE(descriptors.Has("Lipinski"));
+    EXPECT_FALSE(descriptors.Has("ABC"));
 }
 
 TEST(MordredDescriptorTest, CountSubsetMatchesCopiedMordredReferences) {
@@ -141,10 +130,12 @@ TEST(MordredDescriptorTest, CountSubsetMatchesCopiedMordredReferences) {
     for (const auto& expected : cases) {
         SCOPED_TRACE(expected.smiles);
         const auto descriptors = MakeMordredDescriptors(mol_from_smiles(expected.smiles));
-        const auto counts = counts_by_key(descriptors);
 
         for (const auto& name : supported_count_names()) {
-            EXPECT_EQ(count_or_zero(counts, name), count_or_zero(expected.nonzero, name))
+            EXPECT_TRUE(descriptors.Has(name)) << name;
+            EXPECT_EQ(
+                descriptors.Int(name),
+                static_cast<std::int64_t>(count_or_zero(expected.nonzero, name)))
                 << name;
         }
     }

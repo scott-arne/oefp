@@ -101,7 +101,7 @@ rpath-strategy = "platform"  # "platform" = @loader_path/../openeye/libs/{platfo
 # provided at runtime by pyarrow.
 expected-missing-libs = [
     "liboechem", "liboegraphsim", "liboegrid", "liboesystem", "liboeplatform",
-    "liboemath", "libzstd",
+    "liboemath", "liboemolprop", "libzstd",
     "libarrow", "libparquet",
 ]
 

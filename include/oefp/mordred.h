@@ -18,15 +18,14 @@ namespace OEFP {
 /// \returns Shared immutable Mordred descriptor schema.
 std::shared_ptr<const DescriptorSchema> MordredDescriptorSchema();
 
-/// \brief Generate the supported Mordred-compatible count descriptor subset.
+/// \brief Generate supported Mordred-compatible schema-backed descriptors.
 ///
-/// The initial subset covers integer AtomCount, Aromatic, and BondCount-style
-/// descriptors that fit OEFP's sparse count-key descriptor model. Zero-valued
-/// descriptors are omitted from storage; consumers should treat missing
-/// supported keys as zero.
+/// The row uses :cpp:func:`MordredDescriptorSchema` and sets implemented
+/// descriptor values in that full schema. Descriptor families that have not
+/// been ported remain missing.
 ///
 /// \param mol Molecule to describe.
-/// \returns Counted string-key Mordred-compatible descriptors.
+/// \returns Schema-backed Mordred-compatible descriptor row.
 DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol);
 
 } // namespace OEFP

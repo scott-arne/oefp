@@ -1,12 +1,14 @@
-"""Parity fixtures for the supported Mordred-compatible descriptor subset."""
+"""Parity fixtures for the supported Mordred-compatible descriptor surface."""
 
 from __future__ import annotations
 
 import json
+from importlib import resources
 from pathlib import Path
 from typing import Any
 
 import numpy as np
+import pytest
 
 REFERENCE_FIXTURE = Path(__file__).with_name("mordred_references.json")
 
@@ -39,9 +41,29 @@ SUPPORTED_COUNT_NAMES = (
     "nX",
 )
 
+FIRST_BATCH_SOURCE_TYPES = {
+    "AcidBase",
+    "Aromatic",
+    "AtomCount",
+    "BondCount",
+    "CarbonTypes",
+    "HydrogenBond",
+    "Lipinski",
+    "RotatableBond",
+    "TopoPSA",
+    "Weight",
+}
+
 
 def _reference_payload() -> dict[str, Any]:
     with REFERENCE_FIXTURE.open(encoding="utf-8") as handle:
+        return json.load(handle)
+
+
+def _package_reference_payload() -> dict[str, Any]:
+    fixture = resources.files("oefp").joinpath("mordred_references.json")
+    assert fixture.is_file()
+    with fixture.open(encoding="utf-8") as handle:
         return json.load(handle)
 
 
@@ -57,9 +79,23 @@ def _mordred_references() -> dict[str, dict[str, int]]:
     return references
 
 
-def _openeye_mol(smiles: str) -> Any:
-    import pytest
+def _definition_names(payload: dict[str, Any]) -> tuple[str, ...]:
+    return tuple(definition["name"] for definition in payload["definitions"])
 
+
+def _first_batch_names(payload: dict[str, Any]) -> tuple[str, ...]:
+    return tuple(
+        definition["name"]
+        for definition in payload["definitions"]
+        if definition["source_type"] in FIRST_BATCH_SOURCE_TYPES
+    )
+
+
+def _reference_values_by_name(payload: dict[str, Any], row: dict[str, Any]) -> dict[str, Any]:
+    return dict(zip(_definition_names(payload), row["values"], strict=True))
+
+
+def _openeye_mol(smiles: str) -> Any:
     oechem = pytest.importorskip("openeye.oechem", reason="OpenEye Toolkits not installed")
 
     mol = oechem.OEGraphMol()
@@ -86,34 +122,63 @@ def test_mordred_descriptors_match_copied_reference_values():
 
     for smiles, expected in _mordred_references().items():
         descriptors = oefp.mordred_descriptors(_openeye_mol(smiles))
-        counts = _descriptor_counts(descriptors)
 
-        assert descriptors.value_type == "string"
-        assert descriptors.spec.value_type == "string"
-        assert descriptors.spec.source_name == "Mordred-compatible"
-        assert descriptors.spec.source_type == "MordredCount"
-        assert descriptors.spec.source_version == "Mordred-1.2.0"
-        assert descriptors.spec.parameters == "preset=atom_bond_count;zero_counts=omitted"
+        assert descriptors.schema == oefp.mordred_schema()
         for name in SUPPORTED_COUNT_NAMES:
-            assert _count_or_zero(counts, name) == expected[name]
+            assert descriptors[name] == expected[name]
 
 
 def test_mordred_descriptors_compare_with_existing_descriptor_surface():
     import oefp
 
-    references = _mordred_references()
     query = oefp.mordred_descriptors(_openeye_mol("CCO"))
-    library_smiles = ["CCO", "c1ccncc1", "CC(C)(C)Cl"]
-    library = [oefp.mordred_descriptors(_openeye_mol(smiles)) for smiles in library_smiles]
-    batch = oefp.DescriptorBatch.from_descriptors(library)
-
-    expected = np.array(
-        [
-            _count_tanimoto(references["CCO"], references[smiles])
-            for smiles in library_smiles
-        ]
+    batch = oefp.DescriptorBatch.from_descriptors(
+        [oefp.mordred_descriptors(_openeye_mol("CCO"))]
     )
-    np.testing.assert_allclose(oefp.compare(query, batch, oefp.Metric.tanimoto()), expected)
+
+    assert query.schema == oefp.mordred_schema()
+    assert batch.schema == oefp.mordred_schema()
+    with np.testing.assert_raises(TypeError):
+        oefp.compare(query, batch, oefp.Metric.tanimoto())
+
+
+def test_mordred_schema_matches_committed_fixture_definitions():
+    import oefp
+
+    payload = _reference_payload()
+    schema = oefp.mordred_schema()
+
+    assert len(schema.definitions) == 1826
+    assert schema.names == _definition_names(payload)
+
+
+def test_packaged_mordred_reference_matches_test_fixture():
+    assert _package_reference_payload() == _reference_payload()
+
+
+def test_mordred_descriptors_match_first_batch_reference_values():
+    import oefp
+
+    payload = _reference_payload()
+    names = _first_batch_names(payload)
+
+    assert len(names) == 51
+    for row in payload["reference_rows"]:
+        descriptors = oefp.mordred_descriptors(_openeye_mol(row["smiles"]))
+        expected_by_name = _reference_values_by_name(payload, row)
+
+        assert descriptors.schema == oefp.mordred_schema()
+        for name in names:
+            expected = expected_by_name[name]
+            actual = descriptors[name]
+            if isinstance(expected, dict):
+                assert expected["state"] in {"missing", "error", "nonfinite"}
+                assert actual is None
+            elif isinstance(expected, float):
+                assert actual is not None
+                assert actual == pytest.approx(expected, rel=1e-8, abs=1e-8)
+            else:
+                assert actual == expected
 
 
 def test_mordred_reference_fixture_contains_full_schema_and_panel():
@@ -136,7 +201,7 @@ def test_mordred_reference_fixture_contains_full_schema_and_panel():
     assert names.index("nAtom") == 18
     assert names.index("Lipinski") == 1351
     assert names.index("GhoseFilter") == 1352
-    assert len(payload["reference_rows"]) == 8
+    assert len(payload["reference_rows"]) == 16
     assert definitions_by_name["ABC"]["value_kind"] == "float"
     assert definitions_by_name["nAtom"]["value_kind"] == "int"
     assert definitions_by_name["Lipinski"]["value_kind"] == "bool"

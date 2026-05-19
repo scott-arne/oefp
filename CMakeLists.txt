@@ -54,6 +54,51 @@ endif()
 
 find_package(OpenEye REQUIRED)
 
+if(NOT TARGET OpenEye::OEMolProp)
+    set(_OEFP_OEMOLPROP_SEARCH_PATHS
+        ${OPENEYE_LIB_DIR}
+        ${OPENEYE_RUNTIME_LIB_DIR}
+        ${OPENEYE_ROOT}/lib
+        ${OE_DIR}/lib
+        $ENV{OPENEYE_ROOT}/lib
+        $ENV{OE_DIR}/lib
+    )
+    if(OPENEYE_INCLUDE_DIR)
+        get_filename_component(_OEFP_OPENEYE_DEFAULT_LIB_DIR "${OPENEYE_INCLUDE_DIR}/../lib" ABSOLUTE)
+        list(APPEND _OEFP_OEMOLPROP_SEARCH_PATHS "${_OEFP_OPENEYE_DEFAULT_LIB_DIR}")
+    endif()
+    if(OPENEYE_USE_SHARED)
+        foreach(_OEFP_OEMOLPROP_SEARCH_PATH IN LISTS _OEFP_OEMOLPROP_SEARCH_PATHS)
+            if(_OEFP_OEMOLPROP_SEARCH_PATH)
+                file(GLOB _OEFP_VERSIONED_OEMOLPROP
+                    "${_OEFP_OEMOLPROP_SEARCH_PATH}/liboemolprop-*.dylib"
+                    "${_OEFP_OEMOLPROP_SEARCH_PATH}/liboemolprop-*.so"
+                )
+                if(_OEFP_VERSIONED_OEMOLPROP)
+                    list(GET _OEFP_VERSIONED_OEMOLPROP 0 OEMOLPROP_LIBRARY)
+                    break()
+                endif()
+            endif()
+        endforeach()
+    endif()
+    if(NOT OEMOLPROP_LIBRARY)
+        find_library(OEMOLPROP_LIBRARY
+            NAMES oemolprop
+            PATHS ${_OEFP_OEMOLPROP_SEARCH_PATHS}
+            NO_DEFAULT_PATH
+        )
+    endif()
+    if(NOT OEMOLPROP_LIBRARY)
+        message(FATAL_ERROR "OpenEye OEMolProp library is required for Mordred-compatible descriptors.")
+    endif()
+    add_library(OpenEye::OEMolProp UNKNOWN IMPORTED)
+    set_target_properties(OpenEye::OEMolProp PROPERTIES
+        IMPORTED_LOCATION "${OEMOLPROP_LIBRARY}"
+        INTERFACE_INCLUDE_DIRECTORIES "${OPENEYE_INCLUDE_DIR}"
+        INTERFACE_LINK_LIBRARIES "OpenEye::OEChem"
+    )
+endif()
+
 find_package(Arrow CONFIG QUIET)
 find_package(Parquet CONFIG QUIET)
 
@@ -105,6 +150,7 @@ target_link_libraries(oefp
     PUBLIC
         OpenEye::OEChem
         OpenEye::OEGraphSim
+        OpenEye::OEMolProp
         ${OEFP_ARROW_TARGET}
         ${OEFP_PARQUET_TARGET}
 )

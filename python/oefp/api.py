@@ -4,10 +4,12 @@ from __future__ import annotations
 
 import hashlib
 import json
+from importlib import resources
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from functools import lru_cache
 from numbers import Integral
+from pathlib import Path
 from typing import Any
 
 import numpy as np
@@ -19,6 +21,10 @@ _UINT32_MAX = 2**32 - 1
 _NATIVE_TOKEN = object()
 _DESCRIPTOR_SCHEMA_METADATA_KEY = b"oefp.python_descriptor_schema"
 _ROW_IDS_METADATA_KEY = b"oefp.row_ids_json"
+_MORDRED_REFERENCE_RESOURCE = "mordred_references.json"
+_MORDRED_REFERENCE_FIXTURE = (
+    Path(__file__).resolve().parents[2] / "tests" / "python" / "mordred_references.json"
+)
 
 
 @dataclass(frozen=True)
@@ -311,6 +317,60 @@ def _manual_descriptor_spec(
         source_version=source_version,
         parameters=parameters,
     )
+
+
+@lru_cache(maxsize=1)
+def _mordred_reference_payload() -> dict[str, Any]:
+    resource = resources.files("oefp").joinpath(_MORDRED_REFERENCE_RESOURCE)
+    if resource.is_file():
+        with resource.open(encoding="utf-8") as handle:
+            payload = json.load(handle)
+    else:
+        with _MORDRED_REFERENCE_FIXTURE.open(encoding="utf-8") as handle:
+            payload = json.load(handle)
+    if not isinstance(payload, dict) or not isinstance(payload.get("definitions"), list):
+        raise ValueError("Mordred reference fixture does not contain definitions.")
+    return payload
+
+
+def _mordred_definition_from_fixture(definition: Mapping[str, Any]) -> DescriptorDefinition:
+    return DescriptorDefinition(
+        str(definition["name"]),
+        str(definition["value_kind"]),
+        group=str(definition.get("group", "")),
+        source_name=str(definition.get("source_name", "")),
+        source_type=str(definition.get("source_type", "")),
+        source_version=str(definition.get("source_version", "")),
+        parameters=str(definition.get("parameters", "")),
+        units=str(definition.get("units", "")),
+        description=str(definition.get("description", "")),
+    )
+
+
+@lru_cache(maxsize=1)
+def mordred_schema() -> DescriptorSchema:
+    """Return the full Mordred descriptor schema.
+
+    :returns: Descriptor schema matching the committed Mordred 1.2.0 fixture.
+    """
+    payload = _mordred_reference_payload()
+    return DescriptorSchema(
+        [_mordred_definition_from_fixture(item) for item in payload["definitions"]]
+    )
+
+
+def _mordred_value_from_native(native: Any, definition: DescriptorDefinition) -> Any:
+    if not native.Has(definition.name):
+        return None
+    if definition.value_type == "bool":
+        return bool(native.Bool(definition.name))
+    if definition.value_type == "int":
+        return int(native.Int(definition.name))
+    if definition.value_type == "float":
+        return float(native.Float(definition.name))
+    if definition.value_type == "string":
+        return str(native.String(definition.name))
+    return None
 
 
 def _legacy_counted_string_descriptor(native: Any, spec: DescriptorSpec) -> DescriptorSet:
@@ -2264,8 +2324,18 @@ def morgan_descriptors(
 
 
 def mordred_descriptors(mol: Any) -> DescriptorSet:
-    """Generate the supported Mordred-compatible count descriptor subset."""
-    return DescriptorSet._from_native(_native.MakeMordredDescriptors(mol))
+    """Generate schema-backed Mordred-compatible descriptors.
+
+    :param mol: OpenEye molecule to describe.
+    :returns: Descriptor row backed by :func:`mordred_schema`.
+    """
+    native = _native.MakeMordredDescriptors(mol)
+    schema = mordred_schema()
+    values = {
+        definition.name: _mordred_value_from_native(native, definition)
+        for definition in schema.definitions
+    }
+    return DescriptorSet(schema, values)
 
 
 def morgan_fingerprint_with_mapping(

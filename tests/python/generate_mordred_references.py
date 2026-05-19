@@ -28,6 +28,14 @@ SMILES_PANEL = [
     "C1=CC2=C(C=C1)C=CC=C2",
     "CC#N",
     "FC(F)(F)c1ccc(Br)cc1",
+    "CN",
+    "c1ccccc1[N+](=O)[O-]",
+    "CC(=O)O",
+    "OP(=O)(O)O",
+    "C",
+    "[13CH4]",
+    "CCCCCCCCCCCCCCCC",
+    "O=[Se]=O",
 ]
 
 
