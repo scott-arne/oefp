@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "reference_sources": {
+    "mordred": "/Users/johnss51/Development/python/mordred/mordred",
+    "rdkit": "/Users/johnss51/Development/cpp/rdkit"
+  },
+  "policies": [
+    {
+      "descriptor": "Lipinski",
+      "family": "Lipinski",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Lipinski.py",
+      "status": "deferred",
+      "reason": "Mordred Lipinski uses RDKit-derived SLogP and hydrogen-bond primitives; OEFP parity is deferred until those primitive dependencies are implemented and validated."
+    },
+    {
+      "descriptor": "GhoseFilter",
+      "family": "Lipinski",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Lipinski.py",
+      "status": "deferred",
+      "reason": "Mordred GhoseFilter depends on SLogP, SMR, molecular weight, and atom-count thresholds; OEFP parity is deferred until SLogP/SMR-compatible primitives are available."
+    }
+  ],
+  "row_divergences": []
+}

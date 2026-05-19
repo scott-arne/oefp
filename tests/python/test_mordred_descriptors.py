@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import sys
 from importlib import resources
 from pathlib import Path
 from typing import Any
@@ -11,6 +12,25 @@ import numpy as np
 import pytest
 
 REFERENCE_FIXTURE = Path(__file__).with_name("mordred_references.json")
+DIVERGENCE_FIXTURE = Path(__file__).with_name("mordred_divergences.json")
+POLICY_STATUSES = {"exact", "openeye_divergent", "deferred", "not_applicable"}
+ROW_DIVERGENCE_REQUIRED_FIELDS = {
+    "descriptor",
+    "smiles",
+    "reference",
+    "observed",
+    "source",
+    "primitive",
+    "reason",
+}
+_OPTIONAL_REFERENCE_MODULES_AT_IMPORT = {
+    name
+    for name in sys.modules
+    if name == "mordred"
+    or name.startswith("mordred.")
+    or name == "rdkit"
+    or name.startswith("rdkit.")
+}
 
 SUPPORTED_COUNT_NAMES = (
     "nAromAtom",
@@ -57,6 +77,11 @@ FIRST_BATCH_SOURCE_TYPES = {
 
 def _reference_payload() -> dict[str, Any]:
     with REFERENCE_FIXTURE.open(encoding="utf-8") as handle:
+        return json.load(handle)
+
+
+def _divergence_payload() -> dict[str, Any]:
+    with DIVERGENCE_FIXTURE.open(encoding="utf-8") as handle:
         return json.load(handle)
 
 
@@ -212,3 +237,41 @@ def test_mordred_reference_fixture_contains_full_schema_and_panel():
                 assert set(value) == {"error_type", "state"}
                 assert value["state"] in {"missing", "error", "nonfinite"}
                 assert value["error_type"]
+
+
+def test_mordred_divergence_policy_manifest_is_valid():
+    payload = _divergence_payload()
+
+    assert {
+        "schema_version",
+        "reference_sources",
+        "policies",
+        "row_divergences",
+    } <= set(payload)
+    assert payload["schema_version"] == 1
+
+    policies = payload["policies"]
+    assert isinstance(policies, list)
+    for policy in policies:
+        assert policy["status"] in POLICY_STATUSES
+
+
+def test_mordred_divergence_rows_include_required_context():
+    payload = _divergence_payload()
+
+    for row in payload["row_divergences"]:
+        if row["status"] == "openeye_divergent":
+            assert ROW_DIVERGENCE_REQUIRED_FIELDS <= set(row)
+
+
+def test_mordred_descriptor_tests_do_not_import_reference_toolkits():
+    loaded_after_import = {
+        name
+        for name in sys.modules
+        if name == "mordred"
+        or name.startswith("mordred.")
+        or name == "rdkit"
+        or name.startswith("rdkit.")
+    }
+
+    assert loaded_after_import <= _OPTIONAL_REFERENCE_MODULES_AT_IMPORT
