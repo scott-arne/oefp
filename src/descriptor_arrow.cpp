@@ -1,6 +1,12 @@
 #include "oefp/descriptor_arrow.h"
 
 #include <arrow/api.h>
+#include <arrow/io/file.h>
+#include <arrow/ipc/reader.h>
+#include <arrow/ipc/writer.h>
+#include <arrow/table.h>
+#include <parquet/arrow/reader.h>
+#include <parquet/arrow/writer.h>
 
 #include <cstddef>
 #include <cstdint>
@@ -158,6 +164,12 @@ void check_arrow_status(const arrow::Status& status) {
     if (!status.ok()) {
         throw std::runtime_error(status.ToString());
     }
+}
+
+template <typename T>
+T unwrap_arrow_result(arrow::Result<T> result) {
+    check_arrow_status(result.status());
+    return std::move(result).ValueOrDie();
 }
 
 std::string escape_json(const std::string& text) {
@@ -799,6 +811,56 @@ DescriptorBatch FromArrowRecordBatch(const std::shared_ptr<arrow::RecordBatch>& 
         rows.push_back(builder.Build(row_ids[static_cast<std::size_t>(row_index)]));
     }
     return DescriptorBatch::FromDescriptorSets(rows);
+}
+
+void WriteDescriptorIpc(const DescriptorBatch& batch, const std::string& path) {
+    const auto record_batch = ToArrowRecordBatch(batch);
+    auto output = unwrap_arrow_result(arrow::io::FileOutputStream::Open(path));
+    auto writer = unwrap_arrow_result(arrow::ipc::MakeFileWriter(output, record_batch->schema()));
+
+    check_arrow_status(writer->WriteRecordBatch(*record_batch));
+    check_arrow_status(writer->Close());
+    check_arrow_status(output->Close());
+}
+
+DescriptorBatch ReadDescriptorIpc(const std::string& path) {
+    auto input = unwrap_arrow_result(arrow::io::ReadableFile::Open(path));
+    auto reader = unwrap_arrow_result(arrow::ipc::RecordBatchFileReader::Open(input));
+    if (reader->num_record_batches() != 1) {
+        throw std::invalid_argument("Arrow IPC descriptor file must contain exactly one record batch.");
+    }
+    auto record_batch = unwrap_arrow_result(reader->ReadRecordBatch(0));
+    check_arrow_status(input->Close());
+    return FromArrowRecordBatch(record_batch);
+}
+
+void WriteDescriptorParquet(const DescriptorBatch& batch, const std::string& path) {
+    const auto record_batch = ToArrowRecordBatch(batch);
+    auto table = unwrap_arrow_result(arrow::Table::FromRecordBatches({record_batch}));
+    auto output = unwrap_arrow_result(arrow::io::FileOutputStream::Open(path));
+    parquet::ArrowWriterProperties::Builder properties_builder;
+    const auto arrow_properties = properties_builder.store_schema()->build();
+
+    check_arrow_status(parquet::arrow::WriteTable(
+        *table,
+        arrow::default_memory_pool(),
+        output,
+        parquet::DEFAULT_MAX_ROW_GROUP_LENGTH,
+        parquet::default_writer_properties(),
+        arrow_properties));
+    check_arrow_status(output->Close());
+}
+
+DescriptorBatch ReadDescriptorParquet(const std::string& path) {
+    auto input = unwrap_arrow_result(arrow::io::ReadableFile::Open(path));
+    parquet::arrow::FileReaderBuilder builder;
+    check_arrow_status(builder.Open(input));
+    auto reader = unwrap_arrow_result(builder.Build());
+    auto table = unwrap_arrow_result(reader->ReadTable());
+    auto record_batch = unwrap_arrow_result(table->CombineChunksToBatch(arrow::default_memory_pool()));
+
+    check_arrow_status(input->Close());
+    return FromArrowRecordBatch(record_batch);
 }
 
 } // namespace OEFP

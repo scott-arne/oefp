@@ -4,14 +4,40 @@
 #include <arrow/api.h>
 #include <gtest/gtest.h>
 
+#include <chrono>
 #include <cstdint>
+#include <filesystem>
 #include <memory>
 #include <stdexcept>
+#include <string>
 #include <vector>
 
 using namespace OEFP;
 
 namespace {
+
+class TempDescriptorFile {
+public:
+    explicit TempDescriptorFile(const std::string& extension) {
+        const auto* info = testing::UnitTest::GetInstance()->current_test_info();
+        const auto now = std::chrono::steady_clock::now().time_since_epoch().count();
+        path_ = std::filesystem::temp_directory_path()
+            / ("oefp_" + std::string(info->test_suite_name()) + "_" + info->name() + "_"
+               + std::to_string(now) + extension);
+    }
+
+    ~TempDescriptorFile() {
+        std::error_code error;
+        std::filesystem::remove(path_, error);
+    }
+
+    std::string String() const {
+        return path_.string();
+    }
+
+private:
+    std::filesystem::path path_;
+};
 
 std::shared_ptr<const DescriptorSchema> scalar_schema() {
     DescriptorSchemaBuilder builder;
@@ -36,6 +62,27 @@ DescriptorBatch scalar_batch_with_missing_values() {
     partial.Set("Class", DescriptorValue::String("aromatic"));
 
     return DescriptorBatch::FromDescriptorSets({complete.Build("CCO"), partial.Build("benzene")});
+}
+
+void expect_scalar_batch_equal(const DescriptorBatch& restored, const DescriptorBatch& batch) {
+    EXPECT_EQ(restored.Size(), batch.Size());
+    EXPECT_EQ(restored.RowIds(), batch.RowIds());
+    EXPECT_EQ(restored.Schema().SchemaId(), batch.Schema().SchemaId());
+
+    const auto restored_mw = restored.FloatColumn("MW");
+    const auto batch_mw = batch.FloatColumn("MW");
+    ASSERT_EQ(restored_mw.size(), batch_mw.size());
+    for (std::size_t index = 0; index < batch_mw.size(); ++index) {
+        EXPECT_DOUBLE_EQ(restored_mw[index], batch_mw[index]);
+    }
+
+    EXPECT_EQ(restored.IntColumn("nAtom"), batch.IntColumn("nAtom"));
+    EXPECT_EQ(restored.BoolColumn("Lipinski"), batch.BoolColumn("Lipinski"));
+    EXPECT_EQ(restored.StringColumn("Class"), batch.StringColumn("Class"));
+    EXPECT_EQ(restored.ColumnValidity("MW"), batch.ColumnValidity("MW"));
+    EXPECT_EQ(restored.ColumnValidity("nAtom"), batch.ColumnValidity("nAtom"));
+    EXPECT_EQ(restored.ColumnValidity("Lipinski"), batch.ColumnValidity("Lipinski"));
+    EXPECT_EQ(restored.ColumnValidity("Class"), batch.ColumnValidity("Class"));
 }
 
 } // namespace
@@ -152,4 +199,24 @@ TEST(DescriptorArrowTest, PreservesSchemaForZeroRowBatches) {
     EXPECT_EQ(restored.Size(), 0u);
     EXPECT_EQ(restored.Schema().SchemaId(), empty.Schema().SchemaId());
     EXPECT_EQ(restored.Schema().Definition(3).name, "Class");
+}
+
+TEST(DescriptorArrowTest, RoundTripsThroughIpcFile) {
+    const TempDescriptorFile path(".arrow");
+    const auto batch = scalar_batch_with_missing_values();
+
+    WriteDescriptorIpc(batch, path.String());
+    const auto restored = ReadDescriptorIpc(path.String());
+
+    expect_scalar_batch_equal(restored, batch);
+}
+
+TEST(DescriptorArrowTest, RoundTripsThroughParquetFile) {
+    const TempDescriptorFile path(".parquet");
+    const auto batch = scalar_batch_with_missing_values();
+
+    WriteDescriptorParquet(batch, path.String());
+    const auto restored = ReadDescriptorParquet(path.String());
+
+    expect_scalar_batch_equal(restored, batch);
 }
