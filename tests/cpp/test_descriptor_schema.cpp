@@ -60,6 +60,22 @@ TEST(DescriptorSchemaTest, RejectsInvalidValueKinds) {
     EXPECT_THROW(static_cast<void>(builder.Build()), std::invalid_argument);
 }
 
+TEST(DescriptorSchemaTest, RejectsInvalidShapes) {
+    DescriptorDefinition empty_shape{"bad", DescriptorValueKind::FloatMatrix};
+    empty_shape.shape = DescriptorShape{};
+
+    DescriptorSchemaBuilder empty_builder;
+    empty_builder.Add(empty_shape);
+    EXPECT_THROW(static_cast<void>(empty_builder.Build()), std::invalid_argument);
+
+    DescriptorDefinition zero_dimension{"bad", DescriptorValueKind::FloatMatrix};
+    zero_dimension.shape = DescriptorShape{{2u, 0u}};
+
+    DescriptorSchemaBuilder zero_builder;
+    zero_builder.Add(zero_dimension);
+    EXPECT_THROW(static_cast<void>(zero_builder.Build()), std::invalid_argument);
+}
+
 TEST(DescriptorSchemaTest, ProjectsNamedSubsets) {
     DescriptorSchemaBuilder builder;
     builder.Add(DescriptorDefinition{"MW", DescriptorValueKind::Float, "mordred:constitutional"});

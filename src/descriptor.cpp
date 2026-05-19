@@ -46,6 +46,27 @@ void validate_value_type(
     }
 }
 
+void validate_descriptor_value_kind(
+    DescriptorValueKind actual,
+    DescriptorValueKind expected,
+    const std::string& name) {
+    if (actual != expected) {
+        throw std::invalid_argument("Descriptor value kind does not match schema for " + name + ".");
+    }
+}
+
+void validate_descriptor_value_shape(
+    const DescriptorValue& value,
+    const DescriptorDefinition& definition) {
+    if (!definition.shape.has_value()) {
+        return;
+    }
+    if (value.Shape() != definition.shape->dimensions) {
+        throw std::invalid_argument("Descriptor value shape does not match schema for "
+            + definition.name + ".");
+    }
+}
+
 template <typename Key>
 std::pair<std::vector<Key>, std::vector<std::uint32_t>> aggregate_keys(
     const std::vector<Key>& keys) {
@@ -115,6 +136,16 @@ DescriptorSet::DescriptorSet(
     ValidateStorage();
 }
 
+DescriptorSet::DescriptorSet(
+    std::shared_ptr<const DescriptorSchema> schema,
+    std::vector<std::optional<DescriptorValue>> values,
+    std::string row_id)
+    : schema_(std::move(schema)),
+      values_(std::move(values)),
+      row_id_(std::move(row_id)) {
+    ValidateTypedStorage();
+}
+
 DescriptorSet DescriptorSet::FromStrings(
     DescriptorSpec spec,
     const std::vector<std::string>& keys) {
@@ -159,14 +190,23 @@ DescriptorSet DescriptorSet::FromFloatCounts(
 }
 
 const DescriptorSpec& DescriptorSet::Spec() const {
+    if (schema_ != nullptr) {
+        throw std::invalid_argument("Schema-backed descriptor rows do not expose DescriptorSpec.");
+    }
     return spec_;
 }
 
 DescriptorValueType DescriptorSet::ValueType() const {
+    if (schema_ != nullptr) {
+        throw std::invalid_argument("Schema-backed descriptor rows do not expose DescriptorValueType.");
+    }
     return spec_.value_type;
 }
 
 std::size_t DescriptorSet::Size() const {
+    if (schema_ != nullptr) {
+        return values_.size();
+    }
     switch (spec_.value_type) {
     case DescriptorValueType::Integer:
         return integer_keys_.size();
@@ -179,6 +219,9 @@ std::size_t DescriptorSet::Size() const {
 }
 
 std::uint64_t DescriptorSet::TotalCount() const {
+    if (schema_ != nullptr) {
+        throw std::invalid_argument("Schema-backed descriptor rows do not expose key counts.");
+    }
     std::uint64_t total = 0;
     for (const auto count : counts_) {
         total += count;
@@ -187,22 +230,37 @@ std::uint64_t DescriptorSet::TotalCount() const {
 }
 
 const std::vector<std::string>& DescriptorSet::StringKeys() const {
+    if (schema_ != nullptr) {
+        throw std::invalid_argument("Schema-backed descriptor rows do not expose string keys.");
+    }
     return string_keys_;
 }
 
 const std::vector<std::int64_t>& DescriptorSet::IntegerKeys() const {
+    if (schema_ != nullptr) {
+        throw std::invalid_argument("Schema-backed descriptor rows do not expose integer keys.");
+    }
     return integer_keys_;
 }
 
 const std::vector<double>& DescriptorSet::FloatKeys() const {
+    if (schema_ != nullptr) {
+        throw std::invalid_argument("Schema-backed descriptor rows do not expose float keys.");
+    }
     return float_keys_;
 }
 
 const std::vector<std::uint32_t>& DescriptorSet::Counts() const {
+    if (schema_ != nullptr) {
+        throw std::invalid_argument("Schema-backed descriptor rows do not expose key counts.");
+    }
     return counts_;
 }
 
 const std::uint32_t* DescriptorSet::CountData() const {
+    if (schema_ != nullptr) {
+        throw std::invalid_argument("Schema-backed descriptor rows do not expose key counts.");
+    }
     if (counts_.empty()) {
         return nullptr;
     }
@@ -218,6 +276,9 @@ std::uint64_t DescriptorSet::CountDataAddress() const {
 }
 
 const std::int64_t* DescriptorSet::IntegerKeyData() const {
+    if (schema_ != nullptr) {
+        throw std::invalid_argument("Schema-backed descriptor rows do not expose integer keys.");
+    }
     if (integer_keys_.empty()) {
         return nullptr;
     }
@@ -233,6 +294,9 @@ std::uint64_t DescriptorSet::IntegerKeyDataAddress() const {
 }
 
 const double* DescriptorSet::FloatKeyData() const {
+    if (schema_ != nullptr) {
+        throw std::invalid_argument("Schema-backed descriptor rows do not expose float keys.");
+    }
     if (float_keys_.empty()) {
         return nullptr;
     }
@@ -245,6 +309,77 @@ std::uint64_t DescriptorSet::FloatKeyDataAddress() const {
         return 0;
     }
     return static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>(data));
+}
+
+const DescriptorSchema& DescriptorSet::Schema() const {
+    if (schema_ == nullptr) {
+        throw std::invalid_argument("Descriptor set does not have a schema.");
+    }
+    return *schema_;
+}
+
+std::shared_ptr<const DescriptorSchema> DescriptorSet::SchemaPtr() const {
+    return schema_;
+}
+
+const std::string& DescriptorSet::RowId() const {
+    return row_id_;
+}
+
+bool DescriptorSet::Has(const std::string& name) const {
+    if (schema_ == nullptr || !schema_->Contains(name)) {
+        return false;
+    }
+    return Has(schema_->IndexOf(name));
+}
+
+bool DescriptorSet::Has(std::size_t index) const {
+    if (index >= values_.size()) {
+        return false;
+    }
+    return values_[index].has_value();
+}
+
+const DescriptorValue& DescriptorSet::Value(const std::string& name) const {
+    return Value(Schema().IndexOf(name));
+}
+
+const DescriptorValue& DescriptorSet::Value(std::size_t index) const {
+    if (index >= values_.size() || !values_[index].has_value()) {
+        throw std::invalid_argument("Descriptor value is missing.");
+    }
+    return *values_[index];
+}
+
+const std::vector<std::optional<DescriptorValue>>& DescriptorSet::Values() const {
+    return values_;
+}
+
+bool DescriptorSet::Bool(const std::string& name) const {
+    return Value(name).AsBool();
+}
+
+std::int64_t DescriptorSet::Int(const std::string& name) const {
+    return Value(name).AsInt();
+}
+
+double DescriptorSet::Float(const std::string& name) const {
+    return Value(name).AsFloat();
+}
+
+const std::string& DescriptorSet::String(const std::string& name) const {
+    return Value(name).AsString();
+}
+
+DescriptorSet DescriptorSet::Subset(const std::vector<std::string>& names) const {
+    const auto projected_schema = Schema().Project(names);
+    std::vector<std::optional<DescriptorValue>> projected_values;
+    projected_values.reserve(names.size());
+    for (const auto& name : names) {
+        const auto index = schema_->IndexOf(name);
+        projected_values.push_back(values_[index]);
+    }
+    return DescriptorSet(std::move(projected_schema), std::move(projected_values), row_id_);
 }
 
 void DescriptorSet::ValidateStorage() const {
@@ -271,7 +406,34 @@ void DescriptorSet::ValidateStorage() const {
     }
 }
 
+void DescriptorSet::ValidateTypedStorage() const {
+    if (schema_ == nullptr) {
+        throw std::invalid_argument("Descriptor set schema must not be null.");
+    }
+    if (values_.size() != schema_->Size()) {
+        throw std::invalid_argument("Descriptor set value count must match schema size.");
+    }
+    for (std::size_t index = 0; index < values_.size(); ++index) {
+        if (!values_[index].has_value()) {
+            continue;
+        }
+        const auto& definition = schema_->Definition(index);
+        validate_descriptor_value_kind(values_[index]->Kind(), definition.value_kind, definition.name);
+        validate_descriptor_value_shape(*values_[index], definition);
+    }
+}
+
 bool operator==(const DescriptorSet& lhs, const DescriptorSet& rhs) {
+    if (lhs.SchemaPtr() != nullptr || rhs.SchemaPtr() != nullptr) {
+        const auto lhs_schema = lhs.SchemaPtr();
+        const auto rhs_schema = rhs.SchemaPtr();
+        if (lhs_schema == nullptr || rhs_schema == nullptr) {
+            return false;
+        }
+        return lhs_schema->SchemaId() == rhs_schema->SchemaId()
+            && lhs.RowId() == rhs.RowId()
+            && lhs.Values() == rhs.Values();
+    }
     return lhs.Spec() == rhs.Spec() && lhs.StringKeys() == rhs.StringKeys()
         && lhs.IntegerKeys() == rhs.IntegerKeys() && lhs.FloatKeys() == rhs.FloatKeys()
         && lhs.Counts() == rhs.Counts();
@@ -279,6 +441,26 @@ bool operator==(const DescriptorSet& lhs, const DescriptorSet& rhs) {
 
 bool operator!=(const DescriptorSet& lhs, const DescriptorSet& rhs) {
     return !(lhs == rhs);
+}
+
+DescriptorSetBuilder::DescriptorSetBuilder(std::shared_ptr<const DescriptorSchema> schema)
+    : schema_(std::move(schema)) {
+    if (schema_ == nullptr) {
+        throw std::invalid_argument("Descriptor set builder schema must not be null.");
+    }
+    values_.resize(schema_->Size());
+}
+
+void DescriptorSetBuilder::Set(const std::string& name, DescriptorValue value) {
+    const auto index = schema_->IndexOf(name);
+    const auto& definition = schema_->Definition(index);
+    validate_descriptor_value_kind(value.Kind(), definition.value_kind, definition.name);
+    validate_descriptor_value_shape(value, definition);
+    values_[index] = std::move(value);
+}
+
+DescriptorSet DescriptorSetBuilder::Build(std::string row_id) const {
+    return DescriptorSet(schema_, values_, std::move(row_id));
 }
 
 } // namespace OEFP

@@ -1,8 +1,13 @@
 #ifndef OEFP_DESCRIPTOR_H
 #define OEFP_DESCRIPTOR_H
 
+#include "oefp/descriptor_schema.h"
+#include "oefp/descriptor_value.h"
+
 #include <cstddef>
 #include <cstdint>
+#include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -46,6 +51,10 @@ public:
         DescriptorSpec spec,
         std::vector<double> keys,
         std::vector<std::uint32_t> counts);
+    DescriptorSet(
+        std::shared_ptr<const DescriptorSchema> schema,
+        std::vector<std::optional<DescriptorValue>> values,
+        std::string row_id = "");
 
     static DescriptorSet FromStrings(
         DescriptorSpec spec,
@@ -86,18 +95,48 @@ public:
     const double* FloatKeyData() const;
     std::uint64_t FloatKeyDataAddress() const;
 
+    const DescriptorSchema& Schema() const;
+    std::shared_ptr<const DescriptorSchema> SchemaPtr() const;
+    const std::string& RowId() const;
+    bool Has(const std::string& name) const;
+    bool Has(std::size_t index) const;
+    const DescriptorValue& Value(const std::string& name) const;
+    const DescriptorValue& Value(std::size_t index) const;
+    const std::vector<std::optional<DescriptorValue>>& Values() const;
+    bool Bool(const std::string& name) const;
+    std::int64_t Int(const std::string& name) const;
+    double Float(const std::string& name) const;
+    const std::string& String(const std::string& name) const;
+    DescriptorSet Subset(const std::vector<std::string>& names) const;
+
 private:
     DescriptorSpec spec_;
     std::vector<std::string> string_keys_;
     std::vector<std::int64_t> integer_keys_;
     std::vector<double> float_keys_;
     std::vector<std::uint32_t> counts_;
+    std::shared_ptr<const DescriptorSchema> schema_;
+    std::vector<std::optional<DescriptorValue>> values_;
+    std::string row_id_;
 
     void ValidateStorage() const;
+    void ValidateTypedStorage() const;
 };
 
 bool operator==(const DescriptorSet& lhs, const DescriptorSet& rhs);
 bool operator!=(const DescriptorSet& lhs, const DescriptorSet& rhs);
+
+class DescriptorSetBuilder {
+public:
+    explicit DescriptorSetBuilder(std::shared_ptr<const DescriptorSchema> schema);
+
+    void Set(const std::string& name, DescriptorValue value);
+    DescriptorSet Build(std::string row_id = "") const;
+
+private:
+    std::shared_ptr<const DescriptorSchema> schema_;
+    std::vector<std::optional<DescriptorValue>> values_;
+};
 
 } // namespace OEFP
 

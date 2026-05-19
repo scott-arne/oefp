@@ -2,6 +2,7 @@
 
 #include <array>
 #include <charconv>
+#include <limits>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -69,6 +70,25 @@ const char* value_kind_token(DescriptorValueKind value_kind) {
     throw std::invalid_argument("Descriptor value kind is invalid.");
 }
 
+void validate_shape(const std::optional<DescriptorShape>& shape) {
+    if (!shape.has_value()) {
+        return;
+    }
+    if (shape->dimensions.empty()) {
+        throw std::invalid_argument("Descriptor schema shape must not be empty.");
+    }
+    std::uint64_t size = 1;
+    for (const auto dimension : shape->dimensions) {
+        if (dimension == 0u) {
+            throw std::invalid_argument("Descriptor schema shape dimensions must be positive.");
+        }
+        if (size > std::numeric_limits<std::uint64_t>::max() / dimension) {
+            throw std::overflow_error("Descriptor schema shape is too large.");
+        }
+        size *= dimension;
+    }
+}
+
 std::string schema_id_for(const std::vector<DescriptorDefinition>& definitions) {
     std::string serialized = "oefp-descriptor-schema-v1\n";
     for (const auto& definition : definitions) {
@@ -123,6 +143,7 @@ DescriptorSchema::DescriptorSchema(std::vector<DescriptorDefinition> definitions
             throw std::invalid_argument("Descriptor schema names must be non-empty.");
         }
         static_cast<void>(value_kind_token(definition.value_kind));
+        validate_shape(definition.shape);
         const auto [_, inserted] = index_by_name_.emplace(definition.name, index);
         if (!inserted) {
             throw std::invalid_argument("Descriptor schema names must be unique.");
