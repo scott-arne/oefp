@@ -75,6 +75,7 @@ set(OEFP_SOURCES
     src/count.cpp
     src/count_batch.cpp
     src/descriptor.cpp
+    src/descriptor_arrow.cpp
     src/descriptor_batch.cpp
     src/descriptor_schema.cpp
     src/descriptor_selection.cpp
@@ -91,6 +92,7 @@ set(OEFP_SOURCES
 add_library(oefp ${OEFP_SOURCES})
 
 set_target_properties(oefp PROPERTIES POSITION_INDEPENDENT_CODE ON)
+target_compile_features(oefp PRIVATE cxx_std_20)
 
 target_include_directories(oefp
     PUBLIC

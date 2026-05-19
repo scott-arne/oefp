@@ -67,6 +67,12 @@ DescriptorBatch DescriptorBatch::FromDescriptorSets(
     return batch;
 }
 
+DescriptorBatch DescriptorBatch::Empty(std::shared_ptr<const DescriptorSchema> schema) {
+    DescriptorBatch batch;
+    batch.InitializeColumns(std::move(schema));
+    return batch;
+}
+
 void DescriptorBatch::Append(const DescriptorSet& descriptors) {
     if (descriptors.SchemaPtr() != nullptr) {
         AppendTypedRow(descriptors);
@@ -233,6 +239,11 @@ std::vector<std::uint8_t> DescriptorBatch::BoolColumn(const std::string& name) c
 
 std::vector<std::string> DescriptorBatch::StringColumn(const std::string& name) const {
     return Column(name, DescriptorValueKind::String).string_values;
+}
+
+std::vector<std::uint8_t> DescriptorBatch::ColumnValidity(const std::string& name) const {
+    const auto index = Schema().IndexOf(name);
+    return columns_[index].validity;
 }
 
 DescriptorBatch DescriptorBatch::Subset(const DescriptorSelection& selection) const {

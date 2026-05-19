@@ -30,6 +30,13 @@ public:
     static DescriptorBatch FromDescriptorSets(
         const std::vector<::OEFP::DescriptorSet>& descriptors);
 
+    /// \brief Construct an empty schema-backed descriptor batch.
+    ///
+    /// \param schema Shared scalar descriptor schema.
+    /// \returns Empty descriptor batch that preserves the supplied schema.
+    /// \throws std::invalid_argument: When the schema is null or contains non-scalar columns.
+    static DescriptorBatch Empty(std::shared_ptr<const DescriptorSchema> schema);
+
     /// \brief Append one descriptor row.
     ///
     /// \throws std::invalid_argument: When the descriptor set is incompatible.
@@ -61,6 +68,11 @@ public:
 
     /// \brief Return a copied string descriptor column.
     std::vector<std::string> StringColumn(const std::string& name) const;
+
+    /// \brief Return copied scalar column validity flags.
+    ///
+    /// ``1`` marks a present value and ``0`` marks a missing value.
+    std::vector<std::uint8_t> ColumnValidity(const std::string& name) const;
 
     /// \brief Return a column subset in selection order.
     DescriptorBatch Subset(const DescriptorSelection& selection) const;
