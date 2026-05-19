@@ -47,9 +47,12 @@ TEST(MordredDescriptorTest, DescriptorRowCarriesFullSchema) {
 
     EXPECT_EQ(descriptors.Schema().Size(), 1826u);
     EXPECT_EQ(descriptors.Schema().SchemaId(), MordredDescriptorSchema()->SchemaId());
+    EXPECT_TRUE(descriptors.Schema().Contains("Lipinski"));
+    EXPECT_TRUE(descriptors.Schema().Contains("GhoseFilter"));
     EXPECT_TRUE(descriptors.Has("nAtom"));
     EXPECT_TRUE(descriptors.Has("MW"));
-    EXPECT_TRUE(descriptors.Has("Lipinski"));
+    EXPECT_FALSE(descriptors.Has("Lipinski"));
+    EXPECT_FALSE(descriptors.Has("GhoseFilter"));
     EXPECT_FALSE(descriptors.Has("ABC"));
 }
 

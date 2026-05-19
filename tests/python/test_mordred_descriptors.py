@@ -6,10 +6,13 @@ import json
 import sys
 from importlib import resources
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
 import numpy as np
 import pytest
+
+import compare_mordred_parity
 
 REFERENCE_FIXTURE = Path(__file__).with_name("mordred_references.json")
 DIVERGENCE_FIXTURE = Path(__file__).with_name("mordred_divergences.json")
@@ -68,7 +71,6 @@ FIRST_BATCH_SOURCE_TYPES = {
     "BondCount",
     "CarbonTypes",
     "HydrogenBond",
-    "Lipinski",
     "RotatableBond",
     "TopoPSA",
     "Weight",
@@ -113,6 +115,14 @@ def _first_batch_names(payload: dict[str, Any]) -> tuple[str, ...]:
         definition["name"]
         for definition in payload["definitions"]
         if definition["source_type"] in FIRST_BATCH_SOURCE_TYPES
+    )
+
+
+def _policy_descriptors_by_status(status: str) -> tuple[str, ...]:
+    return tuple(
+        policy["descriptor"]
+        for policy in _divergence_payload()["policies"]
+        if policy["status"] == status
     )
 
 
@@ -187,7 +197,7 @@ def test_mordred_descriptors_match_first_batch_reference_values():
     payload = _reference_payload()
     names = _first_batch_names(payload)
 
-    assert len(names) == 51
+    assert len(names) == 49
     for row in payload["reference_rows"]:
         descriptors = oefp.mordred_descriptors(_openeye_mol(row["smiles"]))
         expected_by_name = _reference_values_by_name(payload, row)
@@ -204,6 +214,69 @@ def test_mordred_descriptors_match_first_batch_reference_values():
                 assert actual == pytest.approx(expected, rel=1e-8, abs=1e-8)
             else:
                 assert actual == expected
+
+
+def test_manifest_deferred_mordred_descriptors_are_missing_at_runtime():
+    import oefp
+
+    deferred_names = _policy_descriptors_by_status("deferred")
+    assert deferred_names == ("Lipinski", "GhoseFilter")
+
+    for row in _reference_payload()["reference_rows"]:
+        descriptors = oefp.mordred_descriptors(_openeye_mol(row["smiles"]))
+
+        for name in deferred_names:
+            assert descriptors[name] is None
+
+
+def test_parity_harness_rejects_concrete_values_for_deferred_descriptors(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    fake_oefp = SimpleNamespace(mordred_descriptors=lambda _mol: {"DeferredFlag": True})
+    monkeypatch.setitem(sys.modules, "oefp", fake_oefp)
+    monkeypatch.setattr(compare_mordred_parity, "_openeye_mol", lambda smiles: smiles)
+
+    references = {
+        "definitions": [
+            {
+                "name": "DeferredFlag",
+                "source_type": "DeferredFamily",
+            }
+        ],
+        "reference_rows": [
+            {
+                "smiles": "CCO",
+                "values": [False],
+            }
+        ],
+    }
+    policy = {
+        "policies": [
+            {
+                "descriptor": "DeferredFlag",
+                "status": "deferred",
+            }
+        ],
+        "row_divergences": [],
+    }
+
+    counts, unclassified = compare_mordred_parity._compare(
+        references,
+        policy,
+        ("DeferredFlag",),
+    )
+
+    assert counts == {
+        "exact": 0,
+        "accepted_divergences": 0,
+        "deferred": 0,
+        "not_applicable": 0,
+        "unclassified": 1,
+    }
+    assert unclassified == [
+        "DeferredFlag CCO: deferred descriptor produced concrete value True "
+        "primitive=DeferredFamily"
+    ]
 
 
 def test_mordred_reference_fixture_contains_full_schema_and_panel():

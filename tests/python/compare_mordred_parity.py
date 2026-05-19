@@ -131,6 +131,19 @@ def _format_difference(
     )
 
 
+def _format_deferred_concrete_value(
+    descriptor: str,
+    smiles: str,
+    observed: Any,
+    definition: Mapping[str, Any],
+) -> str:
+    primitive = definition.get("source_type", "")
+    return (
+        f"{descriptor} {smiles}: deferred descriptor produced concrete value "
+        f"{observed!r} primitive={primitive}"
+    )
+
+
 def _compare(
     references: Mapping[str, Any],
     policy: Mapping[str, Any],
@@ -162,7 +175,18 @@ def _compare(
             descriptor_policy = descriptor_policies.get(name, {})
             status = descriptor_policy.get("status")
             if status == "deferred":
-                counts["deferred"] += 1
+                if observed is None:
+                    counts["deferred"] += 1
+                else:
+                    counts["unclassified"] += 1
+                    unclassified.append(
+                        _format_deferred_concrete_value(
+                            name,
+                            smiles,
+                            observed,
+                            definitions[name],
+                        )
+                    )
             elif status == "not_applicable":
                 counts["not_applicable"] += 1
             elif _values_match(expected, observed):

@@ -6,7 +6,6 @@
 #include <cstddef>
 #include <string>
 #include <unordered_set>
-#include <utility>
 #include <vector>
 
 #include <oesystem.h>
@@ -52,8 +51,6 @@ struct MordredFirstBatchValues {
     double topo_psa_no = 0.0;
     double topo_psa = 0.0;
     double exact_weight = 0.0;
-    double crippen_logp = 0.0;
-    double crippen_mr = 0.0;
 };
 
 bool is_hydrogen(const OEChem::OEAtomBase& atom) {
@@ -155,166 +152,6 @@ std::uint32_t count_unique_smarts_root_atoms(
     return static_cast<std::uint32_t>(matched_atom_indices.size());
 }
 
-struct CrippenPattern {
-    const char* smarts;
-    double logp;
-    double mr;
-};
-
-const std::vector<CrippenPattern>& crippen_patterns() {
-    // RDKit's Crippen.txt is ordered by contribution family. The first pattern
-    // that claims an atom wins, so keep this table order stable.
-    static const std::vector<CrippenPattern> patterns{
-        {"[CH4]", 0.1441, 2.503},
-        {"[CH3]C", 0.1441, 2.503},
-        {"[CH2](C)C", 0.1441, 2.503},
-        {"[CH](C)(C)C", 0, 2.433},
-        {"[C](C)(C)(C)C", 0, 2.433},
-        {"[CH3][N,O,P,S,F,Cl,Br,I]", -0.2035, 2.753},
-        {"[CH2X4]([N,O,P,S,F,Cl,Br,I])[A;!#1]", -0.2035, 2.753},
-        {"[CH1X4]([N,O,P,S,F,Cl,Br,I])([A;!#1])[A;!#1]", -0.2051, 2.731},
-        {"[CH0X4]([N,O,P,S,F,Cl,Br,I])([A;!#1])([A;!#1])[A;!#1]", -0.2051, 2.731},
-        {"[C]=[!C;A;!#1]", -0.2783, 5.007},
-        {"[CH2]=C", 0.1551, 3.513},
-        {"[CH1](=C)[A;!#1]", 0.1551, 3.513},
-        {"[CH0](=C)([A;!#1])[A;!#1]", 0.1551, 3.513},
-        {"[C](=C)=C", 0.1551, 3.513},
-        {"[CX2]#[A;!#1]", 0.0017, 3.888},
-        {"[CH3]c", 0.08452, 2.464},
-        {"[CH3]a", -0.1444, 2.412},
-        {"[CH2X4]a", -0.0516, 2.488},
-        {"[CHX4]a", 0.1193, 2.582},
-        {"[CH0X4]a", -0.0967, 2.576},
-        {"[cH0]-[A;!C;!N;!O;!S;!F;!Cl;!Br;!I;!#1]", -0.5443, 4.041},
-        {"[c][#9]", 0, 3.257},
-        {"[c][#17]", 0.245, 3.564},
-        {"[c][#35]", 0.198, 3.18},
-        {"[c][#53]", 0, 3.104},
-        {"[cH]", 0.1581, 3.35},
-        {"[c](:a)(:a):a", 0.2955, 4.346},
-        {"[c](:a)(:a)-a", 0.2713, 3.904},
-        {"[c](:a)(:a)-C", 0.136, 3.509},
-        {"[c](:a)(:a)-N", 0.4619, 4.067},
-        {"[c](:a)(:a)-O", 0.5437, 3.853},
-        {"[c](:a)(:a)-S", 0.1893, 2.673},
-        {"[c](:a)(:a)=[C,N,O]", -0.8186, 3.135},
-        {"[C](=C)(a)[A;!#1]", 0.264, 4.305},
-        {"[C](=C)(c)a", 0.264, 4.305},
-        {"[CH1](=C)a", 0.264, 4.305},
-        {"[C]=c", 0.264, 4.305},
-        {"[CX4][A;!C;!N;!O;!P;!S;!F;!Cl;!Br;!I;!#1]", 0.2148, 2.693},
-        {"[#6]", 0.08129, 3.243},
-        {"[#1][#6,#1]", 0.123, 1.057},
-        {"[#1]O[CX4,c]", -0.2677, 1.395},
-        {"[#1]O[!C;!N;!O;!S]", -0.2677, 1.395},
-        {"[#1][!C;!N;!O]", -0.2677, 1.395},
-        {"[#1][#7]", 0.2142, 0.9627},
-        {"[#1]O[#7]", 0.2142, 0.9627},
-        {"[#1]OC=[#6,#7,O,S]", 0.298, 1.805},
-        {"[#1]O[O,S]", 0.298, 1.805},
-        {"[#1]", 0.1125, 1.112},
-        {"[NH2+0][A;!#1]", -1.019, 2.262},
-        {"[NH+0]([A;!#1])[A;!#1]", -0.7096, 2.173},
-        {"[NH2+0]a", -1.027, 2.827},
-        {"[NH1+0]([!#1;A,a])a", -0.5188, 3},
-        {"[NH+0]=[!#1;A,a]", 0.08387, 1.757},
-        {"[N+0](=[!#1;A,a])[!#1;A,a]", 0.1836, 2.428},
-        {"[N+0]([A;!#1])([A;!#1])[A;!#1]", -0.3187, 1.839},
-        {"[N+0](a)([!#1;A,a])[A;!#1]", -0.4458, 2.819},
-        {"[N+0](a)(a)a", -0.4458, 2.819},
-        {"[N+0]#[A;!#1]", 0.01508, 1.725},
-        {"[NH3,NH2,NH;+,+2,+3]", -1.95, 0},
-        {"[n+0]", -0.3239, 2.202},
-        {"[n;+,+2,+3]", -1.119, 0},
-        {"[NH0;+,+2,+3]([A;!#1])([A;!#1])([A;!#1])[A;!#1]", -0.3396, 0.2604},
-        {"[NH0;+,+2,+3](=[A;!#1])([A;!#1])[!#1;A,a]", -0.3396, 0.2604},
-        {"[NH0;+,+2,+3](=[#6])=[#7]", -0.3396, 0.2604},
-        {"[N;+,+2,+3]#[A;!#1]", 0.2887, 3.359},
-        {"[N;-,-2,-3]", 0.2887, 3.359},
-        {"[N;+,+2,+3](=[N;-,-2,-3])=N", 0.2887, 3.359},
-        {"[#7]", -0.4806, 2.134},
-        {"[o]", 0.1552, 1.08},
-        {"[OH,OH2]", -0.2893, 0.8238},
-        {"[O]([A;!#1])[A;!#1]", -0.0684, 1.085},
-        {"[O](a)[!#1;A,a]", -0.4195, 1.182},
-        {"[O]=[#7,#8]", 0.0335, 3.367},
-        {"[OX1;-,-2,-3][#7]", 0.0335, 3.367},
-        {"[OX1;-,-2,-2][#16]", -0.3339, 0.7774},
-        {"[O;-0]=[#16;-0]", -0.3339, 0.7774},
-        {"[O-]C(=O)", -1.326, 0},
-        {"[OX1;-,-2,-3][!#1;!N;!S]", -1.189, 0},
-        {"[O]=c", 0.1788, 3.135},
-        {"[O]=[CH]C", -0.1526, 0},
-        {"[O]=C(C)([A;!#1])", -0.1526, 0},
-        {"[O]=[CH][N,O]", -0.1526, 0},
-        {"[O]=[CH2]", -0.1526, 0},
-        {"[O]=[CX2]=O", -0.1526, 0},
-        {"[O]=[CH]c", 0.1129, 0.2215},
-        {"[O]=C([C,c])[a;!#1]", 0.1129, 0.2215},
-        {"[O]=C(c)[A;!#1]", 0.1129, 0.2215},
-        {"[O]=C([!#1;!#6])[!#1;!#6]", 0.4833, 0.389},
-        {"[#8]", -0.1188, 0.6865},
-        {"[#9-0]", 0.4202, 1.108},
-        {"[#17-0]", 0.6895, 5.853},
-        {"[#35-0]", 0.8456, 8.927},
-        {"[#53-0]", 0.8857, 14.02},
-        {"[#9,#17,#35,#53;-]", -2.996, 0},
-        {"[#53;+,+2,+3]", -2.996, 0},
-        {"[+;#3,#11,#19,#37,#55]", -2.996, 0},
-        {"[#15]", 0.8612, 6.92},
-        {"[S;-,-2,-3,-4,+1,+2,+3,+5,+6]", -0.0024, 7.365},
-        {"[S-0]=[N,O,P,S]", -0.0024, 7.365},
-        {"[S;A]", 0.6482, 7.591},
-        {"[s;a]", 0.6237, 6.691},
-        {"[#3,#11,#19,#37,#55]", -0.3808, 5.754},
-        {"[#4,#12,#20,#38,#56]", -0.3808, 5.754},
-        {"[#5,#13,#31,#49,#81]", -0.3808, 5.754},
-        {"[#14,#32,#50,#82]", -0.3808, 5.754},
-        {"[#33,#51,#83]", -0.3808, 5.754},
-        {"[#34,#52,#84]", -0.3808, 5.754},
-        {"[#21,#22,#23,#24,#25,#26,#27,#28,#29,#30]", -0.0025, 0},
-        {"[#39,#40,#41,#42,#43,#44,#45,#46,#47,#48]", -0.0025, 0},
-        {"[#72,#73,#74,#75,#76,#77,#78,#79,#80]", -0.0025, 0},
-    };
-    return patterns;
-}
-
-std::pair<double, double> compute_crippen_descriptors(const OEChem::OEMolBase& mol) {
-    OEChem::OEGraphMol crippen_mol(mol);
-    OEChem::OEFindRingAtomsAndBonds(crippen_mol);
-    OEChem::OEAssignAromaticFlags(crippen_mol);
-    OEChem::OEAssignHybridization(crippen_mol);
-    OEChem::OEAssignImplicitHydrogens(crippen_mol);
-    OEChem::OEAddExplicitHydrogens(crippen_mol, false, false);
-
-    std::unordered_set<unsigned int> assigned_atom_indices;
-    double logp = 0.0;
-    double mr = 0.0;
-    for (const auto& pattern : crippen_patterns()) {
-        OEChem::OESubSearch search(pattern.smarts);
-        if (!search) {
-            continue;
-        }
-        for (OESystem::OEIter<OEChem::OEMatchBase> match = search.Match(crippen_mol, false);
-             match; ++match) {
-            for (OESystem::OEIter<OEChem::OEMatchPair<OEChem::OEAtomBase>> atom_match =
-                     match->GetAtoms();
-                 atom_match; ++atom_match) {
-                if (atom_match->pattern == nullptr || atom_match->target == nullptr
-                    || atom_match->pattern->GetIdx() != 0u) {
-                    continue;
-                }
-                const auto atom_index = atom_match->target->GetIdx();
-                if (assigned_atom_indices.insert(atom_index).second) {
-                    logp += pattern.logp;
-                    mr += pattern.mr;
-                }
-            }
-        }
-    }
-    return {logp, mr};
-}
-
 std::uint32_t count_mordred_acids(const OEChem::OEMolBase& mol) {
     static const std::vector<const char*> smarts_patterns{
         "[O;H1]-[C,S,P]=O",
@@ -380,10 +217,6 @@ MordredFirstBatchValues compute_first_batch_values(const OEChem::OEMolBase& mol)
     if (OEMolProp::OEGet2dPSA(working_mol, topo_psa, nullptr, true)) {
         values.topo_psa = round_tpsa(static_cast<double>(topo_psa));
     }
-    const auto crippen = compute_crippen_descriptors(working_mol);
-    values.crippen_logp = crippen.first;
-    values.crippen_mr = crippen.second;
-
     for (OESystem::OEIter<OEChem::OEAtomBase> atom = working_mol.GetAtoms(); atom; ++atom) {
         const auto atomic_number = static_cast<std::uint32_t>(atom->GetAtomicNum());
         if (is_hydrogen(*atom)) {
@@ -572,14 +405,6 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
     set_int(builder, "nHBAcc", values.hbond_acceptors);
     set_int(builder, "nHBDon", values.hbond_donors);
 
-    const auto lipinski = values.exact_weight <= 500.0 && values.hbond_acceptors <= 10u
-                          && values.hbond_donors <= 5u && values.crippen_logp <= 5.0;
-    const auto ghose = values.exact_weight >= 160.0 && values.exact_weight <= 480.0
-                       && all_atoms >= 20u && all_atoms <= 70u && values.crippen_logp >= -0.4
-                       && values.crippen_logp <= 5.6 && values.crippen_mr >= 40.0
-                       && values.crippen_mr <= 130.0;
-    set_bool(builder, "Lipinski", lipinski);
-    set_bool(builder, "GhoseFilter", ghose);
     set_int(builder, "nRot", values.rotatable_bonds);
     if (values.heavy_bonds != 0u) {
         set_float(
