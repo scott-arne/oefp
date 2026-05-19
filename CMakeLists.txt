@@ -83,6 +83,7 @@ set(OEFP_SOURCES
     src/fingerprint.cpp
     src/metric.cpp
     src/mordred.cpp
+    src/mordred_schema.cpp
     src/morgan.cpp
     src/openeye.cpp
     src/sparse.cpp

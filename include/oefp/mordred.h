@@ -5,7 +5,18 @@
 
 #include <oechem.h>
 
+#include <memory>
+
 namespace OEFP {
+
+/// \brief Return the full Mordred descriptor schema.
+///
+/// The schema enumerates Mordred 1.2.0 descriptors in calculator order with
+/// inferred scalar value kinds and source metadata generated from the local
+/// Mordred descriptor definitions.
+///
+/// \returns Shared immutable Mordred descriptor schema.
+std::shared_ptr<const DescriptorSchema> MordredDescriptorSchema();
 
 /// \brief Generate the supported Mordred-compatible count descriptor subset.
 ///

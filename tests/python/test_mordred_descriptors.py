@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
+import json
+from pathlib import Path
 from typing import Any
 
 import numpy as np
+
+REFERENCE_FIXTURE = Path(__file__).with_name("mordred_references.json")
 
 SUPPORTED_COUNT_NAMES = (
     "nAromAtom",
@@ -35,92 +39,22 @@ SUPPORTED_COUNT_NAMES = (
     "nX",
 )
 
-MORDRED_REFERENCES = {
-    "CCO": {
-        "nAromAtom": 0,
-        "nAromBond": 0,
-        "nAtom": 9,
-        "nHeavyAtom": 3,
-        "nHetero": 1,
-        "nH": 6,
-        "nB": 0,
-        "nC": 2,
-        "nN": 0,
-        "nO": 1,
-        "nS": 0,
-        "nP": 0,
-        "nF": 0,
-        "nCl": 0,
-        "nBr": 0,
-        "nI": 0,
-        "nX": 0,
-        "nBonds": 8,
-        "nBondsO": 2,
-        "nBondsS": 8,
-        "nBondsD": 0,
-        "nBondsT": 0,
-        "nBondsA": 0,
-        "nBondsM": 0,
-        "nBondsKS": 8,
-        "nBondsKD": 0,
-    },
-    "c1ccncc1": {
-        "nAromAtom": 6,
-        "nAromBond": 6,
-        "nAtom": 11,
-        "nHeavyAtom": 6,
-        "nHetero": 1,
-        "nH": 5,
-        "nB": 0,
-        "nC": 5,
-        "nN": 1,
-        "nO": 0,
-        "nS": 0,
-        "nP": 0,
-        "nF": 0,
-        "nCl": 0,
-        "nBr": 0,
-        "nI": 0,
-        "nX": 0,
-        "nBonds": 11,
-        "nBondsO": 6,
-        "nBondsS": 5,
-        "nBondsD": 0,
-        "nBondsT": 0,
-        "nBondsA": 6,
-        "nBondsM": 6,
-        "nBondsKS": 8,
-        "nBondsKD": 3,
-    },
-    "CC(C)(C)Cl": {
-        "nAromAtom": 0,
-        "nAromBond": 0,
-        "nAtom": 14,
-        "nHeavyAtom": 5,
-        "nHetero": 1,
-        "nH": 9,
-        "nB": 0,
-        "nC": 4,
-        "nN": 0,
-        "nO": 0,
-        "nS": 0,
-        "nP": 0,
-        "nF": 0,
-        "nCl": 1,
-        "nBr": 0,
-        "nI": 0,
-        "nX": 1,
-        "nBonds": 13,
-        "nBondsO": 4,
-        "nBondsS": 13,
-        "nBondsD": 0,
-        "nBondsT": 0,
-        "nBondsA": 0,
-        "nBondsM": 0,
-        "nBondsKS": 13,
-        "nBondsKD": 0,
-    },
-}
+
+def _reference_payload() -> dict[str, Any]:
+    with REFERENCE_FIXTURE.open(encoding="utf-8") as handle:
+        return json.load(handle)
+
+
+def _mordred_references() -> dict[str, dict[str, int]]:
+    payload = _reference_payload()
+    descriptor_names = [definition["name"] for definition in payload["definitions"]]
+    references = {}
+    for row in payload["reference_rows"]:
+        values_by_name = dict(zip(descriptor_names, row["values"], strict=True))
+        references[row["smiles"]] = {
+            name: int(values_by_name[name]) for name in SUPPORTED_COUNT_NAMES
+        }
+    return references
 
 
 def _openeye_mol(smiles: str) -> Any:
@@ -150,7 +84,7 @@ def _count_tanimoto(left: dict[str, int], right: dict[str, int]) -> float:
 def test_mordred_descriptors_match_copied_reference_values():
     import oefp
 
-    for smiles, expected in MORDRED_REFERENCES.items():
+    for smiles, expected in _mordred_references().items():
         descriptors = oefp.mordred_descriptors(_openeye_mol(smiles))
         counts = _descriptor_counts(descriptors)
 
@@ -167,6 +101,7 @@ def test_mordred_descriptors_match_copied_reference_values():
 def test_mordred_descriptors_compare_with_existing_descriptor_surface():
     import oefp
 
+    references = _mordred_references()
     query = oefp.mordred_descriptors(_openeye_mol("CCO"))
     library_smiles = ["CCO", "c1ccncc1", "CC(C)(C)Cl"]
     library = [oefp.mordred_descriptors(_openeye_mol(smiles)) for smiles in library_smiles]
@@ -174,8 +109,41 @@ def test_mordred_descriptors_compare_with_existing_descriptor_surface():
 
     expected = np.array(
         [
-            _count_tanimoto(MORDRED_REFERENCES["CCO"], MORDRED_REFERENCES[smiles])
+            _count_tanimoto(references["CCO"], references[smiles])
             for smiles in library_smiles
         ]
     )
     np.testing.assert_allclose(oefp.compare(query, batch, oefp.Metric.tanimoto()), expected)
+
+
+def test_mordred_reference_fixture_contains_full_schema_and_panel():
+    payload = _reference_payload()
+    definitions = payload["definitions"]
+    definitions_by_name = {definition["name"]: definition for definition in definitions}
+    names = [definition["name"] for definition in definitions]
+
+    assert payload["schema_id"] == "1fa9a8e86a7c8731"
+    assert payload["source"] == {
+        "descriptor_source": "local-mordred-1.2.0",
+        "ignore_3D": False,
+        "name": "Mordred",
+        "version": "Mordred-1.2.0",
+    }
+    assert payload["source"]["version"] == "Mordred-1.2.0"
+    assert len(definitions) == 1826
+    assert names[0] == "ABC"
+    assert names[-1] == "mZagreb2"
+    assert names.index("nAtom") == 18
+    assert names.index("Lipinski") == 1351
+    assert names.index("GhoseFilter") == 1352
+    assert len(payload["reference_rows"]) == 8
+    assert definitions_by_name["ABC"]["value_kind"] == "float"
+    assert definitions_by_name["nAtom"]["value_kind"] == "int"
+    assert definitions_by_name["Lipinski"]["value_kind"] == "bool"
+    for row in payload["reference_rows"]:
+        assert len(row["values"]) == 1826
+        for value in row["values"]:
+            if isinstance(value, dict):
+                assert set(value) == {"error_type", "state"}
+                assert value["state"] in {"missing", "error", "nonfinite"}
+                assert value["error_type"]
