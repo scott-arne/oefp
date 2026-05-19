@@ -277,6 +277,46 @@ TEST(MordredDescriptorTest, VabcDocumentsOpenEyeRingPrimitiveDivergence) {
     EXPECT_NEAR(descriptors.Float("Vabc"), 85.14204599989137, 1.0e-8);
 }
 
+TEST(MordredDescriptorTest, WalkCountDescriptorsMatchCopiedMordredReferences) {
+    struct Case {
+        std::string smiles;
+        std::map<std::string, double> expected_values;
+    };
+
+    const std::vector<Case> cases{
+        {
+            "CCC",
+            {
+                {"MWC01", 2.0},
+                {"MWC05", 2.833213344056216},
+                {"SRW04", 2.1972245773362196},
+                {"TMWC10", 33.89759936075361},
+                {"TSRW10", 17.310770665188652},
+            },
+        },
+        {
+            "C1CCCCC1",
+            {
+                {"MWC01", 6.0},
+                {"MWC05", 5.262690188904886},
+                {"SRW04", 3.6109179126442243},
+                {"TMWC10", 65.63782292184975},
+                {"TSRW10", 30.941316689854872},
+            },
+        },
+    };
+
+    for (const auto& expected : cases) {
+        SCOPED_TRACE(expected.smiles);
+        const auto descriptors = MakeMordredDescriptors(mol_from_smiles(expected.smiles));
+
+        for (const auto& [name, value] : expected.expected_values) {
+            EXPECT_TRUE(descriptors.Has(name)) << name;
+            EXPECT_NEAR(descriptors.Float(name), value, 1.0e-8) << name;
+        }
+    }
+}
+
 TEST(MordredDescriptorTest, FilterDescriptorsMatchCopiedMordredReferences) {
     struct Case {
         std::string smiles;

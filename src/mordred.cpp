@@ -81,6 +81,13 @@ struct MordredAdditivePropertyValues {
     std::optional<double> vabc;
 };
 
+struct MordredWalkCountValues {
+    std::array<double, 11> mwc{};
+    std::array<double, 11> srw{};
+    double total_mwc10 = 0.0;
+    double total_srw10 = 0.0;
+};
+
 struct AtomicPropertyValue {
     std::uint32_t atomic_number;
     double value;
@@ -941,6 +948,90 @@ std::optional<double> compute_vabc(
            - 3.8 * static_cast<double>(aliphatic_rings);
 }
 
+double matrix_sum(const std::vector<double>& matrix) {
+    double sum = 0.0;
+    for (const auto value : matrix) {
+        sum += value;
+    }
+    return sum;
+}
+
+double matrix_trace(const std::vector<double>& matrix, std::size_t size) {
+    double trace = 0.0;
+    for (std::size_t i = 0u; i < size; ++i) {
+        trace += matrix[i * size + i];
+    }
+    return trace;
+}
+
+std::vector<double> multiply_square_matrices(
+    const std::vector<double>& left,
+    const std::vector<double>& right,
+    std::size_t size) {
+    std::vector<double> product(size * size, 0.0);
+    for (std::size_t row = 0u; row < size; ++row) {
+        for (std::size_t shared = 0u; shared < size; ++shared) {
+            const auto left_value = left[row * size + shared];
+            if (left_value == 0.0) {
+                continue;
+            }
+            for (std::size_t column = 0u; column < size; ++column) {
+                product[row * size + column] += left_value * right[shared * size + column];
+            }
+        }
+    }
+    return product;
+}
+
+MordredWalkCountValues compute_walk_count_values(const OEChem::OEMolBase& mol) {
+    std::unordered_map<unsigned int, std::size_t> heavy_atom_indices;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        if (!is_hydrogen(*atom)) {
+            heavy_atom_indices.emplace(atom->GetIdx(), heavy_atom_indices.size());
+        }
+    }
+
+    const auto heavy_atom_count = heavy_atom_indices.size();
+    std::vector<double> adjacency(heavy_atom_count * heavy_atom_count, 0.0);
+    for (OESystem::OEIter<OEChem::OEBondBase> bond = mol.GetBonds(); bond; ++bond) {
+        const auto* begin = bond->GetBgn();
+        const auto* end = bond->GetEnd();
+        if (begin == nullptr || end == nullptr || is_hydrogen(*begin) || is_hydrogen(*end)) {
+            continue;
+        }
+
+        const auto begin_index = heavy_atom_indices.find(begin->GetIdx());
+        const auto end_index = heavy_atom_indices.find(end->GetIdx());
+        if (begin_index == heavy_atom_indices.end() || end_index == heavy_atom_indices.end()) {
+            continue;
+        }
+        adjacency[begin_index->second * heavy_atom_count + end_index->second] = 1.0;
+        adjacency[end_index->second * heavy_atom_count + begin_index->second] = 1.0;
+    }
+
+    MordredWalkCountValues values;
+    values.total_mwc10 = static_cast<double>(heavy_atom_count);
+    values.total_srw10 = static_cast<double>(heavy_atom_count);
+    auto power = adjacency;
+    for (std::size_t order = 1u; order <= 10u; ++order) {
+        const auto sum = matrix_sum(power);
+        const auto trace = matrix_trace(power, heavy_atom_count);
+        if (order == 1u) {
+            values.mwc[order] = 0.5 * sum;
+        } else {
+            values.mwc[order] = std::log(sum + 1.0);
+            values.srw[order] = std::log(trace + 1.0);
+        }
+        values.total_mwc10 += values.mwc[order];
+        values.total_srw10 += values.srw[order];
+
+        if (order != 10u) {
+            power = multiply_square_matrices(power, adjacency, heavy_atom_count);
+        }
+    }
+    return values;
+}
+
 MordredAdditivePropertyValues compute_additive_property_values(const OEChem::OEMolBase& mol) {
     const auto explicit_mol = explicit_hydrogen_copy(mol);
     OEChem::OEGraphMol ring_mol(mol);
@@ -1005,6 +1096,7 @@ void set_bool(DescriptorSetBuilder& builder, const std::string& name, bool value
 DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
     const auto values = compute_first_batch_values(mol);
     const auto additive_values = compute_additive_property_values(mol);
+    const auto walk_count_values = compute_walk_count_values(mol);
     DescriptorSetBuilder builder(MordredDescriptorSchema());
 
     const auto all_atoms = values.heavy_atoms + values.hydrogens;
@@ -1107,6 +1199,27 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
     set_optional_float(builder, "apol", additive_values.apol);
     set_optional_float(builder, "bpol", additive_values.bpol);
     set_optional_float(builder, "Vabc", additive_values.vabc);
+    set_float(builder, "MWC01", walk_count_values.mwc[1]);
+    set_float(builder, "MWC02", walk_count_values.mwc[2]);
+    set_float(builder, "MWC03", walk_count_values.mwc[3]);
+    set_float(builder, "MWC04", walk_count_values.mwc[4]);
+    set_float(builder, "MWC05", walk_count_values.mwc[5]);
+    set_float(builder, "MWC06", walk_count_values.mwc[6]);
+    set_float(builder, "MWC07", walk_count_values.mwc[7]);
+    set_float(builder, "MWC08", walk_count_values.mwc[8]);
+    set_float(builder, "MWC09", walk_count_values.mwc[9]);
+    set_float(builder, "MWC10", walk_count_values.mwc[10]);
+    set_float(builder, "TMWC10", walk_count_values.total_mwc10);
+    set_float(builder, "SRW02", walk_count_values.srw[2]);
+    set_float(builder, "SRW03", walk_count_values.srw[3]);
+    set_float(builder, "SRW04", walk_count_values.srw[4]);
+    set_float(builder, "SRW05", walk_count_values.srw[5]);
+    set_float(builder, "SRW06", walk_count_values.srw[6]);
+    set_float(builder, "SRW07", walk_count_values.srw[7]);
+    set_float(builder, "SRW08", walk_count_values.srw[8]);
+    set_float(builder, "SRW09", walk_count_values.srw[9]);
+    set_float(builder, "SRW10", walk_count_values.srw[10]);
+    set_float(builder, "TSRW10", walk_count_values.total_srw10);
     set_float(builder, "TopoPSA(NO)", values.topo_psa_no);
     set_float(builder, "TopoPSA", values.topo_psa);
     set_float(builder, "MW", values.exact_weight);
