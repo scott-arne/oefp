@@ -4,7 +4,9 @@
 #include <cmath>
 #include <cstdint>
 #include <cstddef>
+#include <optional>
 #include <string>
+#include <unordered_map>
 #include <unordered_set>
 #include <utility>
 #include <vector>
@@ -56,8 +58,145 @@ struct MordredFirstBatchValues {
     double crippen_mr = 0.0;
 };
 
+struct MordredAdditivePropertyValues {
+    std::optional<double> sz;
+    std::optional<double> sm;
+    std::optional<double> sv;
+    std::optional<double> sse;
+    std::optional<double> spe;
+    std::optional<double> sare;
+    std::optional<double> sp;
+    std::optional<double> si;
+    std::optional<double> m_z;
+    std::optional<double> mm;
+    std::optional<double> mv;
+    std::optional<double> mse;
+    std::optional<double> mpe;
+    std::optional<double> mare;
+    std::optional<double> mp;
+    std::optional<double> mi;
+    std::optional<double> v_mcgowan;
+    std::optional<double> apol;
+    std::optional<double> bpol;
+    std::optional<double> vabc;
+};
+
+struct AtomicPropertyValue {
+    std::uint32_t atomic_number;
+    double value;
+};
+
+constexpr double kPi = 3.14159265358979323846;
+
 bool is_hydrogen(const OEChem::OEAtomBase& atom) {
     return atom.GetAtomicNum() == 1u;
+}
+
+std::optional<double> lookup_atomic_property(
+    const std::vector<AtomicPropertyValue>& values,
+    std::uint32_t atomic_number) {
+    for (const auto& entry : values) {
+        if (entry.atomic_number == atomic_number) {
+            return entry.value;
+        }
+    }
+    return std::nullopt;
+}
+
+double sphere_volume(double radius) {
+    return 4.0 / 3.0 * kPi * radius * radius * radius;
+}
+
+std::optional<double> mordred_mass(std::uint32_t atomic_number) {
+    static const std::vector<AtomicPropertyValue> values{
+        {1u, 1.008},      {5u, 10.81},      {6u, 12.011}, {7u, 14.007},
+        {8u, 15.999},     {9u, 18.9984032}, {14u, 28.085}, {15u, 30.973762},
+        {16u, 32.06},     {17u, 35.45},     {33u, 74.9216},
+        {34u, 78.96},     {35u, 79.904},
+    };
+    return lookup_atomic_property(values, atomic_number);
+}
+
+std::optional<double> mordred_vdw_volume(std::uint32_t atomic_number) {
+    static const std::vector<AtomicPropertyValue> radii{
+        {1u, 1.10}, {5u, 1.92}, {6u, 1.70}, {7u, 1.55}, {8u, 1.52},
+        {9u, 1.47}, {14u, 2.10}, {15u, 1.80}, {16u, 1.80},
+        {17u, 1.75}, {33u, 1.85}, {34u, 1.90}, {35u, 1.85},
+    };
+    const auto radius = lookup_atomic_property(radii, atomic_number);
+    if (!radius.has_value()) {
+        return std::nullopt;
+    }
+    return sphere_volume(*radius);
+}
+
+std::optional<double> mordred_sanderson(std::uint32_t atomic_number) {
+    static const std::vector<AtomicPropertyValue> values{
+        {1u, 2.592}, {5u, 2.275}, {6u, 2.746}, {7u, 3.194}, {8u, 3.654},
+        {9u, 4.000}, {14u, 2.138}, {15u, 2.515}, {16u, 2.957},
+        {17u, 3.475}, {33u, 2.816}, {34u, 3.014}, {35u, 3.219},
+    };
+    return lookup_atomic_property(values, atomic_number);
+}
+
+std::optional<double> mordred_pauling(std::uint32_t atomic_number) {
+    static const std::vector<AtomicPropertyValue> values{
+        {1u, 2.2}, {5u, 2.04}, {6u, 2.55}, {7u, 3.04}, {8u, 3.44},
+        {9u, 3.98}, {14u, 1.9}, {15u, 2.19}, {16u, 2.58},
+        {17u, 3.16}, {33u, 2.18}, {34u, 2.55}, {35u, 2.96},
+    };
+    return lookup_atomic_property(values, atomic_number);
+}
+
+std::optional<double> mordred_allred_rocow(std::uint32_t atomic_number) {
+    static const std::vector<AtomicPropertyValue> values{
+        {1u, 2.20}, {5u, 2.01}, {6u, 2.50}, {7u, 3.07}, {8u, 3.50},
+        {9u, 4.10}, {14u, 1.74}, {15u, 2.06}, {16u, 2.44},
+        {17u, 2.83}, {33u, 2.20}, {34u, 2.48}, {35u, 2.74},
+    };
+    return lookup_atomic_property(values, atomic_number);
+}
+
+std::optional<double> mordred_polarizability94(std::uint32_t atomic_number) {
+    static const std::vector<AtomicPropertyValue> values{
+        {1u, 0.666793}, {5u, 3.03}, {6u, 1.67}, {7u, 1.10},
+        {8u, 0.802}, {9u, 0.557}, {14u, 5.53}, {15u, 3.63},
+        {16u, 2.90}, {17u, 2.18}, {33u, 4.31}, {34u, 3.77},
+        {35u, 3.05},
+    };
+    return lookup_atomic_property(values, atomic_number);
+}
+
+std::optional<double> mordred_ionization_potential(std::uint32_t atomic_number) {
+    static const std::vector<AtomicPropertyValue> values{
+        {1u, 13.598443}, {5u, 8.29802}, {6u, 11.26030}, {7u, 14.5341},
+        {8u, 13.61805}, {9u, 17.4228}, {14u, 8.15168}, {15u, 10.48669},
+        {16u, 10.36001}, {17u, 12.96763}, {33u, 9.7886},
+        {34u, 9.75239}, {35u, 11.8138},
+    };
+    return lookup_atomic_property(values, atomic_number);
+}
+
+std::optional<double> mordred_mc_gowan_volume(std::uint32_t atomic_number) {
+    static const std::vector<AtomicPropertyValue> values{
+        {1u, 8.71}, {5u, 18.31}, {6u, 16.35}, {7u, 14.39}, {8u, 12.43},
+        {9u, 10.47}, {14u, 26.83}, {15u, 24.87}, {16u, 22.91},
+        {17u, 20.95}, {33u, 29.42}, {34u, 27.81}, {35u, 26.21},
+    };
+    return lookup_atomic_property(values, atomic_number);
+}
+
+std::optional<double> bondi_atom_volume(std::uint32_t atomic_number) {
+    static const std::vector<AtomicPropertyValue> radii{
+        {1u, 1.20}, {5u, 2.13}, {6u, 1.70}, {7u, 1.55}, {8u, 1.52},
+        {9u, 1.47}, {14u, 2.10}, {15u, 1.80}, {16u, 1.80},
+        {17u, 1.75}, {33u, 1.85}, {34u, 1.90}, {35u, 1.85},
+    };
+    const auto radius = lookup_atomic_property(radii, atomic_number);
+    if (!radius.has_value()) {
+        return std::nullopt;
+    }
+    return sphere_volume(*radius);
 }
 
 bool is_halogen(std::uint32_t atomic_number) {
@@ -482,12 +621,234 @@ MordredFirstBatchValues compute_first_batch_values(const OEChem::OEMolBase& mol)
     return values;
 }
 
+using AtomicPropertyGetter = std::optional<double> (*)(std::uint32_t);
+
+OEChem::OEGraphMol explicit_hydrogen_copy(const OEChem::OEMolBase& mol) {
+    OEChem::OEGraphMol working_mol(mol);
+    OEChem::OEFindRingAtomsAndBonds(working_mol);
+    OEChem::OEAssignAromaticFlags(working_mol);
+    OEChem::OEAddExplicitHydrogens(working_mol, false, false);
+    return working_mol;
+}
+
+std::optional<double> normalized_property_sum(
+    const OEChem::OEMolBase& mol,
+    AtomicPropertyGetter getter) {
+    const auto carbon = getter(6u);
+    if (!carbon.has_value()) {
+        return std::nullopt;
+    }
+
+    double sum = 0.0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        const auto value = getter(static_cast<std::uint32_t>(atom->GetAtomicNum()));
+        if (!value.has_value()) {
+            return std::nullopt;
+        }
+        sum += *value / *carbon;
+    }
+    return sum;
+}
+
+std::optional<double> mean_from_sum(std::optional<double> sum, std::uint32_t atom_count) {
+    if (!sum.has_value() || atom_count == 0u) {
+        return std::nullopt;
+    }
+    return *sum / static_cast<double>(atom_count);
+}
+
+std::uint32_t count_atoms(const OEChem::OEMolBase& mol) {
+    std::uint32_t count = 0u;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        ++count;
+    }
+    return count;
+}
+
+std::uint32_t count_bonds(const OEChem::OEMolBase& mol) {
+    std::uint32_t count = 0u;
+    for (OESystem::OEIter<OEChem::OEBondBase> bond = mol.GetBonds(); bond; ++bond) {
+        ++count;
+    }
+    return count;
+}
+
+std::optional<double> sum_atom_property(
+    const OEChem::OEMolBase& mol,
+    AtomicPropertyGetter getter) {
+    double sum = 0.0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        const auto value = getter(static_cast<std::uint32_t>(atom->GetAtomicNum()));
+        if (!value.has_value()) {
+            return std::nullopt;
+        }
+        sum += *value;
+    }
+    return sum;
+}
+
+std::optional<double> compute_bpol(const OEChem::OEMolBase& mol) {
+    double sum = 0.0;
+    for (OESystem::OEIter<OEChem::OEBondBase> bond = mol.GetBonds(); bond; ++bond) {
+        const auto* begin = bond->GetBgn();
+        const auto* end = bond->GetEnd();
+        if (begin == nullptr || end == nullptr) {
+            return std::nullopt;
+        }
+
+        const auto begin_value =
+            mordred_polarizability94(static_cast<std::uint32_t>(begin->GetAtomicNum()));
+        const auto end_value =
+            mordred_polarizability94(static_cast<std::uint32_t>(end->GetAtomicNum()));
+        if (!begin_value.has_value() || !end_value.has_value()) {
+            return std::nullopt;
+        }
+        sum += std::abs(*begin_value - *end_value);
+    }
+    return sum;
+}
+
+std::uint32_t ring_basis_count(const OEChem::OEMolBase& mol, bool aromatic_only) {
+    // Mordred's Vabc depends on RDKit SymmSSSR ring counts. OpenEye exposes
+    // ring systems, so compute the cycle rank of the ring-bond subgraph to
+    // preserve fused-ring penalties without depending on row-specific fixes.
+    std::unordered_map<unsigned int, std::size_t> atom_indices;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        if (!atom->IsInRing()) {
+            continue;
+        }
+        if (aromatic_only && !atom->IsAromatic()) {
+            continue;
+        }
+        atom_indices.emplace(atom->GetIdx(), atom_indices.size());
+    }
+
+    std::vector<std::vector<std::size_t>> adjacency(atom_indices.size());
+    for (OESystem::OEIter<OEChem::OEBondBase> bond = mol.GetBonds(); bond; ++bond) {
+        if (!bond->IsInRing()) {
+            continue;
+        }
+        if (aromatic_only && !bond->IsAromatic()) {
+            continue;
+        }
+
+        const auto* begin = bond->GetBgn();
+        const auto* end = bond->GetEnd();
+        if (begin == nullptr || end == nullptr) {
+            continue;
+        }
+        const auto begin_index = atom_indices.find(begin->GetIdx());
+        const auto end_index = atom_indices.find(end->GetIdx());
+        if (begin_index == atom_indices.end() || end_index == atom_indices.end()) {
+            continue;
+        }
+        adjacency[begin_index->second].push_back(end_index->second);
+        adjacency[end_index->second].push_back(begin_index->second);
+    }
+
+    std::vector<bool> visited(adjacency.size(), false);
+    std::uint32_t rings = 0u;
+    for (std::size_t start = 0u; start < adjacency.size(); ++start) {
+        if (visited[start] || adjacency[start].empty()) {
+            continue;
+        }
+
+        std::vector<std::size_t> stack{start};
+        visited[start] = true;
+        std::uint32_t vertices = 0u;
+        std::uint32_t doubled_edges = 0u;
+        while (!stack.empty()) {
+            const auto current = stack.back();
+            stack.pop_back();
+            ++vertices;
+            doubled_edges += static_cast<std::uint32_t>(adjacency[current].size());
+            for (const auto neighbor : adjacency[current]) {
+                if (!visited[neighbor]) {
+                    visited[neighbor] = true;
+                    stack.push_back(neighbor);
+                }
+            }
+        }
+
+        const auto edges = doubled_edges / 2u;
+        if (edges >= vertices) {
+            rings += edges - vertices + 1u;
+        }
+    }
+    return rings;
+}
+
+std::optional<double> compute_vabc(
+    const OEChem::OEMolBase& explicit_mol,
+    const OEChem::OEMolBase& ring_mol) {
+    const auto atom_volume = sum_atom_property(explicit_mol, bondi_atom_volume);
+    if (!atom_volume.has_value()) {
+        return std::nullopt;
+    }
+
+    const auto bond_count = count_bonds(explicit_mol);
+    const auto aromatic_rings = ring_basis_count(ring_mol, true);
+    const auto total_rings = ring_basis_count(ring_mol, false);
+    const auto aliphatic_rings =
+        total_rings > aromatic_rings ? total_rings - aromatic_rings : 0u;
+    return *atom_volume - 5.92 * static_cast<double>(bond_count)
+           - 14.7 * static_cast<double>(aromatic_rings)
+           - 3.8 * static_cast<double>(aliphatic_rings);
+}
+
+MordredAdditivePropertyValues compute_additive_property_values(const OEChem::OEMolBase& mol) {
+    const auto explicit_mol = explicit_hydrogen_copy(mol);
+    OEChem::OEGraphMol ring_mol(mol);
+    OEChem::OEFindRingAtomsAndBonds(ring_mol);
+    OEChem::OEAssignAromaticFlags(ring_mol);
+
+    MordredAdditivePropertyValues values;
+    const auto atom_count = count_atoms(explicit_mol);
+    values.sz = normalized_property_sum(explicit_mol, [](std::uint32_t atomic_number) {
+        return std::optional<double>(static_cast<double>(atomic_number));
+    });
+    values.sm = normalized_property_sum(explicit_mol, mordred_mass);
+    values.sv = normalized_property_sum(explicit_mol, mordred_vdw_volume);
+    values.sse = normalized_property_sum(explicit_mol, mordred_sanderson);
+    values.spe = normalized_property_sum(explicit_mol, mordred_pauling);
+    values.sare = normalized_property_sum(explicit_mol, mordred_allred_rocow);
+    values.sp = normalized_property_sum(explicit_mol, mordred_polarizability94);
+    values.si = normalized_property_sum(explicit_mol, mordred_ionization_potential);
+    values.m_z = mean_from_sum(values.sz, atom_count);
+    values.mm = mean_from_sum(values.sm, atom_count);
+    values.mv = mean_from_sum(values.sv, atom_count);
+    values.mse = mean_from_sum(values.sse, atom_count);
+    values.mpe = mean_from_sum(values.spe, atom_count);
+    values.mare = mean_from_sum(values.sare, atom_count);
+    values.mp = mean_from_sum(values.sp, atom_count);
+    values.mi = mean_from_sum(values.si, atom_count);
+
+    const auto mc_gowan_atom_volume = sum_atom_property(explicit_mol, mordred_mc_gowan_volume);
+    if (mc_gowan_atom_volume.has_value()) {
+        values.v_mcgowan =
+            *mc_gowan_atom_volume - static_cast<double>(count_bonds(explicit_mol)) * 6.56;
+    }
+    values.apol = sum_atom_property(explicit_mol, mordred_polarizability94);
+    values.bpol = compute_bpol(explicit_mol);
+    values.vabc = compute_vabc(explicit_mol, ring_mol);
+    return values;
+}
+
 void set_int(DescriptorSetBuilder& builder, const std::string& name, std::uint32_t value) {
     builder.Set(name, DescriptorValue::Int(static_cast<std::int64_t>(value)));
 }
 
 void set_float(DescriptorSetBuilder& builder, const std::string& name, double value) {
     builder.Set(name, DescriptorValue::Float(value));
+}
+
+void set_optional_float(
+    DescriptorSetBuilder& builder,
+    const std::string& name,
+    std::optional<double> value) {
+    if (value.has_value()) {
+        set_float(builder, name, *value);
+    }
 }
 
 void set_bool(DescriptorSetBuilder& builder, const std::string& name, bool value) {
@@ -498,6 +859,7 @@ void set_bool(DescriptorSetBuilder& builder, const std::string& name, bool value
 
 DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
     const auto values = compute_first_batch_values(mol);
+    const auto additive_values = compute_additive_property_values(mol);
     DescriptorSetBuilder builder(MordredDescriptorSchema());
 
     const auto all_atoms = values.heavy_atoms + values.hydrogens;
@@ -580,6 +942,26 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
     }
     set_float(builder, "SLogP", values.crippen_logp);
     set_float(builder, "SMR", values.crippen_mr);
+    set_optional_float(builder, "SZ", additive_values.sz);
+    set_optional_float(builder, "Sm", additive_values.sm);
+    set_optional_float(builder, "Sv", additive_values.sv);
+    set_optional_float(builder, "Sse", additive_values.sse);
+    set_optional_float(builder, "Spe", additive_values.spe);
+    set_optional_float(builder, "Sare", additive_values.sare);
+    set_optional_float(builder, "Sp", additive_values.sp);
+    set_optional_float(builder, "Si", additive_values.si);
+    set_optional_float(builder, "MZ", additive_values.m_z);
+    set_optional_float(builder, "Mm", additive_values.mm);
+    set_optional_float(builder, "Mv", additive_values.mv);
+    set_optional_float(builder, "Mse", additive_values.mse);
+    set_optional_float(builder, "Mpe", additive_values.mpe);
+    set_optional_float(builder, "Mare", additive_values.mare);
+    set_optional_float(builder, "Mp", additive_values.mp);
+    set_optional_float(builder, "Mi", additive_values.mi);
+    set_optional_float(builder, "VMcGowan", additive_values.v_mcgowan);
+    set_optional_float(builder, "apol", additive_values.apol);
+    set_optional_float(builder, "bpol", additive_values.bpol);
+    set_optional_float(builder, "Vabc", additive_values.vabc);
     set_float(builder, "TopoPSA(NO)", values.topo_psa_no);
     set_float(builder, "TopoPSA", values.topo_psa);
     set_float(builder, "MW", values.exact_weight);

@@ -169,6 +169,82 @@ TEST(MordredDescriptorTest, CrippenDescriptorsMatchCopiedMordredReferences) {
     }
 }
 
+TEST(MordredDescriptorTest, AdditivePropertyDescriptorsMatchCopiedMordredReferences) {
+    struct Case {
+        std::string smiles;
+        std::map<std::string, double> expected_values;
+    };
+
+    const std::vector<Case> cases{
+        {
+            "CCO",
+            {
+                {"SZ", 4.333333333333334},
+                {"Sm", 3.83556739655316},
+                {"Sv", 4.340282515774477},
+                {"Sse", 8.994173343044428},
+                {"Spe", 8.525490196078433},
+                {"Sare", 8.680000000000001},
+                {"Sp", 4.875902994011976},
+                {"Si", 10.455255010967736},
+                {"MZ", 0.48148148148148157},
+                {"Mm", 0.4261741551725733},
+                {"Mv", 0.4822536128638307},
+                {"Mse", 0.9993525936716031},
+                {"Mpe", 0.9472766884531593},
+                {"Mare", 0.9644444444444447},
+                {"Mp", 0.541766999334664},
+                {"Mi", 1.1616950012186373},
+                {"VMcGowan", 44.91000000000002},
+                {"apol", 8.142758},
+                {"bpol", 6.019242},
+                {"Vabc", 51.93865634694684},
+            },
+        },
+        {
+            "O=S(=O)(N)C1=CC=CC=C1",
+            {
+                {"SZ", 13.666666666666666},
+                {"Sm", 13.08692032303722},
+                {"Sv", 11.27101384083045},
+                {"Sse", 17.50873998543336},
+                {"Spe", 16.941176470588236},
+                {"Sare", 17.163999999999998},
+                {"Sp", 12.150629341317366},
+                {"Si", 19.083071587790734},
+                {"MZ", 0.8039215686274509},
+                {"Mm", 0.7698188425316012},
+                {"Mv", 0.6630008141664971},
+                {"Mse", 1.0299258814960799},
+                {"Mpe", 0.9965397923875433},
+                {"Mare", 1.0096470588235293},
+                {"Mp", 0.7147429024304333},
+                {"Mi", 1.1225336228112197},
+                {"VMcGowan", 109.71000000000002},
+                {"apol", 20.291551},
+                {"bpol", 13.108449},
+                {"Vabc", 128.25277347493352},
+            },
+        },
+        {
+            "C1=CC2=C(C=C1)C=CC=C2",
+            {
+                {"Vabc", 121.82109855212238},
+            },
+        },
+    };
+
+    for (const auto& expected : cases) {
+        SCOPED_TRACE(expected.smiles);
+        const auto descriptors = MakeMordredDescriptors(mol_from_smiles(expected.smiles));
+
+        for (const auto& [name, value] : expected.expected_values) {
+            EXPECT_TRUE(descriptors.Has(name)) << name;
+            EXPECT_NEAR(descriptors.Float(name), value, 1.0e-8) << name;
+        }
+    }
+}
+
 TEST(MordredDescriptorTest, FilterDescriptorsMatchCopiedMordredReferences) {
     struct Case {
         std::string smiles;

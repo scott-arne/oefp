@@ -428,6 +428,166 @@
       "status": "exact",
       "primitive": "Composite Ghose filter using SLogP, SMR, molecular weight, and Mordred total atom count thresholds",
       "reason": "OEFP matches Mordred GhoseFilter values on the committed 17-row first-batch fixture."
+    },
+    {
+      "descriptor": "SZ",
+      "family": "Constitutional",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Constitutional.py",
+      "status": "exact",
+      "primitive": "Mordred atomic number table over explicit-hydrogen OpenEye molecule",
+      "reason": "OEFP matches Mordred SZ values on the committed 17-row first-batch fixture."
+    },
+    {
+      "descriptor": "Sm",
+      "family": "Constitutional",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Constitutional.py",
+      "status": "exact",
+      "primitive": "Mordred atomic mass table over explicit-hydrogen OpenEye molecule",
+      "reason": "OEFP matches Mordred Sm values on the committed 17-row first-batch fixture."
+    },
+    {
+      "descriptor": "Sv",
+      "family": "Constitutional",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Constitutional.py",
+      "status": "exact",
+      "primitive": "Mordred van der Waals volume table over explicit-hydrogen OpenEye molecule",
+      "reason": "OEFP matches Mordred Sv values on the committed 17-row first-batch fixture."
+    },
+    {
+      "descriptor": "Sse",
+      "family": "Constitutional",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Constitutional.py",
+      "status": "exact",
+      "primitive": "Mordred Sanderson electronegativity table over explicit-hydrogen OpenEye molecule",
+      "reason": "OEFP matches Mordred Sse values on the committed 17-row first-batch fixture."
+    },
+    {
+      "descriptor": "Spe",
+      "family": "Constitutional",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Constitutional.py",
+      "status": "exact",
+      "primitive": "Mordred Pauling electronegativity table over explicit-hydrogen OpenEye molecule",
+      "reason": "OEFP matches Mordred Spe values on the committed 17-row first-batch fixture."
+    },
+    {
+      "descriptor": "Sare",
+      "family": "Constitutional",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Constitutional.py",
+      "status": "exact",
+      "primitive": "Mordred Allred-Rocow electronegativity table over explicit-hydrogen OpenEye molecule",
+      "reason": "OEFP matches Mordred Sare values on the committed 17-row first-batch fixture."
+    },
+    {
+      "descriptor": "Sp",
+      "family": "Constitutional",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Constitutional.py",
+      "status": "exact",
+      "primitive": "Mordred 1994 polarizability table over explicit-hydrogen OpenEye molecule",
+      "reason": "OEFP matches Mordred Sp values on the committed 17-row first-batch fixture."
+    },
+    {
+      "descriptor": "Si",
+      "family": "Constitutional",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Constitutional.py",
+      "status": "exact",
+      "primitive": "Mordred ionization potential table over explicit-hydrogen OpenEye molecule",
+      "reason": "OEFP matches Mordred Si values on the committed 17-row first-batch fixture."
+    },
+    {
+      "descriptor": "MZ",
+      "family": "Constitutional",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Constitutional.py",
+      "status": "exact",
+      "primitive": "Mordred atomic number table sum divided by explicit-hydrogen atom count",
+      "reason": "OEFP matches Mordred MZ values on the committed 17-row first-batch fixture."
+    },
+    {
+      "descriptor": "Mm",
+      "family": "Constitutional",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Constitutional.py",
+      "status": "exact",
+      "primitive": "Mordred atomic mass table sum divided by explicit-hydrogen atom count",
+      "reason": "OEFP matches Mordred Mm values on the committed 17-row first-batch fixture."
+    },
+    {
+      "descriptor": "Mv",
+      "family": "Constitutional",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Constitutional.py",
+      "status": "exact",
+      "primitive": "Mordred van der Waals volume table sum divided by explicit-hydrogen atom count",
+      "reason": "OEFP matches Mordred Mv values on the committed 17-row first-batch fixture."
+    },
+    {
+      "descriptor": "Mse",
+      "family": "Constitutional",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Constitutional.py",
+      "status": "exact",
+      "primitive": "Mordred Sanderson electronegativity table sum divided by explicit-hydrogen atom count",
+      "reason": "OEFP matches Mordred Mse values on the committed 17-row first-batch fixture."
+    },
+    {
+      "descriptor": "Mpe",
+      "family": "Constitutional",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Constitutional.py",
+      "status": "exact",
+      "primitive": "Mordred Pauling electronegativity table sum divided by explicit-hydrogen atom count",
+      "reason": "OEFP matches Mordred Mpe values on the committed 17-row first-batch fixture."
+    },
+    {
+      "descriptor": "Mare",
+      "family": "Constitutional",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Constitutional.py",
+      "status": "exact",
+      "primitive": "Mordred Allred-Rocow electronegativity table sum divided by explicit-hydrogen atom count",
+      "reason": "OEFP matches Mordred Mare values on the committed 17-row first-batch fixture."
+    },
+    {
+      "descriptor": "Mp",
+      "family": "Constitutional",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Constitutional.py",
+      "status": "exact",
+      "primitive": "Mordred 1994 polarizability table sum divided by explicit-hydrogen atom count",
+      "reason": "OEFP matches Mordred Mp values on the committed 17-row first-batch fixture."
+    },
+    {
+      "descriptor": "Mi",
+      "family": "Constitutional",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Constitutional.py",
+      "status": "exact",
+      "primitive": "Mordred ionization potential table sum divided by explicit-hydrogen atom count",
+      "reason": "OEFP matches Mordred Mi values on the committed 17-row first-batch fixture."
+    },
+    {
+      "descriptor": "VMcGowan",
+      "family": "McGowanVolume",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/McGowanVolume.py",
+      "status": "exact",
+      "primitive": "Mordred McGowan volume table over explicit-hydrogen OpenEye molecule and all explicit bonds",
+      "reason": "OEFP matches Mordred VMcGowan values on the committed 17-row first-batch fixture."
+    },
+    {
+      "descriptor": "apol",
+      "family": "Polarizability",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Polarizability.py",
+      "status": "exact",
+      "primitive": "Mordred 1994 polarizability table over explicit-hydrogen OpenEye molecule",
+      "reason": "OEFP matches Mordred apol values on the committed 17-row first-batch fixture."
+    },
+    {
+      "descriptor": "bpol",
+      "family": "Polarizability",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Polarizability.py",
+      "status": "exact",
+      "primitive": "Mordred 1994 polarizability table absolute bond differences over explicit-hydrogen OpenEye molecule",
+      "reason": "OEFP matches Mordred bpol values on the committed 17-row first-batch fixture."
+    },
+    {
+      "descriptor": "Vabc",
+      "family": "VdwVolumeABC",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/VdwVolumeABC.py",
+      "status": "exact",
+      "primitive": "Bondi atom volumes over explicit-hydrogen OpenEye molecule with ring-bond cycle-rank aromatic and aliphatic ring counts",
+      "reason": "OEFP matches Mordred Vabc values on the committed 17-row first-batch fixture."
     }
   ],
   "row_divergences": [

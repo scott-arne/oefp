@@ -80,11 +80,15 @@ FIRST_BATCH_SOURCE_TYPES = {
     "AtomCount",
     "BondCount",
     "CarbonTypes",
+    "Constitutional",
     "HydrogenBond",
     "Lipinski",
+    "McGowanVolume",
+    "Polarizability",
     "RotatableBond",
     "SLogP",
     "TopoPSA",
+    "VdwVolumeABC",
     "Weight",
 }
 
@@ -218,7 +222,7 @@ def test_mordred_descriptors_match_first_batch_reference_values():
     names = _first_batch_names(payload)
     row_divergences = _row_divergence_policy()
 
-    assert len(names) == 53
+    assert len(names) == 73
     for row in payload["reference_rows"]:
         smiles = row["smiles"]
         descriptors = oefp.mordred_descriptors(_openeye_mol(row["smiles"]))
