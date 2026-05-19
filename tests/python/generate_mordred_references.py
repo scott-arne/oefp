@@ -27,11 +27,15 @@ SMILES_PANEL = [
     "CI",
     "C[Na]",
     "C[N+](C)(C)CC(=O)[O-]",
+    "C1=CC2=C(C=C1)C=CC=C2",
     "C12C3C4C1C5C2C3C45",
     "C1C2CC3CC1CC(C2)C3",
     "CC#N",
     "FC(F)(F)c1ccc(Br)cc1",
+    "CN",
+    "c1ccccc1[N+](=O)[O-]",
     "CC(=O)O",
+    "OP(=O)(O)O",
     "C",
     "CC",
     "CCC",
@@ -40,6 +44,7 @@ SMILES_PANEL = [
     "C1CC1C",
     "CCCCCCCCCCCCCCCC",
     "O=[Se]=O",
+    "[13CH4]",
     "COC(=O)c1ccc(OCC)c(O)c1C(=O)OCC",
 ]
 
