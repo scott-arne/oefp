@@ -87,6 +87,179 @@ struct AtomicPropertyValue {
 };
 
 constexpr double kPi = 3.14159265358979323846;
+constexpr double kMissingAtomicProperty = -1.0;
+
+constexpr std::array<double, 111> kMordredMassValues{{
+    kMissingAtomicProperty, 1.008, 4.002602, 6.94, 9.012182, 10.81,
+    12.011, 14.007, 15.999, 18.9984032, 20.1797, 22.98976928,
+    24.305, 26.9815386, 28.085, 30.973762, 32.06, 35.45,
+    39.948, 39.0983, 40.078, 44.955912, 47.867, 50.9415,
+    51.9961, 54.938045, 55.845, 58.933195, 58.6934, 63.546,
+    65.38, 69.723, 72.63, 74.9216, 78.96, 79.904,
+    83.798, 85.4678, 87.62, 88.90585, 91.224, 92.90638,
+    95.96, 98.0, 101.07, 102.9055, 106.42, 107.8682,
+    112.411, 114.818, 118.71, 121.76, 127.6, 126.90447,
+    131.293, 132.9054519, 137.327, 138.90547, 140.116, 140.90765,
+    144.242, 145.0, 150.36, 151.964, 157.25, 158.92535,
+    162.5, 164.93032, 167.259, 168.93421, 173.054, 174.9668,
+    178.49, 180.94788, 183.84, 186.207, 190.23, 192.217,
+    195.084, 196.966569, 200.59, 204.38, 207.2, 208.9804,
+    210.0, 210.0, 222.0, 223.0, 226.0, 227.0,
+    232.03806, 231.03588, 238.02891, 237.0, 244.0, 243.0,
+    247.0, 247.0, 251.0, 252.0, 257.0, 258.0,
+    259.0, 262.0, 261.0, 262.0, 266.0, 264.0,
+    269.0, 268.0, 271.0,
+}};
+
+constexpr std::array<double, 104> kMordredVdwRadii{{
+    kMissingAtomicProperty, 1.1, 1.4, 1.82, 1.53, 1.92,
+    1.7, 1.55, 1.52, 1.47, 1.54, 2.27,
+    1.73, 1.84, 2.1, 1.8, 1.8, 1.75,
+    1.88, 2.75, 2.31, 2.15, 2.11, 2.07,
+    2.06, 2.05, 2.04, 2.0, 1.97, 1.96,
+    2.01, 1.87, 2.11, 1.85, 1.9, 1.85,
+    2.02, 3.03, 2.49, 2.32, 2.23, 2.18,
+    2.17, 2.16, 2.13, 2.1, 2.1, 2.11,
+    2.18, 1.93, 2.17, 2.06, 2.06, 1.98,
+    2.16, 3.43, 2.68, 2.43, 2.42, 2.4,
+    2.39, 2.38, 2.36, 2.35, 2.34, 2.33,
+    2.31, 2.3, 2.29, 2.27, 2.26, 2.24,
+    2.23, 2.22, 2.18, 2.16, 2.16, 2.13,
+    2.13, 2.14, 2.23, 1.96, 2.02, 2.07,
+    1.97, 2.02, 2.2, 3.48, 2.83, 2.47,
+    2.45, 2.43, 2.41, 2.39, 2.43, 2.44,
+    2.45, 2.44, 2.45, 2.45, 2.45, 2.46,
+    2.46, 2.46,
+}};
+
+constexpr std::array<double, 84> kMordredSandersonValues{{
+    kMissingAtomicProperty, 2.592, kMissingAtomicProperty, 0.67, 1.81, 2.275,
+    2.746, 3.194, 3.654, 4.0, 4.5, 0.56,
+    1.318, 1.714, 2.138, 2.515, 2.957, 3.475,
+    3.31, 0.445, 0.946, 1.02, 1.09, 1.39,
+    1.66, 2.2, 2.2, 2.56, 1.94, 2.033,
+    2.223, 2.419, 2.618, 2.816, 3.014, 3.219,
+    2.91, 0.312, 0.721, 0.65, 0.9, 1.42,
+    1.15, kMissingAtomicProperty, kMissingAtomicProperty, kMissingAtomicProperty,
+    kMissingAtomicProperty, 1.826, 1.978, 2.138, 2.298, 2.458,
+    2.618, 2.778, 2.34, 0.22, 0.651, kMissingAtomicProperty,
+    kMissingAtomicProperty, kMissingAtomicProperty, kMissingAtomicProperty,
+    kMissingAtomicProperty, kMissingAtomicProperty, kMissingAtomicProperty,
+    kMissingAtomicProperty, kMissingAtomicProperty, kMissingAtomicProperty,
+    kMissingAtomicProperty, kMissingAtomicProperty, kMissingAtomicProperty,
+    kMissingAtomicProperty, kMissingAtomicProperty, kMissingAtomicProperty,
+    kMissingAtomicProperty, 0.98, kMissingAtomicProperty, kMissingAtomicProperty,
+    kMissingAtomicProperty, kMissingAtomicProperty, kMissingAtomicProperty, 2.195,
+    2.246, 2.291, 2.342,
+}};
+
+constexpr std::array<double, 103> kMordredPaulingValues{{
+    kMissingAtomicProperty, 2.2, kMissingAtomicProperty, 0.98, 1.57, 2.04,
+    2.55, 3.04, 3.44, 3.98, kMissingAtomicProperty, 0.93,
+    1.31, 1.61, 1.9, 2.19, 2.58, 3.16,
+    kMissingAtomicProperty, 0.82, 1.0, 1.36, 1.54, 1.63,
+    1.66, 1.55, 1.83, 1.88, 1.91, 1.9,
+    1.65, 1.81, 2.01, 2.18, 2.55, 2.96,
+    3.0, 0.82, 0.95, 1.22, 1.33, 1.6,
+    2.16, 1.9, 2.2, 2.28, 2.2, 1.93,
+    1.69, 1.78, 1.96, 2.05, 2.1, 2.66,
+    2.6, 0.79, 0.89, 1.1, 1.12, 1.13,
+    1.14, kMissingAtomicProperty, 1.17, kMissingAtomicProperty, 1.2,
+    kMissingAtomicProperty, 1.22, 1.23, 1.24, 1.25,
+    kMissingAtomicProperty, 1.27, 1.3, 1.5, 2.36, 1.9,
+    2.2, 2.2, 2.28, 2.54, 2.0, 1.62,
+    2.33, 2.02, 2.0, 2.2, kMissingAtomicProperty, 0.7,
+    0.9, 1.1, 1.3, 1.5, 1.38, 1.36,
+    1.28, 1.3, 1.3, 1.3, 1.3, 1.3,
+    1.3, 1.3, 1.3,
+}};
+
+constexpr std::array<double, 86> kMordredAllredRocowValues{{
+    kMissingAtomicProperty, 2.2, kMissingAtomicProperty, 0.97, 1.47, 2.01,
+    2.5, 3.07, 3.5, 4.1, kMissingAtomicProperty, 1.01,
+    1.23, 1.47, 1.74, 2.06, 2.44, 2.83,
+    kMissingAtomicProperty, 0.91, 1.04, 1.2, 1.32, 1.45,
+    1.56, 1.6, 1.64, 1.7, 1.75, 1.75,
+    1.66, 1.82, 2.02, 2.2, 2.48, 2.74,
+    kMissingAtomicProperty, 0.89, 0.99, 1.11, 1.22, 1.23,
+    1.3, 1.36, 1.42, 1.45, 1.35, 1.42,
+    1.46, 1.49, 1.72, 1.82, 2.01, 2.21,
+    kMissingAtomicProperty, 0.86, 0.97, 1.08, kMissingAtomicProperty,
+    kMissingAtomicProperty, kMissingAtomicProperty, kMissingAtomicProperty,
+    kMissingAtomicProperty, kMissingAtomicProperty, kMissingAtomicProperty,
+    kMissingAtomicProperty, kMissingAtomicProperty, kMissingAtomicProperty,
+    kMissingAtomicProperty, kMissingAtomicProperty, kMissingAtomicProperty,
+    kMissingAtomicProperty, 1.23, 1.33, 1.4, 1.46, 1.52,
+    1.55, 1.44, 1.42, 1.44, 1.44, 1.55,
+    1.67, 1.76, 1.9,
+}};
+
+constexpr std::array<double, 120> kMordredPolarizability94Values{{
+    kMissingAtomicProperty, 0.666793, 0.2050522, 24.33, 5.6, 3.03,
+    1.67, 1.1, 0.802, 0.557, 0.39432, 24.11,
+    10.6, 6.8, 5.53, 3.63, 2.9, 2.18,
+    1.6411, 43.06, 22.8, 17.8, 14.6, 12.4,
+    11.6, 9.4, 8.4, 7.5, 6.8, 6.2,
+    5.75, 8.12, 5.84, 4.31, 3.77, 3.05,
+    2.4844, 47.24, 23.5, 22.7, 17.9, 15.7,
+    12.8, 11.4, 9.6, 8.6, 4.8, 6.78,
+    7.36, 10.2, 7.84, 6.6, 5.5, 5.35,
+    4.044, 59.42, 39.7, 31.1, 29.6, 28.2,
+    31.4, 30.1, 28.8, 27.7, 23.5, 25.5,
+    24.5, 23.6, 22.7, 21.8, 20.9, 21.9,
+    16.2, 13.1, 11.1, 9.7, 8.5, 7.6,
+    6.5, 5.8, 5.02, 7.6, 7.01, 7.4,
+    6.8, 6.0, 5.3, 48.6, 38.3, 32.1,
+    32.1, 25.4, 24.9, 24.8, 24.5, 23.3,
+    23.0, 22.7, 20.5, 19.7, 23.8, 18.2,
+    16.4, kMissingAtomicProperty, kMissingAtomicProperty, kMissingAtomicProperty,
+    kMissingAtomicProperty, kMissingAtomicProperty, kMissingAtomicProperty,
+    kMissingAtomicProperty, kMissingAtomicProperty, kMissingAtomicProperty, 4.06,
+    kMissingAtomicProperty, 4.59, kMissingAtomicProperty, kMissingAtomicProperty,
+    kMissingAtomicProperty, kMissingAtomicProperty, 24.26,
+}};
+
+constexpr std::array<double, 105> kMordredIonizationPotentialValues{{
+    kMissingAtomicProperty, 13.598443, 24.587387, 5.391719, 9.3227, 8.29802,
+    11.2603, 14.5341, 13.61805, 17.4228, 21.56454, 5.139076,
+    7.646235, 5.985768, 8.15168, 10.48669, 10.36001, 12.96763,
+    15.75961, 4.3406633, 6.11316, 6.56149, 6.82812, 6.74619,
+    6.76651, 7.43402, 7.9024, 7.88101, 7.6398, 7.72638,
+    9.394199, 5.999301, 7.89943, 9.7886, 9.75239, 11.8138,
+    13.99961, 4.177128, 5.69485, 6.2173, 6.6339, 6.75885,
+    7.09243, 7.28, 7.3605, 7.4589, 8.3369, 7.57623,
+    8.99382, 5.78636, 7.34392, 8.60839, 9.0096, 10.45126,
+    12.12984, 3.893905, 5.211664, 5.5769, 5.5387, 5.473,
+    5.525, 5.582, 5.6437, 5.67038, 6.1498, 5.8638,
+    5.9389, 6.0215, 6.1077, 6.18431, 6.25416, 5.42586,
+    6.82507, 7.54957, 7.86403, 7.83352, 8.43823, 8.96702,
+    8.9588, 9.22553, 10.4375, 6.108194, 7.41663, 7.2855,
+    8.414, kMissingAtomicProperty, 10.7485, 4.072741, 5.278423, 5.17,
+    6.3067, 5.89, 6.1941, 6.2657, 6.026, 5.9738,
+    5.9914, 6.1979, 6.2817, 6.42, 6.5, 6.58,
+    6.65, 4.9, 6.0,
+}};
+
+constexpr std::array<double, 104> kMordredMcGowanVolumeValues{{
+    kMissingAtomicProperty, 8.71, 6.75, 22.23, 20.27, 18.31,
+    16.35, 14.39, 12.43, 10.47, 8.51, 32.71,
+    30.75, 28.79, 26.83, 24.87, 22.91, 20.95,
+    18.99, 51.89, 50.28, 48.68, 47.07, 45.47,
+    43.86, 42.26, 40.65, 39.05, 37.44, 35.84,
+    34.23, 32.63, 31.02, 29.42, 27.81, 26.21,
+    24.6, 60.22, 58.61, 57.01, 55.4, 53.8,
+    52.19, 50.59, 48.98, 47.38, 45.77, 44.17,
+    42.56, 40.96, 39.35, 37.75, 36.14, 34.54,
+    32.93, 77.25, 76.0, 74.75, 73.49, 72.24,
+    70.99, 69.74, 68.49, 67.23, 65.98, 64.73,
+    63.48, 62.23, 60.97, 59.72, 58.47, 57.22,
+    55.97, 54.71, 53.46, 52.21, 50.96, 49.71,
+    48.45, 47.2, 45.95, 44.7, 43.45, 42.19,
+    40.94, 39.69, 38.44, 75.59, 74.34, 73.09,
+    71.83, 70.58, 69.33, 68.08, 66.83, 65.57,
+    64.32, 63.07, 61.82, 60.57, 59.31, 58.06,
+    56.81, 55.56,
+}};
 
 bool is_hydrogen(const OEChem::OEAtomBase& atom) {
     return atom.GetAtomicNum() == 1u;
@@ -103,27 +276,31 @@ std::optional<double> lookup_atomic_property(
     return std::nullopt;
 }
 
+template <std::size_t N>
+std::optional<double> lookup_atomic_property(
+    const std::array<double, N>& values,
+    std::uint32_t atomic_number) {
+    if (atomic_number >= values.size()) {
+        return std::nullopt;
+    }
+
+    const auto value = values[atomic_number];
+    if (value < 0.0) {
+        return std::nullopt;
+    }
+    return value;
+}
+
 double sphere_volume(double radius) {
     return 4.0 / 3.0 * kPi * radius * radius * radius;
 }
 
 std::optional<double> mordred_mass(std::uint32_t atomic_number) {
-    static const std::vector<AtomicPropertyValue> values{
-        {1u, 1.008},      {5u, 10.81},      {6u, 12.011}, {7u, 14.007},
-        {8u, 15.999},     {9u, 18.9984032}, {14u, 28.085}, {15u, 30.973762},
-        {16u, 32.06},     {17u, 35.45},     {33u, 74.9216},
-        {34u, 78.96},     {35u, 79.904},
-    };
-    return lookup_atomic_property(values, atomic_number);
+    return lookup_atomic_property(kMordredMassValues, atomic_number);
 }
 
 std::optional<double> mordred_vdw_volume(std::uint32_t atomic_number) {
-    static const std::vector<AtomicPropertyValue> radii{
-        {1u, 1.10}, {5u, 1.92}, {6u, 1.70}, {7u, 1.55}, {8u, 1.52},
-        {9u, 1.47}, {14u, 2.10}, {15u, 1.80}, {16u, 1.80},
-        {17u, 1.75}, {33u, 1.85}, {34u, 1.90}, {35u, 1.85},
-    };
-    const auto radius = lookup_atomic_property(radii, atomic_number);
+    const auto radius = lookup_atomic_property(kMordredVdwRadii, atomic_number);
     if (!radius.has_value()) {
         return std::nullopt;
     }
@@ -131,59 +308,27 @@ std::optional<double> mordred_vdw_volume(std::uint32_t atomic_number) {
 }
 
 std::optional<double> mordred_sanderson(std::uint32_t atomic_number) {
-    static const std::vector<AtomicPropertyValue> values{
-        {1u, 2.592}, {5u, 2.275}, {6u, 2.746}, {7u, 3.194}, {8u, 3.654},
-        {9u, 4.000}, {14u, 2.138}, {15u, 2.515}, {16u, 2.957},
-        {17u, 3.475}, {33u, 2.816}, {34u, 3.014}, {35u, 3.219},
-    };
-    return lookup_atomic_property(values, atomic_number);
+    return lookup_atomic_property(kMordredSandersonValues, atomic_number);
 }
 
 std::optional<double> mordred_pauling(std::uint32_t atomic_number) {
-    static const std::vector<AtomicPropertyValue> values{
-        {1u, 2.2}, {5u, 2.04}, {6u, 2.55}, {7u, 3.04}, {8u, 3.44},
-        {9u, 3.98}, {14u, 1.9}, {15u, 2.19}, {16u, 2.58},
-        {17u, 3.16}, {33u, 2.18}, {34u, 2.55}, {35u, 2.96},
-    };
-    return lookup_atomic_property(values, atomic_number);
+    return lookup_atomic_property(kMordredPaulingValues, atomic_number);
 }
 
 std::optional<double> mordred_allred_rocow(std::uint32_t atomic_number) {
-    static const std::vector<AtomicPropertyValue> values{
-        {1u, 2.20}, {5u, 2.01}, {6u, 2.50}, {7u, 3.07}, {8u, 3.50},
-        {9u, 4.10}, {14u, 1.74}, {15u, 2.06}, {16u, 2.44},
-        {17u, 2.83}, {33u, 2.20}, {34u, 2.48}, {35u, 2.74},
-    };
-    return lookup_atomic_property(values, atomic_number);
+    return lookup_atomic_property(kMordredAllredRocowValues, atomic_number);
 }
 
 std::optional<double> mordred_polarizability94(std::uint32_t atomic_number) {
-    static const std::vector<AtomicPropertyValue> values{
-        {1u, 0.666793}, {5u, 3.03}, {6u, 1.67}, {7u, 1.10},
-        {8u, 0.802}, {9u, 0.557}, {14u, 5.53}, {15u, 3.63},
-        {16u, 2.90}, {17u, 2.18}, {33u, 4.31}, {34u, 3.77},
-        {35u, 3.05},
-    };
-    return lookup_atomic_property(values, atomic_number);
+    return lookup_atomic_property(kMordredPolarizability94Values, atomic_number);
 }
 
 std::optional<double> mordred_ionization_potential(std::uint32_t atomic_number) {
-    static const std::vector<AtomicPropertyValue> values{
-        {1u, 13.598443}, {5u, 8.29802}, {6u, 11.26030}, {7u, 14.5341},
-        {8u, 13.61805}, {9u, 17.4228}, {14u, 8.15168}, {15u, 10.48669},
-        {16u, 10.36001}, {17u, 12.96763}, {33u, 9.7886},
-        {34u, 9.75239}, {35u, 11.8138},
-    };
-    return lookup_atomic_property(values, atomic_number);
+    return lookup_atomic_property(kMordredIonizationPotentialValues, atomic_number);
 }
 
 std::optional<double> mordred_mc_gowan_volume(std::uint32_t atomic_number) {
-    static const std::vector<AtomicPropertyValue> values{
-        {1u, 8.71}, {5u, 18.31}, {6u, 16.35}, {7u, 14.39}, {8u, 12.43},
-        {9u, 10.47}, {14u, 26.83}, {15u, 24.87}, {16u, 22.91},
-        {17u, 20.95}, {33u, 29.42}, {34u, 27.81}, {35u, 26.21},
-    };
-    return lookup_atomic_property(values, atomic_number);
+    return lookup_atomic_property(kMordredMcGowanVolumeValues, atomic_number);
 }
 
 std::optional<double> bondi_atom_volume(std::uint32_t atomic_number) {

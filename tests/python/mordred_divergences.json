@@ -387,7 +387,7 @@
       "source": "/Users/johnss51/Development/python/mordred/mordred/Weight.py",
       "status": "exact",
       "primitive": "OpenEye molecular weight",
-      "reason": "OEFP matches Mordred molecular weight values on the committed 17-row first-batch fixture."
+      "reason": "OEFP matches Mordred molecular weight values on committed first-batch fixture rows except the exact-mass rows listed as row-level OpenEye isotope-mass divergences."
     },
     {
       "descriptor": "AMW",
@@ -395,7 +395,7 @@
       "source": "/Users/johnss51/Development/python/mordred/mordred/Weight.py",
       "status": "exact",
       "primitive": "OpenEye average molecular weight",
-      "reason": "OEFP matches Mordred average molecular weight values on the committed 17-row first-batch fixture."
+      "reason": "OEFP matches Mordred average molecular weight values on committed first-batch fixture rows except the exact-mass rows listed as row-level OpenEye isotope-mass divergences."
     },
     {
       "descriptor": "SLogP",
@@ -587,7 +587,7 @@
       "source": "/Users/johnss51/Development/python/mordred/mordred/VdwVolumeABC.py",
       "status": "exact",
       "primitive": "Bondi atom volumes over explicit-hydrogen OpenEye molecule with ring-bond cycle-rank aromatic and aliphatic ring counts",
-      "reason": "OEFP matches Mordred Vabc values on the committed 17-row first-batch fixture."
+      "reason": "OEFP matches Mordred Vabc values on the committed first-batch fixture rows except the cage rows listed as row-level OpenEye ring-primitive divergences."
     }
   ],
   "row_divergences": [
@@ -620,6 +620,66 @@
       "source": "/Users/johnss51/Development/python/mordred/mordred/RotatableBond.py",
       "primitive": "OpenEye rotatable-to-total bond ratio",
       "reason": "Derived from the accepted nRot row-level divergence for this substituted salicylate."
+    },
+    {
+      "status": "openeye_divergent",
+      "descriptor": "MW",
+      "smiles": "CI",
+      "reference": 141.927948096,
+      "observed": 141.927943516,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Weight.py",
+      "primitive": "OpenEye default isotope mass molecular weight",
+      "reason": "Mordred delegates exact molecular weight to RDKit ExactMolWt; OpenEye's default isotope mass for iodine differs slightly from RDKit's exact isotope mass."
+    },
+    {
+      "status": "openeye_divergent",
+      "descriptor": "AMW",
+      "smiles": "CI",
+      "reference": 28.385589619199997,
+      "observed": 28.3855887032,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Weight.py",
+      "primitive": "OpenEye default isotope mass average molecular weight",
+      "reason": "Derived from the accepted MW row-level divergence for iodomethane."
+    },
+    {
+      "status": "openeye_divergent",
+      "descriptor": "MW",
+      "smiles": "C[Na]",
+      "reference": 38.013244376,
+      "observed": 38.013244771000004,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Weight.py",
+      "primitive": "OpenEye default isotope mass molecular weight",
+      "reason": "Mordred delegates exact molecular weight to RDKit ExactMolWt; OpenEye's default isotope mass for sodium differs slightly from RDKit's exact isotope mass."
+    },
+    {
+      "status": "openeye_divergent",
+      "descriptor": "AMW",
+      "smiles": "C[Na]",
+      "reference": 7.602648875200001,
+      "observed": 7.602648954200001,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Weight.py",
+      "primitive": "OpenEye default isotope mass average molecular weight",
+      "reason": "Derived from the accepted MW row-level divergence for methylsodium."
+    },
+    {
+      "status": "openeye_divergent",
+      "descriptor": "Vabc",
+      "smiles": "C12C3C4C1C5C2C3C45",
+      "reference": 81.34204599989131,
+      "observed": 85.14204599989137,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/VdwVolumeABC.py",
+      "primitive": "OpenEye ring-bond subgraph cycle rank",
+      "reason": "Mordred uses RDKit SymmSSSR ring counts for Vabc; OpenEye cycle rank reports one fewer aliphatic ring for this cage, increasing Vabc by one 3.8 aliphatic-ring penalty."
+    },
+    {
+      "status": "openeye_divergent",
+      "descriptor": "Vabc",
+      "smiles": "C1C2CC3CC1CC(C2)C3",
+      "reference": 140.64693434308947,
+      "observed": 144.4469343430895,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/VdwVolumeABC.py",
+      "primitive": "OpenEye ring-bond subgraph cycle rank",
+      "reason": "Mordred uses RDKit SymmSSSR ring counts for Vabc; OpenEye cycle rank reports one fewer aliphatic ring for this bridged cage, increasing Vabc by one 3.8 aliphatic-ring penalty."
     }
   ]
 }

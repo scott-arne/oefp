@@ -232,6 +232,30 @@ TEST(MordredDescriptorTest, AdditivePropertyDescriptorsMatchCopiedMordredReferen
                 {"Vabc", 121.82109855212238},
             },
         },
+        {
+            "CI",
+            {
+                {"SZ", 10.333333333333332},
+                {"Sm", 11.817456498209976},
+                {"Sv", 3.392711581518422},
+                {"Sse", 4.843408594319009},
+                {"Spe", 4.631372549019608},
+                {"Sare", 4.524},
+                {"Sp", 5.401424550898202},
+                {"Si", 5.551085583865438},
+                {"MZ", 2.0666666666666664},
+                {"Mm", 2.3634912996419954},
+                {"Mv", 0.6785423163036844},
+                {"Mse", 0.9686817188638018},
+                {"Mpe", 0.9262745098039217},
+                {"Mare", 0.9048},
+                {"Mp", 1.0802849101796403},
+                {"Mi", 1.1102171167730877},
+                {"VMcGowan", 50.780000000000015},
+                {"apol", 9.020379},
+                {"bpol", 6.689621},
+            },
+        },
     };
 
     for (const auto& expected : cases) {
@@ -243,6 +267,14 @@ TEST(MordredDescriptorTest, AdditivePropertyDescriptorsMatchCopiedMordredReferen
             EXPECT_NEAR(descriptors.Float(name), value, 1.0e-8) << name;
         }
     }
+}
+
+TEST(MordredDescriptorTest, VabcDocumentsOpenEyeRingPrimitiveDivergence) {
+    const auto descriptors =
+        MakeMordredDescriptors(mol_from_smiles("C12C3C4C1C5C2C3C45"));
+
+    EXPECT_TRUE(descriptors.Has("Vabc"));
+    EXPECT_NEAR(descriptors.Float("Vabc"), 85.14204599989137, 1.0e-8);
 }
 
 TEST(MordredDescriptorTest, FilterDescriptorsMatchCopiedMordredReferences) {

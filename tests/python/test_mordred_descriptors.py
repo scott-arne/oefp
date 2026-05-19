@@ -340,7 +340,7 @@ def test_mordred_reference_fixture_contains_full_schema_and_panel():
     assert names.index("nAtom") == 18
     assert names.index("Lipinski") == 1351
     assert names.index("GhoseFilter") == 1352
-    assert len(payload["reference_rows"]) == 17
+    assert len(payload["reference_rows"]) == 21
     assert definitions_by_name["ABC"]["value_kind"] == "float"
     assert definitions_by_name["nAtom"]["value_kind"] == "int"
     assert definitions_by_name["Lipinski"]["value_kind"] == "bool"
