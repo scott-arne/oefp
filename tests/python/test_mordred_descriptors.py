@@ -82,6 +82,7 @@ FIRST_BATCH_SOURCE_TYPES = {
     "CarbonTypes",
     "HydrogenBond",
     "RotatableBond",
+    "SLogP",
     "TopoPSA",
     "Weight",
 }
@@ -207,7 +208,7 @@ def test_mordred_descriptors_match_first_batch_reference_values():
     payload = _reference_payload()
     names = _first_batch_names(payload)
 
-    assert len(names) == 49
+    assert len(names) == 51
     for row in payload["reference_rows"]:
         descriptors = oefp.mordred_descriptors(_openeye_mol(row["smiles"]))
         expected_by_name = _reference_values_by_name(payload, row)

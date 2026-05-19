@@ -398,6 +398,22 @@
       "reason": "OEFP matches Mordred average molecular weight values on the committed 16-row first-batch fixture."
     },
     {
+      "descriptor": "SLogP",
+      "family": "SLogP",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/SLogP.py",
+      "status": "exact",
+      "primitive": "OpenEye substructure search over the RDKit Wildman-Crippen SMARTS contribution table from RDKit Crippen.cpp/Crippen.txt",
+      "reason": "OEFP matches Mordred SLogP values on the committed 16-row first-batch fixture."
+    },
+    {
+      "descriptor": "SMR",
+      "family": "SLogP",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/SLogP.py",
+      "status": "exact",
+      "primitive": "OpenEye substructure search over the RDKit Wildman-Crippen SMARTS contribution table from RDKit Crippen.cpp/Crippen.txt",
+      "reason": "OEFP matches Mordred SMR values on the committed 16-row first-batch fixture."
+    },
+    {
       "descriptor": "Lipinski",
       "family": "Lipinski",
       "source": "/Users/johnss51/Development/python/mordred/mordred/Lipinski.py",

@@ -144,5 +144,30 @@ TEST(MordredDescriptorTest, CountSubsetMatchesCopiedMordredReferences) {
     }
 }
 
+TEST(MordredDescriptorTest, CrippenDescriptorsMatchCopiedMordredReferences) {
+    struct Case {
+        std::string smiles;
+        double slogp;
+        double smr;
+    };
+
+    const std::vector<Case> cases{
+        {"CCO", -0.0014000000000000123, 12.759800000000002},
+        {"c1ccncc1", 1.0816, 24.236999999999995},
+        {"FC(F)(F)c1ccc(Br)cc1", 3.467900000000001, 39.14400000000001},
+        {"O=[Se]=O", -0.6184000000000001, 7.126999999999999},
+    };
+
+    for (const auto& expected : cases) {
+        SCOPED_TRACE(expected.smiles);
+        const auto descriptors = MakeMordredDescriptors(mol_from_smiles(expected.smiles));
+
+        EXPECT_TRUE(descriptors.Has("SLogP"));
+        EXPECT_TRUE(descriptors.Has("SMR"));
+        EXPECT_NEAR(descriptors.Float("SLogP"), expected.slogp, 1.0e-8);
+        EXPECT_NEAR(descriptors.Float("SMR"), expected.smr, 1.0e-8);
+    }
+}
+
 } // namespace test
 } // namespace OEFP
