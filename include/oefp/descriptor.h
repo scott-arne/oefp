@@ -13,6 +13,8 @@
 
 namespace OEFP {
 
+class DescriptorSelection;
+
 enum class DescriptorValueType {
     Integer,
     Float,
@@ -108,6 +110,7 @@ public:
     double Float(const std::string& name) const;
     const std::string& String(const std::string& name) const;
     DescriptorSet Subset(const std::vector<std::string>& names) const;
+    DescriptorSet Subset(const DescriptorSelection& selection) const;
 
 private:
     DescriptorSpec spec_;

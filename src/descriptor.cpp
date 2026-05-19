@@ -1,5 +1,7 @@
 #include "oefp/descriptor.h"
 
+#include "oefp/descriptor_selection.h"
+
 #include <cmath>
 #include <limits>
 #include <map>
@@ -380,6 +382,16 @@ DescriptorSet DescriptorSet::Subset(const std::vector<std::string>& names) const
         projected_values.push_back(values_[index]);
     }
     return DescriptorSet(std::move(projected_schema), std::move(projected_values), row_id_);
+}
+
+DescriptorSet DescriptorSet::Subset(const DescriptorSelection& selection) const {
+    const auto indices = selection.Resolve(Schema());
+    std::vector<std::string> names;
+    names.reserve(indices.size());
+    for (const auto index : indices) {
+        names.push_back(schema_->Definition(index).name);
+    }
+    return Subset(names);
 }
 
 void DescriptorSet::ValidateStorage() const {
