@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <limits>
 #include <map>
+#include <memory>
 #include <set>
 #include <sstream>
 #include <stdexcept>
@@ -158,6 +159,21 @@ DescriptorSpec atom_pair_descriptor_spec(const AtomPairOptions& options) {
     spec.source_version = ATOM_PAIR_COMPAT_VERSION;
     spec.parameters = canonical_descriptor_parameters(options);
     return spec;
+}
+
+std::shared_ptr<const DescriptorSchema> atom_pair_descriptor_schema(
+    const AtomPairOptions& options) {
+    const auto spec = atom_pair_descriptor_spec(options);
+    DescriptorSchemaBuilder builder;
+    builder.Add(DescriptorDefinition{
+        "atom_pair",
+        DescriptorValueKind::CountedStringKeys,
+        "raw",
+        spec.source_name,
+        spec.source_type,
+        spec.source_version,
+        spec.parameters});
+    return builder.Build();
 }
 
 AtomPairOptions count_options(const AtomPairOptions& options) {
@@ -752,17 +768,32 @@ std::string atom_pair_descriptor_key(
 DescriptorSet make_descriptors(
     const OEChem::OEMolBase& mol,
     const AtomPairOptions& options) {
-    std::vector<std::string> keys;
-    keys.reserve(mol.NumAtoms() * (mol.NumAtoms() - 1u) / 2u);
+    std::map<std::string, std::uint32_t> counts_by_key;
     enumerate_code_events_into(
         mol,
         options,
-        [&keys](const AtomPairCodeEvent& event) {
-            keys.push_back(
-                atom_pair_descriptor_key(event.first_code, event.second_code, event.distance));
+        [&counts_by_key](const AtomPairCodeEvent& event) {
+            auto& count = counts_by_key[
+                atom_pair_descriptor_key(event.first_code, event.second_code, event.distance)];
+            if (count == std::numeric_limits<std::uint32_t>::max()) {
+                throw std::overflow_error("Atom Pair descriptor count exceeds uint32 storage.");
+            }
+            ++count;
         });
 
-    return DescriptorSet::FromStrings(atom_pair_descriptor_spec(options), keys);
+    std::vector<std::string> keys;
+    std::vector<std::uint32_t> counts;
+    keys.reserve(counts_by_key.size());
+    counts.reserve(counts_by_key.size());
+    for (const auto& [key, count] : counts_by_key) {
+        keys.push_back(key);
+        counts.push_back(count);
+    }
+
+    const auto schema = atom_pair_descriptor_schema(options);
+    DescriptorSetBuilder builder(schema);
+    builder.Set("atom_pair", DescriptorValue::CountedStringKeys(std::move(keys), std::move(counts)));
+    return builder.Build();
 }
 
 } // namespace

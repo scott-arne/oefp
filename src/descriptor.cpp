@@ -11,6 +11,73 @@
 namespace OEFP {
 namespace {
 
+struct CountedDescriptorView {
+    DescriptorValueType value_type = DescriptorValueType::String;
+    const DescriptorDefinition* definition = nullptr;
+    const std::vector<std::string>* string_keys = nullptr;
+    const std::vector<std::int64_t>* integer_keys = nullptr;
+    const std::vector<std::uint32_t>* counts = nullptr;
+};
+
+std::optional<CountedDescriptorView> counted_descriptor_view(
+    const std::shared_ptr<const DescriptorSchema>& schema,
+    const std::vector<std::optional<DescriptorValue>>& values) {
+    if (schema == nullptr || schema->Size() != 1u || values.size() != 1u
+        || !values[0].has_value()) {
+        return std::nullopt;
+    }
+
+    const auto& definition = schema->Definition(0);
+    const auto& value = *values[0];
+    if (definition.value_kind != value.Kind()) {
+        return std::nullopt;
+    }
+
+    CountedDescriptorView view;
+    view.definition = &definition;
+    switch (value.Kind()) {
+    case DescriptorValueKind::CountedStringKeys: {
+        const auto& counted = value.CountedStringKeys();
+        view.value_type = DescriptorValueType::String;
+        view.string_keys = &counted.keys;
+        view.counts = &counted.counts;
+        return view;
+    }
+    case DescriptorValueKind::CountedIntegerKeys: {
+        const auto& counted = value.CountedIntegerKeys();
+        view.value_type = DescriptorValueType::Integer;
+        view.integer_keys = &counted.keys;
+        view.counts = &counted.counts;
+        return view;
+    }
+    case DescriptorValueKind::Bool:
+    case DescriptorValueKind::Int:
+    case DescriptorValueKind::Float:
+    case DescriptorValueKind::String:
+    case DescriptorValueKind::FloatVector:
+    case DescriptorValueKind::IntVector:
+    case DescriptorValueKind::FloatMatrix:
+    case DescriptorValueKind::IntMatrix:
+    case DescriptorValueKind::CountedFloatKeys:
+    case DescriptorValueKind::DenseBinaryFingerprint:
+    case DescriptorValueKind::SparseBinaryFingerprint:
+    case DescriptorValueKind::DenseCountFingerprint:
+    case DescriptorValueKind::SparseCountFingerprint:
+        return std::nullopt;
+    }
+    throw std::invalid_argument("Descriptor value kind is invalid.");
+}
+
+DescriptorSpec spec_from_counted_view(const CountedDescriptorView& view) {
+    DescriptorSpec spec;
+    spec.value_type = view.value_type;
+    spec.source_name = view.definition->source_name;
+    spec.source_type = view.definition->source_type;
+    spec.source_version = view.definition->source_version;
+    spec.parameters = view.definition->parameters;
+    return spec;
+}
+
 template <typename Key>
 void validate_key_counts(
     const std::vector<Key>& keys,
@@ -146,6 +213,9 @@ DescriptorSet::DescriptorSet(
       values_(std::move(values)),
       row_id_(std::move(row_id)) {
     ValidateTypedStorage();
+    if (const auto view = counted_descriptor_view(schema_, values_)) {
+        spec_ = spec_from_counted_view(*view);
+    }
 }
 
 DescriptorSet DescriptorSet::FromStrings(
@@ -193,6 +263,9 @@ DescriptorSet DescriptorSet::FromFloatCounts(
 
 const DescriptorSpec& DescriptorSet::Spec() const {
     if (schema_ != nullptr) {
+        if (counted_descriptor_view(schema_, values_)) {
+            return spec_;
+        }
         throw std::invalid_argument("Schema-backed descriptor rows do not expose DescriptorSpec.");
     }
     return spec_;
@@ -200,6 +273,9 @@ const DescriptorSpec& DescriptorSet::Spec() const {
 
 DescriptorValueType DescriptorSet::ValueType() const {
     if (schema_ != nullptr) {
+        if (const auto view = counted_descriptor_view(schema_, values_)) {
+            return view->value_type;
+        }
         throw std::invalid_argument("Schema-backed descriptor rows do not expose DescriptorValueType.");
     }
     return spec_.value_type;
@@ -207,6 +283,9 @@ DescriptorValueType DescriptorSet::ValueType() const {
 
 std::size_t DescriptorSet::Size() const {
     if (schema_ != nullptr) {
+        if (const auto view = counted_descriptor_view(schema_, values_)) {
+            return view->counts->size();
+        }
         return values_.size();
     }
     switch (spec_.value_type) {
@@ -222,6 +301,13 @@ std::size_t DescriptorSet::Size() const {
 
 std::uint64_t DescriptorSet::TotalCount() const {
     if (schema_ != nullptr) {
+        if (const auto view = counted_descriptor_view(schema_, values_)) {
+            std::uint64_t total = 0;
+            for (const auto count : *view->counts) {
+                total += count;
+            }
+            return total;
+        }
         throw std::invalid_argument("Schema-backed descriptor rows do not expose key counts.");
     }
     std::uint64_t total = 0;
@@ -233,6 +319,11 @@ std::uint64_t DescriptorSet::TotalCount() const {
 
 const std::vector<std::string>& DescriptorSet::StringKeys() const {
     if (schema_ != nullptr) {
+        if (const auto view = counted_descriptor_view(schema_, values_)) {
+            if (view->string_keys != nullptr) {
+                return *view->string_keys;
+            }
+        }
         throw std::invalid_argument("Schema-backed descriptor rows do not expose string keys.");
     }
     return string_keys_;
@@ -240,6 +331,11 @@ const std::vector<std::string>& DescriptorSet::StringKeys() const {
 
 const std::vector<std::int64_t>& DescriptorSet::IntegerKeys() const {
     if (schema_ != nullptr) {
+        if (const auto view = counted_descriptor_view(schema_, values_)) {
+            if (view->integer_keys != nullptr) {
+                return *view->integer_keys;
+            }
+        }
         throw std::invalid_argument("Schema-backed descriptor rows do not expose integer keys.");
     }
     return integer_keys_;
@@ -254,19 +350,20 @@ const std::vector<double>& DescriptorSet::FloatKeys() const {
 
 const std::vector<std::uint32_t>& DescriptorSet::Counts() const {
     if (schema_ != nullptr) {
+        if (const auto view = counted_descriptor_view(schema_, values_)) {
+            return *view->counts;
+        }
         throw std::invalid_argument("Schema-backed descriptor rows do not expose key counts.");
     }
     return counts_;
 }
 
 const std::uint32_t* DescriptorSet::CountData() const {
-    if (schema_ != nullptr) {
-        throw std::invalid_argument("Schema-backed descriptor rows do not expose key counts.");
-    }
-    if (counts_.empty()) {
+    const auto& counts = Counts();
+    if (counts.empty()) {
         return nullptr;
     }
-    return counts_.data();
+    return counts.data();
 }
 
 std::uint64_t DescriptorSet::CountDataAddress() const {
@@ -278,13 +375,11 @@ std::uint64_t DescriptorSet::CountDataAddress() const {
 }
 
 const std::int64_t* DescriptorSet::IntegerKeyData() const {
-    if (schema_ != nullptr) {
-        throw std::invalid_argument("Schema-backed descriptor rows do not expose integer keys.");
-    }
-    if (integer_keys_.empty()) {
+    const auto& keys = IntegerKeys();
+    if (keys.empty()) {
         return nullptr;
     }
-    return integer_keys_.data();
+    return keys.data();
 }
 
 std::uint64_t DescriptorSet::IntegerKeyDataAddress() const {

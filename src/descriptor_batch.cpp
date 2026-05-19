@@ -37,6 +37,17 @@ bool is_scalar_kind(DescriptorValueKind kind) {
     throw std::invalid_argument("Descriptor value kind is invalid.");
 }
 
+bool exposes_legacy_descriptor_storage(const DescriptorSet& descriptors) {
+    try {
+        static_cast<void>(descriptors.Spec());
+        static_cast<void>(descriptors.ValueType());
+        static_cast<void>(descriptors.Counts());
+    } catch (const std::invalid_argument&) {
+        return false;
+    }
+    return true;
+}
+
 } // namespace
 
 DescriptorBatch::DescriptorBatch(DescriptorSpec spec)
@@ -50,7 +61,8 @@ DescriptorBatch DescriptorBatch::FromDescriptorSets(
         return DescriptorBatch();
     }
 
-    if (descriptors.front().SchemaPtr() != nullptr) {
+    if (descriptors.front().SchemaPtr() != nullptr
+        && !exposes_legacy_descriptor_storage(descriptors.front())) {
         DescriptorBatch batch;
         batch.InitializeColumns(descriptors.front().SchemaPtr());
         for (const auto& descriptor_set : descriptors) {
@@ -74,7 +86,7 @@ DescriptorBatch DescriptorBatch::Empty(std::shared_ptr<const DescriptorSchema> s
 }
 
 void DescriptorBatch::Append(const DescriptorSet& descriptors) {
-    if (descriptors.SchemaPtr() != nullptr) {
+    if (descriptors.SchemaPtr() != nullptr && !exposes_legacy_descriptor_storage(descriptors)) {
         AppendTypedRow(descriptors);
         return;
     }

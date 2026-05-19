@@ -313,6 +313,26 @@ def _manual_descriptor_spec(
     )
 
 
+def _legacy_counted_string_descriptor(native: Any, spec: DescriptorSpec) -> DescriptorSet:
+    return DescriptorSet._from_native(
+        _native._NativeDescriptorSet.FromStringCounts(
+            _native_descriptor_spec(spec),
+            native.StringKeys(),
+            native.Counts(),
+        )
+    )
+
+
+def _legacy_counted_integer_descriptor(native: Any, spec: DescriptorSpec) -> DescriptorSet:
+    return DescriptorSet._from_native(
+        _native._NativeDescriptorSet.FromIntegerCounts(
+            _native_descriptor_spec(spec),
+            native.IntegerKeys(),
+            native.Counts(),
+        )
+    )
+
+
 def _descriptor_mode_value(mode: str) -> Any:
     if mode == "count_overlap":
         return _native.DescriptorComparisonMode_CountOverlap
@@ -2212,7 +2232,8 @@ def atom_pair_descriptors(
         use_chirality,
         use_2d,
     )
-    return DescriptorSet._from_native(_native.MakeAtomPairDescriptors(mol, options))
+    native = _native.MakeAtomPairDescriptors(mol, options)
+    return _legacy_counted_string_descriptor(native, _descriptor_spec(native.Spec()))
 
 
 def morgan_descriptors(
@@ -2238,7 +2259,8 @@ def morgan_descriptors(
         include_ring_membership,
         include_redundant_environments,
     )
-    return DescriptorSet._from_native(_native.MakeMorganDescriptors(mol, options))
+    native = _native.MakeMorganDescriptors(mol, options)
+    return _legacy_counted_integer_descriptor(native, _descriptor_spec(native.Spec()))
 
 
 def mordred_descriptors(mol: Any) -> DescriptorSet:

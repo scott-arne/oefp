@@ -155,17 +155,18 @@ OEFPCount MakeAtomPairSparseCountFingerprint(
     const AtomPairOptions& options = AtomPairOptions{});
 #endif
 
-/// \brief Generate raw Atom Pair descriptors as typed string keys with counts.
+/// \brief Generate raw Atom Pair descriptors as a schema-backed counted-key row.
 ///
 /// The descriptor keys are OEFP-owned, unfurled Atom Pair feature identifiers
 /// of the form ``smaller_atom_code_distance_larger_atom_code``. They reuse the
 /// same atom-code and graph-distance model as the Atom Pair fingerprint
-/// generators but do not fold into a fixed-size fingerprint domain.
+/// generators but do not fold into a fixed-size fingerprint domain. The
+/// descriptor row contains one ``atom_pair`` column with counted string keys.
 ///
 /// \param mol Molecule to describe.
 /// \param options Atom Pair generation options. ``num_bits`` and count
 ///     simulation options do not affect descriptor output.
-/// \returns Counted string-key Atom Pair descriptors.
+/// \returns Schema-backed counted string-key Atom Pair descriptors.
 /// \throws std::invalid_argument: When the requested options are unsupported
 ///     or invalid.
 #ifdef SWIG

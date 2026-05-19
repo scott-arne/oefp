@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <limits>
+#include <numeric>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -22,6 +23,14 @@ OEChem::OEGraphMol mol_from_smiles(const std::string& smiles) {
         throw std::runtime_error("Failed to parse test SMILES: " + smiles);
     }
     return mol;
+}
+
+const CountedIntegerKeyValues& morgan_values(const DescriptorSet& descriptors) {
+    return descriptors.Value("morgan").CountedIntegerKeys();
+}
+
+std::uint64_t total_count(const CountedIntegerKeyValues& values) {
+    return std::accumulate(values.counts.begin(), values.counts.end(), std::uint64_t{0});
 }
 
 } // namespace
@@ -479,15 +488,15 @@ TEST(MorganTest, GeneratedDescriptorsCarryStrictMorganSpec) {
     options.include_redundant_environments = true;
 
     const auto descriptors = MakeMorganDescriptors(mol, options);
-    const auto& spec = descriptors.Spec();
+    const auto& schema = descriptors.Schema();
+    const auto& definition = schema.Definition(schema.IndexOf("morgan"));
 
-    EXPECT_EQ(descriptors.ValueType(), DescriptorValueType::Integer);
-    EXPECT_EQ(spec.value_type, DescriptorValueType::Integer);
-    EXPECT_EQ(spec.source_name, "OEFP");
-    EXPECT_EQ(spec.source_type, "Morgan");
-    EXPECT_EQ(spec.source_version, "Morgan-2026.03.1");
+    EXPECT_EQ(definition.value_kind, DescriptorValueKind::CountedIntegerKeys);
+    EXPECT_EQ(definition.source_name, "OEFP");
+    EXPECT_EQ(definition.source_type, "Morgan");
+    EXPECT_EQ(definition.source_version, "Morgan-2026.03.1");
     EXPECT_EQ(
-        spec.parameters,
+        definition.parameters,
         "radius=1;use_chirality=false;use_bond_types=false;"
         "only_nonzero_invariants=true;include_ring_membership=false;"
         "include_redundant_environments=true;output=descriptors");
@@ -499,13 +508,23 @@ TEST(MorganTest, GeneratedDescriptorsUseRawMorganIdsAndCounts) {
     options.radius = 1;
 
     const auto descriptors = MakeMorganDescriptors(mol, options);
+    const auto& values = morgan_values(descriptors);
 
-    EXPECT_EQ(descriptors.TotalCount(), 6u);
+    EXPECT_EQ(total_count(values), 6u);
     EXPECT_EQ(
-        descriptors.IntegerKeys(),
+        values.keys,
         std::vector<std::int64_t>(
             {864662311, 1535166686, 2245384272, 2246728737, 3542456614, 4018048386}));
-    EXPECT_EQ(descriptors.Counts(), std::vector<std::uint32_t>({1u, 1u, 1u, 1u, 1u, 1u}));
+    EXPECT_EQ(values.counts, std::vector<std::uint32_t>({1u, 1u, 1u, 1u, 1u, 1u}));
+}
+
+TEST(MorganTest, GeneratedDescriptorsUseCountedIntegerKeyValue) {
+    const auto descriptors = MakeMorganDescriptors(mol_from_smiles("CCO"));
+
+    EXPECT_TRUE(descriptors.Schema().Contains("morgan"));
+    const auto& value = descriptors.Value("morgan");
+    EXPECT_EQ(value.Kind(), DescriptorValueKind::CountedIntegerKeys);
+    EXPECT_GT(value.CountedIntegerKeys().size(), 0u);
 }
 
 TEST(MorganTest, GeneratedDescriptorsCoverAromaticityValenceAndBranching) {
@@ -549,9 +568,10 @@ TEST(MorganTest, GeneratedDescriptorsCoverAromaticityValenceAndBranching) {
     for (const auto& expected : cases) {
         SCOPED_TRACE(expected.smiles);
         const auto descriptors = MakeMorganDescriptors(mol_from_smiles(expected.smiles), options);
-        EXPECT_EQ(descriptors.TotalCount(), 2u * mol_from_smiles(expected.smiles).NumAtoms());
-        EXPECT_EQ(descriptors.IntegerKeys(), expected.keys);
-        EXPECT_EQ(descriptors.Counts(), expected.counts);
+        const auto& values = morgan_values(descriptors);
+        EXPECT_EQ(total_count(values), 2u * mol_from_smiles(expected.smiles).NumAtoms());
+        EXPECT_EQ(values.keys, expected.keys);
+        EXPECT_EQ(values.counts, expected.counts);
     }
 }
 

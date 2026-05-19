@@ -46,6 +46,19 @@ std::shared_ptr<const DescriptorSchema> scalar_schema() {
     return builder.Build();
 }
 
+std::shared_ptr<const DescriptorSchema> counted_integer_schema() {
+    DescriptorSchemaBuilder builder;
+    builder.Add(DescriptorDefinition{
+        "raw",
+        DescriptorValueKind::CountedIntegerKeys,
+        "test",
+        "unit-test",
+        "descriptor",
+        "1",
+        "kind=integer"});
+    return builder.Build();
+}
+
 } // namespace
 
 TEST(DescriptorBatchTest, BuildsColumnarBatchFromTypedRows) {
@@ -146,6 +159,26 @@ TEST(DescriptorBatchTest, BuildsCsrStorageFromDescriptorSets) {
     appended.Append(second);
     appended.Append(empty);
     EXPECT_EQ(appended, batch);
+}
+
+TEST(DescriptorBatchTest, BuildsCsrStorageFromOneColumnCountedRows) {
+    const auto schema = counted_integer_schema();
+
+    DescriptorSetBuilder first(schema);
+    first.Set("raw", DescriptorValue::CountedIntegerKeys({1, 3}, {2u, 1u}));
+
+    DescriptorSetBuilder second(schema);
+    second.Set("raw", DescriptorValue::CountedIntegerKeys({2}, {4u}));
+
+    const auto batch = DescriptorBatch::FromDescriptorSets({first.Build(), second.Build()});
+
+    EXPECT_EQ(batch.Spec(), integer_spec());
+    EXPECT_EQ(batch.ValueType(), DescriptorValueType::Integer);
+    EXPECT_EQ(batch.Size(), 2u);
+    EXPECT_EQ(batch.EntryCount(), 3u);
+    EXPECT_EQ(batch.RowOffsets(), std::vector<std::uint64_t>({0u, 2u, 3u}));
+    EXPECT_EQ(batch.IntegerKeys(), std::vector<std::int64_t>({1, 3, 2}));
+    EXPECT_EQ(batch.Counts(), std::vector<std::uint32_t>({2u, 1u, 4u}));
 }
 
 TEST(DescriptorBatchTest, StoresOnlyActiveKeyVector) {

@@ -2,8 +2,11 @@
 
 #include <gtest/gtest.h>
 
+#include <cstdint>
 #include <memory>
 #include <stdexcept>
+#include <string>
+#include <vector>
 
 using namespace OEFP;
 
@@ -24,6 +27,19 @@ std::shared_ptr<const DescriptorSchema> shaped_schema() {
 
     DescriptorSchemaBuilder builder;
     builder.Add(matrix);
+    return builder.Build();
+}
+
+std::shared_ptr<const DescriptorSchema> counted_string_schema() {
+    DescriptorSchemaBuilder builder;
+    builder.Add(DescriptorDefinition{
+        "raw",
+        DescriptorValueKind::CountedStringKeys,
+        "test",
+        "unit-test",
+        "descriptor",
+        "1",
+        "kind=string"});
     return builder.Build();
 }
 
@@ -102,6 +118,24 @@ TEST(TypedDescriptorSetTest, RejectsLegacyCountedKeyAccessors) {
     EXPECT_THROW(static_cast<void>(row.IntegerKeyDataAddress()), std::invalid_argument);
     EXPECT_THROW(static_cast<void>(row.FloatKeyData()), std::invalid_argument);
     EXPECT_THROW(static_cast<void>(row.FloatKeyDataAddress()), std::invalid_argument);
+}
+
+TEST(TypedDescriptorSetTest, OneColumnCountedRowExposesLegacyStorage) {
+    DescriptorSetBuilder builder(counted_string_schema());
+    builder.Set("raw", DescriptorValue::CountedStringKeys({"alpha", "beta"}, {2u, 1u}));
+
+    const auto row = builder.Build("row-1");
+
+    EXPECT_EQ(row.ValueType(), DescriptorValueType::String);
+    EXPECT_EQ(row.Size(), 2u);
+    EXPECT_EQ(row.TotalCount(), 3u);
+    EXPECT_EQ(row.StringKeys(), std::vector<std::string>({"alpha", "beta"}));
+    EXPECT_EQ(row.Counts(), std::vector<std::uint32_t>({2u, 1u}));
+    EXPECT_EQ(row.Spec().source_name, "unit-test");
+    EXPECT_EQ(row.Spec().source_type, "descriptor");
+    EXPECT_EQ(row.Spec().source_version, "1");
+    EXPECT_EQ(row.Spec().parameters, "kind=string");
+    EXPECT_EQ(row.CountData(), row.Counts().data());
 }
 
 TEST(TypedDescriptorSetTest, ProjectsNamedSubsets) {

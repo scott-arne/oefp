@@ -3,6 +3,7 @@
 
 #include "oefp/descriptor_schema.h"
 
+#include <cstddef>
 #include <cstdint>
 #include <string>
 #include <variant>
@@ -10,13 +11,34 @@
 
 namespace OEFP {
 
+struct CountedStringKeyValues {
+    std::vector<std::string> keys;
+    std::vector<std::uint32_t> counts;
+
+    std::size_t size() const;
+};
+
+struct CountedIntegerKeyValues {
+    std::vector<std::int64_t> keys;
+    std::vector<std::uint32_t> counts;
+
+    std::size_t size() const;
+};
+
+bool operator==(const CountedStringKeyValues& lhs, const CountedStringKeyValues& rhs);
+bool operator!=(const CountedStringKeyValues& lhs, const CountedStringKeyValues& rhs);
+bool operator==(const CountedIntegerKeyValues& lhs, const CountedIntegerKeyValues& rhs);
+bool operator!=(const CountedIntegerKeyValues& lhs, const CountedIntegerKeyValues& rhs);
+
 using DescriptorScalarStorage = std::variant<
     bool,
     std::int64_t,
     double,
     std::string,
     std::vector<std::int64_t>,
-    std::vector<double>
+    std::vector<double>,
+    CountedStringKeyValues,
+    CountedIntegerKeyValues
 >;
 
 class DescriptorValue {
@@ -33,6 +55,12 @@ public:
     static DescriptorValue FloatMatrix(
         std::vector<std::uint64_t> shape,
         std::vector<double> values);
+    static DescriptorValue CountedStringKeys(
+        std::vector<std::string> keys,
+        std::vector<std::uint32_t> counts);
+    static DescriptorValue CountedIntegerKeys(
+        std::vector<std::int64_t> keys,
+        std::vector<std::uint32_t> counts);
 
     DescriptorValueKind Kind() const;
     const std::vector<std::uint64_t>& Shape() const;
@@ -43,6 +71,8 @@ public:
     const std::string& AsString() const;
     const std::vector<std::int64_t>& AsIntVector() const;
     const std::vector<double>& AsFloatVector() const;
+    const CountedStringKeyValues& CountedStringKeys() const;
+    const CountedIntegerKeyValues& CountedIntegerKeys() const;
 
     bool operator==(const DescriptorValue& other) const;
     bool operator!=(const DescriptorValue& other) const;

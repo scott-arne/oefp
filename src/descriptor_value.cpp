@@ -7,6 +7,27 @@
 namespace OEFP {
 namespace {
 
+template <typename Key>
+void validate_counted_keys(
+    const std::vector<Key>& keys,
+    const std::vector<std::uint32_t>& counts,
+    const char* name) {
+    if (keys.size() != counts.size()) {
+        throw std::invalid_argument(std::string(name)
+            + " descriptor keys and counts must have the same length.");
+    }
+    for (std::size_t index = 0; index < keys.size(); ++index) {
+        if (counts[index] == 0u) {
+            throw std::invalid_argument(std::string(name)
+                + " descriptor counts must be positive.");
+        }
+        if (index > 0 && !(keys[index - 1] < keys[index])) {
+            throw std::invalid_argument(std::string(name)
+                + " descriptor keys must be strictly increasing.");
+        }
+    }
+}
+
 std::uint64_t shape_size(const std::vector<std::uint64_t>& shape) {
     std::uint64_t size = 1;
     for (const auto dimension : shape) {
@@ -46,6 +67,30 @@ void validate_matrix_shape(
 }
 
 } // namespace
+
+std::size_t CountedStringKeyValues::size() const {
+    return keys.size();
+}
+
+std::size_t CountedIntegerKeyValues::size() const {
+    return keys.size();
+}
+
+bool operator==(const CountedStringKeyValues& lhs, const CountedStringKeyValues& rhs) {
+    return lhs.keys == rhs.keys && lhs.counts == rhs.counts;
+}
+
+bool operator!=(const CountedStringKeyValues& lhs, const CountedStringKeyValues& rhs) {
+    return !(lhs == rhs);
+}
+
+bool operator==(const CountedIntegerKeyValues& lhs, const CountedIntegerKeyValues& rhs) {
+    return lhs.keys == rhs.keys && lhs.counts == rhs.counts;
+}
+
+bool operator!=(const CountedIntegerKeyValues& lhs, const CountedIntegerKeyValues& rhs) {
+    return !(lhs == rhs);
+}
 
 DescriptorValue::DescriptorValue(
     DescriptorValueKind kind,
@@ -99,6 +144,24 @@ DescriptorValue DescriptorValue::FloatMatrix(
         std::move(shape));
 }
 
+DescriptorValue DescriptorValue::CountedStringKeys(
+    std::vector<std::string> keys,
+    std::vector<std::uint32_t> counts) {
+    validate_counted_keys(keys, counts, "String-key");
+    return DescriptorValue(
+        DescriptorValueKind::CountedStringKeys,
+        CountedStringKeyValues{std::move(keys), std::move(counts)});
+}
+
+DescriptorValue DescriptorValue::CountedIntegerKeys(
+    std::vector<std::int64_t> keys,
+    std::vector<std::uint32_t> counts) {
+    validate_counted_keys(keys, counts, "Integer-key");
+    return DescriptorValue(
+        DescriptorValueKind::CountedIntegerKeys,
+        CountedIntegerKeyValues{std::move(keys), std::move(counts)});
+}
+
 DescriptorValueKind DescriptorValue::Kind() const {
     return kind_;
 }
@@ -135,6 +198,22 @@ const std::vector<double>& DescriptorValue::AsFloatVector() const {
         throw std::invalid_argument("Descriptor value is not a float vector or matrix.");
     }
     return std::get<std::vector<double>>(storage_);
+}
+
+const CountedStringKeyValues& DescriptorValue::CountedStringKeys() const {
+    return get_value<CountedStringKeyValues>(
+        storage_,
+        kind_,
+        DescriptorValueKind::CountedStringKeys,
+        "counted string keys");
+}
+
+const CountedIntegerKeyValues& DescriptorValue::CountedIntegerKeys() const {
+    return get_value<CountedIntegerKeyValues>(
+        storage_,
+        kind_,
+        DescriptorValueKind::CountedIntegerKeys,
+        "counted integer keys");
 }
 
 bool DescriptorValue::operator==(const DescriptorValue& other) const {

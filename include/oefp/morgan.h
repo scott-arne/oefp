@@ -259,16 +259,17 @@ MorganSparseCountFingerprintResult MakeMorganSparseCountFingerprintWithMapping(
     const MorganOptions& options = MorganOptions{});
 #endif
 
-/// \brief Generate raw Morgan descriptors as typed integer keys with counts.
+/// \brief Generate raw Morgan descriptors as a schema-backed counted-key row.
 ///
 /// Descriptor keys are the same RDKit-compatible raw Morgan environment
 /// identifiers used by sparse count output. Count simulation is only defined
-/// for binary fingerprints and is rejected for this API.
+/// for binary fingerprints and is rejected for this API. The descriptor row
+/// contains one ``morgan`` column with counted integer keys.
 ///
 /// \param mol Molecule to fingerprint.
 /// \param options Morgan generation options. ``num_bits`` and count simulation
 ///     options do not affect descriptor output.
-/// \returns Counted integer-key Morgan descriptors.
+/// \returns Schema-backed counted integer-key Morgan descriptors.
 /// \throws std::invalid_argument: When the requested options are unsupported
 ///     or invalid.
 #ifdef SWIG
