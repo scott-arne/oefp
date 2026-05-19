@@ -6,6 +6,7 @@ import argparse
 import json
 import math
 import sys
+from collections import Counter
 from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
@@ -68,7 +69,18 @@ def _selected_names(
 
 
 def _descriptor_policy(payload: Mapping[str, Any]) -> dict[str, Mapping[str, Any]]:
-    return {str(policy["descriptor"]): policy for policy in payload.get("policies", [])}
+    policies = payload.get("policies", [])
+    descriptor_counts = Counter(str(policy["descriptor"]) for policy in policies)
+    duplicate_descriptors = sorted(
+        descriptor
+        for descriptor, count in descriptor_counts.items()
+        if count > 1
+    )
+    if duplicate_descriptors:
+        duplicates = ", ".join(duplicate_descriptors)
+        raise ValueError(f"Duplicate descriptor policy entries: {duplicates}")
+
+    return {str(policy["descriptor"]): policy for policy in policies}
 
 
 def _row_divergence_policy(

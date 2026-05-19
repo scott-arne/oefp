@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import sys
+from collections import Counter
 from importlib import resources
 from pathlib import Path
 from types import SimpleNamespace
@@ -288,6 +289,24 @@ def test_parity_harness_rejects_concrete_values_for_deferred_descriptors(
     ]
 
 
+def test_parity_harness_rejects_duplicate_descriptor_policies():
+    policy = {
+        "policies": [
+            {
+                "descriptor": "Repeated",
+                "status": "exact",
+            },
+            {
+                "descriptor": "Repeated",
+                "status": "deferred",
+            },
+        ]
+    }
+
+    with pytest.raises(ValueError, match="Duplicate descriptor policy entries: Repeated"):
+        compare_mordred_parity._descriptor_policy(policy)
+
+
 def test_mordred_reference_fixture_contains_full_schema_and_panel():
     payload = _reference_payload()
     definitions = payload["definitions"]
@@ -336,7 +355,9 @@ def test_mordred_divergence_policy_manifest_is_valid():
 
     policies = payload["policies"]
     assert isinstance(policies, list)
-    assert {policy["descriptor"] for policy in policies} == expected_descriptors
+    assert Counter(policy["descriptor"] for policy in policies) == {
+        descriptor: 1 for descriptor in expected_descriptors
+    }
     for policy in policies:
         assert POLICY_REQUIRED_FIELDS <= set(policy)
         assert policy["status"] in POLICY_STATUSES
