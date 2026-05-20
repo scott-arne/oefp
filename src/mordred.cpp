@@ -95,6 +95,13 @@ struct MordredPathCountValues {
     double total_pi_mpc10 = 0.0;
 };
 
+struct MordredChiPathValues {
+    std::array<std::optional<double>, 8> xp_d{};
+    std::array<std::optional<double>, 8> axp_d{};
+    std::array<std::optional<double>, 8> xp_dv{};
+    std::array<std::optional<double>, 8> axp_dv{};
+};
+
 struct AtomicPropertyValue {
     std::uint32_t atomic_number;
     double value;
@@ -1044,9 +1051,20 @@ struct PathCountNeighbor {
     double bond_order;
 };
 
+struct MordredHeavyAtomGraph {
+    std::vector<const OEChem::OEAtomBase*> atoms;
+    std::vector<std::vector<PathCountNeighbor>> adjacency;
+};
+
 struct SimplePathWalkTotals {
     std::uint32_t count = 0u;
     double pi_sum = 0.0;
+};
+
+struct ChiPathWalkTotals {
+    std::uint32_t count = 0u;
+    double sum = 0.0;
+    bool valid = true;
 };
 
 double mordred_bond_order(const OEChem::OEBondBase& bond) {
@@ -1054,6 +1072,37 @@ double mordred_bond_order(const OEChem::OEBondBase& bond) {
         return 1.5;
     }
     return static_cast<double>(bond.GetOrder());
+}
+
+MordredHeavyAtomGraph build_mordred_heavy_atom_graph(const OEChem::OEMolBase& mol) {
+    MordredHeavyAtomGraph graph;
+    std::unordered_map<unsigned int, std::size_t> heavy_atom_indices;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        if (is_hydrogen(*atom)) {
+            continue;
+        }
+        heavy_atom_indices.emplace(atom->GetIdx(), graph.atoms.size());
+        graph.atoms.push_back(&*atom);
+    }
+
+    graph.adjacency.resize(graph.atoms.size());
+    for (OESystem::OEIter<OEChem::OEBondBase> bond = mol.GetBonds(); bond; ++bond) {
+        const auto* begin = bond->GetBgn();
+        const auto* end = bond->GetEnd();
+        if (begin == nullptr || end == nullptr || is_hydrogen(*begin) || is_hydrogen(*end)) {
+            continue;
+        }
+
+        const auto begin_index = heavy_atom_indices.find(begin->GetIdx());
+        const auto end_index = heavy_atom_indices.find(end->GetIdx());
+        if (begin_index == heavy_atom_indices.end() || end_index == heavy_atom_indices.end()) {
+            continue;
+        }
+        const auto bond_order = mordred_bond_order(*bond);
+        graph.adjacency[begin_index->second].push_back({end_index->second, bond_order});
+        graph.adjacency[end_index->second].push_back({begin_index->second, bond_order});
+    }
+    return graph;
 }
 
 SimplePathWalkTotals count_simple_path_walks(
@@ -1085,32 +1134,8 @@ SimplePathWalkTotals count_simple_path_walks(
     return totals;
 }
 
-MordredPathCountValues compute_path_count_values(const OEChem::OEMolBase& mol) {
-    std::unordered_map<unsigned int, std::size_t> heavy_atom_indices;
-    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
-        if (!is_hydrogen(*atom)) {
-            heavy_atom_indices.emplace(atom->GetIdx(), heavy_atom_indices.size());
-        }
-    }
-
-    std::vector<std::vector<PathCountNeighbor>> adjacency(heavy_atom_indices.size());
-    for (OESystem::OEIter<OEChem::OEBondBase> bond = mol.GetBonds(); bond; ++bond) {
-        const auto* begin = bond->GetBgn();
-        const auto* end = bond->GetEnd();
-        if (begin == nullptr || end == nullptr || is_hydrogen(*begin) || is_hydrogen(*end)) {
-            continue;
-        }
-
-        const auto begin_index = heavy_atom_indices.find(begin->GetIdx());
-        const auto end_index = heavy_atom_indices.find(end->GetIdx());
-        if (begin_index == heavy_atom_indices.end() || end_index == heavy_atom_indices.end()) {
-            continue;
-        }
-        const auto bond_order = mordred_bond_order(*bond);
-        adjacency[begin_index->second].push_back({end_index->second, bond_order});
-        adjacency[end_index->second].push_back({begin_index->second, bond_order});
-    }
-
+MordredPathCountValues compute_path_count_values(const MordredHeavyAtomGraph& graph) {
+    const auto& adjacency = graph.adjacency;
     MordredPathCountValues values;
     values.total_mpc10 = static_cast<std::uint32_t>(adjacency.size());
     values.total_pi_mpc10 = static_cast<double>(adjacency.size());
@@ -1131,6 +1156,162 @@ MordredPathCountValues compute_path_count_values(const OEChem::OEMolBase& mol) {
         values.pi_mpc[order] = oriented_paths.pi_sum / 2.0;
         values.total_mpc10 += values.mpc[order];
         values.total_pi_mpc10 += values.pi_mpc[order];
+    }
+    return values;
+}
+
+std::optional<int> mordred_outer_electrons(std::uint32_t atomic_number) {
+    // Mordred's dv property uses RDKit GetNOuterElecs; mirror those values
+    // directly so valence-weighted Chi does not add an RDKit runtime dependency.
+    constexpr std::array<int, 119> outer_electrons{{
+        0, 1, 2, 1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 5,
+        6, 7, 8, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 2, 3,
+        4, 5, 6, 7, 8, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
+        2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 3, 4, 5, 6, 7,
+        8, 9, 10, 11, 12, 13, 14, 15, 4, 5, 6, 7, 8, 9, 10, 11,
+        2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 3, 4, 5, 6, 7,
+        8, 9, 10, 11, 12, 13, 14, 15, 2, 2, 2, 2, 2, 2, 2, 2,
+        2, 2, 2, 2, 2, 2, 2,
+    }};
+    if (atomic_number >= outer_electrons.size()) {
+        return std::nullopt;
+    }
+    return outer_electrons[atomic_number];
+}
+
+double chi_sigma_electrons(const OEChem::OEAtomBase& atom) {
+    double sigma_electrons = 0.0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> neighbor = atom.GetAtoms(); neighbor; ++neighbor) {
+        if (!is_hydrogen(*neighbor)) {
+            sigma_electrons += 1.0;
+        }
+    }
+    return sigma_electrons;
+}
+
+std::optional<double> chi_valence_electrons(const OEChem::OEAtomBase& atom) {
+    const auto atomic_number = static_cast<std::uint32_t>(atom.GetAtomicNum());
+    if (atomic_number == 1u) {
+        return 0.0;
+    }
+
+    const auto outer_electrons = mordred_outer_electrons(atomic_number);
+    if (!outer_electrons.has_value()) {
+        return std::nullopt;
+    }
+
+    const auto formal_charge = atom.GetFormalCharge();
+    const auto zv = static_cast<double>(*outer_electrons - formal_charge);
+    const auto z = static_cast<double>(static_cast<int>(atomic_number) - formal_charge);
+    const auto hydrogens = static_cast<double>(atom.GetTotalHCount());
+    const auto denominator = z - zv - 1.0;
+    if (denominator == 0.0) {
+        return std::nullopt;
+    }
+    return (zv - hydrogens) / denominator;
+}
+
+ChiPathWalkTotals count_chi_path_walks(
+    const std::vector<std::vector<PathCountNeighbor>>& adjacency,
+    const std::vector<double>& atom_properties,
+    std::size_t current,
+    std::size_t remaining_bonds,
+    double property_product,
+    std::vector<bool>& visited) {
+    if (remaining_bonds == 0u) {
+        if (property_product <= 0.0) {
+            return {0u, 0.0, false};
+        }
+        return {1u, std::pow(property_product, -0.5), true};
+    }
+
+    ChiPathWalkTotals totals;
+    for (const auto neighbor : adjacency[current]) {
+        if (visited[neighbor.atom_index]) {
+            continue;
+        }
+        visited[neighbor.atom_index] = true;
+        const auto child_totals = count_chi_path_walks(
+            adjacency,
+            atom_properties,
+            neighbor.atom_index,
+            remaining_bonds - 1u,
+            property_product * atom_properties[neighbor.atom_index],
+            visited);
+        if (!child_totals.valid) {
+            return child_totals;
+        }
+        totals.count += child_totals.count;
+        totals.sum += child_totals.sum;
+        visited[neighbor.atom_index] = false;
+    }
+    return totals;
+}
+
+std::optional<double> compute_chi_path_value(
+    const MordredHeavyAtomGraph& graph,
+    const std::vector<double>& atom_properties,
+    std::size_t order,
+    bool averaged) {
+    ChiPathWalkTotals totals;
+
+    if (order == 0u) {
+        totals.count = static_cast<std::uint32_t>(atom_properties.size());
+        for (const auto atom_property : atom_properties) {
+            if (atom_property <= 0.0) {
+                return std::nullopt;
+            }
+            totals.sum += std::pow(atom_property, -0.5);
+        }
+    } else {
+        std::vector<bool> visited(graph.adjacency.size(), false);
+        for (std::size_t start = 0u; start < graph.adjacency.size(); ++start) {
+            visited[start] = true;
+            const auto start_totals = count_chi_path_walks(
+                graph.adjacency,
+                atom_properties,
+                start,
+                order,
+                atom_properties[start],
+                visited);
+            if (!start_totals.valid) {
+                return std::nullopt;
+            }
+            totals.count += start_totals.count;
+            totals.sum += start_totals.sum;
+            visited[start] = false;
+        }
+        totals.count /= 2u;
+        totals.sum /= 2.0;
+    }
+
+    if (averaged) {
+        if (totals.count == 0u) {
+            return std::nullopt;
+        }
+        return totals.sum / static_cast<double>(totals.count);
+    }
+    return totals.sum;
+}
+
+MordredChiPathValues compute_chi_path_values(const MordredHeavyAtomGraph& graph) {
+    std::vector<double> sigma_properties;
+    std::vector<double> valence_properties;
+    sigma_properties.reserve(graph.atoms.size());
+    valence_properties.reserve(graph.atoms.size());
+
+    for (const auto* atom : graph.atoms) {
+        sigma_properties.push_back(chi_sigma_electrons(*atom));
+        const auto valence = chi_valence_electrons(*atom);
+        valence_properties.push_back(valence.value_or(0.0));
+    }
+
+    MordredChiPathValues values;
+    for (std::size_t order = 0u; order < 8u; ++order) {
+        values.xp_d[order] = compute_chi_path_value(graph, sigma_properties, order, false);
+        values.axp_d[order] = compute_chi_path_value(graph, sigma_properties, order, true);
+        values.xp_dv[order] = compute_chi_path_value(graph, valence_properties, order, false);
+        values.axp_dv[order] = compute_chi_path_value(graph, valence_properties, order, true);
     }
     return values;
 }
@@ -1225,13 +1406,25 @@ void set_bool(DescriptorSetBuilder& builder, const std::string& name, bool value
     builder.Set(name, DescriptorValue::Bool(value));
 }
 
+void set_chi_path_values(DescriptorSetBuilder& builder, const MordredChiPathValues& values) {
+    for (std::size_t order = 0u; order < 8u; ++order) {
+        const auto order_text = std::to_string(order);
+        set_optional_float(builder, "Xp-" + order_text + "d", values.xp_d[order]);
+        set_optional_float(builder, "AXp-" + order_text + "d", values.axp_d[order]);
+        set_optional_float(builder, "Xp-" + order_text + "dv", values.xp_dv[order]);
+        set_optional_float(builder, "AXp-" + order_text + "dv", values.axp_dv[order]);
+    }
+}
+
 } // namespace
 
 DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
     const auto values = compute_first_batch_values(mol);
     const auto additive_values = compute_additive_property_values(mol);
     const auto walk_count_values = compute_walk_count_values(mol);
-    const auto path_count_values = compute_path_count_values(mol);
+    const auto heavy_atom_graph = build_mordred_heavy_atom_graph(mol);
+    const auto path_count_values = compute_path_count_values(heavy_atom_graph);
+    const auto chi_path_values = compute_chi_path_values(heavy_atom_graph);
     DescriptorSetBuilder builder(MordredDescriptorSchema());
 
     const auto all_atoms = values.heavy_atoms + values.hydrogens;
@@ -1388,6 +1581,7 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
         builder,
         "Kier3",
         kappa_shape_index(values.heavy_atoms, path_count_values, 3u));
+    set_chi_path_values(builder, chi_path_values);
     set_float(builder, "TopoPSA(NO)", values.topo_psa_no);
     set_float(builder, "TopoPSA", values.topo_psa);
     set_float(builder, "MW", values.exact_weight);

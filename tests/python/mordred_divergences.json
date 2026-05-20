@@ -782,6 +782,262 @@
       "reason": "OEFP matches Mordred Kier3 values on the committed Mordred parity fixture."
     },
     {
+      "descriptor": "Xp-0d",
+      "family": "Chi",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Chi.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom simple path enumeration with Mordred d/dv atomic property products",
+      "reason": "OEFP matches Mordred Xp-0d values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "Xp-1d",
+      "family": "Chi",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Chi.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom simple path enumeration with Mordred d/dv atomic property products",
+      "reason": "OEFP matches Mordred Xp-1d values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "Xp-2d",
+      "family": "Chi",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Chi.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom simple path enumeration with Mordred d/dv atomic property products",
+      "reason": "OEFP matches Mordred Xp-2d values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "Xp-3d",
+      "family": "Chi",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Chi.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom simple path enumeration with Mordred d/dv atomic property products",
+      "reason": "OEFP matches Mordred Xp-3d values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "Xp-4d",
+      "family": "Chi",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Chi.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom simple path enumeration with Mordred d/dv atomic property products",
+      "reason": "OEFP matches Mordred Xp-4d values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "Xp-5d",
+      "family": "Chi",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Chi.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom simple path enumeration with Mordred d/dv atomic property products",
+      "reason": "OEFP matches Mordred Xp-5d values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "Xp-6d",
+      "family": "Chi",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Chi.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom simple path enumeration with Mordred d/dv atomic property products",
+      "reason": "OEFP matches Mordred Xp-6d values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "Xp-7d",
+      "family": "Chi",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Chi.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom simple path enumeration with Mordred d/dv atomic property products",
+      "reason": "OEFP matches Mordred Xp-7d values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "AXp-0d",
+      "family": "Chi",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Chi.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom simple path enumeration with Mordred d/dv atomic property products",
+      "reason": "OEFP matches Mordred AXp-0d values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "AXp-1d",
+      "family": "Chi",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Chi.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom simple path enumeration with Mordred d/dv atomic property products",
+      "reason": "OEFP matches Mordred AXp-1d values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "AXp-2d",
+      "family": "Chi",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Chi.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom simple path enumeration with Mordred d/dv atomic property products",
+      "reason": "OEFP matches Mordred AXp-2d values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "AXp-3d",
+      "family": "Chi",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Chi.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom simple path enumeration with Mordred d/dv atomic property products",
+      "reason": "OEFP matches Mordred AXp-3d values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "AXp-4d",
+      "family": "Chi",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Chi.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom simple path enumeration with Mordred d/dv atomic property products",
+      "reason": "OEFP matches Mordred AXp-4d values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "AXp-5d",
+      "family": "Chi",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Chi.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom simple path enumeration with Mordred d/dv atomic property products",
+      "reason": "OEFP matches Mordred AXp-5d values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "AXp-6d",
+      "family": "Chi",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Chi.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom simple path enumeration with Mordred d/dv atomic property products",
+      "reason": "OEFP matches Mordred AXp-6d values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "AXp-7d",
+      "family": "Chi",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Chi.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom simple path enumeration with Mordred d/dv atomic property products",
+      "reason": "OEFP matches Mordred AXp-7d values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "Xp-0dv",
+      "family": "Chi",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Chi.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom simple path enumeration with Mordred d/dv atomic property products",
+      "reason": "OEFP matches Mordred Xp-0dv values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "Xp-1dv",
+      "family": "Chi",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Chi.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom simple path enumeration with Mordred d/dv atomic property products",
+      "reason": "OEFP matches Mordred Xp-1dv values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "Xp-2dv",
+      "family": "Chi",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Chi.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom simple path enumeration with Mordred d/dv atomic property products",
+      "reason": "OEFP matches Mordred Xp-2dv values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "Xp-3dv",
+      "family": "Chi",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Chi.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom simple path enumeration with Mordred d/dv atomic property products",
+      "reason": "OEFP matches Mordred Xp-3dv values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "Xp-4dv",
+      "family": "Chi",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Chi.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom simple path enumeration with Mordred d/dv atomic property products",
+      "reason": "OEFP matches Mordred Xp-4dv values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "Xp-5dv",
+      "family": "Chi",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Chi.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom simple path enumeration with Mordred d/dv atomic property products",
+      "reason": "OEFP matches Mordred Xp-5dv values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "Xp-6dv",
+      "family": "Chi",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Chi.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom simple path enumeration with Mordred d/dv atomic property products",
+      "reason": "OEFP matches Mordred Xp-6dv values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "Xp-7dv",
+      "family": "Chi",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Chi.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom simple path enumeration with Mordred d/dv atomic property products",
+      "reason": "OEFP matches Mordred Xp-7dv values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "AXp-0dv",
+      "family": "Chi",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Chi.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom simple path enumeration with Mordred d/dv atomic property products",
+      "reason": "OEFP matches Mordred AXp-0dv values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "AXp-1dv",
+      "family": "Chi",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Chi.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom simple path enumeration with Mordred d/dv atomic property products",
+      "reason": "OEFP matches Mordred AXp-1dv values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "AXp-2dv",
+      "family": "Chi",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Chi.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom simple path enumeration with Mordred d/dv atomic property products",
+      "reason": "OEFP matches Mordred AXp-2dv values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "AXp-3dv",
+      "family": "Chi",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Chi.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom simple path enumeration with Mordred d/dv atomic property products",
+      "reason": "OEFP matches Mordred AXp-3dv values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "AXp-4dv",
+      "family": "Chi",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Chi.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom simple path enumeration with Mordred d/dv atomic property products",
+      "reason": "OEFP matches Mordred AXp-4dv values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "AXp-5dv",
+      "family": "Chi",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Chi.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom simple path enumeration with Mordred d/dv atomic property products",
+      "reason": "OEFP matches Mordred AXp-5dv values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "AXp-6dv",
+      "family": "Chi",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Chi.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom simple path enumeration with Mordred d/dv atomic property products",
+      "reason": "OEFP matches Mordred AXp-6dv values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "AXp-7dv",
+      "family": "Chi",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Chi.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom simple path enumeration with Mordred d/dv atomic property products",
+      "reason": "OEFP matches Mordred AXp-7dv values on the committed Mordred parity fixture."
+    },
+    {
       "descriptor": "MWC01",
       "family": "WalkCount",
       "source": "/Users/johnss51/Development/python/mordred/mordred/WalkCount.py",

@@ -94,6 +94,22 @@ ENABLED_SOURCE_TYPES = {
 }
 
 ENABLED_DESCRIPTOR_NAMES = {
+    "AXp-0d",
+    "AXp-0dv",
+    "AXp-1d",
+    "AXp-1dv",
+    "AXp-2d",
+    "AXp-2dv",
+    "AXp-3d",
+    "AXp-3dv",
+    "AXp-4d",
+    "AXp-4dv",
+    "AXp-5d",
+    "AXp-5dv",
+    "AXp-6d",
+    "AXp-6dv",
+    "AXp-7d",
+    "AXp-7dv",
     "MPC2",
     "MPC3",
     "MPC4",
@@ -115,6 +131,22 @@ ENABLED_DESCRIPTOR_NAMES = {
     "piPC9",
     "piPC10",
     "TpiPC10",
+    "Xp-0d",
+    "Xp-0dv",
+    "Xp-1d",
+    "Xp-1dv",
+    "Xp-2d",
+    "Xp-2dv",
+    "Xp-3d",
+    "Xp-3dv",
+    "Xp-4d",
+    "Xp-4dv",
+    "Xp-5d",
+    "Xp-5dv",
+    "Xp-6d",
+    "Xp-6dv",
+    "Xp-7d",
+    "Xp-7dv",
     "Kier1",
     "Kier2",
     "Kier3",
@@ -251,7 +283,7 @@ def test_mordred_descriptors_match_enabled_reference_values():
     names = _enabled_descriptor_names(payload)
     row_divergences = _row_divergence_policy()
 
-    assert len(names) == 118
+    assert len(names) == 150
     for row in payload["reference_rows"]:
         smiles = row["smiles"]
         descriptors = oefp.mordred_descriptors(_openeye_mol(row["smiles"]))

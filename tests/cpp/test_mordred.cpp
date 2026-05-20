@@ -473,6 +473,136 @@ TEST(MordredDescriptorTest, KappaShapeIndexDescriptorsMatchMordredPathSemantics)
     }
 }
 
+TEST(MordredDescriptorTest, ChiPathDescriptorsMatchCopiedMordredReferences) {
+    struct Case {
+        std::string smiles;
+        std::map<std::string, double> expected_values;
+        std::vector<std::string> missing_values;
+    };
+
+    const std::vector<Case> cases{
+        {
+            "CCO",
+            {
+                {"Xp-0d", 2.7071067811865475},
+                {"Xp-1d", 1.4142135623730951},
+                {"Xp-2d", 0.7071067811865476},
+                {"Xp-3d", 0.0},
+                {"AXp-0d", 0.9023689270621825},
+                {"AXp-1d", 0.7071067811865476},
+                {"AXp-2d", 0.7071067811865476},
+                {"Xp-0dv", 2.1543203766865053},
+                {"Xp-1dv", 1.0233345472033855},
+                {"Xp-2dv", 0.31622776601683794},
+                {"AXp-0dv", 0.7181067922288351},
+                {"AXp-1dv", 0.5116672736016927},
+                {"AXp-2dv", 0.31622776601683794},
+            },
+            {"AXp-3d", "AXp-3dv"},
+        },
+        {
+            "c1ccncc1",
+            {
+                {"Xp-0d", 4.242640687119286},
+                {"Xp-3d", 1.5},
+                {"Xp-5d", 0.75},
+                {"Xp-6d", 0.0},
+                {"AXp-1d", 0.5},
+                {"AXp-5d", 0.125},
+                {"Xp-0dv", 3.3339649414480865},
+                {"Xp-3dv", 0.5664874085517705},
+                {"Xp-5dv", 0.17213259316477408},
+                {"AXp-1dv", 0.3082885188046092},
+                {"AXp-5dv", 0.028688765527462346},
+            },
+            {"AXp-6d", "AXp-7d", "AXp-6dv", "AXp-7dv"},
+        },
+        {
+            "CCCC",
+            {
+                {"Xp-0d", 3.414213562373095},
+                {"Xp-1d", 1.9142135623730951},
+                {"Xp-2d", 1.0},
+                {"Xp-3d", 0.5},
+                {"Xp-4d", 0.0},
+                {"AXp-0d", 0.8535533905932737},
+                {"AXp-1d", 0.6380711874576984},
+                {"AXp-2d", 0.5},
+                {"AXp-3d", 0.5},
+                {"Xp-0dv", 3.414213562373095},
+                {"Xp-1dv", 1.9142135623730951},
+                {"Xp-2dv", 1.0},
+                {"Xp-3dv", 0.5},
+                {"AXp-0dv", 0.8535533905932737},
+                {"AXp-1dv", 0.6380711874576984},
+                {"AXp-2dv", 0.5},
+                {"AXp-3dv", 0.5},
+            },
+            {"AXp-4d", "AXp-4dv"},
+        },
+        {
+            "CCCCCC",
+            {
+                {"Xp-0d", 4.82842712474619},
+                {"Xp-5d", 0.25},
+                {"Xp-6d", 0.0},
+                {"AXp-0d", 0.8047378541243649},
+                {"AXp-5d", 0.25},
+                {"Xp-0dv", 4.82842712474619},
+                {"Xp-5dv", 0.25},
+                {"Xp-6dv", 0.0},
+                {"AXp-0dv", 0.8047378541243649},
+                {"AXp-5dv", 0.25},
+            },
+            {"AXp-6d", "AXp-7d", "AXp-6dv", "AXp-7dv"},
+        },
+        {
+            "C",
+            {
+                {"Xp-1d", 0.0},
+                {"Xp-7d", 0.0},
+                {"Xp-1dv", 0.0},
+                {"Xp-7dv", 0.0},
+            },
+            {"Xp-0d", "AXp-0d", "AXp-1d", "Xp-0dv", "AXp-0dv", "AXp-1dv"},
+        },
+    };
+
+    for (const auto& expected : cases) {
+        SCOPED_TRACE(expected.smiles);
+        const auto descriptors = MakeMordredDescriptors(mol_from_smiles(expected.smiles));
+
+        for (const auto& [name, value] : expected.expected_values) {
+            EXPECT_TRUE(descriptors.Has(name)) << name;
+            EXPECT_NEAR(descriptors.Float(name), value, 1.0e-8) << name;
+        }
+        for (const auto& name : expected.missing_values) {
+            EXPECT_FALSE(descriptors.Has(name)) << name;
+        }
+    }
+}
+
+TEST(MordredDescriptorTest, ChiValencePathDescriptorsDoNotDoubleCountExplicitHydrogens) {
+    OEChem::OEGraphMol mol = mol_from_smiles("CCO");
+    OEChem::OEAddExplicitHydrogens(mol);
+
+    const auto descriptors = MakeMordredDescriptors(mol);
+
+    const std::map<std::string, double> expected_values{
+        {"Xp-0dv", 2.1543203766865053},
+        {"Xp-1dv", 1.0233345472033855},
+        {"Xp-2dv", 0.31622776601683794},
+        {"AXp-0dv", 0.7181067922288351},
+        {"AXp-1dv", 0.5116672736016927},
+        {"AXp-2dv", 0.31622776601683794},
+    };
+
+    for (const auto& [name, value] : expected_values) {
+        EXPECT_TRUE(descriptors.Has(name)) << name;
+        EXPECT_NEAR(descriptors.Float(name), value, 1.0e-8) << name;
+    }
+}
+
 TEST(MordredDescriptorTest, FilterDescriptorsMatchCopiedMordredReferences) {
     struct Case {
         std::string smiles;
