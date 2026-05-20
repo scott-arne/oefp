@@ -90,7 +90,9 @@ struct MordredWalkCountValues {
 
 struct MordredPathCountValues {
     std::array<std::uint32_t, 11> mpc{};
+    std::array<double, 11> pi_mpc{};
     std::uint32_t total_mpc10 = 0u;
+    double total_pi_mpc10 = 0.0;
 };
 
 struct AtomicPropertyValue {
@@ -1037,25 +1039,50 @@ MordredWalkCountValues compute_walk_count_values(const OEChem::OEMolBase& mol) {
     return values;
 }
 
-std::uint32_t count_simple_path_walks(
-    const std::vector<std::vector<std::size_t>>& adjacency,
+struct PathCountNeighbor {
+    std::size_t atom_index;
+    double bond_order;
+};
+
+struct SimplePathWalkTotals {
+    std::uint32_t count = 0u;
+    double pi_sum = 0.0;
+};
+
+double mordred_bond_order(const OEChem::OEBondBase& bond) {
+    if (bond.IsAromatic()) {
+        return 1.5;
+    }
+    return static_cast<double>(bond.GetOrder());
+}
+
+SimplePathWalkTotals count_simple_path_walks(
+    const std::vector<std::vector<PathCountNeighbor>>& adjacency,
     std::size_t current,
     std::size_t remaining_bonds,
+    double path_bond_order_product,
     std::vector<bool>& visited) {
     if (remaining_bonds == 0u) {
-        return 1u;
+        return {1u, path_bond_order_product};
     }
 
-    std::uint32_t count = 0u;
+    SimplePathWalkTotals totals;
     for (const auto neighbor : adjacency[current]) {
-        if (visited[neighbor]) {
+        if (visited[neighbor.atom_index]) {
             continue;
         }
-        visited[neighbor] = true;
-        count += count_simple_path_walks(adjacency, neighbor, remaining_bonds - 1u, visited);
-        visited[neighbor] = false;
+        visited[neighbor.atom_index] = true;
+        const auto child_totals = count_simple_path_walks(
+            adjacency,
+            neighbor.atom_index,
+            remaining_bonds - 1u,
+            path_bond_order_product * neighbor.bond_order,
+            visited);
+        totals.count += child_totals.count;
+        totals.pi_sum += child_totals.pi_sum;
+        visited[neighbor.atom_index] = false;
     }
-    return count;
+    return totals;
 }
 
 MordredPathCountValues compute_path_count_values(const OEChem::OEMolBase& mol) {
@@ -1066,7 +1093,7 @@ MordredPathCountValues compute_path_count_values(const OEChem::OEMolBase& mol) {
         }
     }
 
-    std::vector<std::vector<std::size_t>> adjacency(heavy_atom_indices.size());
+    std::vector<std::vector<PathCountNeighbor>> adjacency(heavy_atom_indices.size());
     for (OESystem::OEIter<OEChem::OEBondBase> bond = mol.GetBonds(); bond; ++bond) {
         const auto* begin = bond->GetBgn();
         const auto* end = bond->GetEnd();
@@ -1079,24 +1106,31 @@ MordredPathCountValues compute_path_count_values(const OEChem::OEMolBase& mol) {
         if (begin_index == heavy_atom_indices.end() || end_index == heavy_atom_indices.end()) {
             continue;
         }
-        adjacency[begin_index->second].push_back(end_index->second);
-        adjacency[end_index->second].push_back(begin_index->second);
+        const auto bond_order = mordred_bond_order(*bond);
+        adjacency[begin_index->second].push_back({end_index->second, bond_order});
+        adjacency[end_index->second].push_back({begin_index->second, bond_order});
     }
 
     MordredPathCountValues values;
     values.total_mpc10 = static_cast<std::uint32_t>(adjacency.size());
+    values.total_pi_mpc10 = static_cast<double>(adjacency.size());
     for (std::size_t order = 1u; order <= 10u; ++order) {
-        std::uint32_t oriented_paths = 0u;
+        SimplePathWalkTotals oriented_paths;
         std::vector<bool> visited(adjacency.size(), false);
         for (std::size_t start = 0u; start < adjacency.size(); ++start) {
             visited[start] = true;
-            oriented_paths += count_simple_path_walks(adjacency, start, order, visited);
+            const auto start_totals =
+                count_simple_path_walks(adjacency, start, order, 1.0, visited);
+            oriented_paths.count += start_totals.count;
+            oriented_paths.pi_sum += start_totals.pi_sum;
             visited[start] = false;
         }
 
         // Each accepted RDKit/Mordred bond path is undirected; DFS sees both orientations.
-        values.mpc[order] = oriented_paths / 2u;
+        values.mpc[order] = oriented_paths.count / 2u;
+        values.pi_mpc[order] = oriented_paths.pi_sum / 2.0;
         values.total_mpc10 += values.mpc[order];
+        values.total_pi_mpc10 += values.pi_mpc[order];
     }
     return values;
 }
@@ -1300,6 +1334,17 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
     set_int(builder, "MPC9", path_count_values.mpc[9]);
     set_int(builder, "MPC10", path_count_values.mpc[10]);
     set_int(builder, "TMPC10", path_count_values.total_mpc10);
+    set_float(builder, "piPC1", std::log(path_count_values.pi_mpc[1] + 1.0));
+    set_float(builder, "piPC2", std::log(path_count_values.pi_mpc[2] + 1.0));
+    set_float(builder, "piPC3", std::log(path_count_values.pi_mpc[3] + 1.0));
+    set_float(builder, "piPC4", std::log(path_count_values.pi_mpc[4] + 1.0));
+    set_float(builder, "piPC5", std::log(path_count_values.pi_mpc[5] + 1.0));
+    set_float(builder, "piPC6", std::log(path_count_values.pi_mpc[6] + 1.0));
+    set_float(builder, "piPC7", std::log(path_count_values.pi_mpc[7] + 1.0));
+    set_float(builder, "piPC8", std::log(path_count_values.pi_mpc[8] + 1.0));
+    set_float(builder, "piPC9", std::log(path_count_values.pi_mpc[9] + 1.0));
+    set_float(builder, "piPC10", std::log(path_count_values.pi_mpc[10] + 1.0));
+    set_float(builder, "TpiPC10", std::log(path_count_values.total_pi_mpc10 + 1.0));
     set_float(builder, "TopoPSA(NO)", values.topo_psa_no);
     set_float(builder, "TopoPSA", values.topo_psa);
     set_float(builder, "MW", values.exact_weight);

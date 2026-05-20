@@ -368,6 +368,56 @@ TEST(MordredDescriptorTest, NonPiPathCountDescriptorsMatchMordredPathSemantics) 
     }
 }
 
+TEST(MordredDescriptorTest, PiPathCountDescriptorsMatchMordredPathSemantics) {
+    struct Case {
+        std::string smiles;
+        std::map<std::string, double> expected_values;
+    };
+
+    const std::vector<Case> cases{
+        {
+            "c1ccncc1",
+            {
+                {"piPC1", 2.302585092994046},
+                {"piPC3", 3.056356895370426},
+                {"piPC6", 0.0},
+                {"piPC10", 0.0},
+                {"TpiPC10", 4.833798667532871},
+            },
+        },
+        {
+            "CC#N",
+            {
+                {"piPC1", 1.6094379124341003},
+                {"piPC2", 1.3862943611198906},
+                {"piPC3", 0.0},
+                {"piPC10", 0.0},
+                {"TpiPC10", 2.3978952727983707},
+            },
+        },
+        {
+            "CCCCCC",
+            {
+                {"piPC1", 1.791759469228055},
+                {"piPC3", 1.3862943611198906},
+                {"piPC5", 0.6931471805599453},
+                {"piPC10", 0.0},
+                {"TpiPC10", 3.091042453358316},
+            },
+        },
+    };
+
+    for (const auto& expected : cases) {
+        SCOPED_TRACE(expected.smiles);
+        const auto descriptors = MakeMordredDescriptors(mol_from_smiles(expected.smiles));
+
+        for (const auto& [name, value] : expected.expected_values) {
+            EXPECT_TRUE(descriptors.Has(name)) << name;
+            EXPECT_NEAR(descriptors.Float(name), value, 1.0e-8) << name;
+        }
+    }
+}
+
 TEST(MordredDescriptorTest, FilterDescriptorsMatchCopiedMordredReferences) {
     struct Case {
         std::string smiles;
