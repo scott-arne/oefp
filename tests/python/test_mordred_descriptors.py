@@ -94,6 +94,8 @@ ENABLED_SOURCE_TYPES = {
 }
 
 ENABLED_DESCRIPTOR_NAMES = {
+    "ABC",
+    "ABCGG",
     "AXp-0d",
     "AXp-0dv",
     "AXp-1d",
@@ -457,7 +459,7 @@ def test_mordred_descriptors_match_enabled_reference_values():
     names = _enabled_descriptor_names(payload)
     row_divergences = _row_divergence_policy()
 
-    assert len(names) == 324
+    assert len(names) == 326
     for row in payload["reference_rows"]:
         smiles = row["smiles"]
         descriptors = oefp.mordred_descriptors(_openeye_mol(row["smiles"]))

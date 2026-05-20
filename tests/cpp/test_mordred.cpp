@@ -53,7 +53,8 @@ TEST(MordredDescriptorTest, DescriptorRowCarriesFullSchema) {
     EXPECT_TRUE(descriptors.Has("MW"));
     EXPECT_TRUE(descriptors.Has("Lipinski"));
     EXPECT_TRUE(descriptors.Has("GhoseFilter"));
-    EXPECT_FALSE(descriptors.Has("ABC"));
+    EXPECT_TRUE(descriptors.Has("ABC"));
+    EXPECT_FALSE(descriptors.Has("SpAbs_A"));
 }
 
 TEST(MordredDescriptorTest, CountSubsetMatchesCopiedMordredReferences) {
@@ -669,6 +670,32 @@ TEST(MordredDescriptorTest, VertexAdjacencyInformationUsesHeavyHeavyBondCount) {
 
     const OEChem::OEGraphMol empty_mol;
     EXPECT_FALSE(MakeMordredDescriptors(empty_mol).Has("VAdjMat"));
+}
+
+TEST(MordredDescriptorTest, ABCIndexDescriptorsUseHeavyAtomGraphBonds) {
+    struct Case {
+        std::string smiles;
+        double abc;
+        double abcgg;
+    };
+
+    const std::vector<Case> cases{
+        {"C", 0.0, 0.0},
+        {"C.CC", 0.0, 0.0},
+        {"CCO", 1.4142135623730951, 1.4142135623730951},
+        {"c1ccncc1", 4.242640687119286, 3.9999999999999996},
+        {"CCCCCC", 3.5355339059327378, 3.8697346110395934},
+    };
+
+    for (const auto& expected : cases) {
+        SCOPED_TRACE(expected.smiles);
+        const auto descriptors = MakeMordredDescriptors(mol_from_smiles(expected.smiles));
+
+        ASSERT_TRUE(descriptors.Has("ABC"));
+        ASSERT_TRUE(descriptors.Has("ABCGG"));
+        EXPECT_NEAR(descriptors.Float("ABC"), expected.abc, 1.0e-12);
+        EXPECT_NEAR(descriptors.Float("ABCGG"), expected.abcgg, 1.0e-12);
+    }
 }
 
 TEST(MordredDescriptorTest, WalkCountDescriptorsMatchCopiedMordredReferences) {

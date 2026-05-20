@@ -6,6 +6,22 @@
   },
   "policies": [
     {
+      "descriptor": "ABC",
+      "family": "ABCIndex",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/ABCIndex.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-heavy bond endpoint graph degrees",
+      "reason": "OEFP matches Mordred ABC values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "ABCGG",
+      "family": "ABCIndex",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/ABCIndex.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom shortest path distance comparisons using the RDKit disconnected-distance sentinel",
+      "reason": "OEFP matches Mordred ABCGG values on the committed Mordred parity fixture."
+    },
+    {
       "descriptor": "nAcid",
       "family": "AcidBase",
       "source": "/Users/johnss51/Development/python/mordred/mordred/AcidBase.py",

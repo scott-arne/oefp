@@ -120,6 +120,11 @@ struct MordredZagrebValues {
     double modified_zagreb2 = 0.0;
 };
 
+struct MordredABCIndexValues {
+    double abc = 0.0;
+    double abcgg = 0.0;
+};
+
 struct MordredWienerValues {
     std::int64_t wpath = 0;
     std::int64_t wpol = 0;
@@ -1833,6 +1838,34 @@ std::vector<std::vector<std::int64_t>> compute_mordred_heavy_atom_distances(
     return distances;
 }
 
+MordredABCIndexValues compute_abc_index_values(
+    const MordredHeavyAtomGraph& graph,
+    const std::vector<std::vector<std::int64_t>>& distances) {
+    MordredABCIndexValues values;
+    for (const auto [begin, end] : graph.bonds) {
+        const auto begin_degree = static_cast<double>(graph.adjacency[begin].size());
+        const auto end_degree = static_cast<double>(graph.adjacency[end].size());
+        values.abc +=
+            std::sqrt((begin_degree + end_degree - 2.0) / (begin_degree * end_degree));
+
+        std::uint32_t begin_closer = 0u;
+        std::uint32_t end_closer = 0u;
+        for (std::size_t atom_index = 0u; atom_index < distances.size(); ++atom_index) {
+            if (distances[begin][atom_index] < distances[end][atom_index]) {
+                ++begin_closer;
+            }
+            if (distances[end][atom_index] < distances[begin][atom_index]) {
+                ++end_closer;
+            }
+        }
+
+        const auto nu = static_cast<double>(begin_closer);
+        const auto nv = static_cast<double>(end_closer);
+        values.abcgg += std::sqrt((nu + nv - 2.0) / (nu * nv));
+    }
+    return values;
+}
+
 MordredZagrebValues compute_zagreb_values(const MordredHeavyAtomGraph& graph) {
     MordredZagrebValues values;
     double modified_zagreb1 = 0.0;
@@ -2432,6 +2465,11 @@ void set_zagreb_values(DescriptorSetBuilder& builder, const MordredZagrebValues&
     set_float(builder, "mZagreb2", values.modified_zagreb2);
 }
 
+void set_abc_index_values(DescriptorSetBuilder& builder, const MordredABCIndexValues& values) {
+    set_float(builder, "ABC", values.abc);
+    set_float(builder, "ABCGG", values.abcgg);
+}
+
 void set_wiener_values(DescriptorSetBuilder& builder, const MordredWienerValues& values) {
     builder.Set("WPath", DescriptorValue::Int(values.wpath));
     builder.Set("WPol", DescriptorValue::Int(values.wpol));
@@ -2501,6 +2539,8 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
     const auto vertex_adjacency_information =
         compute_vertex_adjacency_information(heavy_atom_graph);
     const auto heavy_atom_distances = compute_mordred_heavy_atom_distances(heavy_atom_graph);
+    const auto abc_index_values =
+        compute_abc_index_values(heavy_atom_graph, heavy_atom_distances);
     const auto wiener_values = compute_wiener_values(heavy_atom_distances);
     const auto topological_index_values = compute_topological_index_values(heavy_atom_distances);
     const auto ec_index =
@@ -2665,6 +2705,7 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
     set_chi_path_values(builder, chi_path_values);
     set_chi_non_path_values(builder, chi_non_path_values);
     set_zagreb_values(builder, zagreb_values);
+    set_abc_index_values(builder, abc_index_values);
     set_optional_float(builder, "VAdjMat", vertex_adjacency_information);
     set_wiener_values(builder, wiener_values);
     set_topological_index_values(builder, topological_index_values);
