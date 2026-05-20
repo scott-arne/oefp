@@ -645,6 +645,32 @@ TEST(MordredDescriptorTest, TopologicalIndexDescriptorsAreMissingForEmptyMolecul
     EXPECT_FALSE(descriptors.Has("PetitjeanIndex"));
 }
 
+TEST(MordredDescriptorTest, VertexAdjacencyInformationUsesHeavyHeavyBondCount) {
+    struct Case {
+        std::string smiles;
+        double expected_value;
+    };
+
+    const std::vector<Case> cases{
+        {"CCO", 2.0},
+        {"c1ccncc1", 3.584962500721156},
+        {"C.CC", 1.0},
+    };
+
+    for (const auto& expected : cases) {
+        SCOPED_TRACE(expected.smiles);
+        const auto descriptors = MakeMordredDescriptors(mol_from_smiles(expected.smiles));
+
+        ASSERT_TRUE(descriptors.Has("VAdjMat"));
+        EXPECT_NEAR(descriptors.Float("VAdjMat"), expected.expected_value, 1.0e-12);
+    }
+
+    EXPECT_FALSE(MakeMordredDescriptors(mol_from_smiles("C")).Has("VAdjMat"));
+
+    const OEChem::OEGraphMol empty_mol;
+    EXPECT_FALSE(MakeMordredDescriptors(empty_mol).Has("VAdjMat"));
+}
+
 TEST(MordredDescriptorTest, WalkCountDescriptorsMatchCopiedMordredReferences) {
     struct Case {
         std::string smiles;

@@ -1797,6 +1797,14 @@ MordredHeavyAtomGraph build_mordred_heavy_atom_graph(const OEChem::OEMolBase& mo
     return graph;
 }
 
+std::optional<double> compute_vertex_adjacency_information(const MordredHeavyAtomGraph& graph) {
+    const auto heavy_heavy_bonds = graph.bonds.size();
+    if (heavy_heavy_bonds == 0u) {
+        return std::nullopt;
+    }
+    return 1.0 + std::log2(static_cast<double>(heavy_heavy_bonds));
+}
+
 std::vector<std::vector<std::int64_t>> compute_mordred_heavy_atom_distances(
     const MordredHeavyAtomGraph& graph) {
     const auto atom_count = graph.adjacency.size();
@@ -2490,6 +2498,8 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
     const auto chi_path_values = compute_chi_path_values(heavy_atom_graph);
     const auto chi_non_path_values = compute_chi_non_path_values(heavy_atom_graph);
     const auto zagreb_values = compute_zagreb_values(heavy_atom_graph);
+    const auto vertex_adjacency_information =
+        compute_vertex_adjacency_information(heavy_atom_graph);
     const auto heavy_atom_distances = compute_mordred_heavy_atom_distances(heavy_atom_graph);
     const auto wiener_values = compute_wiener_values(heavy_atom_distances);
     const auto topological_index_values = compute_topological_index_values(heavy_atom_distances);
@@ -2655,6 +2665,7 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
     set_chi_path_values(builder, chi_path_values);
     set_chi_non_path_values(builder, chi_non_path_values);
     set_zagreb_values(builder, zagreb_values);
+    set_optional_float(builder, "VAdjMat", vertex_adjacency_information);
     set_wiener_values(builder, wiener_values);
     set_topological_index_values(builder, topological_index_values);
     set_eccentric_connectivity_index(builder, ec_index);

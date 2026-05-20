@@ -317,6 +317,7 @@ ENABLED_DESCRIPTOR_NAMES = {
     "PetitjeanIndex",
     "Radius",
     "TopoShapeIndex",
+    "VAdjMat",
     "WPath",
     "WPol",
     "Zagreb1",
@@ -456,7 +457,7 @@ def test_mordred_descriptors_match_enabled_reference_values():
     names = _enabled_descriptor_names(payload)
     row_divergences = _row_divergence_policy()
 
-    assert len(names) == 323
+    assert len(names) == 324
     for row in payload["reference_rows"]:
         smiles = row["smiles"]
         descriptors = oefp.mordred_descriptors(_openeye_mol(row["smiles"]))

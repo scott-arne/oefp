@@ -2558,6 +2558,14 @@
       "reason": "OEFP matches Mordred WPol values on the committed Mordred parity fixture."
     },
     {
+      "descriptor": "VAdjMat",
+      "family": "VertexAdjacencyInformation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/VertexAdjacencyInformation.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-heavy bond count from the Mordred heavy-atom graph",
+      "reason": "OEFP matches Mordred VAdjMat values and missing zero-bond cases on the committed Mordred parity fixture."
+    },
+    {
       "descriptor": "Diameter",
       "family": "TopologicalIndex",
       "source": "/Users/johnss51/Development/python/mordred/mordred/TopologicalIndex.py",
