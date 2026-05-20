@@ -314,6 +314,83 @@ TEST(MordredDescriptorTest, BaseRingCountDescriptorsMatchMordredSymmSSSRReferenc
     }
 }
 
+TEST(MordredDescriptorTest, FilteredRingCountDescriptorsMatchMordredSymmSSSRReferences) {
+    struct Case {
+        std::string smiles;
+        std::map<std::string, std::int64_t> expected_values;
+    };
+
+    const std::vector<std::string> names{
+        "nHRing",     "n3HRing",    "n4HRing",    "n5HRing",    "n6HRing",
+        "n7HRing",    "n8HRing",    "n9HRing",    "n10HRing",   "n11HRing",
+        "n12HRing",   "nG12HRing",  "naRing",     "n3aRing",    "n4aRing",
+        "n5aRing",    "n6aRing",    "n7aRing",    "n8aRing",    "n9aRing",
+        "n10aRing",   "n11aRing",   "n12aRing",   "nG12aRing",  "naHRing",
+        "n3aHRing",   "n4aHRing",   "n5aHRing",   "n6aHRing",   "n7aHRing",
+        "n8aHRing",   "n9aHRing",   "n10aHRing",  "n11aHRing",  "n12aHRing",
+        "nG12aHRing", "nARing",     "n3ARing",    "n4ARing",    "n5ARing",
+        "n6ARing",    "n7ARing",    "n8ARing",    "n9ARing",    "n10ARing",
+        "n11ARing",   "n12ARing",   "nG12ARing",  "nAHRing",    "n3AHRing",
+        "n4AHRing",   "n5AHRing",   "n6AHRing",   "n7AHRing",   "n8AHRing",
+        "n9AHRing",   "n10AHRing",  "n11AHRing",  "n12AHRing",  "nG12AHRing",
+    };
+    const std::vector<Case> cases{
+        {"CCO", {}},
+        {"C1CC1", {{"nARing", 1}, {"n3ARing", 1}}},
+        {"c1ccccc1", {{"naRing", 1}, {"n6aRing", 1}}},
+        {
+            "c1ccncc1",
+            {
+                {"nHRing", 1},
+                {"n6HRing", 1},
+                {"naRing", 1},
+                {"n6aRing", 1},
+                {"naHRing", 1},
+                {"n6aHRing", 1},
+            },
+        },
+        {
+            "C1CCOCC1",
+            {
+                {"nHRing", 1},
+                {"n6HRing", 1},
+                {"nARing", 1},
+                {"n6ARing", 1},
+                {"nAHRing", 1},
+                {"n6AHRing", 1},
+            },
+        },
+        {
+            "C1CCCCCCCCCCC1",
+            {{"nARing", 1}, {"n12ARing", 1}, {"nG12ARing", 1}},
+        },
+        {
+            "O1CCCCCCCCCCCC1",
+            {
+                {"nHRing", 1},
+                {"nG12HRing", 1},
+                {"nARing", 1},
+                {"nG12ARing", 1},
+                {"nAHRing", 1},
+                {"nG12AHRing", 1},
+            },
+        },
+    };
+
+    for (const auto& expected : cases) {
+        SCOPED_TRACE(expected.smiles);
+        const auto descriptors = MakeMordredDescriptors(mol_from_smiles(expected.smiles));
+
+        for (const auto& name : names) {
+            const auto found = expected.expected_values.find(name);
+            const auto expected_value =
+                found == expected.expected_values.end() ? 0 : found->second;
+            EXPECT_TRUE(descriptors.Has(name)) << name;
+            EXPECT_EQ(descriptors.Int(name), expected_value) << name;
+        }
+    }
+}
+
 TEST(MordredDescriptorTest, WalkCountDescriptorsMatchCopiedMordredReferences) {
     struct Case {
         std::string smiles;

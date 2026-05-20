@@ -113,10 +113,24 @@ struct MordredChiNonPathValues {
     std::array<std::optional<double>, 7> xpc_dv{};
 };
 
-struct MordredRingCountValues {
+struct MordredRingCountSummary {
     std::uint32_t total = 0u;
     std::array<std::uint32_t, 13> by_size{};
     std::uint32_t greater_or_equal_12 = 0u;
+};
+
+struct MordredRingCountValues {
+    MordredRingCountSummary all;
+    MordredRingCountSummary hetero;
+    MordredRingCountSummary aromatic;
+    MordredRingCountSummary aromatic_hetero;
+    MordredRingCountSummary aliphatic;
+    MordredRingCountSummary aliphatic_hetero;
+};
+
+struct MordredRingAtomProperties {
+    std::uint32_t atomic_number;
+    bool aromatic;
 };
 
 struct AtomicPropertyValue {
@@ -1164,21 +1178,6 @@ bool needs_complete_graph_fast_find_fallback(
     return cycle_rank > adjacency.size();
 }
 
-MordredRingCountValues count_ring_sizes(const std::vector<std::vector<std::size_t>>& cycles) {
-    MordredRingCountValues values;
-    values.total = static_cast<std::uint32_t>(cycles.size());
-    for (const auto& cycle : cycles) {
-        const auto size = cycle.size();
-        if (size < values.by_size.size()) {
-            ++values.by_size[size];
-        }
-        if (size >= 12u) {
-            ++values.greater_or_equal_12;
-        }
-    }
-    return values;
-}
-
 std::vector<std::size_t> rdkit_like_symmetrized_ring_indices(
     const std::vector<std::vector<std::size_t>>& sorted_cycles,
     const std::unordered_map<std::uint64_t, std::size_t>& edge_indices,
@@ -1306,12 +1305,67 @@ std::unordered_map<std::uint64_t, std::size_t> edge_indices_for_adjacency(
     return edge_indices;
 }
 
+void add_ring_count(MordredRingCountSummary& summary, std::size_t size) {
+    ++summary.total;
+    if (size < summary.by_size.size()) {
+        ++summary.by_size[size];
+    }
+    if (size >= 12u) {
+        ++summary.greater_or_equal_12;
+    }
+}
+
+void add_ring_count_values(
+    MordredRingCountValues& values,
+    const std::vector<std::size_t>& ring,
+    const std::vector<MordredRingAtomProperties>& atom_properties) {
+    const auto has_hetero = std::any_of(
+        ring.begin(),
+        ring.end(),
+        [&atom_properties](std::size_t atom) {
+            return atom_properties[atom].atomic_number != 6u;
+        });
+    const auto all_aromatic = std::all_of(
+        ring.begin(),
+        ring.end(),
+        [&atom_properties](std::size_t atom) {
+            return atom_properties[atom].aromatic;
+        });
+
+    add_ring_count(values.all, ring.size());
+    if (has_hetero) {
+        add_ring_count(values.hetero, ring.size());
+    }
+    if (all_aromatic) {
+        add_ring_count(values.aromatic, ring.size());
+        if (has_hetero) {
+            add_ring_count(values.aromatic_hetero, ring.size());
+        }
+    } else {
+        add_ring_count(values.aliphatic, ring.size());
+        if (has_hetero) {
+            add_ring_count(values.aliphatic_hetero, ring.size());
+        }
+    }
+}
+
+MordredRingCountValues count_ring_values(
+    const std::vector<std::vector<std::size_t>>& cycles,
+    const std::vector<MordredRingAtomProperties>& atom_properties) {
+    MordredRingCountValues values;
+    for (const auto& cycle : cycles) {
+        add_ring_count_values(values, cycle, atom_properties);
+    }
+    return values;
+}
+
 MordredRingCountValues compute_component_base_ring_count_values(
-    const std::vector<std::vector<std::size_t>>& adjacency) {
+    const std::vector<std::vector<std::size_t>>& adjacency,
+    const std::vector<MordredRingAtomProperties>& atom_properties) {
     if (needs_complete_graph_fast_find_fallback(adjacency)) {
         // RDKit falls back to FastFindRings for some highly connected graph
         // components where the SSSR search cannot find the expected cycle rank.
-        return count_ring_sizes(fast_find_ring_cycles(adjacency));
+        return count_ring_values(fast_find_ring_cycles(adjacency), atom_properties);
     }
 
     std::vector<std::unordered_set<std::size_t>> adjacency_sets(adjacency.size());
@@ -1345,17 +1399,8 @@ MordredRingCountValues compute_component_base_ring_count_values(
         rdkit_like_symmetrized_ring_indices(sorted_cycles, edge_indices, word_count);
 
     MordredRingCountValues values;
-    values.total = static_cast<std::uint32_t>(selected_indices.size());
     for (const auto ring_index : selected_indices) {
-        const auto& cycle = sorted_cycles[ring_index];
-        const auto size = cycle.size();
-
-        if (size < values.by_size.size()) {
-            ++values.by_size[size];
-        }
-        if (size >= 12u) {
-            ++values.greater_or_equal_12;
-        }
+        add_ring_count_values(values, sorted_cycles[ring_index], atom_properties);
     }
     return values;
 }
@@ -1411,7 +1456,20 @@ std::vector<std::vector<std::size_t>> component_adjacency(
     return component;
 }
 
-void add_ring_count_values(MordredRingCountValues& total, const MordredRingCountValues& component) {
+std::vector<MordredRingAtomProperties> component_atom_properties(
+    const std::vector<MordredRingAtomProperties>& atom_properties,
+    const std::vector<std::size_t>& component_atoms) {
+    std::vector<MordredRingAtomProperties> component;
+    component.reserve(component_atoms.size());
+    for (const auto atom : component_atoms) {
+        component.push_back(atom_properties[atom]);
+    }
+    return component;
+}
+
+void add_ring_count_summary(
+    MordredRingCountSummary& total,
+    const MordredRingCountSummary& component) {
     total.total += component.total;
     for (std::size_t size = 0u; size < total.by_size.size(); ++size) {
         total.by_size[size] += component.by_size[size];
@@ -1419,15 +1477,27 @@ void add_ring_count_values(MordredRingCountValues& total, const MordredRingCount
     total.greater_or_equal_12 += component.greater_or_equal_12;
 }
 
+void add_ring_count_values(MordredRingCountValues& total, const MordredRingCountValues& component) {
+    add_ring_count_summary(total.all, component.all);
+    add_ring_count_summary(total.hetero, component.hetero);
+    add_ring_count_summary(total.aromatic, component.aromatic);
+    add_ring_count_summary(total.aromatic_hetero, component.aromatic_hetero);
+    add_ring_count_summary(total.aliphatic, component.aliphatic);
+    add_ring_count_summary(total.aliphatic_hetero, component.aliphatic_hetero);
+}
+
 MordredRingCountValues compute_base_ring_count_values(const OEChem::OEMolBase& mol) {
     // Mordred/RDKit makes ring-selection decisions per connected component.
-    // Keep this local to base RingCount; fused/aromatic/hetero filters come later.
+    // Keep fused-ring grouping out of this helper; this slice uses Rings().
     std::unordered_map<unsigned int, std::size_t> atom_indices;
+    std::vector<MordredRingAtomProperties> atom_properties;
     for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
         if (atom->GetAtomicNum() == 1) {
             continue;
         }
         atom_indices.emplace(atom->GetIdx(), atom_indices.size());
+        atom_properties.push_back(
+            {static_cast<std::uint32_t>(atom->GetAtomicNum()), atom->IsAromatic()});
     }
 
     std::vector<std::vector<std::size_t>> adjacency(atom_indices.size());
@@ -1458,7 +1528,9 @@ MordredRingCountValues compute_base_ring_count_values(const OEChem::OEMolBase& m
     for (const auto& atoms : connected_components(adjacency)) {
         add_ring_count_values(
             values,
-            compute_component_base_ring_count_values(component_adjacency(adjacency, atoms)));
+            compute_component_base_ring_count_values(
+                component_adjacency(adjacency, atoms),
+                component_atom_properties(atom_properties, atoms)));
     }
     return values;
 }
@@ -2138,12 +2210,27 @@ void set_chi_non_path_values(
     }
 }
 
-void set_ring_count_values(DescriptorSetBuilder& builder, const MordredRingCountValues& values) {
-    set_int(builder, "nRing", values.total);
+void set_ring_count_summary(
+    DescriptorSetBuilder& builder,
+    const MordredRingCountSummary& values,
+    const std::string& qualifier) {
+    set_int(builder, "n" + qualifier + "Ring", values.total);
     for (std::size_t order = 3u; order <= 12u; ++order) {
-        set_int(builder, "n" + std::to_string(order) + "Ring", values.by_size[order]);
+        set_int(
+            builder,
+            "n" + std::to_string(order) + qualifier + "Ring",
+            values.by_size[order]);
     }
-    set_int(builder, "nG12Ring", values.greater_or_equal_12);
+    set_int(builder, "nG12" + qualifier + "Ring", values.greater_or_equal_12);
+}
+
+void set_ring_count_values(DescriptorSetBuilder& builder, const MordredRingCountValues& values) {
+    set_ring_count_summary(builder, values.all, "");
+    set_ring_count_summary(builder, values.hetero, "H");
+    set_ring_count_summary(builder, values.aromatic, "a");
+    set_ring_count_summary(builder, values.aromatic_hetero, "aH");
+    set_ring_count_summary(builder, values.aliphatic, "A");
+    set_ring_count_summary(builder, values.aliphatic_hetero, "AH");
 }
 
 } // namespace

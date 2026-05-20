@@ -686,6 +686,486 @@
       "reason": "OEFP matches Mordred base non-fused 12-or-greater-membered ring counts on the committed Mordred parity fixture."
     },
     {
+      "descriptor": "nHRing",
+      "family": "RingCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/RingCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom graph with RDKit/SymmSSSR-like ring selection and Mordred RingCount atom filters",
+      "reason": "OEFP matches Mordred non-fused hetero ring counts on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "n3HRing",
+      "family": "RingCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/RingCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom graph with RDKit/SymmSSSR-like ring selection and Mordred RingCount atom filters",
+      "reason": "OEFP matches Mordred non-fused 3-membered hetero ring counts on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "n4HRing",
+      "family": "RingCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/RingCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom graph with RDKit/SymmSSSR-like ring selection and Mordred RingCount atom filters",
+      "reason": "OEFP matches Mordred non-fused 4-membered hetero ring counts on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "n5HRing",
+      "family": "RingCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/RingCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom graph with RDKit/SymmSSSR-like ring selection and Mordred RingCount atom filters",
+      "reason": "OEFP matches Mordred non-fused 5-membered hetero ring counts on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "n6HRing",
+      "family": "RingCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/RingCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom graph with RDKit/SymmSSSR-like ring selection and Mordred RingCount atom filters",
+      "reason": "OEFP matches Mordred non-fused 6-membered hetero ring counts on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "n7HRing",
+      "family": "RingCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/RingCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom graph with RDKit/SymmSSSR-like ring selection and Mordred RingCount atom filters",
+      "reason": "OEFP matches Mordred non-fused 7-membered hetero ring counts on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "n8HRing",
+      "family": "RingCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/RingCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom graph with RDKit/SymmSSSR-like ring selection and Mordred RingCount atom filters",
+      "reason": "OEFP matches Mordred non-fused 8-membered hetero ring counts on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "n9HRing",
+      "family": "RingCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/RingCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom graph with RDKit/SymmSSSR-like ring selection and Mordred RingCount atom filters",
+      "reason": "OEFP matches Mordred non-fused 9-membered hetero ring counts on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "n10HRing",
+      "family": "RingCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/RingCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom graph with RDKit/SymmSSSR-like ring selection and Mordred RingCount atom filters",
+      "reason": "OEFP matches Mordred non-fused 10-membered hetero ring counts on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "n11HRing",
+      "family": "RingCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/RingCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom graph with RDKit/SymmSSSR-like ring selection and Mordred RingCount atom filters",
+      "reason": "OEFP matches Mordred non-fused 11-membered hetero ring counts on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "n12HRing",
+      "family": "RingCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/RingCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom graph with RDKit/SymmSSSR-like ring selection and Mordred RingCount atom filters",
+      "reason": "OEFP matches Mordred non-fused 12-membered hetero ring counts on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "nG12HRing",
+      "family": "RingCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/RingCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom graph with RDKit/SymmSSSR-like ring selection and Mordred RingCount atom filters",
+      "reason": "OEFP matches Mordred non-fused 12-or-greater-membered hetero ring counts on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "naRing",
+      "family": "RingCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/RingCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom graph with RDKit/SymmSSSR-like ring selection and Mordred RingCount atom filters",
+      "reason": "OEFP matches Mordred non-fused aromatic ring counts on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "n3aRing",
+      "family": "RingCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/RingCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom graph with RDKit/SymmSSSR-like ring selection and Mordred RingCount atom filters",
+      "reason": "OEFP matches Mordred non-fused 3-membered aromatic ring counts on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "n4aRing",
+      "family": "RingCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/RingCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom graph with RDKit/SymmSSSR-like ring selection and Mordred RingCount atom filters",
+      "reason": "OEFP matches Mordred non-fused 4-membered aromatic ring counts on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "n5aRing",
+      "family": "RingCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/RingCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom graph with RDKit/SymmSSSR-like ring selection and Mordred RingCount atom filters",
+      "reason": "OEFP matches Mordred non-fused 5-membered aromatic ring counts on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "n6aRing",
+      "family": "RingCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/RingCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom graph with RDKit/SymmSSSR-like ring selection and Mordred RingCount atom filters",
+      "reason": "OEFP matches Mordred non-fused 6-membered aromatic ring counts on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "n7aRing",
+      "family": "RingCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/RingCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom graph with RDKit/SymmSSSR-like ring selection and Mordred RingCount atom filters",
+      "reason": "OEFP matches Mordred non-fused 7-membered aromatic ring counts on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "n8aRing",
+      "family": "RingCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/RingCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom graph with RDKit/SymmSSSR-like ring selection and Mordred RingCount atom filters",
+      "reason": "OEFP matches Mordred non-fused 8-membered aromatic ring counts on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "n9aRing",
+      "family": "RingCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/RingCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom graph with RDKit/SymmSSSR-like ring selection and Mordred RingCount atom filters",
+      "reason": "OEFP matches Mordred non-fused 9-membered aromatic ring counts on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "n10aRing",
+      "family": "RingCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/RingCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom graph with RDKit/SymmSSSR-like ring selection and Mordred RingCount atom filters",
+      "reason": "OEFP matches Mordred non-fused 10-membered aromatic ring counts on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "n11aRing",
+      "family": "RingCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/RingCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom graph with RDKit/SymmSSSR-like ring selection and Mordred RingCount atom filters",
+      "reason": "OEFP matches Mordred non-fused 11-membered aromatic ring counts on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "n12aRing",
+      "family": "RingCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/RingCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom graph with RDKit/SymmSSSR-like ring selection and Mordred RingCount atom filters",
+      "reason": "OEFP matches Mordred non-fused 12-membered aromatic ring counts on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "nG12aRing",
+      "family": "RingCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/RingCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom graph with RDKit/SymmSSSR-like ring selection and Mordred RingCount atom filters",
+      "reason": "OEFP matches Mordred non-fused 12-or-greater-membered aromatic ring counts on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "naHRing",
+      "family": "RingCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/RingCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom graph with RDKit/SymmSSSR-like ring selection and Mordred RingCount atom filters",
+      "reason": "OEFP matches Mordred non-fused aromatic hetero ring counts on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "n3aHRing",
+      "family": "RingCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/RingCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom graph with RDKit/SymmSSSR-like ring selection and Mordred RingCount atom filters",
+      "reason": "OEFP matches Mordred non-fused 3-membered aromatic hetero ring counts on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "n4aHRing",
+      "family": "RingCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/RingCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom graph with RDKit/SymmSSSR-like ring selection and Mordred RingCount atom filters",
+      "reason": "OEFP matches Mordred non-fused 4-membered aromatic hetero ring counts on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "n5aHRing",
+      "family": "RingCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/RingCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom graph with RDKit/SymmSSSR-like ring selection and Mordred RingCount atom filters",
+      "reason": "OEFP matches Mordred non-fused 5-membered aromatic hetero ring counts on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "n6aHRing",
+      "family": "RingCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/RingCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom graph with RDKit/SymmSSSR-like ring selection and Mordred RingCount atom filters",
+      "reason": "OEFP matches Mordred non-fused 6-membered aromatic hetero ring counts on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "n7aHRing",
+      "family": "RingCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/RingCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom graph with RDKit/SymmSSSR-like ring selection and Mordred RingCount atom filters",
+      "reason": "OEFP matches Mordred non-fused 7-membered aromatic hetero ring counts on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "n8aHRing",
+      "family": "RingCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/RingCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom graph with RDKit/SymmSSSR-like ring selection and Mordred RingCount atom filters",
+      "reason": "OEFP matches Mordred non-fused 8-membered aromatic hetero ring counts on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "n9aHRing",
+      "family": "RingCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/RingCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom graph with RDKit/SymmSSSR-like ring selection and Mordred RingCount atom filters",
+      "reason": "OEFP matches Mordred non-fused 9-membered aromatic hetero ring counts on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "n10aHRing",
+      "family": "RingCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/RingCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom graph with RDKit/SymmSSSR-like ring selection and Mordred RingCount atom filters",
+      "reason": "OEFP matches Mordred non-fused 10-membered aromatic hetero ring counts on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "n11aHRing",
+      "family": "RingCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/RingCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom graph with RDKit/SymmSSSR-like ring selection and Mordred RingCount atom filters",
+      "reason": "OEFP matches Mordred non-fused 11-membered aromatic hetero ring counts on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "n12aHRing",
+      "family": "RingCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/RingCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom graph with RDKit/SymmSSSR-like ring selection and Mordred RingCount atom filters",
+      "reason": "OEFP matches Mordred non-fused 12-membered aromatic hetero ring counts on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "nG12aHRing",
+      "family": "RingCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/RingCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom graph with RDKit/SymmSSSR-like ring selection and Mordred RingCount atom filters",
+      "reason": "OEFP matches Mordred non-fused 12-or-greater-membered aromatic hetero ring counts on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "nARing",
+      "family": "RingCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/RingCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom graph with RDKit/SymmSSSR-like ring selection and Mordred RingCount atom filters",
+      "reason": "OEFP matches Mordred non-fused aliphatic ring counts on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "n3ARing",
+      "family": "RingCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/RingCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom graph with RDKit/SymmSSSR-like ring selection and Mordred RingCount atom filters",
+      "reason": "OEFP matches Mordred non-fused 3-membered aliphatic ring counts on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "n4ARing",
+      "family": "RingCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/RingCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom graph with RDKit/SymmSSSR-like ring selection and Mordred RingCount atom filters",
+      "reason": "OEFP matches Mordred non-fused 4-membered aliphatic ring counts on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "n5ARing",
+      "family": "RingCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/RingCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom graph with RDKit/SymmSSSR-like ring selection and Mordred RingCount atom filters",
+      "reason": "OEFP matches Mordred non-fused 5-membered aliphatic ring counts on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "n6ARing",
+      "family": "RingCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/RingCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom graph with RDKit/SymmSSSR-like ring selection and Mordred RingCount atom filters",
+      "reason": "OEFP matches Mordred non-fused 6-membered aliphatic ring counts on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "n7ARing",
+      "family": "RingCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/RingCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom graph with RDKit/SymmSSSR-like ring selection and Mordred RingCount atom filters",
+      "reason": "OEFP matches Mordred non-fused 7-membered aliphatic ring counts on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "n8ARing",
+      "family": "RingCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/RingCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom graph with RDKit/SymmSSSR-like ring selection and Mordred RingCount atom filters",
+      "reason": "OEFP matches Mordred non-fused 8-membered aliphatic ring counts on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "n9ARing",
+      "family": "RingCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/RingCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom graph with RDKit/SymmSSSR-like ring selection and Mordred RingCount atom filters",
+      "reason": "OEFP matches Mordred non-fused 9-membered aliphatic ring counts on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "n10ARing",
+      "family": "RingCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/RingCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom graph with RDKit/SymmSSSR-like ring selection and Mordred RingCount atom filters",
+      "reason": "OEFP matches Mordred non-fused 10-membered aliphatic ring counts on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "n11ARing",
+      "family": "RingCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/RingCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom graph with RDKit/SymmSSSR-like ring selection and Mordred RingCount atom filters",
+      "reason": "OEFP matches Mordred non-fused 11-membered aliphatic ring counts on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "n12ARing",
+      "family": "RingCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/RingCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom graph with RDKit/SymmSSSR-like ring selection and Mordred RingCount atom filters",
+      "reason": "OEFP matches Mordred non-fused 12-membered aliphatic ring counts on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "nG12ARing",
+      "family": "RingCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/RingCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom graph with RDKit/SymmSSSR-like ring selection and Mordred RingCount atom filters",
+      "reason": "OEFP matches Mordred non-fused 12-or-greater-membered aliphatic ring counts on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "nAHRing",
+      "family": "RingCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/RingCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom graph with RDKit/SymmSSSR-like ring selection and Mordred RingCount atom filters",
+      "reason": "OEFP matches Mordred non-fused aliphatic hetero ring counts on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "n3AHRing",
+      "family": "RingCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/RingCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom graph with RDKit/SymmSSSR-like ring selection and Mordred RingCount atom filters",
+      "reason": "OEFP matches Mordred non-fused 3-membered aliphatic hetero ring counts on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "n4AHRing",
+      "family": "RingCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/RingCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom graph with RDKit/SymmSSSR-like ring selection and Mordred RingCount atom filters",
+      "reason": "OEFP matches Mordred non-fused 4-membered aliphatic hetero ring counts on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "n5AHRing",
+      "family": "RingCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/RingCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom graph with RDKit/SymmSSSR-like ring selection and Mordred RingCount atom filters",
+      "reason": "OEFP matches Mordred non-fused 5-membered aliphatic hetero ring counts on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "n6AHRing",
+      "family": "RingCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/RingCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom graph with RDKit/SymmSSSR-like ring selection and Mordred RingCount atom filters",
+      "reason": "OEFP matches Mordred non-fused 6-membered aliphatic hetero ring counts on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "n7AHRing",
+      "family": "RingCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/RingCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom graph with RDKit/SymmSSSR-like ring selection and Mordred RingCount atom filters",
+      "reason": "OEFP matches Mordred non-fused 7-membered aliphatic hetero ring counts on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "n8AHRing",
+      "family": "RingCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/RingCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom graph with RDKit/SymmSSSR-like ring selection and Mordred RingCount atom filters",
+      "reason": "OEFP matches Mordred non-fused 8-membered aliphatic hetero ring counts on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "n9AHRing",
+      "family": "RingCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/RingCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom graph with RDKit/SymmSSSR-like ring selection and Mordred RingCount atom filters",
+      "reason": "OEFP matches Mordred non-fused 9-membered aliphatic hetero ring counts on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "n10AHRing",
+      "family": "RingCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/RingCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom graph with RDKit/SymmSSSR-like ring selection and Mordred RingCount atom filters",
+      "reason": "OEFP matches Mordred non-fused 10-membered aliphatic hetero ring counts on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "n11AHRing",
+      "family": "RingCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/RingCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom graph with RDKit/SymmSSSR-like ring selection and Mordred RingCount atom filters",
+      "reason": "OEFP matches Mordred non-fused 11-membered aliphatic hetero ring counts on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "n12AHRing",
+      "family": "RingCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/RingCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom graph with RDKit/SymmSSSR-like ring selection and Mordred RingCount atom filters",
+      "reason": "OEFP matches Mordred non-fused 12-membered aliphatic hetero ring counts on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "nG12AHRing",
+      "family": "RingCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/RingCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom graph with RDKit/SymmSSSR-like ring selection and Mordred RingCount atom filters",
+      "reason": "OEFP matches Mordred non-fused 12-or-greater-membered aliphatic hetero ring counts on the committed Mordred parity fixture."
+    },
+    {
       "descriptor": "MPC2",
       "family": "PathCount",
       "source": "/Users/johnss51/Development/python/mordred/mordred/PathCount.py",
