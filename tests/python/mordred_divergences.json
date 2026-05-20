@@ -1038,6 +1038,198 @@
       "reason": "OEFP matches Mordred AXp-7dv values on the committed Mordred parity fixture."
     },
     {
+      "descriptor": "Xch-3d",
+      "family": "Chi",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Chi.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom connected bond-subgraph enumeration with Mordred Chi classification and d/dv atomic property products",
+      "reason": "OEFP matches Mordred Xch-3d values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "Xch-4d",
+      "family": "Chi",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Chi.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom connected bond-subgraph enumeration with Mordred Chi classification and d/dv atomic property products",
+      "reason": "OEFP matches Mordred Xch-4d values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "Xch-5d",
+      "family": "Chi",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Chi.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom connected bond-subgraph enumeration with Mordred Chi classification and d/dv atomic property products",
+      "reason": "OEFP matches Mordred Xch-5d values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "Xch-6d",
+      "family": "Chi",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Chi.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom connected bond-subgraph enumeration with Mordred Chi classification and d/dv atomic property products",
+      "reason": "OEFP matches Mordred Xch-6d values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "Xch-7d",
+      "family": "Chi",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Chi.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom connected bond-subgraph enumeration with Mordred Chi classification and d/dv atomic property products",
+      "reason": "OEFP matches Mordred Xch-7d values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "Xch-3dv",
+      "family": "Chi",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Chi.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom connected bond-subgraph enumeration with Mordred Chi classification and d/dv atomic property products",
+      "reason": "OEFP matches Mordred Xch-3dv values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "Xch-4dv",
+      "family": "Chi",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Chi.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom connected bond-subgraph enumeration with Mordred Chi classification and d/dv atomic property products",
+      "reason": "OEFP matches Mordred Xch-4dv values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "Xch-5dv",
+      "family": "Chi",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Chi.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom connected bond-subgraph enumeration with Mordred Chi classification and d/dv atomic property products",
+      "reason": "OEFP matches Mordred Xch-5dv values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "Xch-6dv",
+      "family": "Chi",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Chi.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom connected bond-subgraph enumeration with Mordred Chi classification and d/dv atomic property products",
+      "reason": "OEFP matches Mordred Xch-6dv values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "Xch-7dv",
+      "family": "Chi",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Chi.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom connected bond-subgraph enumeration with Mordred Chi classification and d/dv atomic property products",
+      "reason": "OEFP matches Mordred Xch-7dv values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "Xc-3d",
+      "family": "Chi",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Chi.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom connected bond-subgraph enumeration with Mordred Chi classification and d/dv atomic property products",
+      "reason": "OEFP matches Mordred Xc-3d values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "Xc-4d",
+      "family": "Chi",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Chi.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom connected bond-subgraph enumeration with Mordred Chi classification and d/dv atomic property products",
+      "reason": "OEFP matches Mordred Xc-4d values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "Xc-5d",
+      "family": "Chi",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Chi.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom connected bond-subgraph enumeration with Mordred Chi classification and d/dv atomic property products",
+      "reason": "OEFP matches Mordred Xc-5d values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "Xc-6d",
+      "family": "Chi",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Chi.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom connected bond-subgraph enumeration with Mordred Chi classification and d/dv atomic property products",
+      "reason": "OEFP matches Mordred Xc-6d values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "Xc-3dv",
+      "family": "Chi",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Chi.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom connected bond-subgraph enumeration with Mordred Chi classification and d/dv atomic property products",
+      "reason": "OEFP matches Mordred Xc-3dv values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "Xc-4dv",
+      "family": "Chi",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Chi.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom connected bond-subgraph enumeration with Mordred Chi classification and d/dv atomic property products",
+      "reason": "OEFP matches Mordred Xc-4dv values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "Xc-5dv",
+      "family": "Chi",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Chi.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom connected bond-subgraph enumeration with Mordred Chi classification and d/dv atomic property products",
+      "reason": "OEFP matches Mordred Xc-5dv values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "Xc-6dv",
+      "family": "Chi",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Chi.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom connected bond-subgraph enumeration with Mordred Chi classification and d/dv atomic property products",
+      "reason": "OEFP matches Mordred Xc-6dv values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "Xpc-4d",
+      "family": "Chi",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Chi.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom connected bond-subgraph enumeration with Mordred Chi classification and d/dv atomic property products",
+      "reason": "OEFP matches Mordred Xpc-4d values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "Xpc-5d",
+      "family": "Chi",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Chi.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom connected bond-subgraph enumeration with Mordred Chi classification and d/dv atomic property products",
+      "reason": "OEFP matches Mordred Xpc-5d values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "Xpc-6d",
+      "family": "Chi",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Chi.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom connected bond-subgraph enumeration with Mordred Chi classification and d/dv atomic property products",
+      "reason": "OEFP matches Mordred Xpc-6d values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "Xpc-4dv",
+      "family": "Chi",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Chi.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom connected bond-subgraph enumeration with Mordred Chi classification and d/dv atomic property products",
+      "reason": "OEFP matches Mordred Xpc-4dv values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "Xpc-5dv",
+      "family": "Chi",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Chi.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom connected bond-subgraph enumeration with Mordred Chi classification and d/dv atomic property products",
+      "reason": "OEFP matches Mordred Xpc-5dv values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "Xpc-6dv",
+      "family": "Chi",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Chi.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom connected bond-subgraph enumeration with Mordred Chi classification and d/dv atomic property products",
+      "reason": "OEFP matches Mordred Xpc-6dv values on the committed Mordred parity fixture."
+    },
+    {
       "descriptor": "MWC01",
       "family": "WalkCount",
       "source": "/Users/johnss51/Development/python/mordred/mordred/WalkCount.py",

@@ -110,6 +110,30 @@ ENABLED_DESCRIPTOR_NAMES = {
     "AXp-6dv",
     "AXp-7d",
     "AXp-7dv",
+    "Xch-3d",
+    "Xch-3dv",
+    "Xch-4d",
+    "Xch-4dv",
+    "Xch-5d",
+    "Xch-5dv",
+    "Xch-6d",
+    "Xch-6dv",
+    "Xch-7d",
+    "Xch-7dv",
+    "Xc-3d",
+    "Xc-3dv",
+    "Xc-4d",
+    "Xc-4dv",
+    "Xc-5d",
+    "Xc-5dv",
+    "Xc-6d",
+    "Xc-6dv",
+    "Xpc-4d",
+    "Xpc-4dv",
+    "Xpc-5d",
+    "Xpc-5dv",
+    "Xpc-6d",
+    "Xpc-6dv",
     "MPC2",
     "MPC3",
     "MPC4",
@@ -283,7 +307,7 @@ def test_mordred_descriptors_match_enabled_reference_values():
     names = _enabled_descriptor_names(payload)
     row_divergences = _row_divergence_policy()
 
-    assert len(names) == 150
+    assert len(names) == 174
     for row in payload["reference_rows"]:
         smiles = row["smiles"]
         descriptors = oefp.mordred_descriptors(_openeye_mol(row["smiles"]))

@@ -603,6 +603,84 @@ TEST(MordredDescriptorTest, ChiValencePathDescriptorsDoNotDoubleCountExplicitHyd
     }
 }
 
+TEST(MordredDescriptorTest, ChiNonPathDescriptorsMatchCopiedMordredReferences) {
+    struct Case {
+        std::string smiles;
+        std::map<std::string, double> expected_values;
+    };
+
+    const std::vector<Case> cases{
+        {
+            "c1ccncc1",
+            {
+                {"Xch-6d", 0.125},
+            },
+        },
+        {
+            "CC(C)(C)Cl",
+            {
+                {"Xc-3d", 2.0},
+                {"Xc-4d", 0.5},
+                {"Xc-3dv", 2.2008401285415227},
+            },
+        },
+        {
+            "O=S(=O)(N)C1=CC=CC=C1",
+            {
+                {"Xch-6d", 0.10206207261596575},
+                {"Xc-3d", 1.510362971081845},
+                {"Xpc-4d", 1.8618817185157401},
+                {"Xpc-4dv", 0.9714045207910318},
+            },
+        },
+        {
+            "C1=CC2=C(C=C1)C=CC=C2",
+            {
+                {"Xch-7d", 0.23570226039551584},
+                {"Xpc-6d", 2.121320343559642},
+            },
+        },
+        {
+            "C12C3C4C1C5C2C3C45",
+            {
+                {"Xch-4d", 0.6666666666666667},
+                {"Xc-3d", 0.8888888888888891},
+                {"Xpc-4d", 3.079201435678001},
+            },
+        },
+        {
+            "C1CC1C",
+            {
+                {"Xch-3d", 0.28867513459481287},
+                {"Xc-3d", 0.28867513459481287},
+            },
+        },
+    };
+
+    for (const auto& expected : cases) {
+        SCOPED_TRACE(expected.smiles);
+        const auto descriptors = MakeMordredDescriptors(mol_from_smiles(expected.smiles));
+
+        for (const auto& [name, value] : expected.expected_values) {
+            EXPECT_TRUE(descriptors.Has(name)) << name;
+            EXPECT_NEAR(descriptors.Float(name), value, 1.0e-8) << name;
+        }
+    }
+}
+
+TEST(MordredDescriptorTest, ChiNonPathDescriptorsReturnZeroForEmptyClasses) {
+    const auto descriptors = MakeMordredDescriptors(mol_from_smiles("CCCC"));
+    const std::vector<std::string> empty_non_path_names{
+        "Xch-3d", "Xch-7d", "Xc-3d", "Xc-6d", "Xpc-4d", "Xpc-6d",
+        "Xch-3dv", "Xch-7dv", "Xc-3dv", "Xc-6dv", "Xpc-4dv", "Xpc-6dv",
+    };
+
+    for (const auto& name : empty_non_path_names) {
+        EXPECT_TRUE(descriptors.Has(name)) << name;
+        EXPECT_DOUBLE_EQ(descriptors.Float(name), 0.0) << name;
+    }
+}
+
 TEST(MordredDescriptorTest, FilterDescriptorsMatchCopiedMordredReferences) {
     struct Case {
         std::string smiles;

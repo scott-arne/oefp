@@ -1,10 +1,12 @@
 #include "oefp/mordred.h"
 
+#include <algorithm>
 #include <array>
 #include <cmath>
 #include <cstdint>
 #include <cstddef>
 #include <optional>
+#include <set>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
@@ -100,6 +102,15 @@ struct MordredChiPathValues {
     std::array<std::optional<double>, 8> axp_d{};
     std::array<std::optional<double>, 8> xp_dv{};
     std::array<std::optional<double>, 8> axp_dv{};
+};
+
+struct MordredChiNonPathValues {
+    std::array<std::optional<double>, 8> xch_d{};
+    std::array<std::optional<double>, 8> xch_dv{};
+    std::array<std::optional<double>, 7> xc_d{};
+    std::array<std::optional<double>, 7> xc_dv{};
+    std::array<std::optional<double>, 7> xpc_d{};
+    std::array<std::optional<double>, 7> xpc_dv{};
 };
 
 struct AtomicPropertyValue {
@@ -1054,6 +1065,8 @@ struct PathCountNeighbor {
 struct MordredHeavyAtomGraph {
     std::vector<const OEChem::OEAtomBase*> atoms;
     std::vector<std::vector<PathCountNeighbor>> adjacency;
+    std::vector<std::pair<std::size_t, std::size_t>> bonds;
+    std::vector<std::vector<std::size_t>> bond_neighbors;
 };
 
 struct SimplePathWalkTotals {
@@ -1101,6 +1114,20 @@ MordredHeavyAtomGraph build_mordred_heavy_atom_graph(const OEChem::OEMolBase& mo
         const auto bond_order = mordred_bond_order(*bond);
         graph.adjacency[begin_index->second].push_back({end_index->second, bond_order});
         graph.adjacency[end_index->second].push_back({begin_index->second, bond_order});
+        graph.bonds.emplace_back(begin_index->second, end_index->second);
+    }
+
+    graph.bond_neighbors.resize(graph.bonds.size());
+    for (std::size_t left = 0u; left < graph.bonds.size(); ++left) {
+        const auto [left_begin, left_end] = graph.bonds[left];
+        for (std::size_t right = left + 1u; right < graph.bonds.size(); ++right) {
+            const auto [right_begin, right_end] = graph.bonds[right];
+            if (left_begin == right_begin || left_begin == right_end || left_end == right_begin
+                || left_end == right_end) {
+                graph.bond_neighbors[left].push_back(right);
+                graph.bond_neighbors[right].push_back(left);
+            }
+        }
     }
     return graph;
 }
@@ -1316,6 +1343,173 @@ MordredChiPathValues compute_chi_path_values(const MordredHeavyAtomGraph& graph)
     return values;
 }
 
+bool contains_index(const std::vector<std::size_t>& values, std::size_t value) {
+    return std::find(values.begin(), values.end(), value) != values.end();
+}
+
+void collect_connected_bond_subgraphs(
+    const MordredHeavyAtomGraph& graph,
+    std::size_t target_bond_count,
+    std::vector<std::size_t> selected_bonds,
+    std::vector<std::size_t> candidate_bonds,
+    std::set<std::vector<std::size_t>>& subgraphs) {
+    if (selected_bonds.size() == target_bond_count) {
+        std::sort(selected_bonds.begin(), selected_bonds.end());
+        subgraphs.insert(selected_bonds);
+        return;
+    }
+
+    while (!candidate_bonds.empty()) {
+        const auto next_bond = candidate_bonds.back();
+        candidate_bonds.pop_back();
+        if (contains_index(selected_bonds, next_bond)) {
+            continue;
+        }
+
+        auto next_selected = selected_bonds;
+        next_selected.push_back(next_bond);
+
+        auto next_candidates = candidate_bonds;
+        for (const auto neighbor_bond : graph.bond_neighbors[next_bond]) {
+            if (!contains_index(next_selected, neighbor_bond)) {
+                next_candidates.push_back(neighbor_bond);
+            }
+        }
+
+        collect_connected_bond_subgraphs(
+            graph, target_bond_count, next_selected, next_candidates, subgraphs);
+    }
+}
+
+std::set<std::vector<std::size_t>> find_connected_bond_subgraphs(
+    const MordredHeavyAtomGraph& graph,
+    std::size_t target_bond_count) {
+    std::set<std::vector<std::size_t>> subgraphs;
+    if (target_bond_count == 0u || graph.bonds.size() < target_bond_count) {
+        return subgraphs;
+    }
+
+    for (std::size_t bond_index = 0u; bond_index < graph.bonds.size(); ++bond_index) {
+        collect_connected_bond_subgraphs(
+            graph, target_bond_count, {bond_index}, graph.bond_neighbors[bond_index], subgraphs);
+    }
+    return subgraphs;
+}
+
+enum class ChiNonPathType {
+    Chain,
+    Cluster,
+    PathCluster,
+    Path,
+};
+
+struct ChiClassifiedSubgraph {
+    ChiNonPathType type;
+    std::vector<std::size_t> atoms;
+};
+
+ChiClassifiedSubgraph classify_chi_bond_subgraph(
+    const MordredHeavyAtomGraph& graph,
+    const std::vector<std::size_t>& selected_bonds) {
+    std::vector<std::uint32_t> selected_degrees(graph.atoms.size(), 0u);
+    for (const auto bond_index : selected_bonds) {
+        const auto [begin, end] = graph.bonds[bond_index];
+        ++selected_degrees[begin];
+        ++selected_degrees[end];
+    }
+
+    std::vector<std::size_t> selected_atoms;
+    bool has_degree_two = false;
+    bool has_only_path_degrees = true;
+    for (std::size_t atom_index = 0u; atom_index < selected_degrees.size(); ++atom_index) {
+        const auto degree = selected_degrees[atom_index];
+        if (degree == 0u) {
+            continue;
+        }
+        selected_atoms.push_back(atom_index);
+        has_degree_two = has_degree_two || degree == 2u;
+        has_only_path_degrees = has_only_path_degrees && (degree == 1u || degree == 2u);
+    }
+
+    // Mordred classifies connected selected-bond subgraphs by the subgraph
+    // topology itself; cycles win before degree-pattern checks.
+    if (selected_bonds.size() >= selected_atoms.size()) {
+        return {ChiNonPathType::Chain, selected_atoms};
+    }
+    if (has_only_path_degrees) {
+        return {ChiNonPathType::Path, selected_atoms};
+    }
+    if (has_degree_two) {
+        return {ChiNonPathType::PathCluster, selected_atoms};
+    }
+    return {ChiNonPathType::Cluster, selected_atoms};
+}
+
+std::optional<double> compute_chi_subgraph_value(
+    const std::vector<ChiClassifiedSubgraph>& classified_subgraphs,
+    const std::vector<double>& atom_properties,
+    ChiNonPathType type) {
+    double sum = 0.0;
+    for (const auto& subgraph : classified_subgraphs) {
+        if (subgraph.type != type) {
+            continue;
+        }
+
+        double property_product = 1.0;
+        for (const auto atom_index : subgraph.atoms) {
+            property_product *= atom_properties[atom_index];
+        }
+        if (property_product <= 0.0) {
+            return std::nullopt;
+        }
+        sum += std::pow(property_product, -0.5);
+    }
+    return sum;
+}
+
+MordredChiNonPathValues compute_chi_non_path_values(const MordredHeavyAtomGraph& graph) {
+    std::vector<double> sigma_properties;
+    std::vector<double> valence_properties;
+    sigma_properties.reserve(graph.atoms.size());
+    valence_properties.reserve(graph.atoms.size());
+
+    for (const auto* atom : graph.atoms) {
+        sigma_properties.push_back(chi_sigma_electrons(*atom));
+        const auto valence = chi_valence_electrons(*atom);
+        valence_properties.push_back(valence.value_or(0.0));
+    }
+
+    MordredChiNonPathValues values;
+    for (std::size_t order = 1u; order <= 7u; ++order) {
+        std::vector<ChiClassifiedSubgraph> classified_subgraphs;
+        const auto subgraphs = find_connected_bond_subgraphs(graph, order);
+        classified_subgraphs.reserve(subgraphs.size());
+        for (const auto& subgraph : subgraphs) {
+            classified_subgraphs.push_back(classify_chi_bond_subgraph(graph, subgraph));
+        }
+
+        if (order >= 3u) {
+            values.xch_d[order] = compute_chi_subgraph_value(
+                classified_subgraphs, sigma_properties, ChiNonPathType::Chain);
+            values.xch_dv[order] = compute_chi_subgraph_value(
+                classified_subgraphs, valence_properties, ChiNonPathType::Chain);
+        }
+        if (order >= 3u && order <= 6u) {
+            values.xc_d[order] = compute_chi_subgraph_value(
+                classified_subgraphs, sigma_properties, ChiNonPathType::Cluster);
+            values.xc_dv[order] = compute_chi_subgraph_value(
+                classified_subgraphs, valence_properties, ChiNonPathType::Cluster);
+        }
+        if (order >= 4u && order <= 6u) {
+            values.xpc_d[order] = compute_chi_subgraph_value(
+                classified_subgraphs, sigma_properties, ChiNonPathType::PathCluster);
+            values.xpc_dv[order] = compute_chi_subgraph_value(
+                classified_subgraphs, valence_properties, ChiNonPathType::PathCluster);
+        }
+    }
+    return values;
+}
+
 std::optional<double> kappa_shape_index(
     std::uint32_t heavy_atom_count,
     const MordredPathCountValues& path_count_values,
@@ -1416,6 +1610,26 @@ void set_chi_path_values(DescriptorSetBuilder& builder, const MordredChiPathValu
     }
 }
 
+void set_chi_non_path_values(
+    DescriptorSetBuilder& builder,
+    const MordredChiNonPathValues& values) {
+    for (std::size_t order = 3u; order <= 7u; ++order) {
+        const auto order_text = std::to_string(order);
+        set_optional_float(builder, "Xch-" + order_text + "d", values.xch_d[order]);
+        set_optional_float(builder, "Xch-" + order_text + "dv", values.xch_dv[order]);
+    }
+    for (std::size_t order = 3u; order <= 6u; ++order) {
+        const auto order_text = std::to_string(order);
+        set_optional_float(builder, "Xc-" + order_text + "d", values.xc_d[order]);
+        set_optional_float(builder, "Xc-" + order_text + "dv", values.xc_dv[order]);
+    }
+    for (std::size_t order = 4u; order <= 6u; ++order) {
+        const auto order_text = std::to_string(order);
+        set_optional_float(builder, "Xpc-" + order_text + "d", values.xpc_d[order]);
+        set_optional_float(builder, "Xpc-" + order_text + "dv", values.xpc_dv[order]);
+    }
+}
+
 } // namespace
 
 DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
@@ -1425,6 +1639,7 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
     const auto heavy_atom_graph = build_mordred_heavy_atom_graph(mol);
     const auto path_count_values = compute_path_count_values(heavy_atom_graph);
     const auto chi_path_values = compute_chi_path_values(heavy_atom_graph);
+    const auto chi_non_path_values = compute_chi_non_path_values(heavy_atom_graph);
     DescriptorSetBuilder builder(MordredDescriptorSchema());
 
     const auto all_atoms = values.heavy_atoms + values.hydrogens;
@@ -1582,6 +1797,7 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
         "Kier3",
         kappa_shape_index(values.heavy_atoms, path_count_values, 3u));
     set_chi_path_values(builder, chi_path_values);
+    set_chi_non_path_values(builder, chi_non_path_values);
     set_float(builder, "TopoPSA(NO)", values.topo_psa_no);
     set_float(builder, "TopoPSA", values.topo_psa);
     set_float(builder, "MW", values.exact_weight);
