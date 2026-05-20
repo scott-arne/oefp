@@ -113,6 +113,12 @@ struct MordredChiNonPathValues {
     std::array<std::optional<double>, 7> xpc_dv{};
 };
 
+struct MordredRingCountValues {
+    std::uint32_t total = 0u;
+    std::array<std::uint32_t, 13> by_size{};
+    std::uint32_t greater_or_equal_12 = 0u;
+};
+
 struct AtomicPropertyValue {
     std::uint32_t atomic_number;
     double value;
@@ -955,6 +961,508 @@ std::uint32_t ring_basis_count(const OEChem::OEMolBase& mol, bool aromatic_only)
     return rings;
 }
 
+bool has_graph_edge(
+    const std::vector<std::unordered_set<std::size_t>>& adjacency_sets,
+    std::size_t left,
+    std::size_t right) {
+    return adjacency_sets[left].find(right) != adjacency_sets[left].end();
+}
+
+bool is_chordless_cycle(
+    const std::vector<std::size_t>& cycle,
+    const std::vector<std::unordered_set<std::size_t>>& adjacency_sets) {
+    for (std::size_t i = 0u; i < cycle.size(); ++i) {
+        for (std::size_t j = i + 2u; j < cycle.size(); ++j) {
+            if (i == 0u && j + 1u == cycle.size()) {
+                continue;
+            }
+            if (has_graph_edge(adjacency_sets, cycle[i], cycle[j])) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+std::vector<std::size_t> canonical_cycle(std::vector<std::size_t> cycle) {
+    const auto smallest = std::min_element(cycle.begin(), cycle.end());
+    std::rotate(cycle.begin(), smallest, cycle.end());
+
+    std::vector<std::size_t> reversed{cycle.front()};
+    reversed.insert(reversed.end(), cycle.rbegin(), cycle.rend() - 1);
+    return reversed < cycle ? reversed : cycle;
+}
+
+std::uint64_t edge_key(std::size_t left, std::size_t right) {
+    const auto low = std::min(left, right);
+    const auto high = std::max(left, right);
+    return (static_cast<std::uint64_t>(low) << 32u) | static_cast<std::uint64_t>(high);
+}
+
+std::vector<std::uint64_t> cycle_edge_vector(
+    const std::vector<std::size_t>& cycle,
+    const std::unordered_map<std::uint64_t, std::size_t>& edge_indices,
+    std::size_t word_count) {
+    std::vector<std::uint64_t> bits(word_count, 0u);
+    for (std::size_t i = 0u; i < cycle.size(); ++i) {
+        const auto next = (i + 1u) % cycle.size();
+        const auto edge = edge_indices.at(edge_key(cycle[i], cycle[next]));
+        bits[edge / 64u] |= std::uint64_t{1u} << (edge % 64u);
+    }
+    return bits;
+}
+
+std::vector<std::size_t> cycle_edge_indices(
+    const std::vector<std::size_t>& cycle,
+    const std::unordered_map<std::uint64_t, std::size_t>& edge_indices) {
+    std::vector<std::size_t> edges;
+    edges.reserve(cycle.size());
+    for (std::size_t i = 0u; i < cycle.size(); ++i) {
+        const auto next = (i + 1u) % cycle.size();
+        edges.push_back(edge_indices.at(edge_key(cycle[i], cycle[next])));
+    }
+    return edges;
+}
+
+bool bit_vector_is_subset(
+    const std::vector<std::uint64_t>& left,
+    const std::vector<std::uint64_t>& right) {
+    for (std::size_t index = 0u; index < left.size(); ++index) {
+        if ((left[index] & ~right[index]) != 0u) {
+            return false;
+        }
+    }
+    return true;
+}
+
+void bit_vector_or_into(std::vector<std::uint64_t>& target, const std::vector<std::uint64_t>& source) {
+    for (std::size_t index = 0u; index < target.size(); ++index) {
+        target[index] |= source[index];
+    }
+}
+
+std::uint32_t bit_vector_overlap_count(
+    const std::vector<std::uint64_t>& left,
+    const std::vector<std::uint64_t>& right) {
+    std::uint32_t count = 0u;
+    for (std::size_t index = 0u; index < left.size(); ++index) {
+        auto value = left[index] & right[index];
+        while (value != 0u) {
+            value &= value - 1u;
+            ++count;
+        }
+    }
+    return count;
+}
+
+bool contains_edge(const std::vector<std::size_t>& edges, std::size_t edge) {
+    return std::find(edges.begin(), edges.end(), edge) != edges.end();
+}
+
+void enumerate_chordless_cycles(
+    std::size_t start,
+    std::size_t current,
+    const std::vector<std::vector<std::size_t>>& adjacency,
+    const std::vector<std::unordered_set<std::size_t>>& adjacency_sets,
+    std::vector<std::size_t>& path,
+    std::vector<bool>& in_path,
+    std::set<std::vector<std::size_t>>& cycles) {
+    for (const auto neighbor : adjacency[current]) {
+        if (neighbor == start) {
+            if (path.size() >= 3u && is_chordless_cycle(path, adjacency_sets)) {
+                cycles.insert(canonical_cycle(path));
+            }
+            continue;
+        }
+        if (neighbor < start || in_path[neighbor]) {
+            continue;
+        }
+
+        in_path[neighbor] = true;
+        path.push_back(neighbor);
+        enumerate_chordless_cycles(start, neighbor, adjacency, adjacency_sets, path, in_path, cycles);
+        path.pop_back();
+        in_path[neighbor] = false;
+    }
+}
+
+void fast_find_ring_cycles_dfs(
+    std::size_t atom,
+    std::optional<std::size_t> from_atom,
+    const std::vector<std::vector<std::size_t>>& adjacency,
+    std::vector<std::uint8_t>& atom_colors,
+    std::vector<std::size_t>& traversal_order,
+    std::vector<std::vector<std::size_t>>& cycles) {
+    atom_colors[atom] = 1u;
+    traversal_order.push_back(atom);
+
+    for (const auto neighbor : adjacency[atom]) {
+        if (atom_colors[neighbor] == 0u) {
+            if (adjacency[neighbor].size() < 2u) {
+                atom_colors[neighbor] = 2u;
+            } else {
+                fast_find_ring_cycles_dfs(
+                    neighbor, atom, adjacency, atom_colors, traversal_order, cycles);
+            }
+        } else if (
+            atom_colors[neighbor] == 1u && from_atom.has_value() && neighbor != *from_atom) {
+            std::vector<std::size_t> cycle;
+            for (auto reverse = traversal_order.rbegin();
+                 reverse != traversal_order.rend() && *reverse != neighbor;
+                 ++reverse) {
+                cycle.push_back(*reverse);
+            }
+            cycle.push_back(neighbor);
+            cycles.push_back(std::move(cycle));
+        }
+    }
+
+    atom_colors[atom] = 2u;
+    traversal_order.pop_back();
+}
+
+std::vector<std::vector<std::size_t>> fast_find_ring_cycles(
+    const std::vector<std::vector<std::size_t>>& adjacency) {
+    std::vector<std::vector<std::size_t>> cycles;
+    std::vector<std::uint8_t> atom_colors(adjacency.size(), 0u);
+
+    for (std::size_t atom = 0u; atom < adjacency.size(); ++atom) {
+        if (atom_colors[atom] != 0u) {
+            continue;
+        }
+        if (adjacency[atom].size() < 2u) {
+            atom_colors[atom] = 2u;
+            continue;
+        }
+
+        std::vector<std::size_t> traversal_order;
+        fast_find_ring_cycles_dfs(
+            atom, std::nullopt, adjacency, atom_colors, traversal_order, cycles);
+    }
+    return cycles;
+}
+
+bool needs_complete_graph_fast_find_fallback(
+    const std::vector<std::vector<std::size_t>>& adjacency) {
+    if (adjacency.size() < 4u) {
+        return false;
+    }
+
+    const auto expected_degree = adjacency.size() - 1u;
+    const auto is_complete = std::all_of(
+        adjacency.begin(),
+        adjacency.end(),
+        [expected_degree](const auto& neighbors) {
+            return neighbors.size() == expected_degree;
+        });
+    if (!is_complete) {
+        return false;
+    }
+
+    const auto edge_count = adjacency.size() * expected_degree / 2u;
+    const auto cycle_rank = edge_count - adjacency.size() + 1u;
+    return cycle_rank > adjacency.size();
+}
+
+MordredRingCountValues count_ring_sizes(const std::vector<std::vector<std::size_t>>& cycles) {
+    MordredRingCountValues values;
+    values.total = static_cast<std::uint32_t>(cycles.size());
+    for (const auto& cycle : cycles) {
+        const auto size = cycle.size();
+        if (size < values.by_size.size()) {
+            ++values.by_size[size];
+        }
+        if (size >= 12u) {
+            ++values.greater_or_equal_12;
+        }
+    }
+    return values;
+}
+
+std::vector<std::size_t> rdkit_like_symmetrized_ring_indices(
+    const std::vector<std::vector<std::size_t>>& sorted_cycles,
+    const std::unordered_map<std::uint64_t, std::size_t>& edge_indices,
+    std::size_t word_count) {
+    std::vector<std::vector<std::uint64_t>> bit_cycles;
+    std::vector<std::vector<std::size_t>> edge_cycles;
+    bit_cycles.reserve(sorted_cycles.size());
+    edge_cycles.reserve(sorted_cycles.size());
+    for (const auto& cycle : sorted_cycles) {
+        bit_cycles.push_back(cycle_edge_vector(cycle, edge_indices, word_count));
+        edge_cycles.push_back(cycle_edge_indices(cycle, edge_indices));
+    }
+
+    std::vector<bool> available(sorted_cycles.size(), true);
+    std::vector<bool> keep(sorted_cycles.size(), false);
+    std::vector<std::uint64_t> bond_union(word_count, 0u);
+
+    for (std::size_t i = 0u; i < sorted_cycles.size(); ++i) {
+        if (bit_vector_is_subset(bit_cycles[i], bond_union)) {
+            available[i] = false;
+        }
+        if (!available[i]) {
+            continue;
+        }
+
+        bit_vector_or_into(bond_union, bit_cycles[i]);
+        keep[i] = true;
+
+        std::vector<bool> consider(sorted_cycles.size(), false);
+        for (std::size_t j = i + 1u; j < sorted_cycles.size(); ++j) {
+            if (available[j] && sorted_cycles[j].size() == sorted_cycles[i].size()) {
+                consider[j] = true;
+            }
+        }
+
+        while (std::any_of(consider.begin(), consider.end(), [](bool value) { return value; })) {
+            std::size_t best_index = i + 1u;
+            std::uint32_t best_overlap = 0u;
+            bool found = false;
+            for (std::size_t j = i + 1u; j < sorted_cycles.size(); ++j) {
+                if (!consider[j] || !available[j]) {
+                    continue;
+                }
+                const auto overlap = bit_vector_overlap_count(bit_cycles[j], bond_union);
+                if (!found || overlap > best_overlap) {
+                    found = true;
+                    best_overlap = overlap;
+                    best_index = j;
+                }
+            }
+            if (!found) {
+                break;
+            }
+
+            consider[best_index] = false;
+            if (bit_vector_is_subset(bit_cycles[best_index], bond_union)) {
+                available[best_index] = false;
+            } else {
+                keep[best_index] = true;
+                available[best_index] = false;
+                bit_vector_or_into(bond_union, bit_cycles[best_index]);
+            }
+        }
+    }
+
+    std::vector<int> bond_counts(edge_indices.size(), 0);
+    for (std::size_t ring_index = 0u; ring_index < sorted_cycles.size(); ++ring_index) {
+        if (!keep[ring_index]) {
+            continue;
+        }
+        for (const auto edge : edge_cycles[ring_index]) {
+            ++bond_counts[edge];
+        }
+    }
+
+    std::vector<std::size_t> selected_indices;
+    for (std::size_t ring_index = 0u; ring_index < sorted_cycles.size(); ++ring_index) {
+        if (keep[ring_index]) {
+            selected_indices.push_back(ring_index);
+        }
+    }
+
+    for (std::size_t extra_index = 0u; extra_index < sorted_cycles.size(); ++extra_index) {
+        if (keep[extra_index]) {
+            continue;
+        }
+        for (std::size_t ring_index = 0u; ring_index < sorted_cycles.size(); ++ring_index) {
+            if (!keep[ring_index]
+                || sorted_cycles[ring_index].size() != sorted_cycles[extra_index].size()) {
+                continue;
+            }
+
+            bool shares_bond = false;
+            bool replaces_unique_bonds = true;
+            for (const auto edge : edge_cycles[ring_index]) {
+                if (bond_counts[edge] == 1 || !shares_bond) {
+                    if (contains_edge(edge_cycles[extra_index], edge)) {
+                        shares_bond = true;
+                    } else if (bond_counts[edge] == 1) {
+                        replaces_unique_bonds = false;
+                    }
+                }
+            }
+
+            if (shares_bond && replaces_unique_bonds) {
+                selected_indices.push_back(extra_index);
+                break;
+            }
+        }
+    }
+
+    return selected_indices;
+}
+
+std::unordered_map<std::uint64_t, std::size_t> edge_indices_for_adjacency(
+    const std::vector<std::vector<std::size_t>>& adjacency) {
+    std::unordered_map<std::uint64_t, std::size_t> edge_indices;
+    for (std::size_t left = 0u; left < adjacency.size(); ++left) {
+        for (const auto right : adjacency[left]) {
+            if (left < right) {
+                edge_indices.emplace(edge_key(left, right), edge_indices.size());
+            }
+        }
+    }
+    return edge_indices;
+}
+
+MordredRingCountValues compute_component_base_ring_count_values(
+    const std::vector<std::vector<std::size_t>>& adjacency) {
+    if (needs_complete_graph_fast_find_fallback(adjacency)) {
+        // RDKit falls back to FastFindRings for some highly connected graph
+        // components where the SSSR search cannot find the expected cycle rank.
+        return count_ring_sizes(fast_find_ring_cycles(adjacency));
+    }
+
+    std::vector<std::unordered_set<std::size_t>> adjacency_sets(adjacency.size());
+    for (std::size_t atom = 0u; atom < adjacency.size(); ++atom) {
+        for (const auto neighbor : adjacency[atom]) {
+            adjacency_sets[atom].insert(neighbor);
+        }
+    }
+
+    std::set<std::vector<std::size_t>> cycles;
+    for (std::size_t start = 0u; start < adjacency.size(); ++start) {
+        std::vector<std::size_t> path{start};
+        std::vector<bool> in_path(adjacency.size(), false);
+        in_path[start] = true;
+        enumerate_chordless_cycles(start, start, adjacency, adjacency_sets, path, in_path, cycles);
+    }
+    std::vector<std::vector<std::size_t>> sorted_cycles(cycles.begin(), cycles.end());
+    std::sort(
+        sorted_cycles.begin(),
+        sorted_cycles.end(),
+        [](const auto& left, const auto& right) {
+            if (left.size() != right.size()) {
+                return left.size() < right.size();
+            }
+            return left < right;
+        });
+
+    const auto edge_indices = edge_indices_for_adjacency(adjacency);
+    const auto word_count = (edge_indices.size() + 63u) / 64u;
+    const auto selected_indices =
+        rdkit_like_symmetrized_ring_indices(sorted_cycles, edge_indices, word_count);
+
+    MordredRingCountValues values;
+    values.total = static_cast<std::uint32_t>(selected_indices.size());
+    for (const auto ring_index : selected_indices) {
+        const auto& cycle = sorted_cycles[ring_index];
+        const auto size = cycle.size();
+
+        if (size < values.by_size.size()) {
+            ++values.by_size[size];
+        }
+        if (size >= 12u) {
+            ++values.greater_or_equal_12;
+        }
+    }
+    return values;
+}
+
+std::vector<std::vector<std::size_t>> connected_components(
+    const std::vector<std::vector<std::size_t>>& adjacency) {
+    std::vector<std::vector<std::size_t>> components;
+    std::vector<bool> visited(adjacency.size(), false);
+
+    for (std::size_t start = 0u; start < adjacency.size(); ++start) {
+        if (visited[start]) {
+            continue;
+        }
+
+        std::vector<std::size_t> component;
+        std::vector<std::size_t> stack{start};
+        visited[start] = true;
+        while (!stack.empty()) {
+            const auto current = stack.back();
+            stack.pop_back();
+            component.push_back(current);
+            for (const auto neighbor : adjacency[current]) {
+                if (!visited[neighbor]) {
+                    visited[neighbor] = true;
+                    stack.push_back(neighbor);
+                }
+            }
+        }
+        std::sort(component.begin(), component.end());
+        components.push_back(std::move(component));
+    }
+    return components;
+}
+
+std::vector<std::vector<std::size_t>> component_adjacency(
+    const std::vector<std::vector<std::size_t>>& adjacency,
+    const std::vector<std::size_t>& component_atoms) {
+    std::vector<std::size_t> local_indices(adjacency.size(), adjacency.size());
+    for (std::size_t local = 0u; local < component_atoms.size(); ++local) {
+        local_indices[component_atoms[local]] = local;
+    }
+
+    std::vector<std::vector<std::size_t>> component(component_atoms.size());
+    for (std::size_t local = 0u; local < component_atoms.size(); ++local) {
+        const auto global = component_atoms[local];
+        for (const auto neighbor : adjacency[global]) {
+            const auto local_neighbor = local_indices[neighbor];
+            if (local_neighbor != adjacency.size()) {
+                component[local].push_back(local_neighbor);
+            }
+        }
+    }
+    return component;
+}
+
+void add_ring_count_values(MordredRingCountValues& total, const MordredRingCountValues& component) {
+    total.total += component.total;
+    for (std::size_t size = 0u; size < total.by_size.size(); ++size) {
+        total.by_size[size] += component.by_size[size];
+    }
+    total.greater_or_equal_12 += component.greater_or_equal_12;
+}
+
+MordredRingCountValues compute_base_ring_count_values(const OEChem::OEMolBase& mol) {
+    // Mordred/RDKit makes ring-selection decisions per connected component.
+    // Keep this local to base RingCount; fused/aromatic/hetero filters come later.
+    std::unordered_map<unsigned int, std::size_t> atom_indices;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        if (atom->GetAtomicNum() == 1) {
+            continue;
+        }
+        atom_indices.emplace(atom->GetIdx(), atom_indices.size());
+    }
+
+    std::vector<std::vector<std::size_t>> adjacency(atom_indices.size());
+    for (OESystem::OEIter<OEChem::OEBondBase> bond = mol.GetBonds(); bond; ++bond) {
+        const auto* begin = bond->GetBgn();
+        const auto* end = bond->GetEnd();
+        if (begin == nullptr || end == nullptr) {
+            continue;
+        }
+
+        const auto begin_index = atom_indices.find(begin->GetIdx());
+        const auto end_index = atom_indices.find(end->GetIdx());
+        if (begin_index == atom_indices.end() || end_index == atom_indices.end()) {
+            continue;
+        }
+
+        const auto left = begin_index->second;
+        const auto right = end_index->second;
+        adjacency[left].push_back(right);
+        adjacency[right].push_back(left);
+    }
+
+    for (auto& neighbors : adjacency) {
+        std::sort(neighbors.begin(), neighbors.end());
+    }
+
+    MordredRingCountValues values;
+    for (const auto& atoms : connected_components(adjacency)) {
+        add_ring_count_values(
+            values,
+            compute_component_base_ring_count_values(component_adjacency(adjacency, atoms)));
+    }
+    return values;
+}
+
 std::optional<double> compute_vabc(
     const OEChem::OEMolBase& explicit_mol,
     const OEChem::OEMolBase& ring_mol) {
@@ -1630,6 +2138,14 @@ void set_chi_non_path_values(
     }
 }
 
+void set_ring_count_values(DescriptorSetBuilder& builder, const MordredRingCountValues& values) {
+    set_int(builder, "nRing", values.total);
+    for (std::size_t order = 3u; order <= 12u; ++order) {
+        set_int(builder, "n" + std::to_string(order) + "Ring", values.by_size[order]);
+    }
+    set_int(builder, "nG12Ring", values.greater_or_equal_12);
+}
+
 } // namespace
 
 DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
@@ -1640,6 +2156,7 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
     const auto path_count_values = compute_path_count_values(heavy_atom_graph);
     const auto chi_path_values = compute_chi_path_values(heavy_atom_graph);
     const auto chi_non_path_values = compute_chi_non_path_values(heavy_atom_graph);
+    const auto ring_count_values = compute_base_ring_count_values(mol);
     DescriptorSetBuilder builder(MordredDescriptorSchema());
 
     const auto all_atoms = values.heavy_atoms + values.hydrogens;
@@ -1798,6 +2315,7 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
         kappa_shape_index(values.heavy_atoms, path_count_values, 3u));
     set_chi_path_values(builder, chi_path_values);
     set_chi_non_path_values(builder, chi_non_path_values);
+    set_ring_count_values(builder, ring_count_values);
     set_float(builder, "TopoPSA(NO)", values.topo_psa_no);
     set_float(builder, "TopoPSA", values.topo_psa);
     set_float(builder, "MW", values.exact_weight);

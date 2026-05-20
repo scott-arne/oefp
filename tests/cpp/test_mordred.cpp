@@ -277,6 +277,43 @@ TEST(MordredDescriptorTest, VabcDocumentsOpenEyeRingPrimitiveDivergence) {
     EXPECT_NEAR(descriptors.Float("Vabc"), 85.14204599989137, 1.0e-8);
 }
 
+TEST(MordredDescriptorTest, BaseRingCountDescriptorsMatchMordredSymmSSSRReferences) {
+    struct Case {
+        std::string smiles;
+        std::map<std::string, std::int64_t> expected_values;
+    };
+
+    const std::vector<std::string> names{
+        "nRing",   "n3Ring",  "n4Ring",  "n5Ring",   "n6Ring",  "n7Ring",
+        "n8Ring",  "n9Ring",  "n10Ring", "n11Ring",  "n12Ring", "nG12Ring",
+    };
+    const std::vector<Case> cases{
+        {"CCO", {}},
+        {"C1CC1C", {{"nRing", 1}, {"n3Ring", 1}}},
+        {"c1ccncc1", {{"nRing", 1}, {"n6Ring", 1}}},
+        {"C1=CC2=C(C=C1)C=CC=C2", {{"nRing", 2}, {"n6Ring", 2}}},
+        {"C12C3C4C1C5C2C3C45", {{"nRing", 6}, {"n4Ring", 6}}},
+        {"C12C3C1C23", {{"nRing", 4}, {"n3Ring", 4}}},
+        {"C123C45C16C24C356", {{"nRing", 6}, {"n3Ring", 3}, {"n4Ring", 2}, {"n5Ring", 1}}},
+        {"C123C45C16C24C356.CCO", {{"nRing", 6}, {"n3Ring", 3}, {"n4Ring", 2}, {"n5Ring", 1}}},
+        {"C1CCCCCCCCCCC1", {{"nRing", 1}, {"n12Ring", 1}, {"nG12Ring", 1}}},
+        {"C1CCCCCCCCCCCC1", {{"nRing", 1}, {"nG12Ring", 1}}},
+    };
+
+    for (const auto& expected : cases) {
+        SCOPED_TRACE(expected.smiles);
+        const auto descriptors = MakeMordredDescriptors(mol_from_smiles(expected.smiles));
+
+        for (const auto& name : names) {
+            const auto found = expected.expected_values.find(name);
+            const auto expected_value =
+                found == expected.expected_values.end() ? 0 : found->second;
+            EXPECT_TRUE(descriptors.Has(name)) << name;
+            EXPECT_EQ(descriptors.Int(name), expected_value) << name;
+        }
+    }
+}
+
 TEST(MordredDescriptorTest, WalkCountDescriptorsMatchCopiedMordredReferences) {
     struct Case {
         std::string smiles;

@@ -174,6 +174,18 @@ ENABLED_DESCRIPTOR_NAMES = {
     "Kier1",
     "Kier2",
     "Kier3",
+    "nRing",
+    "n3Ring",
+    "n4Ring",
+    "n5Ring",
+    "n6Ring",
+    "n7Ring",
+    "n8Ring",
+    "n9Ring",
+    "n10Ring",
+    "n11Ring",
+    "n12Ring",
+    "nG12Ring",
 }
 
 
@@ -307,7 +319,7 @@ def test_mordred_descriptors_match_enabled_reference_values():
     names = _enabled_descriptor_names(payload)
     row_divergences = _row_divergence_policy()
 
-    assert len(names) == 174
+    assert len(names) == 186
     for row in payload["reference_rows"]:
         smiles = row["smiles"]
         descriptors = oefp.mordred_descriptors(_openeye_mol(row["smiles"]))

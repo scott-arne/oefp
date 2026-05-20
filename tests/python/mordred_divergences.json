@@ -590,6 +590,102 @@
       "reason": "OEFP matches Mordred Vabc values on the committed first-batch fixture rows except the cage rows listed as row-level OpenEye ring-primitive divergences."
     },
     {
+      "descriptor": "nRing",
+      "family": "RingCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/RingCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom graph cycle enumeration filtered to a Mordred/RDKit SymmSSSR-compatible ring basis",
+      "reason": "OEFP matches Mordred base non-fused ring counts on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "n3Ring",
+      "family": "RingCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/RingCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom graph cycle enumeration filtered to a Mordred/RDKit SymmSSSR-compatible ring basis",
+      "reason": "OEFP matches Mordred base non-fused 3-membered ring counts on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "n4Ring",
+      "family": "RingCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/RingCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom graph cycle enumeration filtered to a Mordred/RDKit SymmSSSR-compatible ring basis",
+      "reason": "OEFP matches Mordred base non-fused 4-membered ring counts on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "n5Ring",
+      "family": "RingCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/RingCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom graph cycle enumeration filtered to a Mordred/RDKit SymmSSSR-compatible ring basis",
+      "reason": "OEFP matches Mordred base non-fused 5-membered ring counts on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "n6Ring",
+      "family": "RingCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/RingCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom graph cycle enumeration filtered to a Mordred/RDKit SymmSSSR-compatible ring basis",
+      "reason": "OEFP matches Mordred base non-fused 6-membered ring counts on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "n7Ring",
+      "family": "RingCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/RingCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom graph cycle enumeration filtered to a Mordred/RDKit SymmSSSR-compatible ring basis",
+      "reason": "OEFP matches Mordred base non-fused 7-membered ring counts on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "n8Ring",
+      "family": "RingCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/RingCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom graph cycle enumeration filtered to a Mordred/RDKit SymmSSSR-compatible ring basis",
+      "reason": "OEFP matches Mordred base non-fused 8-membered ring counts on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "n9Ring",
+      "family": "RingCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/RingCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom graph cycle enumeration filtered to a Mordred/RDKit SymmSSSR-compatible ring basis",
+      "reason": "OEFP matches Mordred base non-fused 9-membered ring counts on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "n10Ring",
+      "family": "RingCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/RingCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom graph cycle enumeration filtered to a Mordred/RDKit SymmSSSR-compatible ring basis",
+      "reason": "OEFP matches Mordred base non-fused 10-membered ring counts on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "n11Ring",
+      "family": "RingCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/RingCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom graph cycle enumeration filtered to a Mordred/RDKit SymmSSSR-compatible ring basis",
+      "reason": "OEFP matches Mordred base non-fused 11-membered ring counts on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "n12Ring",
+      "family": "RingCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/RingCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom graph cycle enumeration filtered to a Mordred/RDKit SymmSSSR-compatible ring basis",
+      "reason": "OEFP matches Mordred base non-fused 12-membered ring counts on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "nG12Ring",
+      "family": "RingCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/RingCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom graph cycle enumeration filtered to a Mordred/RDKit SymmSSSR-compatible ring basis",
+      "reason": "OEFP matches Mordred base non-fused 12-or-greater-membered ring counts on the committed Mordred parity fixture."
+    },
+    {
       "descriptor": "MPC2",
       "family": "PathCount",
       "source": "/Users/johnss51/Development/python/mordred/mordred/PathCount.py",
