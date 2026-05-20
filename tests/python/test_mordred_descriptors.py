@@ -312,6 +312,8 @@ ENABLED_DESCRIPTOR_NAMES = {
     "n11FAHRing",
     "n12FAHRing",
     "nG12FAHRing",
+    "WPath",
+    "WPol",
     "Zagreb1",
     "Zagreb2",
     "mZagreb1",
@@ -449,7 +451,7 @@ def test_mordred_descriptors_match_enabled_reference_values():
     names = _enabled_descriptor_names(payload)
     row_divergences = _row_divergence_policy()
 
-    assert len(names) == 316
+    assert len(names) == 318
     for row in payload["reference_rows"]:
         smiles = row["smiles"]
         descriptors = oefp.mordred_descriptors(_openeye_mol(row["smiles"]))

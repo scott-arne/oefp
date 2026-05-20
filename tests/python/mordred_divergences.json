@@ -2532,6 +2532,22 @@
       "status": "exact",
       "primitive": "OpenEye heavy-atom graph degree counts matching Mordred Valence(False)",
       "reason": "OEFP matches Mordred mZagreb2 values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "WPath",
+      "family": "WienerIndex",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/WienerIndex.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom graph unweighted shortest-path distances matching Mordred DistanceMatrix(False)",
+      "reason": "OEFP matches Mordred WPath values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "WPol",
+      "family": "WienerIndex",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/WienerIndex.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom graph unweighted shortest-path distances matching Mordred DistanceMatrix(False)",
+      "reason": "OEFP matches Mordred WPol values on the committed Mordred parity fixture."
     }
   ],
   "row_divergences": [

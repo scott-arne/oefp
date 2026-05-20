@@ -523,6 +523,56 @@ TEST(MordredDescriptorTest, ZagrebDescriptorsUseHeavyAtomGraphDegrees) {
     }
 }
 
+TEST(MordredDescriptorTest, WienerDescriptorsUseHeavyAtomShortestPaths) {
+    struct Case {
+        std::string smiles;
+        std::map<std::string, std::int64_t> expected_values;
+    };
+
+    const std::vector<Case> cases{
+        {
+            "CCO",
+            {
+                {"WPath", 4},
+                {"WPol", 0},
+            },
+        },
+        {
+            "c1ccncc1",
+            {
+                {"WPath", 27},
+                {"WPol", 3},
+            },
+        },
+        {
+            "CCCCCC",
+            {
+                {"WPath", 35},
+                {"WPol", 3},
+            },
+        },
+        {
+            "C.CC",
+            {
+                {"WPath", 200000001},
+                {"WPol", 0},
+            },
+        },
+    };
+
+    for (const auto& expected : cases) {
+        SCOPED_TRACE(expected.smiles);
+        const auto descriptors = MakeMordredDescriptors(mol_from_smiles(expected.smiles));
+
+        for (const auto& [name, value] : expected.expected_values) {
+            EXPECT_TRUE(descriptors.Has(name)) << name;
+            if (descriptors.Has(name)) {
+                EXPECT_EQ(descriptors.Int(name), value) << name;
+            }
+        }
+    }
+}
+
 TEST(MordredDescriptorTest, WalkCountDescriptorsMatchCopiedMordredReferences) {
     struct Case {
         std::string smiles;

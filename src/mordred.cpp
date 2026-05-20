@@ -120,6 +120,11 @@ struct MordredZagrebValues {
     double modified_zagreb2 = 0.0;
 };
 
+struct MordredWienerValues {
+    std::int64_t wpath = 0;
+    std::int64_t wpol = 0;
+};
+
 struct MordredRingCountSummary {
     std::uint32_t total = 0u;
     std::array<std::uint32_t, 13> by_size{};
@@ -1813,6 +1818,46 @@ MordredZagrebValues compute_zagreb_values(const MordredHeavyAtomGraph& graph) {
     return values;
 }
 
+MordredWienerValues compute_wiener_values(const MordredHeavyAtomGraph& graph) {
+    // RDKit's GetDistanceMatrix uses this sentinel for disconnected atom pairs.
+    constexpr std::int64_t disconnected_distance = 100000000;
+
+    MordredWienerValues values;
+    const auto atom_count = graph.adjacency.size();
+    for (std::size_t start = 0u; start < atom_count; ++start) {
+        std::vector<int> distances(atom_count, -1);
+        std::vector<std::size_t> queue;
+        queue.reserve(atom_count);
+        distances[start] = 0;
+        queue.push_back(start);
+
+        for (std::size_t head = 0u; head < queue.size(); ++head) {
+            const auto current = queue[head];
+            for (const auto neighbor : graph.adjacency[current]) {
+                if (distances[neighbor.atom_index] != -1) {
+                    continue;
+                }
+                distances[neighbor.atom_index] = distances[current] + 1;
+                queue.push_back(neighbor.atom_index);
+            }
+        }
+
+        for (std::size_t end = start + 1u; end < atom_count; ++end) {
+            const auto distance = distances[end];
+            if (distance == -1) {
+                values.wpath += disconnected_distance;
+            } else {
+                values.wpath += distance;
+                if (distance == 3) {
+                    values.wpol += 1;
+                }
+            }
+        }
+    }
+
+    return values;
+}
+
 SimplePathWalkTotals count_simple_path_walks(
     const std::vector<std::vector<PathCountNeighbor>>& adjacency,
     std::size_t current,
@@ -2318,6 +2363,11 @@ void set_zagreb_values(DescriptorSetBuilder& builder, const MordredZagrebValues&
     set_float(builder, "mZagreb2", values.modified_zagreb2);
 }
 
+void set_wiener_values(DescriptorSetBuilder& builder, const MordredWienerValues& values) {
+    builder.Set("WPath", DescriptorValue::Int(values.wpath));
+    builder.Set("WPol", DescriptorValue::Int(values.wpol));
+}
+
 void set_ring_count_summary(
     DescriptorSetBuilder& builder,
     const MordredRingCountSummary& values,
@@ -2362,6 +2412,7 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
     const auto chi_path_values = compute_chi_path_values(heavy_atom_graph);
     const auto chi_non_path_values = compute_chi_non_path_values(heavy_atom_graph);
     const auto zagreb_values = compute_zagreb_values(heavy_atom_graph);
+    const auto wiener_values = compute_wiener_values(heavy_atom_graph);
     const auto ring_count_values = compute_ring_count_value_sets(mol);
     DescriptorSetBuilder builder(MordredDescriptorSchema());
 
@@ -2522,6 +2573,7 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
     set_chi_path_values(builder, chi_path_values);
     set_chi_non_path_values(builder, chi_non_path_values);
     set_zagreb_values(builder, zagreb_values);
+    set_wiener_values(builder, wiener_values);
     set_ring_count_values(builder, ring_count_values.base);
     set_fused_ring_count_values(builder, ring_count_values.fused);
     set_float(builder, "TopoPSA(NO)", values.topo_psa_no);
