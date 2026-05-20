@@ -140,6 +140,12 @@ struct MordredTopologicalIndexValues {
     std::optional<double> petitjean_index;
 };
 
+struct MordredTopologicalChargeValues {
+    std::array<double, 11> raw{};
+    std::array<double, 11> mean{};
+    double global10 = 0.0;
+};
+
 struct MordredRingCountSummary {
     std::uint32_t total = 0u;
     std::array<std::uint32_t, 13> by_size{};
@@ -2040,6 +2046,72 @@ std::vector<std::vector<std::int64_t>> compute_mordred_heavy_atom_distances(
     return distances;
 }
 
+MordredTopologicalChargeValues compute_topological_charge_values(
+    const MordredHeavyAtomGraph& graph,
+    const std::vector<std::vector<std::int64_t>>& distances) {
+    MordredTopologicalChargeValues values;
+    const auto atom_count = graph.atoms.size();
+    if (atom_count < 2u) {
+        return values;
+    }
+
+    std::vector<std::vector<double>> inverse_squared_distances(
+        atom_count,
+        std::vector<double>(atom_count, 0.0));
+    for (std::size_t row = 0u; row < atom_count; ++row) {
+        for (std::size_t column = 0u; column < atom_count; ++column) {
+            const auto distance = distances[row][column];
+            if (distance == 0) {
+                continue;
+            }
+            const auto distance_value = static_cast<double>(distance);
+            inverse_squared_distances[row][column] = 1.0 / (distance_value * distance_value);
+        }
+    }
+
+    std::vector<std::vector<double>> charge_terms(atom_count, std::vector<double>(atom_count, 0.0));
+    for (std::size_t row = 0u; row < atom_count; ++row) {
+        for (std::size_t column = 0u; column < atom_count; ++column) {
+            double forward = 0.0;
+            for (const auto& neighbor : graph.adjacency[row]) {
+                forward += inverse_squared_distances[neighbor.atom_index][column];
+            }
+
+            double reverse = 0.0;
+            for (const auto& neighbor : graph.adjacency[column]) {
+                reverse += inverse_squared_distances[neighbor.atom_index][row];
+            }
+
+            charge_terms[row][column] = forward - reverse;
+        }
+    }
+
+    std::array<std::uint32_t, 11> counts{};
+    for (std::size_t row = 1u; row < atom_count; ++row) {
+        for (std::size_t column = 0u; column < row; ++column) {
+            const auto distance = distances[row][column];
+            if (distance < 1 || distance > 10) {
+                continue;
+            }
+
+            const auto order = static_cast<std::size_t>(distance);
+            values.raw[order] += std::abs(charge_terms[row][column]);
+            ++counts[order];
+        }
+    }
+
+    for (std::size_t order = 1u; order <= 10u; ++order) {
+        if (counts[order] == 0u) {
+            continue;
+        }
+        values.mean[order] =
+            values.raw[order] / static_cast<double>(counts[order]);
+        values.global10 += values.mean[order];
+    }
+
+    return values;
+}
+
 MordredABCIndexValues compute_abc_index_values(
     const MordredHeavyAtomGraph& graph,
     const std::vector<std::vector<std::int64_t>>& distances) {
@@ -2690,6 +2762,17 @@ void set_topological_index_values(
     set_optional_float(builder, "PetitjeanIndex", values.petitjean_index);
 }
 
+void set_topological_charge_values(
+    DescriptorSetBuilder& builder,
+    const MordredTopologicalChargeValues& values) {
+    for (std::size_t order = 1u; order <= 10u; ++order) {
+        const auto order_text = std::to_string(order);
+        set_float(builder, "GGI" + order_text, values.raw[order]);
+        set_float(builder, "JGI" + order_text, values.mean[order]);
+    }
+    set_float(builder, "JGT10", values.global10);
+}
+
 void set_eccentric_connectivity_index(DescriptorSetBuilder& builder, std::int64_t value) {
     builder.Set("ECIndex", DescriptorValue::Int(value));
 }
@@ -2743,6 +2826,8 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
     const auto heavy_atom_distances = compute_mordred_heavy_atom_distances(heavy_atom_graph);
     const auto balaban_j = compute_balaban_j(heavy_atom_graph, heavy_atom_distances);
     const auto bertz_ct = compute_bertz_ct(heavy_atom_graph);
+    const auto topological_charge_values =
+        compute_topological_charge_values(heavy_atom_graph, heavy_atom_distances);
     const auto abc_index_values =
         compute_abc_index_values(heavy_atom_graph, heavy_atom_distances);
     const auto wiener_values = compute_wiener_values(heavy_atom_distances);
@@ -2915,6 +3000,7 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
     set_optional_float(builder, "VAdjMat", vertex_adjacency_information);
     set_wiener_values(builder, wiener_values);
     set_topological_index_values(builder, topological_index_values);
+    set_topological_charge_values(builder, topological_charge_values);
     set_eccentric_connectivity_index(builder, ec_index);
     set_ring_count_values(builder, ring_count_values.base);
     set_fused_ring_count_values(builder, ring_count_values.fused);

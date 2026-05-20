@@ -38,6 +38,174 @@
       "reason": "OEFP ports RDKit BertzCT heavy-atom symmetry classes, sorted heavy-neighbor connection counts, aromatic bond order 1.5, and base-2 entropy semantics for Mordred explicit_hydrogens=False and matches the committed Mordred parity fixture."
     },
     {
+      "descriptor": "GGI1",
+      "family": "TopologicalCharge",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/TopologicalCharge.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom unweighted adjacency and shortest path distance matrices matching Mordred AdjacencyMatrix(False), DistanceMatrix(False), ChargeTermMatrix, and lower-triangle raw TopologicalCharge aggregation with /Users/johnss51/Development/python/mordred/mordred/_graph_matrix.py disconnected sentinel semantics",
+      "reason": "OEFP matches Mordred GGI1 values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GGI2",
+      "family": "TopologicalCharge",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/TopologicalCharge.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom unweighted adjacency and shortest path distance matrices matching Mordred AdjacencyMatrix(False), DistanceMatrix(False), ChargeTermMatrix, and lower-triangle raw TopologicalCharge aggregation with /Users/johnss51/Development/python/mordred/mordred/_graph_matrix.py disconnected sentinel semantics",
+      "reason": "OEFP matches Mordred GGI2 values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GGI3",
+      "family": "TopologicalCharge",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/TopologicalCharge.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom unweighted adjacency and shortest path distance matrices matching Mordred AdjacencyMatrix(False), DistanceMatrix(False), ChargeTermMatrix, and lower-triangle raw TopologicalCharge aggregation with /Users/johnss51/Development/python/mordred/mordred/_graph_matrix.py disconnected sentinel semantics",
+      "reason": "OEFP matches Mordred GGI3 values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GGI4",
+      "family": "TopologicalCharge",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/TopologicalCharge.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom unweighted adjacency and shortest path distance matrices matching Mordred AdjacencyMatrix(False), DistanceMatrix(False), ChargeTermMatrix, and lower-triangle raw TopologicalCharge aggregation with /Users/johnss51/Development/python/mordred/mordred/_graph_matrix.py disconnected sentinel semantics",
+      "reason": "OEFP matches Mordred GGI4 values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GGI5",
+      "family": "TopologicalCharge",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/TopologicalCharge.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom unweighted adjacency and shortest path distance matrices matching Mordred AdjacencyMatrix(False), DistanceMatrix(False), ChargeTermMatrix, and lower-triangle raw TopologicalCharge aggregation with /Users/johnss51/Development/python/mordred/mordred/_graph_matrix.py disconnected sentinel semantics",
+      "reason": "OEFP matches Mordred GGI5 values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GGI6",
+      "family": "TopologicalCharge",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/TopologicalCharge.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom unweighted adjacency and shortest path distance matrices matching Mordred AdjacencyMatrix(False), DistanceMatrix(False), ChargeTermMatrix, and lower-triangle raw TopologicalCharge aggregation with /Users/johnss51/Development/python/mordred/mordred/_graph_matrix.py disconnected sentinel semantics",
+      "reason": "OEFP matches Mordred GGI6 values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GGI7",
+      "family": "TopologicalCharge",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/TopologicalCharge.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom unweighted adjacency and shortest path distance matrices matching Mordred AdjacencyMatrix(False), DistanceMatrix(False), ChargeTermMatrix, and lower-triangle raw TopologicalCharge aggregation with /Users/johnss51/Development/python/mordred/mordred/_graph_matrix.py disconnected sentinel semantics",
+      "reason": "OEFP matches Mordred GGI7 values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GGI8",
+      "family": "TopologicalCharge",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/TopologicalCharge.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom unweighted adjacency and shortest path distance matrices matching Mordred AdjacencyMatrix(False), DistanceMatrix(False), ChargeTermMatrix, and lower-triangle raw TopologicalCharge aggregation with /Users/johnss51/Development/python/mordred/mordred/_graph_matrix.py disconnected sentinel semantics",
+      "reason": "OEFP matches Mordred GGI8 values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GGI9",
+      "family": "TopologicalCharge",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/TopologicalCharge.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom unweighted adjacency and shortest path distance matrices matching Mordred AdjacencyMatrix(False), DistanceMatrix(False), ChargeTermMatrix, and lower-triangle raw TopologicalCharge aggregation with /Users/johnss51/Development/python/mordred/mordred/_graph_matrix.py disconnected sentinel semantics",
+      "reason": "OEFP matches Mordred GGI9 values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GGI10",
+      "family": "TopologicalCharge",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/TopologicalCharge.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom unweighted adjacency and shortest path distance matrices matching Mordred AdjacencyMatrix(False), DistanceMatrix(False), ChargeTermMatrix, and lower-triangle raw TopologicalCharge aggregation with /Users/johnss51/Development/python/mordred/mordred/_graph_matrix.py disconnected sentinel semantics",
+      "reason": "OEFP matches Mordred GGI10 values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "JGI1",
+      "family": "TopologicalCharge",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/TopologicalCharge.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom unweighted adjacency and shortest path distance matrices matching Mordred AdjacencyMatrix(False), DistanceMatrix(False), ChargeTermMatrix, and lower-triangle per-distance mean TopologicalCharge aggregation with /Users/johnss51/Development/python/mordred/mordred/_graph_matrix.py disconnected sentinel semantics",
+      "reason": "OEFP matches Mordred JGI1 values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "JGI2",
+      "family": "TopologicalCharge",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/TopologicalCharge.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom unweighted adjacency and shortest path distance matrices matching Mordred AdjacencyMatrix(False), DistanceMatrix(False), ChargeTermMatrix, and lower-triangle per-distance mean TopologicalCharge aggregation with /Users/johnss51/Development/python/mordred/mordred/_graph_matrix.py disconnected sentinel semantics",
+      "reason": "OEFP matches Mordred JGI2 values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "JGI3",
+      "family": "TopologicalCharge",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/TopologicalCharge.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom unweighted adjacency and shortest path distance matrices matching Mordred AdjacencyMatrix(False), DistanceMatrix(False), ChargeTermMatrix, and lower-triangle per-distance mean TopologicalCharge aggregation with /Users/johnss51/Development/python/mordred/mordred/_graph_matrix.py disconnected sentinel semantics",
+      "reason": "OEFP matches Mordred JGI3 values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "JGI4",
+      "family": "TopologicalCharge",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/TopologicalCharge.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom unweighted adjacency and shortest path distance matrices matching Mordred AdjacencyMatrix(False), DistanceMatrix(False), ChargeTermMatrix, and lower-triangle per-distance mean TopologicalCharge aggregation with /Users/johnss51/Development/python/mordred/mordred/_graph_matrix.py disconnected sentinel semantics",
+      "reason": "OEFP matches Mordred JGI4 values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "JGI5",
+      "family": "TopologicalCharge",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/TopologicalCharge.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom unweighted adjacency and shortest path distance matrices matching Mordred AdjacencyMatrix(False), DistanceMatrix(False), ChargeTermMatrix, and lower-triangle per-distance mean TopologicalCharge aggregation with /Users/johnss51/Development/python/mordred/mordred/_graph_matrix.py disconnected sentinel semantics",
+      "reason": "OEFP matches Mordred JGI5 values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "JGI6",
+      "family": "TopologicalCharge",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/TopologicalCharge.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom unweighted adjacency and shortest path distance matrices matching Mordred AdjacencyMatrix(False), DistanceMatrix(False), ChargeTermMatrix, and lower-triangle per-distance mean TopologicalCharge aggregation with /Users/johnss51/Development/python/mordred/mordred/_graph_matrix.py disconnected sentinel semantics",
+      "reason": "OEFP matches Mordred JGI6 values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "JGI7",
+      "family": "TopologicalCharge",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/TopologicalCharge.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom unweighted adjacency and shortest path distance matrices matching Mordred AdjacencyMatrix(False), DistanceMatrix(False), ChargeTermMatrix, and lower-triangle per-distance mean TopologicalCharge aggregation with /Users/johnss51/Development/python/mordred/mordred/_graph_matrix.py disconnected sentinel semantics",
+      "reason": "OEFP matches Mordred JGI7 values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "JGI8",
+      "family": "TopologicalCharge",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/TopologicalCharge.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom unweighted adjacency and shortest path distance matrices matching Mordred AdjacencyMatrix(False), DistanceMatrix(False), ChargeTermMatrix, and lower-triangle per-distance mean TopologicalCharge aggregation with /Users/johnss51/Development/python/mordred/mordred/_graph_matrix.py disconnected sentinel semantics",
+      "reason": "OEFP matches Mordred JGI8 values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "JGI9",
+      "family": "TopologicalCharge",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/TopologicalCharge.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom unweighted adjacency and shortest path distance matrices matching Mordred AdjacencyMatrix(False), DistanceMatrix(False), ChargeTermMatrix, and lower-triangle per-distance mean TopologicalCharge aggregation with /Users/johnss51/Development/python/mordred/mordred/_graph_matrix.py disconnected sentinel semantics",
+      "reason": "OEFP matches Mordred JGI9 values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "JGI10",
+      "family": "TopologicalCharge",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/TopologicalCharge.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom unweighted adjacency and shortest path distance matrices matching Mordred AdjacencyMatrix(False), DistanceMatrix(False), ChargeTermMatrix, and lower-triangle per-distance mean TopologicalCharge aggregation with /Users/johnss51/Development/python/mordred/mordred/_graph_matrix.py disconnected sentinel semantics",
+      "reason": "OEFP matches Mordred JGI10 values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "JGT10",
+      "family": "TopologicalCharge",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/TopologicalCharge.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom unweighted adjacency and shortest path distance matrices matching Mordred AdjacencyMatrix(False), DistanceMatrix(False), ChargeTermMatrix, and lower-triangle per-distance global TopologicalCharge aggregation through order 10 with /Users/johnss51/Development/python/mordred/mordred/_graph_matrix.py disconnected sentinel semantics",
+      "reason": "OEFP matches Mordred JGT10 values on the committed Mordred parity fixture."
+    },
+    {
       "descriptor": "nAcid",
       "family": "AcidBase",
       "source": "/Users/johnss51/Development/python/mordred/mordred/AcidBase.py",

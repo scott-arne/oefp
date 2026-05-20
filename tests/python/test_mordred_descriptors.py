@@ -98,6 +98,27 @@ ENABLED_DESCRIPTOR_NAMES = {
     "ABCGG",
     "BalabanJ",
     "BertzCT",
+    "GGI1",
+    "GGI2",
+    "GGI3",
+    "GGI4",
+    "GGI5",
+    "GGI6",
+    "GGI7",
+    "GGI8",
+    "GGI9",
+    "GGI10",
+    "JGI1",
+    "JGI2",
+    "JGI3",
+    "JGI4",
+    "JGI5",
+    "JGI6",
+    "JGI7",
+    "JGI8",
+    "JGI9",
+    "JGI10",
+    "JGT10",
     "AXp-0d",
     "AXp-0dv",
     "AXp-1d",
@@ -461,7 +482,7 @@ def test_mordred_descriptors_match_enabled_reference_values():
     names = _enabled_descriptor_names(payload)
     row_divergences = _row_divergence_policy()
 
-    assert len(names) == 328
+    assert len(names) == 349
     for row in payload["reference_rows"]:
         smiles = row["smiles"]
         descriptors = oefp.mordred_descriptors(_openeye_mol(row["smiles"]))

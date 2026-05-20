@@ -736,6 +736,108 @@ TEST(MordredDescriptorTest, BertzCTUsesHeavyAtomSymmetryClassesAndBondOrders) {
     EXPECT_NEAR(descriptors.Float("BertzCT"), 0.0, 1.0e-12);
 }
 
+TEST(MordredDescriptorTest, TopologicalChargeDescriptorsReturnZeroForEmptySelections) {
+    const std::vector<std::string> descriptor_names{
+        "GGI1", "GGI2",  "GGI3",  "GGI4",  "GGI5",  "GGI6",  "GGI7",
+        "GGI8", "GGI9",  "GGI10", "JGI1",  "JGI2",  "JGI3",  "JGI4",
+        "JGI5", "JGI6",  "JGI7",  "JGI8",  "JGI9",  "JGI10", "JGT10",
+    };
+
+    const OEChem::OEGraphMol empty_mol;
+    const std::vector<std::pair<std::string, OEChem::OEGraphMol>> cases{
+        {"empty", empty_mol},
+        {"[H][H]", mol_from_smiles("[H][H]")},
+        {"C", mol_from_smiles("C")},
+        {"CC", mol_from_smiles("CC")},
+        {"c1ccncc1", mol_from_smiles("c1ccncc1")},
+        {"C.CC", mol_from_smiles("C.CC")},
+    };
+
+    for (const auto& expected : cases) {
+        SCOPED_TRACE(expected.first);
+        const auto descriptors = MakeMordredDescriptors(expected.second);
+
+        for (const auto& name : descriptor_names) {
+            EXPECT_TRUE(descriptors.Has(name)) << name;
+            EXPECT_NEAR(descriptors.Float(name), 0.0, 1.0e-12) << name;
+        }
+    }
+}
+
+TEST(MordredDescriptorTest, TopologicalChargeDescriptorsUseHeavyAtomDistanceTerms) {
+    struct Case {
+        std::string smiles;
+        std::map<std::string, double> expected_values;
+    };
+
+    const std::vector<Case> cases{
+        {
+            "CCC",
+            {
+                {"GGI1", 0.5},
+                {"GGI2", 0.0},
+                {"GGI10", 0.0},
+                {"JGI1", 0.25},
+                {"JGI2", 0.0},
+                {"JGI10", 0.0},
+                {"JGT10", 0.25},
+            },
+        },
+        {
+            "CCC.C",
+            {
+                {"GGI1", 0.5},
+                {"GGI2", 0.0},
+                {"GGI10", 0.0},
+                {"JGI1", 0.25},
+                {"JGI2", 0.0},
+                {"JGI10", 0.0},
+                {"JGT10", 0.25},
+            },
+        },
+        {
+            "CCO",
+            {
+                {"GGI1", 0.5},
+                {"GGI2", 0.0},
+                {"GGI10", 0.0},
+                {"JGI1", 0.25},
+                {"JGI2", 0.0},
+                {"JGI10", 0.0},
+                {"JGT10", 0.25},
+            },
+        },
+        {
+            "CCCCCC",
+            {
+                {"GGI1", 0.5},
+                {"GGI2", 0.22222222222222232},
+                {"GGI3", 0.125},
+                {"GGI4", 0.08000000000000002},
+                {"GGI5", 0.0},
+                {"GGI10", 0.0},
+                {"JGI1", 0.1},
+                {"JGI2", 0.05555555555555558},
+                {"JGI3", 0.041666666666666664},
+                {"JGI4", 0.04000000000000001},
+                {"JGI5", 0.0},
+                {"JGI10", 0.0},
+                {"JGT10", 0.23722222222222228},
+            },
+        },
+    };
+
+    for (const auto& expected : cases) {
+        SCOPED_TRACE(expected.smiles);
+        const auto descriptors = MakeMordredDescriptors(mol_from_smiles(expected.smiles));
+
+        for (const auto& [name, value] : expected.expected_values) {
+            EXPECT_TRUE(descriptors.Has(name)) << name;
+            EXPECT_NEAR(descriptors.Float(name), value, 1.0e-12) << name;
+        }
+    }
+}
+
 TEST(MordredDescriptorTest, ABCIndexDescriptorsUseHeavyAtomGraphBonds) {
     struct Case {
         std::string smiles;
