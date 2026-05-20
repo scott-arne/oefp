@@ -125,6 +125,13 @@ struct MordredWienerValues {
     std::int64_t wpol = 0;
 };
 
+struct MordredTopologicalIndexValues {
+    std::optional<std::int64_t> diameter;
+    std::optional<std::int64_t> radius;
+    std::optional<double> topo_shape_index;
+    std::optional<double> petitjean_index;
+};
+
 struct MordredRingCountSummary {
     std::uint32_t total = 0u;
     std::array<std::uint32_t, 13> by_size{};
@@ -1865,6 +1872,40 @@ MordredWienerValues compute_wiener_values(
     return values;
 }
 
+MordredTopologicalIndexValues compute_topological_index_values(
+    const std::vector<std::vector<std::int64_t>>& distances) {
+    MordredTopologicalIndexValues values;
+    if (distances.empty()) {
+        return values;
+    }
+
+    const auto first_eccentricity =
+        *std::max_element(distances.front().begin(), distances.front().end());
+    auto diameter = first_eccentricity;
+    auto radius = first_eccentricity;
+
+    for (const auto& atom_distances : distances) {
+        const auto eccentricity =
+            *std::max_element(atom_distances.begin(), atom_distances.end());
+        diameter = std::max(diameter, eccentricity);
+        radius = std::min(radius, eccentricity);
+    }
+
+    values.diameter = diameter;
+    values.radius = radius;
+
+    const auto diameter_value = static_cast<double>(diameter);
+    const auto radius_value = static_cast<double>(radius);
+    if (radius != 0) {
+        values.topo_shape_index = (diameter_value - radius_value) / radius_value;
+    }
+    if (diameter != 0) {
+        values.petitjean_index = (diameter_value - radius_value) / diameter_value;
+    }
+
+    return values;
+}
+
 std::int64_t compute_eccentric_connectivity_index(
     const MordredHeavyAtomGraph& graph,
     const std::vector<std::vector<std::int64_t>>& distances) {
@@ -2388,6 +2429,19 @@ void set_wiener_values(DescriptorSetBuilder& builder, const MordredWienerValues&
     builder.Set("WPol", DescriptorValue::Int(values.wpol));
 }
 
+void set_topological_index_values(
+    DescriptorSetBuilder& builder,
+    const MordredTopologicalIndexValues& values) {
+    if (values.diameter.has_value()) {
+        builder.Set("Diameter", DescriptorValue::Int(*values.diameter));
+    }
+    if (values.radius.has_value()) {
+        builder.Set("Radius", DescriptorValue::Int(*values.radius));
+    }
+    set_optional_float(builder, "TopoShapeIndex", values.topo_shape_index);
+    set_optional_float(builder, "PetitjeanIndex", values.petitjean_index);
+}
+
 void set_eccentric_connectivity_index(DescriptorSetBuilder& builder, std::int64_t value) {
     builder.Set("ECIndex", DescriptorValue::Int(value));
 }
@@ -2438,6 +2492,7 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
     const auto zagreb_values = compute_zagreb_values(heavy_atom_graph);
     const auto heavy_atom_distances = compute_mordred_heavy_atom_distances(heavy_atom_graph);
     const auto wiener_values = compute_wiener_values(heavy_atom_distances);
+    const auto topological_index_values = compute_topological_index_values(heavy_atom_distances);
     const auto ec_index =
         compute_eccentric_connectivity_index(heavy_atom_graph, heavy_atom_distances);
     const auto ring_count_values = compute_ring_count_value_sets(mol);
@@ -2601,6 +2656,7 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
     set_chi_non_path_values(builder, chi_non_path_values);
     set_zagreb_values(builder, zagreb_values);
     set_wiener_values(builder, wiener_values);
+    set_topological_index_values(builder, topological_index_values);
     set_eccentric_connectivity_index(builder, ec_index);
     set_ring_count_values(builder, ring_count_values.base);
     set_fused_ring_count_values(builder, ring_count_values.fused);

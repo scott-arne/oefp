@@ -597,6 +597,54 @@ TEST(MordredDescriptorTest, EccentricConnectivityIndexUsesHeavyAtomEccentricityA
     }
 }
 
+TEST(MordredDescriptorTest, TopologicalIndexDescriptorsUseHeavyAtomShortestPaths) {
+    struct Case {
+        std::string smiles;
+        std::int64_t diameter;
+        std::int64_t radius;
+        std::map<std::string, double> shape_values;
+    };
+
+    const std::vector<Case> cases{
+        {"CCO", 2, 1, {{"TopoShapeIndex", 1.0}, {"PetitjeanIndex", 0.5}}},
+        {"c1ccncc1", 3, 3, {{"TopoShapeIndex", 0.0}, {"PetitjeanIndex", 0.0}}},
+        {"CCCCCC", 5, 3, {{"TopoShapeIndex", 2.0 / 3.0}, {"PetitjeanIndex", 0.4}}},
+        {"C", 0, 0, {}},
+        {"C.CC", 100000000, 100000000, {{"TopoShapeIndex", 0.0}, {"PetitjeanIndex", 0.0}}},
+    };
+
+    for (const auto& expected : cases) {
+        SCOPED_TRACE(expected.smiles);
+        const auto descriptors = MakeMordredDescriptors(mol_from_smiles(expected.smiles));
+
+        ASSERT_TRUE(descriptors.Has("Diameter"));
+        ASSERT_TRUE(descriptors.Has("Radius"));
+        EXPECT_EQ(descriptors.Int("Diameter"), expected.diameter);
+        EXPECT_EQ(descriptors.Int("Radius"), expected.radius);
+
+        for (const auto& [name, value] : expected.shape_values) {
+            EXPECT_TRUE(descriptors.Has(name)) << name;
+            if (descriptors.Has(name)) {
+                EXPECT_NEAR(descriptors.Float(name), value, 1.0e-12) << name;
+            }
+        }
+        if (expected.shape_values.empty()) {
+            EXPECT_FALSE(descriptors.Has("TopoShapeIndex"));
+            EXPECT_FALSE(descriptors.Has("PetitjeanIndex"));
+        }
+    }
+}
+
+TEST(MordredDescriptorTest, TopologicalIndexDescriptorsAreMissingForEmptyMolecule) {
+    const OEChem::OEGraphMol mol;
+    const auto descriptors = MakeMordredDescriptors(mol);
+
+    EXPECT_FALSE(descriptors.Has("Diameter"));
+    EXPECT_FALSE(descriptors.Has("Radius"));
+    EXPECT_FALSE(descriptors.Has("TopoShapeIndex"));
+    EXPECT_FALSE(descriptors.Has("PetitjeanIndex"));
+}
+
 TEST(MordredDescriptorTest, WalkCountDescriptorsMatchCopiedMordredReferences) {
     struct Case {
         std::string smiles;

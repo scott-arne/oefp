@@ -2556,6 +2556,38 @@
       "status": "exact",
       "primitive": "OpenEye heavy-atom graph unweighted shortest-path distances matching Mordred DistanceMatrix(False)",
       "reason": "OEFP matches Mordred WPol values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "Diameter",
+      "family": "TopologicalIndex",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/TopologicalIndex.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom graph unweighted radius and diameter matching Mordred DistanceMatrix(False)",
+      "reason": "OEFP matches Mordred Diameter values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "Radius",
+      "family": "TopologicalIndex",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/TopologicalIndex.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom graph unweighted radius and diameter matching Mordred DistanceMatrix(False)",
+      "reason": "OEFP matches Mordred Radius values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "TopoShapeIndex",
+      "family": "TopologicalIndex",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/TopologicalIndex.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom graph unweighted radius and diameter matching Mordred DistanceMatrix(False)",
+      "reason": "OEFP matches Mordred TopoShapeIndex values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "PetitjeanIndex",
+      "family": "TopologicalIndex",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/TopologicalIndex.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom graph unweighted radius and diameter matching Mordred DistanceMatrix(False)",
+      "reason": "OEFP matches Mordred PetitjeanIndex values on the committed Mordred parity fixture."
     }
   ],
   "row_divergences": [
