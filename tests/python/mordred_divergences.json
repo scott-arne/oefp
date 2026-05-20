@@ -2534,6 +2534,14 @@
       "reason": "OEFP matches Mordred mZagreb2 values on the committed Mordred parity fixture."
     },
     {
+      "descriptor": "ECIndex",
+      "family": "EccentricConnectivityIndex",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EccentricConnectivityIndex.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom graph unweighted eccentricity and degree counts matching Mordred Eccentricity(False)/Valence(False)",
+      "reason": "OEFP matches Mordred ECIndex values on the committed Mordred parity fixture."
+    },
+    {
       "descriptor": "WPath",
       "family": "WienerIndex",
       "source": "/Users/johnss51/Development/python/mordred/mordred/WienerIndex.py",

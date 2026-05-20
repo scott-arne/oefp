@@ -157,6 +157,8 @@ struct AtomicPropertyValue {
 
 constexpr double kPi = 3.14159265358979323846;
 constexpr double kMissingAtomicProperty = -1.0;
+// RDKit's GetDistanceMatrix uses this sentinel for disconnected atom pairs.
+constexpr std::int64_t kMordredDisconnectedDistance = 100000000;
 
 constexpr std::array<double, 111> kMordredMassValues{{
     kMissingAtomicProperty, 1.008, 4.002602, 6.94, 9.012182, 10.81,
@@ -1788,6 +1790,34 @@ MordredHeavyAtomGraph build_mordred_heavy_atom_graph(const OEChem::OEMolBase& mo
     return graph;
 }
 
+std::vector<std::vector<std::int64_t>> compute_mordred_heavy_atom_distances(
+    const MordredHeavyAtomGraph& graph) {
+    const auto atom_count = graph.adjacency.size();
+    std::vector<std::vector<std::int64_t>> distances(
+        atom_count,
+        std::vector<std::int64_t>(atom_count, kMordredDisconnectedDistance));
+
+    for (std::size_t start = 0u; start < atom_count; ++start) {
+        std::vector<std::size_t> queue;
+        queue.reserve(atom_count);
+        distances[start][start] = 0;
+        queue.push_back(start);
+
+        for (std::size_t head = 0u; head < queue.size(); ++head) {
+            const auto current = queue[head];
+            for (const auto neighbor : graph.adjacency[current]) {
+                if (distances[start][neighbor.atom_index] != kMordredDisconnectedDistance) {
+                    continue;
+                }
+                distances[start][neighbor.atom_index] = distances[start][current] + 1;
+                queue.push_back(neighbor.atom_index);
+            }
+        }
+    }
+
+    return distances;
+}
+
 MordredZagrebValues compute_zagreb_values(const MordredHeavyAtomGraph& graph) {
     MordredZagrebValues values;
     double modified_zagreb1 = 0.0;
@@ -1818,44 +1848,34 @@ MordredZagrebValues compute_zagreb_values(const MordredHeavyAtomGraph& graph) {
     return values;
 }
 
-MordredWienerValues compute_wiener_values(const MordredHeavyAtomGraph& graph) {
-    // RDKit's GetDistanceMatrix uses this sentinel for disconnected atom pairs.
-    constexpr std::int64_t disconnected_distance = 100000000;
-
+MordredWienerValues compute_wiener_values(
+    const std::vector<std::vector<std::int64_t>>& distances) {
     MordredWienerValues values;
-    const auto atom_count = graph.adjacency.size();
+    const auto atom_count = distances.size();
     for (std::size_t start = 0u; start < atom_count; ++start) {
-        std::vector<int> distances(atom_count, -1);
-        std::vector<std::size_t> queue;
-        queue.reserve(atom_count);
-        distances[start] = 0;
-        queue.push_back(start);
-
-        for (std::size_t head = 0u; head < queue.size(); ++head) {
-            const auto current = queue[head];
-            for (const auto neighbor : graph.adjacency[current]) {
-                if (distances[neighbor.atom_index] != -1) {
-                    continue;
-                }
-                distances[neighbor.atom_index] = distances[current] + 1;
-                queue.push_back(neighbor.atom_index);
-            }
-        }
-
         for (std::size_t end = start + 1u; end < atom_count; ++end) {
-            const auto distance = distances[end];
-            if (distance == -1) {
-                values.wpath += disconnected_distance;
-            } else {
-                values.wpath += distance;
-                if (distance == 3) {
-                    values.wpol += 1;
-                }
+            const auto distance = distances[start][end];
+            values.wpath += distance;
+            if (distance == 3) {
+                values.wpol += 1;
             }
         }
     }
 
     return values;
+}
+
+std::int64_t compute_eccentric_connectivity_index(
+    const MordredHeavyAtomGraph& graph,
+    const std::vector<std::vector<std::int64_t>>& distances) {
+    std::int64_t ec_index = 0;
+    for (std::size_t atom_index = 0u; atom_index < graph.adjacency.size(); ++atom_index) {
+        const auto eccentricity =
+            *std::max_element(distances[atom_index].begin(), distances[atom_index].end());
+        const auto valence = static_cast<std::int64_t>(graph.adjacency[atom_index].size());
+        ec_index += eccentricity * valence;
+    }
+    return ec_index;
 }
 
 SimplePathWalkTotals count_simple_path_walks(
@@ -2368,6 +2388,10 @@ void set_wiener_values(DescriptorSetBuilder& builder, const MordredWienerValues&
     builder.Set("WPol", DescriptorValue::Int(values.wpol));
 }
 
+void set_eccentric_connectivity_index(DescriptorSetBuilder& builder, std::int64_t value) {
+    builder.Set("ECIndex", DescriptorValue::Int(value));
+}
+
 void set_ring_count_summary(
     DescriptorSetBuilder& builder,
     const MordredRingCountSummary& values,
@@ -2412,7 +2436,10 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
     const auto chi_path_values = compute_chi_path_values(heavy_atom_graph);
     const auto chi_non_path_values = compute_chi_non_path_values(heavy_atom_graph);
     const auto zagreb_values = compute_zagreb_values(heavy_atom_graph);
-    const auto wiener_values = compute_wiener_values(heavy_atom_graph);
+    const auto heavy_atom_distances = compute_mordred_heavy_atom_distances(heavy_atom_graph);
+    const auto wiener_values = compute_wiener_values(heavy_atom_distances);
+    const auto ec_index =
+        compute_eccentric_connectivity_index(heavy_atom_graph, heavy_atom_distances);
     const auto ring_count_values = compute_ring_count_value_sets(mol);
     DescriptorSetBuilder builder(MordredDescriptorSchema());
 
@@ -2574,6 +2601,7 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
     set_chi_non_path_values(builder, chi_non_path_values);
     set_zagreb_values(builder, zagreb_values);
     set_wiener_values(builder, wiener_values);
+    set_eccentric_connectivity_index(builder, ec_index);
     set_ring_count_values(builder, ring_count_values.base);
     set_fused_ring_count_values(builder, ring_count_values.fused);
     set_float(builder, "TopoPSA(NO)", values.topo_psa_no);

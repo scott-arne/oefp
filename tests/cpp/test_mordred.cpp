@@ -573,6 +573,30 @@ TEST(MordredDescriptorTest, WienerDescriptorsUseHeavyAtomShortestPaths) {
     }
 }
 
+TEST(MordredDescriptorTest, EccentricConnectivityIndexUsesHeavyAtomEccentricityAndDegree) {
+    struct Case {
+        std::string smiles;
+        std::int64_t expected_value;
+    };
+
+    const std::vector<Case> cases{
+        {"CCO", 6},
+        {"c1ccncc1", 36},
+        {"CCCCCC", 38},
+        {"C1CCCCC1", 36},
+        {"C", 0},
+        {"C.CC", 200000000},
+    };
+
+    for (const auto& expected : cases) {
+        SCOPED_TRACE(expected.smiles);
+        const auto descriptors = MakeMordredDescriptors(mol_from_smiles(expected.smiles));
+
+        ASSERT_TRUE(descriptors.Has("ECIndex"));
+        EXPECT_EQ(descriptors.Int("ECIndex"), expected.expected_value);
+    }
+}
+
 TEST(MordredDescriptorTest, WalkCountDescriptorsMatchCopiedMordredReferences) {
     struct Case {
         std::string smiles;
