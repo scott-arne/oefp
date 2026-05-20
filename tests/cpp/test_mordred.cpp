@@ -470,6 +470,59 @@ TEST(MordredDescriptorTest, FusedRingCountDescriptorsMatchMordredGroupingReferen
     }
 }
 
+TEST(MordredDescriptorTest, ZagrebDescriptorsUseHeavyAtomGraphDegrees) {
+    struct Case {
+        std::string smiles;
+        std::map<std::string, double> expected_values;
+        std::vector<std::string> missing_values;
+    };
+
+    const std::vector<Case> cases{
+        {
+            "CCO",
+            {
+                {"Zagreb1", 6.0},
+                {"Zagreb2", 4.0},
+                {"mZagreb1", 2.25},
+                {"mZagreb2", 1.0},
+            },
+            {},
+        },
+        {
+            "c1ccncc1",
+            {
+                {"Zagreb1", 24.0},
+                {"Zagreb2", 24.0},
+                {"mZagreb1", 1.5},
+                {"mZagreb2", 1.5},
+            },
+            {},
+        },
+        {
+            "C",
+            {
+                {"Zagreb1", 0.0},
+                {"Zagreb2", 0.0},
+                {"mZagreb2", 0.0},
+            },
+            {"mZagreb1"},
+        },
+    };
+
+    for (const auto& expected : cases) {
+        SCOPED_TRACE(expected.smiles);
+        const auto descriptors = MakeMordredDescriptors(mol_from_smiles(expected.smiles));
+
+        for (const auto& [name, value] : expected.expected_values) {
+            EXPECT_TRUE(descriptors.Has(name)) << name;
+            EXPECT_NEAR(descriptors.Float(name), value, 1.0e-8) << name;
+        }
+        for (const auto& name : expected.missing_values) {
+            EXPECT_FALSE(descriptors.Has(name)) << name;
+        }
+    }
+}
+
 TEST(MordredDescriptorTest, WalkCountDescriptorsMatchCopiedMordredReferences) {
     struct Case {
         std::string smiles;

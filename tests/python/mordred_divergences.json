@@ -2500,6 +2500,38 @@
       "status": "exact",
       "primitive": "OpenEye heavy-atom unweighted adjacency matrix powers",
       "reason": "OEFP matches Mordred TSRW10 values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "Zagreb1",
+      "family": "ZagrebIndex",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/ZagrebIndex.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom graph degree counts matching Mordred Valence(False)",
+      "reason": "OEFP matches Mordred Zagreb1 values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "Zagreb2",
+      "family": "ZagrebIndex",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/ZagrebIndex.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom graph degree counts matching Mordred Valence(False)",
+      "reason": "OEFP matches Mordred Zagreb2 values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "mZagreb1",
+      "family": "ZagrebIndex",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/ZagrebIndex.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom graph degree counts matching Mordred Valence(False)",
+      "reason": "OEFP matches Mordred mZagreb1 values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "mZagreb2",
+      "family": "ZagrebIndex",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/ZagrebIndex.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom graph degree counts matching Mordred Valence(False)",
+      "reason": "OEFP matches Mordred mZagreb2 values on the committed Mordred parity fixture."
     }
   ],
   "row_divergences": [

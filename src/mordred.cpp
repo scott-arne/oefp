@@ -113,6 +113,13 @@ struct MordredChiNonPathValues {
     std::array<std::optional<double>, 7> xpc_dv{};
 };
 
+struct MordredZagrebValues {
+    double zagreb1 = 0.0;
+    double zagreb2 = 0.0;
+    std::optional<double> modified_zagreb1;
+    double modified_zagreb2 = 0.0;
+};
+
 struct MordredRingCountSummary {
     std::uint32_t total = 0u;
     std::array<std::uint32_t, 13> by_size{};
@@ -1776,6 +1783,36 @@ MordredHeavyAtomGraph build_mordred_heavy_atom_graph(const OEChem::OEMolBase& mo
     return graph;
 }
 
+MordredZagrebValues compute_zagreb_values(const MordredHeavyAtomGraph& graph) {
+    MordredZagrebValues values;
+    double modified_zagreb1 = 0.0;
+    bool has_zero_degree = false;
+
+    for (const auto& neighbors : graph.adjacency) {
+        const auto degree = static_cast<double>(neighbors.size());
+        values.zagreb1 += degree * degree;
+        if (degree == 0.0) {
+            has_zero_degree = true;
+        } else {
+            modified_zagreb1 += 1.0 / (degree * degree);
+        }
+    }
+
+    if (!has_zero_degree) {
+        values.modified_zagreb1 = modified_zagreb1;
+    }
+
+    for (const auto [begin, end] : graph.bonds) {
+        const auto begin_degree = static_cast<double>(graph.adjacency[begin].size());
+        const auto end_degree = static_cast<double>(graph.adjacency[end].size());
+        const auto degree_product = begin_degree * end_degree;
+        values.zagreb2 += degree_product;
+        values.modified_zagreb2 += 1.0 / degree_product;
+    }
+
+    return values;
+}
+
 SimplePathWalkTotals count_simple_path_walks(
     const std::vector<std::vector<PathCountNeighbor>>& adjacency,
     std::size_t current,
@@ -2274,6 +2311,13 @@ void set_chi_non_path_values(
     }
 }
 
+void set_zagreb_values(DescriptorSetBuilder& builder, const MordredZagrebValues& values) {
+    set_float(builder, "Zagreb1", values.zagreb1);
+    set_float(builder, "Zagreb2", values.zagreb2);
+    set_optional_float(builder, "mZagreb1", values.modified_zagreb1);
+    set_float(builder, "mZagreb2", values.modified_zagreb2);
+}
+
 void set_ring_count_summary(
     DescriptorSetBuilder& builder,
     const MordredRingCountSummary& values,
@@ -2317,6 +2361,7 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
     const auto path_count_values = compute_path_count_values(heavy_atom_graph);
     const auto chi_path_values = compute_chi_path_values(heavy_atom_graph);
     const auto chi_non_path_values = compute_chi_non_path_values(heavy_atom_graph);
+    const auto zagreb_values = compute_zagreb_values(heavy_atom_graph);
     const auto ring_count_values = compute_ring_count_value_sets(mol);
     DescriptorSetBuilder builder(MordredDescriptorSchema());
 
@@ -2476,6 +2521,7 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
         kappa_shape_index(values.heavy_atoms, path_count_values, 3u));
     set_chi_path_values(builder, chi_path_values);
     set_chi_non_path_values(builder, chi_non_path_values);
+    set_zagreb_values(builder, zagreb_values);
     set_ring_count_values(builder, ring_count_values.base);
     set_fused_ring_count_values(builder, ring_count_values.fused);
     set_float(builder, "TopoPSA(NO)", values.topo_psa_no);
