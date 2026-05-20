@@ -1810,6 +1810,39 @@ std::optional<double> compute_vertex_adjacency_information(const MordredHeavyAto
     return 1.0 + std::log2(static_cast<double>(heavy_heavy_bonds));
 }
 
+std::optional<double> compute_balaban_j(
+    const MordredHeavyAtomGraph& graph,
+    const std::vector<std::vector<std::int64_t>>& distances) {
+    const auto atom_count = graph.atoms.size();
+    if (atom_count == 0u) {
+        return std::nullopt;
+    }
+
+    std::vector<double> distance_row_sums;
+    distance_row_sums.reserve(atom_count);
+    for (const auto& row : distances) {
+        double sum = 0.0;
+        for (const auto distance : row) {
+            sum += static_cast<double>(distance);
+        }
+        distance_row_sums.push_back(sum);
+    }
+
+    double edge_sum = 0.0;
+    for (const auto [begin, end] : graph.bonds) {
+        edge_sum +=
+            1.0 / std::sqrt(distance_row_sums[begin] * distance_row_sums[end]);
+    }
+
+    const auto bond_count = graph.bonds.size();
+    const auto mu = static_cast<std::int64_t>(bond_count)
+                    - static_cast<std::int64_t>(atom_count) + 1;
+    if (mu + 1 == 0) {
+        return 0.0;
+    }
+    return static_cast<double>(bond_count) / static_cast<double>(mu + 1) * edge_sum;
+}
+
 std::vector<std::vector<std::int64_t>> compute_mordred_heavy_atom_distances(
     const MordredHeavyAtomGraph& graph) {
     const auto atom_count = graph.adjacency.size();
@@ -2539,6 +2572,7 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
     const auto vertex_adjacency_information =
         compute_vertex_adjacency_information(heavy_atom_graph);
     const auto heavy_atom_distances = compute_mordred_heavy_atom_distances(heavy_atom_graph);
+    const auto balaban_j = compute_balaban_j(heavy_atom_graph, heavy_atom_distances);
     const auto abc_index_values =
         compute_abc_index_values(heavy_atom_graph, heavy_atom_distances);
     const auto wiener_values = compute_wiener_values(heavy_atom_distances);
@@ -2706,6 +2740,7 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
     set_chi_non_path_values(builder, chi_non_path_values);
     set_zagreb_values(builder, zagreb_values);
     set_abc_index_values(builder, abc_index_values);
+    set_optional_float(builder, "BalabanJ", balaban_j);
     set_optional_float(builder, "VAdjMat", vertex_adjacency_information);
     set_wiener_values(builder, wiener_values);
     set_topological_index_values(builder, topological_index_values);

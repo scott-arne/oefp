@@ -672,6 +672,33 @@ TEST(MordredDescriptorTest, VertexAdjacencyInformationUsesHeavyHeavyBondCount) {
     EXPECT_FALSE(MakeMordredDescriptors(empty_mol).Has("VAdjMat"));
 }
 
+TEST(MordredDescriptorTest, BalabanJUsesHeavyAtomDistanceRowSumsAndBonds) {
+    struct Case {
+        std::string smiles;
+        double expected_value;
+    };
+
+    const std::vector<Case> cases{
+        {"C", 0.0},
+        {"CC", 1.0},
+        {"C.CC", 0.0},
+        {"CCO", 1.6329931618554523},
+        {"c1ccncc1", 2.0},
+        {"CCCCCC", 2.3390923149762908},
+    };
+
+    for (const auto& expected : cases) {
+        SCOPED_TRACE(expected.smiles);
+        const auto descriptors = MakeMordredDescriptors(mol_from_smiles(expected.smiles));
+
+        ASSERT_TRUE(descriptors.Has("BalabanJ"));
+        EXPECT_NEAR(descriptors.Float("BalabanJ"), expected.expected_value, 1.0e-12);
+    }
+
+    const OEChem::OEGraphMol empty_mol;
+    EXPECT_FALSE(MakeMordredDescriptors(empty_mol).Has("BalabanJ"));
+}
+
 TEST(MordredDescriptorTest, ABCIndexDescriptorsUseHeavyAtomGraphBonds) {
     struct Case {
         std::string smiles;
