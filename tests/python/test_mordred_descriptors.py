@@ -93,6 +93,19 @@ ENABLED_SOURCE_TYPES = {
     "Weight",
 }
 
+ENABLED_DESCRIPTOR_NAMES = {
+    "MPC2",
+    "MPC3",
+    "MPC4",
+    "MPC5",
+    "MPC6",
+    "MPC7",
+    "MPC8",
+    "MPC9",
+    "MPC10",
+    "TMPC10",
+}
+
 
 def _reference_payload() -> dict[str, Any]:
     with REFERENCE_FIXTURE.open(encoding="utf-8") as handle:
@@ -132,6 +145,7 @@ def _enabled_descriptor_names(payload: dict[str, Any]) -> tuple[str, ...]:
         definition["name"]
         for definition in payload["definitions"]
         if definition["source_type"] in ENABLED_SOURCE_TYPES
+        or definition["name"] in ENABLED_DESCRIPTOR_NAMES
     )
 
 
@@ -223,7 +237,7 @@ def test_mordred_descriptors_match_enabled_reference_values():
     names = _enabled_descriptor_names(payload)
     row_divergences = _row_divergence_policy()
 
-    assert len(names) == 94
+    assert len(names) == 104
     for row in payload["reference_rows"]:
         smiles = row["smiles"]
         descriptors = oefp.mordred_descriptors(_openeye_mol(row["smiles"]))

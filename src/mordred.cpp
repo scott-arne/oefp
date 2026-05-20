@@ -88,6 +88,11 @@ struct MordredWalkCountValues {
     double total_srw10 = 0.0;
 };
 
+struct MordredPathCountValues {
+    std::array<std::uint32_t, 11> mpc{};
+    std::uint32_t total_mpc10 = 0u;
+};
+
 struct AtomicPropertyValue {
     std::uint32_t atomic_number;
     double value;
@@ -1032,6 +1037,70 @@ MordredWalkCountValues compute_walk_count_values(const OEChem::OEMolBase& mol) {
     return values;
 }
 
+std::uint32_t count_simple_path_walks(
+    const std::vector<std::vector<std::size_t>>& adjacency,
+    std::size_t current,
+    std::size_t remaining_bonds,
+    std::vector<bool>& visited) {
+    if (remaining_bonds == 0u) {
+        return 1u;
+    }
+
+    std::uint32_t count = 0u;
+    for (const auto neighbor : adjacency[current]) {
+        if (visited[neighbor]) {
+            continue;
+        }
+        visited[neighbor] = true;
+        count += count_simple_path_walks(adjacency, neighbor, remaining_bonds - 1u, visited);
+        visited[neighbor] = false;
+    }
+    return count;
+}
+
+MordredPathCountValues compute_path_count_values(const OEChem::OEMolBase& mol) {
+    std::unordered_map<unsigned int, std::size_t> heavy_atom_indices;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        if (!is_hydrogen(*atom)) {
+            heavy_atom_indices.emplace(atom->GetIdx(), heavy_atom_indices.size());
+        }
+    }
+
+    std::vector<std::vector<std::size_t>> adjacency(heavy_atom_indices.size());
+    for (OESystem::OEIter<OEChem::OEBondBase> bond = mol.GetBonds(); bond; ++bond) {
+        const auto* begin = bond->GetBgn();
+        const auto* end = bond->GetEnd();
+        if (begin == nullptr || end == nullptr || is_hydrogen(*begin) || is_hydrogen(*end)) {
+            continue;
+        }
+
+        const auto begin_index = heavy_atom_indices.find(begin->GetIdx());
+        const auto end_index = heavy_atom_indices.find(end->GetIdx());
+        if (begin_index == heavy_atom_indices.end() || end_index == heavy_atom_indices.end()) {
+            continue;
+        }
+        adjacency[begin_index->second].push_back(end_index->second);
+        adjacency[end_index->second].push_back(begin_index->second);
+    }
+
+    MordredPathCountValues values;
+    values.total_mpc10 = static_cast<std::uint32_t>(adjacency.size());
+    for (std::size_t order = 1u; order <= 10u; ++order) {
+        std::uint32_t oriented_paths = 0u;
+        std::vector<bool> visited(adjacency.size(), false);
+        for (std::size_t start = 0u; start < adjacency.size(); ++start) {
+            visited[start] = true;
+            oriented_paths += count_simple_path_walks(adjacency, start, order, visited);
+            visited[start] = false;
+        }
+
+        // Each accepted RDKit/Mordred bond path is undirected; DFS sees both orientations.
+        values.mpc[order] = oriented_paths / 2u;
+        values.total_mpc10 += values.mpc[order];
+    }
+    return values;
+}
+
 MordredAdditivePropertyValues compute_additive_property_values(const OEChem::OEMolBase& mol) {
     const auto explicit_mol = explicit_hydrogen_copy(mol);
     OEChem::OEGraphMol ring_mol(mol);
@@ -1097,6 +1166,7 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
     const auto values = compute_first_batch_values(mol);
     const auto additive_values = compute_additive_property_values(mol);
     const auto walk_count_values = compute_walk_count_values(mol);
+    const auto path_count_values = compute_path_count_values(mol);
     DescriptorSetBuilder builder(MordredDescriptorSchema());
 
     const auto all_atoms = values.heavy_atoms + values.hydrogens;
@@ -1220,6 +1290,16 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
     set_float(builder, "SRW09", walk_count_values.srw[9]);
     set_float(builder, "SRW10", walk_count_values.srw[10]);
     set_float(builder, "TSRW10", walk_count_values.total_srw10);
+    set_int(builder, "MPC2", path_count_values.mpc[2]);
+    set_int(builder, "MPC3", path_count_values.mpc[3]);
+    set_int(builder, "MPC4", path_count_values.mpc[4]);
+    set_int(builder, "MPC5", path_count_values.mpc[5]);
+    set_int(builder, "MPC6", path_count_values.mpc[6]);
+    set_int(builder, "MPC7", path_count_values.mpc[7]);
+    set_int(builder, "MPC8", path_count_values.mpc[8]);
+    set_int(builder, "MPC9", path_count_values.mpc[9]);
+    set_int(builder, "MPC10", path_count_values.mpc[10]);
+    set_int(builder, "TMPC10", path_count_values.total_mpc10);
     set_float(builder, "TopoPSA(NO)", values.topo_psa_no);
     set_float(builder, "TopoPSA", values.topo_psa);
     set_float(builder, "MW", values.exact_weight);

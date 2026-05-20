@@ -590,6 +590,86 @@
       "reason": "OEFP matches Mordred Vabc values on the committed first-batch fixture rows except the cage rows listed as row-level OpenEye ring-primitive divergences."
     },
     {
+      "descriptor": "MPC2",
+      "family": "PathCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/PathCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom simple path enumeration",
+      "reason": "OEFP matches Mordred MPC2 values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MPC3",
+      "family": "PathCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/PathCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom simple path enumeration",
+      "reason": "OEFP matches Mordred MPC3 values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MPC4",
+      "family": "PathCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/PathCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom simple path enumeration",
+      "reason": "OEFP matches Mordred MPC4 values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MPC5",
+      "family": "PathCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/PathCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom simple path enumeration",
+      "reason": "OEFP matches Mordred MPC5 values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MPC6",
+      "family": "PathCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/PathCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom simple path enumeration",
+      "reason": "OEFP matches Mordred MPC6 values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MPC7",
+      "family": "PathCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/PathCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom simple path enumeration",
+      "reason": "OEFP matches Mordred MPC7 values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MPC8",
+      "family": "PathCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/PathCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom simple path enumeration",
+      "reason": "OEFP matches Mordred MPC8 values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MPC9",
+      "family": "PathCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/PathCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom simple path enumeration",
+      "reason": "OEFP matches Mordred MPC9 values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MPC10",
+      "family": "PathCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/PathCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom simple path enumeration",
+      "reason": "OEFP matches Mordred MPC10 values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "TMPC10",
+      "family": "PathCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/PathCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom simple path enumeration",
+      "reason": "OEFP matches Mordred TMPC10 values on the committed Mordred parity fixture."
+    },
+    {
       "descriptor": "MWC01",
       "family": "WalkCount",
       "source": "/Users/johnss51/Development/python/mordred/mordred/WalkCount.py",
