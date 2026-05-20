@@ -74,7 +74,7 @@ SUPPORTED_COUNT_NAMES = (
     "nX",
 )
 
-FIRST_BATCH_SOURCE_TYPES = {
+ENABLED_SOURCE_TYPES = {
     "AcidBase",
     "Aromatic",
     "AtomCount",
@@ -89,6 +89,7 @@ FIRST_BATCH_SOURCE_TYPES = {
     "SLogP",
     "TopoPSA",
     "VdwVolumeABC",
+    "WalkCount",
     "Weight",
 }
 
@@ -126,11 +127,11 @@ def _definition_names(payload: dict[str, Any]) -> tuple[str, ...]:
     return tuple(definition["name"] for definition in payload["definitions"])
 
 
-def _first_batch_names(payload: dict[str, Any]) -> tuple[str, ...]:
+def _enabled_descriptor_names(payload: dict[str, Any]) -> tuple[str, ...]:
     return tuple(
         definition["name"]
         for definition in payload["definitions"]
-        if definition["source_type"] in FIRST_BATCH_SOURCE_TYPES
+        if definition["source_type"] in ENABLED_SOURCE_TYPES
     )
 
 
@@ -215,14 +216,14 @@ def test_packaged_mordred_reference_matches_test_fixture():
     assert _package_reference_payload() == _reference_payload()
 
 
-def test_mordred_descriptors_match_first_batch_reference_values():
+def test_mordred_descriptors_match_enabled_reference_values():
     import oefp
 
     payload = _reference_payload()
-    names = _first_batch_names(payload)
+    names = _enabled_descriptor_names(payload)
     row_divergences = _row_divergence_policy()
 
-    assert len(names) == 73
+    assert len(names) == 94
     for row in payload["reference_rows"]:
         smiles = row["smiles"]
         descriptors = oefp.mordred_descriptors(_openeye_mol(row["smiles"]))
@@ -355,8 +356,7 @@ def test_mordred_reference_fixture_contains_full_schema_and_panel():
 
 def test_mordred_divergence_policy_manifest_is_valid():
     payload = _divergence_payload()
-    expected_descriptors = set(_first_batch_names(_reference_payload()))
-    expected_descriptors.update({"Lipinski", "GhoseFilter"})
+    expected_descriptors = set(_enabled_descriptor_names(_reference_payload()))
 
     assert {
         "schema_version",

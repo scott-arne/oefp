@@ -588,6 +588,174 @@
       "status": "exact",
       "primitive": "Bondi atom volumes over explicit-hydrogen OpenEye molecule with ring-bond cycle-rank aromatic and aliphatic ring counts",
       "reason": "OEFP matches Mordred Vabc values on the committed first-batch fixture rows except the cage rows listed as row-level OpenEye ring-primitive divergences."
+    },
+    {
+      "descriptor": "MWC01",
+      "family": "WalkCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/WalkCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom unweighted adjacency matrix powers",
+      "reason": "OEFP matches Mordred MWC01 values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MWC02",
+      "family": "WalkCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/WalkCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom unweighted adjacency matrix powers",
+      "reason": "OEFP matches Mordred MWC02 values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MWC03",
+      "family": "WalkCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/WalkCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom unweighted adjacency matrix powers",
+      "reason": "OEFP matches Mordred MWC03 values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MWC04",
+      "family": "WalkCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/WalkCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom unweighted adjacency matrix powers",
+      "reason": "OEFP matches Mordred MWC04 values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MWC05",
+      "family": "WalkCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/WalkCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom unweighted adjacency matrix powers",
+      "reason": "OEFP matches Mordred MWC05 values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MWC06",
+      "family": "WalkCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/WalkCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom unweighted adjacency matrix powers",
+      "reason": "OEFP matches Mordred MWC06 values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MWC07",
+      "family": "WalkCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/WalkCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom unweighted adjacency matrix powers",
+      "reason": "OEFP matches Mordred MWC07 values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MWC08",
+      "family": "WalkCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/WalkCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom unweighted adjacency matrix powers",
+      "reason": "OEFP matches Mordred MWC08 values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MWC09",
+      "family": "WalkCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/WalkCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom unweighted adjacency matrix powers",
+      "reason": "OEFP matches Mordred MWC09 values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MWC10",
+      "family": "WalkCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/WalkCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom unweighted adjacency matrix powers",
+      "reason": "OEFP matches Mordred MWC10 values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "TMWC10",
+      "family": "WalkCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/WalkCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom unweighted adjacency matrix powers",
+      "reason": "OEFP matches Mordred TMWC10 values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "SRW02",
+      "family": "WalkCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/WalkCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom unweighted adjacency matrix powers",
+      "reason": "OEFP matches Mordred SRW02 values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "SRW03",
+      "family": "WalkCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/WalkCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom unweighted adjacency matrix powers",
+      "reason": "OEFP matches Mordred SRW03 values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "SRW04",
+      "family": "WalkCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/WalkCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom unweighted adjacency matrix powers",
+      "reason": "OEFP matches Mordred SRW04 values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "SRW05",
+      "family": "WalkCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/WalkCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom unweighted adjacency matrix powers",
+      "reason": "OEFP matches Mordred SRW05 values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "SRW06",
+      "family": "WalkCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/WalkCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom unweighted adjacency matrix powers",
+      "reason": "OEFP matches Mordred SRW06 values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "SRW07",
+      "family": "WalkCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/WalkCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom unweighted adjacency matrix powers",
+      "reason": "OEFP matches Mordred SRW07 values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "SRW08",
+      "family": "WalkCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/WalkCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom unweighted adjacency matrix powers",
+      "reason": "OEFP matches Mordred SRW08 values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "SRW09",
+      "family": "WalkCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/WalkCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom unweighted adjacency matrix powers",
+      "reason": "OEFP matches Mordred SRW09 values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "SRW10",
+      "family": "WalkCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/WalkCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom unweighted adjacency matrix powers",
+      "reason": "OEFP matches Mordred SRW10 values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "TSRW10",
+      "family": "WalkCount",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/WalkCount.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom unweighted adjacency matrix powers",
+      "reason": "OEFP matches Mordred TSRW10 values on the committed Mordred parity fixture."
     }
   ],
   "row_divergences": [
