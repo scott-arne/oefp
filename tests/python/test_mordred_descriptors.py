@@ -115,6 +115,9 @@ ENABLED_DESCRIPTOR_NAMES = {
     "piPC9",
     "piPC10",
     "TpiPC10",
+    "Kier1",
+    "Kier2",
+    "Kier3",
 }
 
 
@@ -248,7 +251,7 @@ def test_mordred_descriptors_match_enabled_reference_values():
     names = _enabled_descriptor_names(payload)
     row_divergences = _row_divergence_policy()
 
-    assert len(names) == 115
+    assert len(names) == 118
     for row in payload["reference_rows"]:
         smiles = row["smiles"]
         descriptors = oefp.mordred_descriptors(_openeye_mol(row["smiles"]))

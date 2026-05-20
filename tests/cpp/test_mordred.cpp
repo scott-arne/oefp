@@ -418,6 +418,61 @@ TEST(MordredDescriptorTest, PiPathCountDescriptorsMatchMordredPathSemantics) {
     }
 }
 
+TEST(MordredDescriptorTest, KappaShapeIndexDescriptorsMatchMordredPathSemantics) {
+    struct Case {
+        std::string smiles;
+        std::map<std::string, double> expected_values;
+        std::vector<std::string> missing_values;
+    };
+
+    const std::vector<Case> cases{
+        {
+            "CCCC",
+            {
+                {"Kier1", 4.0},
+                {"Kier2", 3.0},
+                {"Kier3", 4.0},
+            },
+            {},
+        },
+        {
+            "C1CCCCC1",
+            {
+                {"Kier1", 4.166666666666667},
+                {"Kier2", 2.2222222222222223},
+                {"Kier3", 1.3333333333333333},
+            },
+            {},
+        },
+        {
+            "CC(C)(C)Cl",
+            {
+                {"Kier1", 5.0},
+                {"Kier2", 1.0},
+            },
+            {"Kier3"},
+        },
+        {
+            "C",
+            {},
+            {"Kier1", "Kier2", "Kier3"},
+        },
+    };
+
+    for (const auto& expected : cases) {
+        SCOPED_TRACE(expected.smiles);
+        const auto descriptors = MakeMordredDescriptors(mol_from_smiles(expected.smiles));
+
+        for (const auto& [name, value] : expected.expected_values) {
+            EXPECT_TRUE(descriptors.Has(name)) << name;
+            EXPECT_NEAR(descriptors.Float(name), value, 1.0e-8) << name;
+        }
+        for (const auto& name : expected.missing_values) {
+            EXPECT_FALSE(descriptors.Has(name)) << name;
+        }
+    }
+}
+
 TEST(MordredDescriptorTest, FilterDescriptorsMatchCopiedMordredReferences) {
     struct Case {
         std::string smiles;

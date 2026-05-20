@@ -1135,6 +1135,37 @@ MordredPathCountValues compute_path_count_values(const OEChem::OEMolBase& mol) {
     return values;
 }
 
+std::optional<double> kappa_shape_index(
+    std::uint32_t heavy_atom_count,
+    const MordredPathCountValues& path_count_values,
+    std::size_t order) {
+    const auto path_count = path_count_values.mpc[order];
+    if (path_count == 0u) {
+        return std::nullopt;
+    }
+
+    const auto atom_count = static_cast<double>(heavy_atom_count);
+    const auto path_count_value = static_cast<double>(path_count);
+    const auto minimum_path_count = atom_count - static_cast<double>(order);
+    if (order == 1u) {
+        const auto maximum_path_count = 0.5 * atom_count * (atom_count - 1.0);
+        return 2.0 * maximum_path_count * minimum_path_count
+            / (path_count_value * path_count_value);
+    }
+    if (order == 2u) {
+        const auto maximum_path_count = 0.5 * (atom_count - 1.0) * (atom_count - 2.0);
+        return 2.0 * maximum_path_count * minimum_path_count
+            / (path_count_value * path_count_value);
+    }
+
+    const auto maximum_path_count =
+        heavy_atom_count % 2u == 0u
+            ? 0.25 * (atom_count - 2.0) * (atom_count - 2.0)
+            : 0.25 * (atom_count - 1.0) * (atom_count - 3.0);
+    return 4.0 * maximum_path_count * minimum_path_count
+        / (path_count_value * path_count_value);
+}
+
 MordredAdditivePropertyValues compute_additive_property_values(const OEChem::OEMolBase& mol) {
     const auto explicit_mol = explicit_hydrogen_copy(mol);
     OEChem::OEGraphMol ring_mol(mol);
@@ -1345,6 +1376,18 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
     set_float(builder, "piPC9", std::log(path_count_values.pi_mpc[9] + 1.0));
     set_float(builder, "piPC10", std::log(path_count_values.pi_mpc[10] + 1.0));
     set_float(builder, "TpiPC10", std::log(path_count_values.total_pi_mpc10 + 1.0));
+    set_optional_float(
+        builder,
+        "Kier1",
+        kappa_shape_index(values.heavy_atoms, path_count_values, 1u));
+    set_optional_float(
+        builder,
+        "Kier2",
+        kappa_shape_index(values.heavy_atoms, path_count_values, 2u));
+    set_optional_float(
+        builder,
+        "Kier3",
+        kappa_shape_index(values.heavy_atoms, path_count_values, 3u));
     set_float(builder, "TopoPSA(NO)", values.topo_psa_no);
     set_float(builder, "TopoPSA", values.topo_psa);
     set_float(builder, "MW", values.exact_weight);

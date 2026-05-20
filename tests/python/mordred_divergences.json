@@ -758,6 +758,30 @@
       "reason": "OEFP matches Mordred TpiPC10 values on the committed Mordred parity fixture."
     },
     {
+      "descriptor": "Kier1",
+      "family": "KappaShapeIndex",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/KappaShapeIndex.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom simple path counts used as ChiCache.path cardinalities for orders 1-3",
+      "reason": "OEFP matches Mordred Kier1 values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "Kier2",
+      "family": "KappaShapeIndex",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/KappaShapeIndex.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom simple path counts used as ChiCache.path cardinalities for orders 1-3",
+      "reason": "OEFP matches Mordred Kier2 values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "Kier3",
+      "family": "KappaShapeIndex",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/KappaShapeIndex.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom simple path counts used as ChiCache.path cardinalities for orders 1-3",
+      "reason": "OEFP matches Mordred Kier3 values on the committed Mordred parity fixture."
+    },
+    {
       "descriptor": "MWC01",
       "family": "WalkCount",
       "source": "/Users/johnss51/Development/python/mordred/mordred/WalkCount.py",
