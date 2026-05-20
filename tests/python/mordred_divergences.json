@@ -30,6 +30,14 @@
       "reason": "OEFP ports RDKit GraphDescriptors._VertexDegrees, _NumAdjacencies, and BalabanJ semantics for Mordred explicit_hydrogens=False and matches the committed Mordred parity fixture."
     },
     {
+      "descriptor": "BertzCT",
+      "family": "BertzCT",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/BertzCT.py",
+      "status": "exact",
+      "primitive": "Mordred BertzCT.py RDKit wrapper over /Users/johnss51/Development/cpp/rdkit/rdkit/Chem/GraphDescriptors.py BertzCT, _AssignSymmetryClasses, _LookUpBondOrder, _CalculateEntropies, and _CreateBondDictEtc with RDKit forceDMat bond-order symmetry distances",
+      "reason": "OEFP ports RDKit BertzCT heavy-atom symmetry classes, sorted heavy-neighbor connection counts, aromatic bond order 1.5, and base-2 entropy semantics for Mordred explicit_hydrogens=False and matches the committed Mordred parity fixture."
+    },
+    {
       "descriptor": "nAcid",
       "family": "AcidBase",
       "source": "/Users/johnss51/Development/python/mordred/mordred/AcidBase.py",

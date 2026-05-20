@@ -5,8 +5,11 @@
 #include <cmath>
 #include <cstdint>
 #include <cstddef>
+#include <iomanip>
+#include <map>
 #include <optional>
 #include <set>
+#include <sstream>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
@@ -1843,6 +1846,172 @@ std::optional<double> compute_balaban_j(
     return static_cast<double>(bond_count) / static_cast<double>(mu + 1) * edge_sum;
 }
 
+std::string bertz_distance_key(double distance) {
+    std::ostringstream stream;
+    stream << std::fixed << std::setprecision(4) << distance;
+    return stream.str();
+}
+
+std::vector<std::uint32_t> assign_bertz_symmetry_classes(
+    const std::vector<std::vector<double>>& distances) {
+    constexpr std::size_t kCutoff = 100u;
+
+    std::vector<std::vector<std::string>> keys_seen;
+    std::vector<std::uint32_t> symmetry_classes;
+    symmetry_classes.reserve(distances.size());
+
+    for (const auto& row : distances) {
+        auto sorted_row = row;
+        std::sort(sorted_row.begin(), sorted_row.end());
+        if (sorted_row.size() > kCutoff) {
+            sorted_row.resize(kCutoff);
+        }
+
+        std::vector<std::string> key;
+        key.reserve(sorted_row.size());
+        for (const auto distance : sorted_row) {
+            key.push_back(bertz_distance_key(distance));
+        }
+
+        auto found = std::find(keys_seen.begin(), keys_seen.end(), key);
+        if (found == keys_seen.end()) {
+            keys_seen.push_back(std::move(key));
+            symmetry_classes.push_back(static_cast<std::uint32_t>(keys_seen.size()));
+        } else {
+            symmetry_classes.push_back(
+                static_cast<std::uint32_t>(std::distance(keys_seen.begin(), found) + 1));
+        }
+    }
+
+    return symmetry_classes;
+}
+
+std::vector<std::vector<double>> compute_mordred_bond_order_distances(
+    const MordredHeavyAtomGraph& graph) {
+    const auto atom_count = graph.adjacency.size();
+    std::vector<std::vector<double>> distances(
+        atom_count,
+        std::vector<double>(atom_count, static_cast<double>(kMordredDisconnectedDistance)));
+
+    for (std::size_t atom_index = 0u; atom_index < atom_count; ++atom_index) {
+        distances[atom_index][atom_index] = 0.0;
+        for (const auto& neighbor : graph.adjacency[atom_index]) {
+            const auto edge_distance = 1.0 / neighbor.bond_order;
+            distances[atom_index][neighbor.atom_index] =
+                std::min(distances[atom_index][neighbor.atom_index], edge_distance);
+        }
+    }
+
+    for (std::size_t via = 0u; via < atom_count; ++via) {
+        for (std::size_t begin = 0u; begin < atom_count; ++begin) {
+            for (std::size_t end = 0u; end < atom_count; ++end) {
+                const auto through_via = distances[begin][via] + distances[via][end];
+                if (through_via < distances[begin][end]) {
+                    distances[begin][end] = through_via;
+                }
+            }
+        }
+    }
+
+    return distances;
+}
+
+double info_entropy(const std::vector<double>& counts) {
+    double total = 0.0;
+    for (const auto count : counts) {
+        total += count;
+    }
+    if (total == 0.0) {
+        return 0.0;
+    }
+
+    double entropy = 0.0;
+    for (const auto count : counts) {
+        const auto probability = count / total;
+        if (probability != 0.0) {
+            entropy += -probability * std::log2(probability);
+        }
+    }
+    return entropy;
+}
+
+double compute_bertz_ct(const MordredHeavyAtomGraph& graph) {
+    const auto atom_count = graph.atoms.size();
+    if (atom_count < 2u) {
+        return 0.0;
+    }
+
+    auto sorted_adjacency = graph.adjacency;
+    for (auto& neighbors : sorted_adjacency) {
+        std::sort(
+            neighbors.begin(),
+            neighbors.end(),
+            [](const PathCountNeighbor& left, const PathCountNeighbor& right) {
+                return left.atom_index < right.atom_index;
+            });
+    }
+
+    // RDKit BertzCT keeps forceDMat=1, so symmetry classes use the
+    // bond-order "Balaban" matrix even when Mordred passes DistanceMatrix(False).
+    const auto symmetry_distances = compute_mordred_bond_order_distances(graph);
+    const auto symmetry_classes = assign_bertz_symmetry_classes(symmetry_distances);
+    std::map<unsigned int, double> atom_type_counts;
+    std::map<std::vector<std::uint32_t>, double> connection_counts;
+
+    for (std::size_t atom_index = 0u; atom_index < atom_count; ++atom_index) {
+        atom_type_counts[graph.atoms[atom_index]->GetAtomicNum()] += 1.0;
+        const auto hinge_class = symmetry_classes[atom_index];
+        const auto& neighbors = sorted_adjacency[atom_index];
+
+        for (std::size_t left = 0u; left < neighbors.size(); ++left) {
+            const auto left_atom_index = neighbors[left].atom_index;
+            const auto left_class = symmetry_classes[left_atom_index];
+            const auto left_bond_order = neighbors[left].bond_order;
+
+            if (left_bond_order > 1.0 && left_atom_index > atom_index) {
+                const auto connection_count =
+                    left_bond_order * (left_bond_order - 1.0) / 2.0;
+                const auto lower_class = std::min(hinge_class, left_class);
+                const auto upper_class = std::max(hinge_class, left_class);
+                connection_counts[{lower_class, upper_class}] += connection_count;
+            }
+
+            for (std::size_t right = left + 1u; right < neighbors.size(); ++right) {
+                const auto right_atom_index = neighbors[right].atom_index;
+                const auto right_class = symmetry_classes[right_atom_index];
+                const auto right_bond_order = neighbors[right].bond_order;
+                const auto lower_class = std::min(left_class, right_class);
+                const auto upper_class = std::max(left_class, right_class);
+                connection_counts[{lower_class, hinge_class, upper_class}] +=
+                    left_bond_order * right_bond_order;
+            }
+        }
+    }
+
+    if (connection_counts.empty()) {
+        connection_counts[{0u}] = 1.0;
+    }
+
+    std::vector<double> connection_values;
+    connection_values.reserve(connection_counts.size());
+    double total_connections = 0.0;
+    for (const auto& entry : connection_counts) {
+        connection_values.push_back(entry.second);
+        total_connections += entry.second;
+    }
+
+    std::vector<double> atom_type_values;
+    atom_type_values.reserve(atom_type_counts.size());
+    for (const auto& entry : atom_type_counts) {
+        atom_type_values.push_back(entry.second);
+    }
+
+    const auto connection_ie =
+        total_connections * (info_entropy(connection_values) + std::log2(total_connections));
+    const auto atom_type_ie = static_cast<double>(atom_count) * info_entropy(atom_type_values);
+    return connection_ie + atom_type_ie;
+}
+
 std::vector<std::vector<std::int64_t>> compute_mordred_heavy_atom_distances(
     const MordredHeavyAtomGraph& graph) {
     const auto atom_count = graph.adjacency.size();
@@ -2573,6 +2742,7 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
         compute_vertex_adjacency_information(heavy_atom_graph);
     const auto heavy_atom_distances = compute_mordred_heavy_atom_distances(heavy_atom_graph);
     const auto balaban_j = compute_balaban_j(heavy_atom_graph, heavy_atom_distances);
+    const auto bertz_ct = compute_bertz_ct(heavy_atom_graph);
     const auto abc_index_values =
         compute_abc_index_values(heavy_atom_graph, heavy_atom_distances);
     const auto wiener_values = compute_wiener_values(heavy_atom_distances);
@@ -2741,6 +2911,7 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
     set_zagreb_values(builder, zagreb_values);
     set_abc_index_values(builder, abc_index_values);
     set_optional_float(builder, "BalabanJ", balaban_j);
+    set_float(builder, "BertzCT", bertz_ct);
     set_optional_float(builder, "VAdjMat", vertex_adjacency_information);
     set_wiener_values(builder, wiener_values);
     set_topological_index_values(builder, topological_index_values);

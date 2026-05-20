@@ -699,6 +699,43 @@ TEST(MordredDescriptorTest, BalabanJUsesHeavyAtomDistanceRowSumsAndBonds) {
     EXPECT_FALSE(MakeMordredDescriptors(empty_mol).Has("BalabanJ"));
 }
 
+TEST(MordredDescriptorTest, BertzCTUsesHeavyAtomSymmetryClassesAndBondOrders) {
+    struct Case {
+        std::string smiles;
+        double expected_value;
+    };
+
+    const std::vector<Case> cases{
+        {"[H][H]", 0.0},
+        {"C", 0.0},
+        {"CC", 0.0},
+        {"CCC", 0.0},
+        {"CCCCCC", 12.0},
+        {"CCO", 2.754887502163469},
+        {"CC#N", 24.264662506490406},
+        {"c1ccncc1", 75.86113958768547},
+        {"CC(=O)O", 27.019550008653873},
+        {"OP(=O)(O)O", 49.78353986569366},
+        {"C[N+](C)(C)CC(=O)[O-]", 93.09201719290463},
+        {"c1ccccc1[N+](=O)[O-]", 207.5576620543373},
+        {"O=S(=O)(N)C1=CC=CC=C1", 303.7795180972205},
+        {"C.CC", 0.0},
+    };
+
+    for (const auto& expected : cases) {
+        SCOPED_TRACE(expected.smiles);
+        const auto descriptors = MakeMordredDescriptors(mol_from_smiles(expected.smiles));
+
+        ASSERT_TRUE(descriptors.Has("BertzCT"));
+        EXPECT_NEAR(descriptors.Float("BertzCT"), expected.expected_value, 1.0e-12);
+    }
+
+    const OEChem::OEGraphMol empty_mol;
+    const auto descriptors = MakeMordredDescriptors(empty_mol);
+    ASSERT_TRUE(descriptors.Has("BertzCT"));
+    EXPECT_NEAR(descriptors.Float("BertzCT"), 0.0, 1.0e-12);
+}
+
 TEST(MordredDescriptorTest, ABCIndexDescriptorsUseHeavyAtomGraphBonds) {
     struct Case {
         std::string smiles;
