@@ -98,6 +98,12 @@ ENABLED_DESCRIPTOR_NAMES = {
     "ABCGG",
     "BalabanJ",
     "BertzCT",
+    "SpAbs_A",
+    "SpMax_A",
+    "SpDiam_A",
+    "SpAD_A",
+    "SpMAD_A",
+    "LogEE_A",
     "GGI1",
     "GGI2",
     "GGI3",
@@ -482,7 +488,7 @@ def test_mordred_descriptors_match_enabled_reference_values():
     names = _enabled_descriptor_names(payload)
     row_divergences = _row_divergence_policy()
 
-    assert len(names) == 349
+    assert len(names) == 355
     for row in payload["reference_rows"]:
         smiles = row["smiles"]
         descriptors = oefp.mordred_descriptors(_openeye_mol(row["smiles"]))

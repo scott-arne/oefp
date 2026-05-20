@@ -38,6 +38,54 @@
       "reason": "OEFP ports RDKit BertzCT heavy-atom symmetry classes, sorted heavy-neighbor connection counts, aromatic bond order 1.5, and base-2 entropy semantics for Mordred explicit_hydrogens=False and matches the committed Mordred parity fixture."
     },
     {
+      "descriptor": "SpAbs_A",
+      "family": "AdjacencyMatrix",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/AdjacencyMatrix.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom unweighted adjacency matrix, Mordred _graph_matrix.py AdjacencyMatrix(False), and private symmetric eigenvalue calculation matching Mordred _matrix_attributes.py Eigen with np.linalg.eigh",
+      "reason": "OEFP matches Mordred SpAbs_A values on the committed Mordred parity fixture; disconnected and no-heavy molecules remain missing through MatrixAttributeBase.require_connected."
+    },
+    {
+      "descriptor": "SpMax_A",
+      "family": "AdjacencyMatrix",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/AdjacencyMatrix.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom unweighted adjacency matrix, Mordred _graph_matrix.py AdjacencyMatrix(False), and private symmetric eigenvalue calculation matching Mordred _matrix_attributes.py Eigen with np.linalg.eigh",
+      "reason": "OEFP matches Mordred SpMax_A values on the committed Mordred parity fixture; disconnected and no-heavy molecules remain missing through MatrixAttributeBase.require_connected."
+    },
+    {
+      "descriptor": "SpDiam_A",
+      "family": "AdjacencyMatrix",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/AdjacencyMatrix.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom unweighted adjacency matrix, Mordred _graph_matrix.py AdjacencyMatrix(False), and private symmetric eigenvalue calculation matching Mordred _matrix_attributes.py Eigen with np.linalg.eigh",
+      "reason": "OEFP matches Mordred SpDiam_A values on the committed Mordred parity fixture; disconnected and no-heavy molecules remain missing through MatrixAttributeBase.require_connected."
+    },
+    {
+      "descriptor": "SpAD_A",
+      "family": "AdjacencyMatrix",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/AdjacencyMatrix.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom unweighted adjacency matrix, Mordred _graph_matrix.py AdjacencyMatrix(False), and private symmetric eigenvalue calculation matching Mordred _matrix_attributes.py Eigen with np.linalg.eigh",
+      "reason": "OEFP matches Mordred SpAD_A values on the committed Mordred parity fixture; disconnected and no-heavy molecules remain missing through MatrixAttributeBase.require_connected."
+    },
+    {
+      "descriptor": "SpMAD_A",
+      "family": "AdjacencyMatrix",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/AdjacencyMatrix.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom unweighted adjacency matrix, Mordred _graph_matrix.py AdjacencyMatrix(False), and private symmetric eigenvalue calculation matching Mordred _matrix_attributes.py Eigen with np.linalg.eigh",
+      "reason": "OEFP matches Mordred SpMAD_A values on the committed Mordred parity fixture; disconnected and no-heavy molecules remain missing through MatrixAttributeBase.require_connected."
+    },
+    {
+      "descriptor": "LogEE_A",
+      "family": "AdjacencyMatrix",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/AdjacencyMatrix.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom unweighted adjacency matrix, Mordred _graph_matrix.py AdjacencyMatrix(False), private symmetric eigenvalue calculation matching Mordred _matrix_attributes.py Eigen with np.linalg.eigh, and Mordred LogEE log-sum-exp formula",
+      "reason": "OEFP matches Mordred LogEE_A values on the committed Mordred parity fixture; disconnected and no-heavy molecules remain missing through MatrixAttributeBase.require_connected."
+    },
+    {
       "descriptor": "GGI1",
       "family": "TopologicalCharge",
       "source": "/Users/johnss51/Development/python/mordred/mordred/TopologicalCharge.py",

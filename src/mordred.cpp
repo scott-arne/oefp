@@ -7,6 +7,7 @@
 #include <cstddef>
 #include <iomanip>
 #include <map>
+#include <numeric>
 #include <optional>
 #include <set>
 #include <sstream>
@@ -144,6 +145,15 @@ struct MordredTopologicalChargeValues {
     std::array<double, 11> raw{};
     std::array<double, 11> mean{};
     double global10 = 0.0;
+};
+
+struct MordredAdjacencyMatrixEigenvalueValues {
+    double spectral_absolute = 0.0;
+    double spectral_max = 0.0;
+    double spectral_diameter = 0.0;
+    double spectral_absolute_deviation = 0.0;
+    double spectral_mean_absolute_deviation = 0.0;
+    double log_estrada_like = 0.0;
 };
 
 struct MordredRingCountSummary {
@@ -1811,6 +1821,151 @@ MordredHeavyAtomGraph build_mordred_heavy_atom_graph(const OEChem::OEMolBase& mo
     return graph;
 }
 
+bool is_connected_heavy_atom_graph(const MordredHeavyAtomGraph& graph) {
+    const auto atom_count = graph.atoms.size();
+    if (atom_count == 0u) {
+        return false;
+    }
+
+    std::vector<bool> visited(atom_count, false);
+    std::vector<std::size_t> queue;
+    queue.reserve(atom_count);
+    visited.front() = true;
+    queue.push_back(0u);
+
+    for (std::size_t head = 0u; head < queue.size(); ++head) {
+        const auto current = queue[head];
+        for (const auto& neighbor : graph.adjacency[current]) {
+            if (visited[neighbor.atom_index]) {
+                continue;
+            }
+            visited[neighbor.atom_index] = true;
+            queue.push_back(neighbor.atom_index);
+        }
+    }
+
+    return std::all_of(visited.begin(), visited.end(), [](bool value) { return value; });
+}
+
+std::optional<std::vector<double>> symmetric_eigenvalues_jacobi(
+    std::vector<double> matrix,
+    std::size_t dimension) {
+    if (dimension == 0u) {
+        return std::vector<double>{};
+    }
+    if (dimension == 1u) {
+        return std::vector<double>{matrix.front()};
+    }
+
+    constexpr double kTolerance = 1.0e-13;
+    const auto at = [dimension](std::size_t row, std::size_t column) {
+        return row * dimension + column;
+    };
+    const auto max_iterations = std::max<std::size_t>(100u, 100u * dimension * dimension);
+
+    for (std::size_t iteration = 0u; iteration < max_iterations; ++iteration) {
+        std::size_t pivot_row = 0u;
+        std::size_t pivot_column = 1u;
+        double max_off_diagonal = std::abs(matrix[at(pivot_row, pivot_column)]);
+
+        for (std::size_t row = 0u; row < dimension; ++row) {
+            for (std::size_t column = row + 1u; column < dimension; ++column) {
+                const auto value = std::abs(matrix[at(row, column)]);
+                if (value > max_off_diagonal) {
+                    max_off_diagonal = value;
+                    pivot_row = row;
+                    pivot_column = column;
+                }
+            }
+        }
+
+        if (max_off_diagonal <= kTolerance) {
+            std::vector<double> eigenvalues;
+            eigenvalues.reserve(dimension);
+            for (std::size_t index = 0u; index < dimension; ++index) {
+                eigenvalues.push_back(matrix[at(index, index)]);
+            }
+            return eigenvalues;
+        }
+
+        const auto app = matrix[at(pivot_row, pivot_row)];
+        const auto aqq = matrix[at(pivot_column, pivot_column)];
+        const auto apq = matrix[at(pivot_row, pivot_column)];
+        const auto tau = (aqq - app) / (2.0 * apq);
+        const auto t = std::copysign(
+            1.0 / (std::abs(tau) + std::sqrt(1.0 + tau * tau)),
+            tau);
+        const auto c = 1.0 / std::sqrt(1.0 + t * t);
+        const auto s = t * c;
+
+        matrix[at(pivot_row, pivot_row)] = app - t * apq;
+        matrix[at(pivot_column, pivot_column)] = aqq + t * apq;
+        matrix[at(pivot_row, pivot_column)] = 0.0;
+        matrix[at(pivot_column, pivot_row)] = 0.0;
+
+        for (std::size_t index = 0u; index < dimension; ++index) {
+            if (index == pivot_row || index == pivot_column) {
+                continue;
+            }
+
+            const auto aip = matrix[at(index, pivot_row)];
+            const auto aiq = matrix[at(index, pivot_column)];
+            const auto rotated_ip = c * aip - s * aiq;
+            const auto rotated_iq = s * aip + c * aiq;
+            matrix[at(index, pivot_row)] = rotated_ip;
+            matrix[at(pivot_row, index)] = rotated_ip;
+            matrix[at(index, pivot_column)] = rotated_iq;
+            matrix[at(pivot_column, index)] = rotated_iq;
+        }
+    }
+
+    return std::nullopt;
+}
+
+std::optional<MordredAdjacencyMatrixEigenvalueValues> compute_adjacency_matrix_eigenvalue_values(
+    const MordredHeavyAtomGraph& graph) {
+    if (!is_connected_heavy_atom_graph(graph)) {
+        return std::nullopt;
+    }
+
+    const auto atom_count = graph.atoms.size();
+    std::vector<double> adjacency_matrix(atom_count * atom_count, 0.0);
+    for (const auto [begin, end] : graph.bonds) {
+        adjacency_matrix[begin * atom_count + end] = 1.0;
+        adjacency_matrix[end * atom_count + begin] = 1.0;
+    }
+
+    auto eigenvalues = symmetric_eigenvalues_jacobi(std::move(adjacency_matrix), atom_count);
+    if (!eigenvalues.has_value()) {
+        return std::nullopt;
+    }
+
+    MordredAdjacencyMatrixEigenvalueValues values;
+    const auto [min_eigenvalue, max_eigenvalue] =
+        std::minmax_element(eigenvalues->begin(), eigenvalues->end());
+    const auto mean = std::accumulate(eigenvalues->begin(), eigenvalues->end(), 0.0)
+        / static_cast<double>(atom_count);
+
+    for (const auto eigenvalue : *eigenvalues) {
+        values.spectral_absolute += std::abs(eigenvalue);
+        values.spectral_absolute_deviation += std::abs(eigenvalue - mean);
+    }
+
+    values.spectral_max = *max_eigenvalue;
+    values.spectral_diameter = *max_eigenvalue - *min_eigenvalue;
+    values.spectral_mean_absolute_deviation =
+        values.spectral_absolute_deviation / static_cast<double>(atom_count);
+
+    const auto a = std::max(values.spectral_max, 0.0);
+    double exp_sum = std::exp(-a);
+    for (const auto eigenvalue : *eigenvalues) {
+        exp_sum += std::exp(eigenvalue - a);
+    }
+    values.log_estrada_like = a + std::log(exp_sum);
+
+    return values;
+}
+
 std::optional<double> compute_vertex_adjacency_information(const MordredHeavyAtomGraph& graph) {
     const auto heavy_heavy_bonds = graph.bonds.size();
     if (heavy_heavy_bonds == 0u) {
@@ -2773,6 +2928,17 @@ void set_topological_charge_values(
     set_float(builder, "JGT10", values.global10);
 }
 
+void set_adjacency_matrix_eigenvalue_values(
+    DescriptorSetBuilder& builder,
+    const MordredAdjacencyMatrixEigenvalueValues& values) {
+    set_float(builder, "SpAbs_A", values.spectral_absolute);
+    set_float(builder, "SpMax_A", values.spectral_max);
+    set_float(builder, "SpDiam_A", values.spectral_diameter);
+    set_float(builder, "SpAD_A", values.spectral_absolute_deviation);
+    set_float(builder, "SpMAD_A", values.spectral_mean_absolute_deviation);
+    set_float(builder, "LogEE_A", values.log_estrada_like);
+}
+
 void set_eccentric_connectivity_index(DescriptorSetBuilder& builder, std::int64_t value) {
     builder.Set("ECIndex", DescriptorValue::Int(value));
 }
@@ -2828,6 +2994,8 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
     const auto bertz_ct = compute_bertz_ct(heavy_atom_graph);
     const auto topological_charge_values =
         compute_topological_charge_values(heavy_atom_graph, heavy_atom_distances);
+    const auto adjacency_matrix_eigenvalue_values =
+        compute_adjacency_matrix_eigenvalue_values(heavy_atom_graph);
     const auto abc_index_values =
         compute_abc_index_values(heavy_atom_graph, heavy_atom_distances);
     const auto wiener_values = compute_wiener_values(heavy_atom_distances);
@@ -3001,6 +3169,9 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
     set_wiener_values(builder, wiener_values);
     set_topological_index_values(builder, topological_index_values);
     set_topological_charge_values(builder, topological_charge_values);
+    if (adjacency_matrix_eigenvalue_values.has_value()) {
+        set_adjacency_matrix_eigenvalue_values(builder, *adjacency_matrix_eigenvalue_values);
+    }
     set_eccentric_connectivity_index(builder, ec_index);
     set_ring_count_values(builder, ring_count_values.base);
     set_fused_ring_count_values(builder, ring_count_values.fused);

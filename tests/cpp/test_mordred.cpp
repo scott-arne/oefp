@@ -54,7 +54,8 @@ TEST(MordredDescriptorTest, DescriptorRowCarriesFullSchema) {
     EXPECT_TRUE(descriptors.Has("Lipinski"));
     EXPECT_TRUE(descriptors.Has("GhoseFilter"));
     EXPECT_TRUE(descriptors.Has("ABC"));
-    EXPECT_FALSE(descriptors.Has("SpAbs_A"));
+    EXPECT_TRUE(descriptors.Has("SpAbs_A"));
+    EXPECT_FALSE(descriptors.Has("VE1_A"));
 }
 
 TEST(MordredDescriptorTest, CountSubsetMatchesCopiedMordredReferences) {
@@ -734,6 +735,110 @@ TEST(MordredDescriptorTest, BertzCTUsesHeavyAtomSymmetryClassesAndBondOrders) {
     const auto descriptors = MakeMordredDescriptors(empty_mol);
     ASSERT_TRUE(descriptors.Has("BertzCT"));
     EXPECT_NEAR(descriptors.Float("BertzCT"), 0.0, 1.0e-12);
+}
+
+TEST(MordredDescriptorTest, AdjacencyMatrixEigenvalueDescriptorsMatchMordredReferences) {
+    struct Case {
+        std::string smiles;
+        std::map<std::string, double> expected_values;
+    };
+
+    const std::vector<Case> cases{
+        {
+            "C",
+            {
+                {"SpAbs_A", 0.0},
+                {"SpMax_A", 0.0},
+                {"SpDiam_A", 0.0},
+                {"SpAD_A", 0.0},
+                {"SpMAD_A", 0.0},
+                {"LogEE_A", 0.6931471805599453},
+            },
+        },
+        {
+            "CC",
+            {
+                {"SpAbs_A", 2.0},
+                {"SpMax_A", 1.0},
+                {"SpDiam_A", 2.0},
+                {"SpAD_A", 2.0},
+                {"SpMAD_A", 1.0},
+                {"LogEE_A", 1.4076059644443804},
+            },
+        },
+        {
+            "CCO",
+            {
+                {"SpAbs_A", 2.82842712474619},
+                {"SpMax_A", 1.414213562373095},
+                {"SpDiam_A", 2.82842712474619},
+                {"SpAD_A", 2.82842712474619},
+                {"SpMAD_A", 0.9428090415820632},
+                {"LogEE_A", 1.8494570055365824},
+            },
+        },
+        {
+            "c1ccncc1",
+            {
+                {"SpAbs_A", 7.999999999999998},
+                {"SpMax_A", 1.9999999999999998},
+                {"SpDiam_A", 3.999999999999999},
+                {"SpAD_A", 7.999999999999998},
+                {"SpMAD_A", 1.333333333333333},
+                {"LogEE_A", 2.6876239260352994},
+            },
+        },
+        {
+            "CCCCCC",
+            {
+                {"SpAbs_A", 6.987918414869867},
+                {"SpMax_A", 1.8019377358048383},
+                {"SpDiam_A", 3.603875471609676},
+                {"SpAD_A", 6.987918414869867},
+                {"SpMAD_A", 1.164653069144978},
+                {"LogEE_A", 2.579830499327949},
+            },
+        },
+    };
+
+    for (const auto& expected : cases) {
+        SCOPED_TRACE(expected.smiles);
+        const auto descriptors = MakeMordredDescriptors(mol_from_smiles(expected.smiles));
+
+        for (const auto& [name, value] : expected.expected_values) {
+            EXPECT_TRUE(descriptors.Has(name)) << name;
+            if (descriptors.Has(name)) {
+                EXPECT_NEAR(descriptors.Float(name), value, 1.0e-8) << name;
+            }
+        }
+    }
+}
+
+TEST(MordredDescriptorTest, AdjacencyMatrixEigenvalueDescriptorsAreMissingWhenRequiredMatrixIsMissing) {
+    const std::vector<std::string> descriptor_names{
+        "SpAbs_A",
+        "SpMax_A",
+        "SpDiam_A",
+        "SpAD_A",
+        "SpMAD_A",
+        "LogEE_A",
+    };
+
+    const OEChem::OEGraphMol empty_mol;
+    const std::vector<std::pair<std::string, OEChem::OEGraphMol>> cases{
+        {"empty", empty_mol},
+        {"[H][H]", mol_from_smiles("[H][H]")},
+        {"C.CC", mol_from_smiles("C.CC")},
+    };
+
+    for (const auto& expected : cases) {
+        SCOPED_TRACE(expected.first);
+        const auto descriptors = MakeMordredDescriptors(expected.second);
+
+        for (const auto& name : descriptor_names) {
+            EXPECT_FALSE(descriptors.Has(name)) << name;
+        }
+    }
 }
 
 TEST(MordredDescriptorTest, TopologicalChargeDescriptorsReturnZeroForEmptySelections) {
