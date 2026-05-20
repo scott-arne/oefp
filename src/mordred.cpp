@@ -128,6 +128,11 @@ struct MordredRingCountValues {
     MordredRingCountSummary aliphatic_hetero;
 };
 
+struct MordredRingCountValueSets {
+    MordredRingCountValues base;
+    MordredRingCountValues fused;
+};
+
 struct MordredRingAtomProperties {
     std::uint32_t atomic_number;
     bool aromatic;
@@ -1359,13 +1364,12 @@ MordredRingCountValues count_ring_values(
     return values;
 }
 
-MordredRingCountValues compute_component_base_ring_count_values(
-    const std::vector<std::vector<std::size_t>>& adjacency,
-    const std::vector<MordredRingAtomProperties>& atom_properties) {
+std::vector<std::vector<std::size_t>> compute_component_base_ring_cycles(
+    const std::vector<std::vector<std::size_t>>& adjacency) {
     if (needs_complete_graph_fast_find_fallback(adjacency)) {
         // RDKit falls back to FastFindRings for some highly connected graph
         // components where the SSSR search cannot find the expected cycle rank.
-        return count_ring_values(fast_find_ring_cycles(adjacency), atom_properties);
+        return fast_find_ring_cycles(adjacency);
     }
 
     std::vector<std::unordered_set<std::size_t>> adjacency_sets(adjacency.size());
@@ -1398,11 +1402,68 @@ MordredRingCountValues compute_component_base_ring_count_values(
     const auto selected_indices =
         rdkit_like_symmetrized_ring_indices(sorted_cycles, edge_indices, word_count);
 
-    MordredRingCountValues values;
+    std::vector<std::vector<std::size_t>> selected_cycles;
+    selected_cycles.reserve(selected_indices.size());
     for (const auto ring_index : selected_indices) {
-        add_ring_count_values(values, sorted_cycles[ring_index], atom_properties);
+        selected_cycles.push_back(sorted_cycles[ring_index]);
     }
-    return values;
+    return selected_cycles;
+}
+
+std::size_t shared_atom_count(
+    const std::vector<std::size_t>& left,
+    const std::vector<std::size_t>& right) {
+    std::size_t count = 0u;
+    for (const auto atom : left) {
+        if (std::find(right.begin(), right.end(), atom) != right.end()) {
+            ++count;
+        }
+    }
+    return count;
+}
+
+std::vector<std::vector<std::size_t>> fused_ring_systems(
+    const std::vector<std::vector<std::size_t>>& rings) {
+    if (rings.size() < 2u) {
+        return {};
+    }
+
+    std::vector<std::vector<std::size_t>> ring_adjacency(rings.size());
+    for (std::size_t left = 0u; left < rings.size(); ++left) {
+        for (std::size_t right = left + 1u; right < rings.size(); ++right) {
+            if (shared_atom_count(rings[left], rings[right]) >= 2u) {
+                ring_adjacency[left].push_back(right);
+                ring_adjacency[right].push_back(left);
+            }
+        }
+    }
+
+    std::vector<std::vector<std::size_t>> systems;
+    std::vector<bool> visited(rings.size(), false);
+    for (std::size_t start = 0u; start < rings.size(); ++start) {
+        if (visited[start] || ring_adjacency[start].empty()) {
+            continue;
+        }
+
+        std::set<std::size_t> fused_atoms;
+        std::vector<std::size_t> stack{start};
+        visited[start] = true;
+        while (!stack.empty()) {
+            const auto ring_index = stack.back();
+            stack.pop_back();
+            fused_atoms.insert(rings[ring_index].begin(), rings[ring_index].end());
+
+            for (const auto neighbor : ring_adjacency[ring_index]) {
+                if (!visited[neighbor]) {
+                    visited[neighbor] = true;
+                    stack.push_back(neighbor);
+                }
+            }
+        }
+
+        systems.emplace_back(fused_atoms.begin(), fused_atoms.end());
+    }
+    return systems;
 }
 
 std::vector<std::vector<std::size_t>> connected_components(
@@ -1486,9 +1547,10 @@ void add_ring_count_values(MordredRingCountValues& total, const MordredRingCount
     add_ring_count_summary(total.aliphatic_hetero, component.aliphatic_hetero);
 }
 
-MordredRingCountValues compute_base_ring_count_values(const OEChem::OEMolBase& mol) {
+MordredRingCountValueSets compute_ring_count_value_sets(const OEChem::OEMolBase& mol) {
     // Mordred/RDKit makes ring-selection decisions per connected component.
-    // Keep fused-ring grouping out of this helper; this slice uses Rings().
+    // Fused descriptors then group only the selected Rings() basis, matching
+    // Mordred's FusedRings dependency chain.
     std::unordered_map<unsigned int, std::size_t> atom_indices;
     std::vector<MordredRingAtomProperties> atom_properties;
     for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
@@ -1524,13 +1586,15 @@ MordredRingCountValues compute_base_ring_count_values(const OEChem::OEMolBase& m
         std::sort(neighbors.begin(), neighbors.end());
     }
 
-    MordredRingCountValues values;
+    MordredRingCountValueSets values;
     for (const auto& atoms : connected_components(adjacency)) {
+        const auto component_adjacency_values = component_adjacency(adjacency, atoms);
+        const auto component_properties = component_atom_properties(atom_properties, atoms);
+        const auto base_cycles = compute_component_base_ring_cycles(component_adjacency_values);
+        add_ring_count_values(values.base, count_ring_values(base_cycles, component_properties));
         add_ring_count_values(
-            values,
-            compute_component_base_ring_count_values(
-                component_adjacency(adjacency, atoms),
-                component_atom_properties(atom_properties, atoms)));
+            values.fused,
+            count_ring_values(fused_ring_systems(base_cycles), component_properties));
     }
     return values;
 }
@@ -2213,9 +2277,10 @@ void set_chi_non_path_values(
 void set_ring_count_summary(
     DescriptorSetBuilder& builder,
     const MordredRingCountSummary& values,
-    const std::string& qualifier) {
+    const std::string& qualifier,
+    std::size_t minimum_order = 3u) {
     set_int(builder, "n" + qualifier + "Ring", values.total);
-    for (std::size_t order = 3u; order <= 12u; ++order) {
+    for (std::size_t order = minimum_order; order <= 12u; ++order) {
         set_int(
             builder,
             "n" + std::to_string(order) + qualifier + "Ring",
@@ -2233,6 +2298,15 @@ void set_ring_count_values(DescriptorSetBuilder& builder, const MordredRingCount
     set_ring_count_summary(builder, values.aliphatic_hetero, "AH");
 }
 
+void set_fused_ring_count_values(DescriptorSetBuilder& builder, const MordredRingCountValues& values) {
+    set_ring_count_summary(builder, values.all, "F", 4u);
+    set_ring_count_summary(builder, values.hetero, "FH", 4u);
+    set_ring_count_summary(builder, values.aromatic, "Fa", 4u);
+    set_ring_count_summary(builder, values.aromatic_hetero, "FaH", 4u);
+    set_ring_count_summary(builder, values.aliphatic, "FA", 4u);
+    set_ring_count_summary(builder, values.aliphatic_hetero, "FAH", 4u);
+}
+
 } // namespace
 
 DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
@@ -2243,7 +2317,7 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
     const auto path_count_values = compute_path_count_values(heavy_atom_graph);
     const auto chi_path_values = compute_chi_path_values(heavy_atom_graph);
     const auto chi_non_path_values = compute_chi_non_path_values(heavy_atom_graph);
-    const auto ring_count_values = compute_base_ring_count_values(mol);
+    const auto ring_count_values = compute_ring_count_value_sets(mol);
     DescriptorSetBuilder builder(MordredDescriptorSchema());
 
     const auto all_atoms = values.heavy_atoms + values.hydrogens;
@@ -2402,7 +2476,8 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
         kappa_shape_index(values.heavy_atoms, path_count_values, 3u));
     set_chi_path_values(builder, chi_path_values);
     set_chi_non_path_values(builder, chi_non_path_values);
-    set_ring_count_values(builder, ring_count_values);
+    set_ring_count_values(builder, ring_count_values.base);
+    set_fused_ring_count_values(builder, ring_count_values.fused);
     set_float(builder, "TopoPSA(NO)", values.topo_psa_no);
     set_float(builder, "TopoPSA", values.topo_psa);
     set_float(builder, "MW", values.exact_weight);

@@ -391,6 +391,85 @@ TEST(MordredDescriptorTest, FilteredRingCountDescriptorsMatchMordredSymmSSSRRefe
     }
 }
 
+TEST(MordredDescriptorTest, FusedRingCountDescriptorsMatchMordredGroupingReferences) {
+    struct Case {
+        std::string smiles;
+        std::map<std::string, std::int64_t> expected_values;
+    };
+
+    const std::vector<std::string> names{
+        "nFRing",     "n4FRing",    "n5FRing",    "n6FRing",    "n7FRing",
+        "n8FRing",    "n9FRing",    "n10FRing",   "n11FRing",   "n12FRing",
+        "nG12FRing",  "nFHRing",    "n4FHRing",   "n5FHRing",   "n6FHRing",
+        "n7FHRing",   "n8FHRing",   "n9FHRing",   "n10FHRing",  "n11FHRing",
+        "n12FHRing",  "nG12FHRing", "nFaRing",    "n4FaRing",   "n5FaRing",
+        "n6FaRing",   "n7FaRing",   "n8FaRing",   "n9FaRing",   "n10FaRing",
+        "n11FaRing",  "n12FaRing",  "nG12FaRing", "nFaHRing",   "n4FaHRing",
+        "n5FaHRing",  "n6FaHRing",  "n7FaHRing",  "n8FaHRing",  "n9FaHRing",
+        "n10FaHRing", "n11FaHRing", "n12FaHRing", "nG12FaHRing", "nFARing",
+        "n4FARing",   "n5FARing",   "n6FARing",   "n7FARing",   "n8FARing",
+        "n9FARing",   "n10FARing",  "n11FARing",  "n12FARing",  "nG12FARing",
+        "nFAHRing",   "n4FAHRing",  "n5FAHRing",  "n6FAHRing",  "n7FAHRing",
+        "n8FAHRing",  "n9FAHRing",  "n10FAHRing", "n11FAHRing", "n12FAHRing",
+        "nG12FAHRing",
+    };
+    const std::vector<Case> cases{
+        {"CCO", {}},
+        {"C1CCCCC1.C1CCCCC1", {}},
+        {
+            "C1=CC2=C(C=C1)C=CC=C2",
+            {{"nFRing", 1}, {"n10FRing", 1}, {"nFaRing", 1}, {"n10FaRing", 1}},
+        },
+        {
+            "c1ccc2ncccc2c1",
+            {
+                {"nFRing", 1},
+                {"n10FRing", 1},
+                {"nFHRing", 1},
+                {"n10FHRing", 1},
+                {"nFaRing", 1},
+                {"n10FaRing", 1},
+                {"nFaHRing", 1},
+                {"n10FaHRing", 1},
+            },
+        },
+        {
+            "C12C3C4C1C5C2C3C45",
+            {{"nFRing", 1}, {"n8FRing", 1}, {"nFARing", 1}, {"n8FARing", 1}},
+        },
+        {
+            "C1C2CC3CC1CC(C2)C3",
+            {{"nFRing", 1}, {"n10FRing", 1}, {"nFARing", 1}, {"n10FARing", 1}},
+        },
+        {
+            "O1CC2CCC1C2",
+            {
+                {"nFRing", 1},
+                {"n7FRing", 1},
+                {"nFHRing", 1},
+                {"n7FHRing", 1},
+                {"nFARing", 1},
+                {"n7FARing", 1},
+                {"nFAHRing", 1},
+                {"n7FAHRing", 1},
+            },
+        },
+    };
+
+    for (const auto& expected : cases) {
+        SCOPED_TRACE(expected.smiles);
+        const auto descriptors = MakeMordredDescriptors(mol_from_smiles(expected.smiles));
+
+        for (const auto& name : names) {
+            const auto found = expected.expected_values.find(name);
+            const auto expected_value =
+                found == expected.expected_values.end() ? 0 : found->second;
+            EXPECT_TRUE(descriptors.Has(name)) << name;
+            EXPECT_EQ(descriptors.Int(name), expected_value) << name;
+        }
+    }
+}
+
 TEST(MordredDescriptorTest, WalkCountDescriptorsMatchCopiedMordredReferences) {
     struct Case {
         std::string smiles;
