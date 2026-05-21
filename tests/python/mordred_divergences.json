@@ -334,6 +334,86 @@
       "reason": "OEFP matches Mordred VR3_DzZ values on the committed Mordred parity fixture; singleton heavy-atom rows remain missing through Mordred rethrow_zerodiv log(0) behavior without suppressing other matrix descriptors."
     },
     {
+      "descriptor": "MDEC-11",
+      "family": "MolecularDistanceEdge",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/MolecularDistanceEdge.py",
+      "status": "exact",
+      "primitive": "Mordred MolecularDistanceEdge.py carbon atom-pair selection using DistanceMatrix(False) and Valence(False) from /Users/johnss51/Development/python/mordred/mordred/_graph_matrix.py, with heavy-atom unweighted shortest-path distances and unweighted heavy-atom graph degree pairs",
+      "reason": "OEFP matches Mordred MDEC-11 values and no-pair missing behavior on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MDEC-12",
+      "family": "MolecularDistanceEdge",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/MolecularDistanceEdge.py",
+      "status": "exact",
+      "primitive": "Mordred MolecularDistanceEdge.py carbon atom-pair selection using DistanceMatrix(False) and Valence(False) from /Users/johnss51/Development/python/mordred/mordred/_graph_matrix.py, with heavy-atom unweighted shortest-path distances and unweighted heavy-atom graph degree pairs",
+      "reason": "OEFP matches Mordred MDEC-12 values and no-pair missing behavior on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MDEC-13",
+      "family": "MolecularDistanceEdge",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/MolecularDistanceEdge.py",
+      "status": "exact",
+      "primitive": "Mordred MolecularDistanceEdge.py carbon atom-pair selection using DistanceMatrix(False) and Valence(False) from /Users/johnss51/Development/python/mordred/mordred/_graph_matrix.py, with heavy-atom unweighted shortest-path distances and unweighted heavy-atom graph degree pairs",
+      "reason": "OEFP matches Mordred MDEC-13 values and no-pair missing behavior on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MDEC-14",
+      "family": "MolecularDistanceEdge",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/MolecularDistanceEdge.py",
+      "status": "exact",
+      "primitive": "Mordred MolecularDistanceEdge.py carbon atom-pair selection using DistanceMatrix(False) and Valence(False) from /Users/johnss51/Development/python/mordred/mordred/_graph_matrix.py, with heavy-atom unweighted shortest-path distances and unweighted heavy-atom graph degree pairs",
+      "reason": "OEFP matches Mordred MDEC-14 values and no-pair missing behavior on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MDEC-22",
+      "family": "MolecularDistanceEdge",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/MolecularDistanceEdge.py",
+      "status": "exact",
+      "primitive": "Mordred MolecularDistanceEdge.py carbon atom-pair selection using DistanceMatrix(False) and Valence(False) from /Users/johnss51/Development/python/mordred/mordred/_graph_matrix.py, with heavy-atom unweighted shortest-path distances and unweighted heavy-atom graph degree pairs",
+      "reason": "OEFP matches Mordred MDEC-22 values and no-pair missing behavior on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MDEC-23",
+      "family": "MolecularDistanceEdge",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/MolecularDistanceEdge.py",
+      "status": "exact",
+      "primitive": "Mordred MolecularDistanceEdge.py carbon atom-pair selection using DistanceMatrix(False) and Valence(False) from /Users/johnss51/Development/python/mordred/mordred/_graph_matrix.py, with heavy-atom unweighted shortest-path distances and unweighted heavy-atom graph degree pairs",
+      "reason": "OEFP matches Mordred MDEC-23 values and no-pair missing behavior on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MDEC-24",
+      "family": "MolecularDistanceEdge",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/MolecularDistanceEdge.py",
+      "status": "exact",
+      "primitive": "Mordred MolecularDistanceEdge.py carbon atom-pair selection using DistanceMatrix(False) and Valence(False) from /Users/johnss51/Development/python/mordred/mordred/_graph_matrix.py, with heavy-atom unweighted shortest-path distances and unweighted heavy-atom graph degree pairs",
+      "reason": "OEFP matches Mordred MDEC-24 values and no-pair missing behavior on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MDEC-33",
+      "family": "MolecularDistanceEdge",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/MolecularDistanceEdge.py",
+      "status": "exact",
+      "primitive": "Mordred MolecularDistanceEdge.py carbon atom-pair selection using DistanceMatrix(False) and Valence(False) from /Users/johnss51/Development/python/mordred/mordred/_graph_matrix.py, with heavy-atom unweighted shortest-path distances and unweighted heavy-atom graph degree pairs",
+      "reason": "OEFP matches Mordred MDEC-33 values and no-pair missing behavior on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MDEC-34",
+      "family": "MolecularDistanceEdge",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/MolecularDistanceEdge.py",
+      "status": "exact",
+      "primitive": "Mordred MolecularDistanceEdge.py carbon atom-pair selection using DistanceMatrix(False) and Valence(False) from /Users/johnss51/Development/python/mordred/mordred/_graph_matrix.py, with heavy-atom unweighted shortest-path distances and unweighted heavy-atom graph degree pairs",
+      "reason": "OEFP matches Mordred MDEC-34 values and no-pair missing behavior on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MDEC-44",
+      "family": "MolecularDistanceEdge",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/MolecularDistanceEdge.py",
+      "status": "exact",
+      "primitive": "Mordred MolecularDistanceEdge.py carbon atom-pair selection using DistanceMatrix(False) and Valence(False) from /Users/johnss51/Development/python/mordred/mordred/_graph_matrix.py, with heavy-atom unweighted shortest-path distances and unweighted heavy-atom graph degree pairs",
+      "reason": "OEFP matches Mordred MDEC-44 no-pair missing behavior on the committed Mordred parity fixture."
+    },
+    {
       "descriptor": "GGI1",
       "family": "TopologicalCharge",
       "source": "/Users/johnss51/Development/python/mordred/mordred/TopologicalCharge.py",

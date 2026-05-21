@@ -1137,6 +1137,78 @@ TEST(MordredDescriptorTest, BaryszAtomicNumberMatrixDescriptorsAreMissingWhenReq
     }
 }
 
+TEST(MordredDescriptorTest, CarbonMolecularDistanceEdgeDescriptorsMatchMordredReferences) {
+    struct Case {
+        std::string smiles;
+        std::map<std::string, double> expected_values;
+        std::vector<std::string> missing_values;
+    };
+
+    const std::vector<Case> cases{
+        {
+            "C[N+](C)(C)CC(=O)[O-]",
+            {
+                {"MDEC-11", 1.5000000000000004},
+                {"MDEC-12", 1.5000000000000004},
+                {"MDEC-13", 1.0000000000000002},
+                {"MDEC-23", 1.0},
+            },
+            {"MDEC-14", "MDEC-22", "MDEC-24", "MDEC-33", "MDEC-34", "MDEC-44"},
+        },
+        {
+            "FC(F)(F)c1ccc(Br)cc1",
+            {
+                {"MDEC-22", 3.3019272488946267},
+                {"MDEC-23", 5.656854249492381},
+                {"MDEC-24", 1.6329931618554518},
+                {"MDEC-33", 0.33333333333333337},
+                {"MDEC-34", 0.9999999999999998},
+            },
+            {"MDEC-11", "MDEC-12", "MDEC-13", "MDEC-14", "MDEC-44"},
+        },
+        {
+            "CC(C)(C)C(C)(C)C",
+            {
+                {"MDEC-11", 5.880395112623368},
+                {"MDEC-14", 8.485281374238571},
+                {"MDEC-44", 1.0},
+            },
+            {"MDEC-12", "MDEC-13", "MDEC-22", "MDEC-23", "MDEC-24", "MDEC-33", "MDEC-34"},
+        },
+        {
+            "C",
+            {},
+            {
+                "MDEC-11",
+                "MDEC-12",
+                "MDEC-13",
+                "MDEC-14",
+                "MDEC-22",
+                "MDEC-23",
+                "MDEC-24",
+                "MDEC-33",
+                "MDEC-34",
+                "MDEC-44",
+            },
+        },
+    };
+
+    for (const auto& expected : cases) {
+        SCOPED_TRACE(expected.smiles);
+        const auto descriptors = MakeMordredDescriptors(mol_from_smiles(expected.smiles));
+
+        for (const auto& [name, value] : expected.expected_values) {
+            EXPECT_TRUE(descriptors.Has(name)) << name;
+            if (descriptors.Has(name)) {
+                EXPECT_NEAR(descriptors.Float(name), value, 1.0e-8) << name;
+            }
+        }
+        for (const auto& name : expected.missing_values) {
+            EXPECT_FALSE(descriptors.Has(name)) << name;
+        }
+    }
+}
+
 TEST(MordredDescriptorTest, TopologicalChargeDescriptorsReturnZeroForEmptySelections) {
     const std::vector<std::string> descriptor_names{
         "GGI1", "GGI2",  "GGI3",  "GGI4",  "GGI5",  "GGI6",  "GGI7",

@@ -129,6 +129,10 @@ struct MordredABCIndexValues {
     double abcgg = 0.0;
 };
 
+struct MordredMolecularDistanceEdgeValues {
+    std::array<std::array<std::optional<double>, 5>, 5> carbon{};
+};
+
 struct MordredWienerValues {
     std::int64_t wpath = 0;
     std::int64_t wpol = 0;
@@ -2432,6 +2436,55 @@ MordredABCIndexValues compute_abc_index_values(
     return values;
 }
 
+MordredMolecularDistanceEdgeValues compute_molecular_distance_edge_values(
+    const MordredHeavyAtomGraph& graph,
+    const std::vector<std::vector<std::int64_t>>& distances) {
+    MordredMolecularDistanceEdgeValues values;
+    constexpr int kCarbonAtomicNumber = 6;
+
+    for (std::size_t valence1 = 1u; valence1 <= 4u; ++valence1) {
+        for (std::size_t valence2 = valence1; valence2 <= 4u; ++valence2) {
+            std::size_t selected_count = 0u;
+            double log_distance_product = 0.0;
+
+            for (std::size_t begin = 0u; begin < graph.atoms.size(); ++begin) {
+                const auto* begin_atom = graph.atoms[begin];
+                if (begin_atom->GetAtomicNum() != kCarbonAtomicNumber) {
+                    continue;
+                }
+                const auto begin_degree = graph.adjacency[begin].size();
+
+                for (std::size_t end = begin + 1u; end < graph.atoms.size(); ++end) {
+                    const auto* end_atom = graph.atoms[end];
+                    if (end_atom->GetAtomicNum() != kCarbonAtomicNumber) {
+                        continue;
+                    }
+                    const auto end_degree = graph.adjacency[end].size();
+                    const auto matches_order =
+                        begin_degree == valence1 && end_degree == valence2;
+                    const auto matches_reverse =
+                        begin_degree == valence2 && end_degree == valence1;
+                    if (!matches_order && !matches_reverse) {
+                        continue;
+                    }
+
+                    log_distance_product += std::log(static_cast<double>(distances[begin][end]));
+                    ++selected_count;
+                }
+            }
+
+            if (selected_count == 0u) {
+                continue;
+            }
+            values.carbon[valence1][valence2] =
+                static_cast<double>(selected_count)
+                / std::exp(log_distance_product / static_cast<double>(selected_count));
+        }
+    }
+
+    return values;
+}
+
 MordredZagrebValues compute_zagreb_values(const MordredHeavyAtomGraph& graph) {
     MordredZagrebValues values;
     double modified_zagreb1 = 0.0;
@@ -3036,6 +3089,19 @@ void set_abc_index_values(DescriptorSetBuilder& builder, const MordredABCIndexVa
     set_float(builder, "ABCGG", values.abcgg);
 }
 
+void set_molecular_distance_edge_values(
+    DescriptorSetBuilder& builder,
+    const MordredMolecularDistanceEdgeValues& values) {
+    for (std::size_t valence1 = 1u; valence1 <= 4u; ++valence1) {
+        for (std::size_t valence2 = valence1; valence2 <= 4u; ++valence2) {
+            set_optional_float(
+                builder,
+                "MDEC-" + std::to_string(valence1) + std::to_string(valence2),
+                values.carbon[valence1][valence2]);
+        }
+    }
+}
+
 void set_wiener_values(DescriptorSetBuilder& builder, const MordredWienerValues& values) {
     builder.Set("WPath", DescriptorValue::Int(values.wpath));
     builder.Set("WPol", DescriptorValue::Int(values.wpol));
@@ -3178,6 +3244,8 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
         compute_distance_matrix_eigenvalue_values(heavy_atom_graph, heavy_atom_distances);
     const auto barysz_atomic_number_matrix_values =
         compute_barysz_atomic_number_matrix_values(heavy_atom_graph);
+    const auto molecular_distance_edge_values =
+        compute_molecular_distance_edge_values(heavy_atom_graph, heavy_atom_distances);
     const auto abc_index_values =
         compute_abc_index_values(heavy_atom_graph, heavy_atom_distances);
     const auto wiener_values = compute_wiener_values(heavy_atom_distances);
@@ -3344,6 +3412,7 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
     set_chi_path_values(builder, chi_path_values);
     set_chi_non_path_values(builder, chi_non_path_values);
     set_zagreb_values(builder, zagreb_values);
+    set_molecular_distance_edge_values(builder, molecular_distance_edge_values);
     set_abc_index_values(builder, abc_index_values);
     set_optional_float(builder, "BalabanJ", balaban_j);
     set_float(builder, "BertzCT", bertz_ct);
