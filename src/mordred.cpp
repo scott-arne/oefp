@@ -886,6 +886,16 @@ MordredFirstBatchValues compute_first_batch_values(const OEChem::OEMolBase& mol)
     return values;
 }
 
+double compute_fragment_complexity(const MordredFirstBatchValues& values) {
+    const auto atom_count = static_cast<std::int64_t>(values.heavy_atoms);
+    const auto bond_count = static_cast<std::int64_t>(values.heavy_bonds);
+    const auto topology_term = bond_count * bond_count - atom_count * atom_count + atom_count;
+    const auto absolute_topology_term =
+        topology_term < 0 ? -topology_term : topology_term;
+    return static_cast<double>(absolute_topology_term)
+           + static_cast<double>(values.hetero_atoms) / 100.0;
+}
+
 using AtomicPropertyGetter = std::optional<double> (*)(std::uint32_t);
 
 OEChem::OEGraphMol explicit_hydrogen_copy(const OEChem::OEMolBase& mol) {
@@ -3350,6 +3360,7 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
         values.carbon == 0u
             ? 0.0
             : static_cast<double>(values.sp3_carbons) / static_cast<double>(values.carbon));
+    set_float(builder, "fragCpx", compute_fragment_complexity(values));
     set_int(builder, "nHBAcc", values.hbond_acceptors);
     set_int(builder, "nHBDon", values.hbond_donors);
 

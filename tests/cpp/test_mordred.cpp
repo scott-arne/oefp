@@ -175,6 +175,29 @@ TEST(MordredDescriptorTest, CrippenDescriptorsMatchCopiedMordredReferences) {
     }
 }
 
+TEST(MordredDescriptorTest, FragmentComplexityMatchesCopiedMordredReferences) {
+    struct Case {
+        std::string smiles;
+        double expected_value;
+    };
+
+    const std::vector<Case> cases{
+        {"C", 0.0},
+        {"CCO", 2.01},
+        {"CC(C)(C)Cl", 4.01},
+        {"C1=CC2=C(C=C1)C=CC=C2", 31.0},
+        {"O=S(=O)(N)C1=CC=CC=C1", 10.04},
+    };
+
+    for (const auto& expected : cases) {
+        SCOPED_TRACE(expected.smiles);
+        const auto descriptors = MakeMordredDescriptors(mol_from_smiles(expected.smiles));
+
+        ASSERT_TRUE(descriptors.Has("fragCpx"));
+        EXPECT_NEAR(descriptors.Float("fragCpx"), expected.expected_value, 1.0e-12);
+    }
+}
+
 TEST(MordredDescriptorTest, AdditivePropertyDescriptorsMatchCopiedMordredReferences) {
     struct Case {
         std::string smiles;

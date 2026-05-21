@@ -154,6 +154,7 @@ ENABLED_DESCRIPTOR_NAMES = {
     "MDEN-22",
     "MDEN-23",
     "MDEN-33",
+    "fragCpx",
     "GGI1",
     "GGI2",
     "GGI3",
@@ -538,12 +539,13 @@ def test_mordred_descriptors_match_enabled_reference_values():
     names = _enabled_descriptor_names(payload)
     row_divergences = _row_divergence_policy()
 
-    assert len(names) == 405
+    assert len(names) == 406
     assert {"VR1_A", "VR2_A", "VR3_A", "VR1_D", "VR2_D", "VR3_D"} <= set(names)
     assert {"SM1_DzZ", "VR1_DzZ", "VR2_DzZ", "VR3_DzZ"} <= set(names)
     assert {"MDEC-11", "MDEC-12", "MDEC-44"} <= set(names)
     assert {"MDEO-11", "MDEO-12", "MDEO-22"} <= set(names)
     assert {"MDEN-11", "MDEN-12", "MDEN-33"} <= set(names)
+    assert "fragCpx" in names
     for row in payload["reference_rows"]:
         smiles = row["smiles"]
         descriptors = oefp.mordred_descriptors(_openeye_mol(row["smiles"]))

@@ -982,6 +982,14 @@
       "reason": "OEFP matches Mordred FCSP3 values on the committed Mordred parity fixture."
     },
     {
+      "descriptor": "fragCpx",
+      "family": "FragmentComplexity",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/FragmentComplexity.py",
+      "status": "exact",
+      "primitive": "Mordred implicit-H atom count, implicit-H bond count, and non-carbon atom count formula abs(B ** 2 - A ** 2 + A) + H / 100",
+      "reason": "OEFP matches Mordred fragCpx values on the committed Mordred parity fixture."
+    },
+    {
       "descriptor": "nHBAcc",
       "family": "HydrogenBond",
       "source": "/Users/johnss51/Development/python/mordred/mordred/HydrogenBond.py",
