@@ -122,6 +122,21 @@ const std::vector<std::string>& estate_vsa_names() {
     return names;
 }
 
+const std::vector<std::string>& smr_vsa_names() {
+    static const std::vector<std::string> names{
+        "SMR_VSA1",
+        "SMR_VSA2",
+        "SMR_VSA3",
+        "SMR_VSA4",
+        "SMR_VSA5",
+        "SMR_VSA6",
+        "SMR_VSA7",
+        "SMR_VSA8",
+        "SMR_VSA9",
+    };
+    return names;
+}
+
 std::uint32_t count_or_zero(
     const std::map<std::string, std::uint32_t>& counts,
     const std::string& key) {
@@ -798,6 +813,93 @@ TEST(MordredDescriptorTest, EStateVSADescriptorsAreMissingForNonFiniteDummyAtomS
     const auto descriptors = MakeMordredDescriptors(mol_from_smiles("**"));
 
     for (const auto& name : estate_vsa_names()) {
+        EXPECT_FALSE(descriptors.Has(name)) << name;
+    }
+}
+
+TEST(MordredDescriptorTest, SMRVSADescriptorsMatchCopiedMordredReferences) {
+    struct Case {
+        std::string smiles;
+        std::vector<double> expected_values;
+    };
+
+    const std::vector<Case> cases{
+        {
+            "CCO",
+            {5.106527394840706, 0.0, 0.0, 0.0, 6.923737199690624,
+             6.606881964512918, 0.0, 0.0, 0.0},
+        },
+        {
+            "FC(F)(F)c1ccc(Br)cc1",
+            {13.171245143024459, 0.0, 0.0, 0.0, 6.176298517443475, 0.0,
+             34.30163928137585, 0.0, 0.0},
+        },
+        {
+            "COC(=O)c1ccc(OCC)c(O)c1C(=O)OCC",
+            {28.906190624384493, 0.0, 0.0, 0.0, 13.847474399381248,
+             20.32356147030337, 23.259637120317212, 0.0, 11.49902366656781},
+        },
+    };
+
+    for (const auto& expected : cases) {
+        SCOPED_TRACE(expected.smiles);
+        const auto descriptors = MakeMordredDescriptors(mol_from_smiles(expected.smiles));
+
+        ASSERT_EQ(expected.expected_values.size(), smr_vsa_names().size());
+        for (std::size_t index = 0u; index < smr_vsa_names().size(); ++index) {
+            const auto& name = smr_vsa_names()[index];
+            ASSERT_TRUE(descriptors.Has(name)) << name;
+            EXPECT_NEAR(descriptors.Float(name), expected.expected_values[index], 1.0e-12)
+                << name;
+        }
+    }
+}
+
+TEST(MordredDescriptorTest, SMRVSADescriptorsKeepFiniteUntypedAtoms) {
+    struct Case {
+        std::string smiles;
+        std::vector<double> expected_values;
+    };
+
+    const std::vector<Case> cases{
+        {"*", {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0}},
+        {"[He]", {6.150546350318038, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0}},
+        {"[H]", {1.426638064699622, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0}},
+    };
+
+    for (const auto& expected : cases) {
+        SCOPED_TRACE(expected.smiles);
+        const auto descriptors = MakeMordredDescriptors(mol_from_smiles(expected.smiles));
+
+        ASSERT_EQ(expected.expected_values.size(), smr_vsa_names().size());
+        for (std::size_t index = 0u; index < smr_vsa_names().size(); ++index) {
+            const auto& name = smr_vsa_names()[index];
+            ASSERT_TRUE(descriptors.Has(name)) << name;
+            EXPECT_NEAR(descriptors.Float(name), expected.expected_values[index], 1.0e-12)
+                << name;
+        }
+    }
+}
+
+TEST(MordredDescriptorTest, SMRVSADescriptorsTreatExplicitHydrogensAsImplicit) {
+    OEChem::OEGraphMol explicit_mol = mol_from_smiles("CCO");
+    OEChem::OEAddExplicitHydrogens(explicit_mol);
+
+    const auto implicit_descriptors = MakeMordredDescriptors(mol_from_smiles("CCO"));
+    const auto explicit_descriptors = MakeMordredDescriptors(explicit_mol);
+
+    for (const auto& name : smr_vsa_names()) {
+        ASSERT_TRUE(implicit_descriptors.Has(name)) << name;
+        ASSERT_TRUE(explicit_descriptors.Has(name)) << name;
+        EXPECT_NEAR(explicit_descriptors.Float(name), implicit_descriptors.Float(name), 1.0e-12)
+            << name;
+    }
+}
+
+TEST(MordredDescriptorTest, SMRVSADescriptorsAreMissingForNonFiniteDummyAtomSurface) {
+    const auto descriptors = MakeMordredDescriptors(mol_from_smiles("**"));
+
+    for (const auto& name : smr_vsa_names()) {
         EXPECT_FALSE(descriptors.Has(name)) << name;
     }
 }

@@ -93,6 +93,12 @@ struct MordredLabuteAsaValues {
     std::vector<unsigned int> atom_ids;
 };
 
+struct MordredCrippenAtomContributions {
+    std::vector<double> logp;
+    std::vector<double> mr;
+    std::vector<unsigned int> atom_ids;
+};
+
 struct MordredWalkCountValues {
     std::array<double, 11> mwc{};
     std::array<double, 11> srw{};
@@ -1013,6 +1019,73 @@ std::pair<double, double> compute_crippen_descriptors(const OEChem::OEMolBase& m
         }
     }
     return {logp, mr};
+}
+
+std::optional<MordredCrippenAtomContributions> compute_crippen_atom_contributions(
+    const OEChem::OEMolBase& mol) {
+    OEChem::OEGraphMol crippen_mol(mol);
+    OEChem::OEFindRingAtomsAndBonds(crippen_mol);
+    OEChem::OEAssignAromaticFlags(crippen_mol);
+    OEChem::OEAssignHybridization(crippen_mol);
+    OEChem::OESuppressHydrogens(crippen_mol);
+    OEChem::OEFindRingAtomsAndBonds(crippen_mol);
+    OEChem::OEAssignAromaticFlags(crippen_mol);
+    OEChem::OEAssignHybridization(crippen_mol);
+
+    std::unordered_map<unsigned int, std::size_t> atom_indices;
+    MordredCrippenAtomContributions contributions;
+    contributions.logp.reserve(crippen_mol.NumAtoms());
+    contributions.mr.reserve(crippen_mol.NumAtoms());
+    contributions.atom_ids.reserve(crippen_mol.NumAtoms());
+    bool has_hydrogen_atom = false;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = crippen_mol.GetAtoms(); atom; ++atom) {
+        atom_indices.emplace(atom->GetIdx(), contributions.atom_ids.size());
+        contributions.logp.push_back(0.0);
+        contributions.mr.push_back(0.0);
+        contributions.atom_ids.push_back(atom->GetIdx());
+        has_hydrogen_atom = has_hydrogen_atom || atom->GetAtomicNum() == 1;
+    }
+
+    std::vector<bool> assigned(contributions.atom_ids.size(), false);
+    for (const auto& pattern : crippen_patterns()) {
+        if (!has_hydrogen_atom && std::string(pattern.smarts).rfind("[#1]", 0u) == 0u) {
+            continue;
+        }
+        OEChem::OESubSearch search(pattern.smarts);
+        if (!search) {
+            continue;
+        }
+        for (OESystem::OEIter<OEChem::OEMatchBase> match = search.Match(crippen_mol, false);
+             match; ++match) {
+            for (OESystem::OEIter<OEChem::OEMatchPair<OEChem::OEAtomBase>> atom_match =
+                     match->GetAtoms();
+                 atom_match; ++atom_match) {
+                if (atom_match->pattern == nullptr || atom_match->target == nullptr
+                    || atom_match->pattern->GetIdx() != 0u) {
+                    continue;
+                }
+                const auto atom_index = atom_indices.find(atom_match->target->GetIdx());
+                if (atom_index == atom_indices.end() || assigned[atom_index->second]) {
+                    continue;
+                }
+
+                const auto contribution_index = atom_index->second;
+                contributions.logp[contribution_index] = pattern.logp;
+                contributions.mr[contribution_index] = pattern.mr;
+                assigned[contribution_index] = true;
+            }
+        }
+    }
+
+    for (std::size_t atom_index = 0u; atom_index < assigned.size(); ++atom_index) {
+        // RDKit initializes per-atom Crippen contributions to zero and leaves
+        // unmatched atoms there; SMR_VSA should remain defined for finite surfaces.
+        if (!std::isfinite(contributions.logp[atom_index])
+            || !std::isfinite(contributions.mr[atom_index])) {
+            return std::nullopt;
+        }
+    }
+    return contributions;
 }
 
 std::uint32_t count_mordred_acids(const OEChem::OEMolBase& mol) {
@@ -3978,6 +4051,66 @@ bool labute_values_align_with_heavy_atom_graph(
     return true;
 }
 
+bool labute_values_align_with_crippen_atom_contributions(
+    const MordredLabuteAsaValues& labute_values,
+    const MordredCrippenAtomContributions& crippen_contributions) {
+    if (labute_values.atom_contributions.size() != crippen_contributions.mr.size()
+        || labute_values.atom_ids.size() != crippen_contributions.atom_ids.size()) {
+        return false;
+    }
+
+    for (std::size_t atom_index = 0u; atom_index < labute_values.atom_ids.size(); ++atom_index) {
+        if (labute_values.atom_ids[atom_index] != crippen_contributions.atom_ids[atom_index]) {
+            return false;
+        }
+    }
+    return true;
+}
+
+std::optional<std::array<double, 9>> compute_smr_vsa_values(
+    const OEChem::OEMolBase& mol,
+    const MordredLabuteAsaValues& labute_values) {
+    static constexpr std::array<double, 9> mr_bins{{
+        1.29,
+        1.82,
+        2.24,
+        2.45,
+        2.75,
+        3.05,
+        3.63,
+        3.8,
+        4.0,
+    }};
+
+    const auto crippen_contributions = compute_crippen_atom_contributions(mol);
+    if (!crippen_contributions.has_value()
+        || !labute_values_align_with_crippen_atom_contributions(
+            labute_values,
+            *crippen_contributions)) {
+        return std::nullopt;
+    }
+
+    std::array<double, 9> values{};
+    for (std::size_t atom_index = 0u; atom_index < crippen_contributions->mr.size();
+         ++atom_index) {
+        const auto mr_contribution = crippen_contributions->mr[atom_index];
+        const auto atom_contribution = labute_values.atom_contributions[atom_index];
+        if (!std::isfinite(mr_contribution) || !std::isfinite(atom_contribution)) {
+            return std::nullopt;
+        }
+
+        // RDKit SMR_VSA_ uses upper_bound/bisect_right on per-atom MR values.
+        // Mordred exposes bins 0..8 as SMR_VSA1..SMR_VSA9 and hides the tail.
+        const auto bin = static_cast<std::size_t>(
+            std::upper_bound(mr_bins.begin(), mr_bins.end(), mr_contribution)
+            - mr_bins.begin());
+        if (bin < values.size()) {
+            values[bin] += atom_contribution;
+        }
+    }
+    return values;
+}
+
 std::optional<std::array<double, 9>> compute_vsa_estate_values(
     const OEChem::OEMolBase& mol,
     const MordredLabuteAsaValues& labute_values) {
@@ -4810,6 +4943,10 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
     const auto ring_count_values = compute_ring_count_value_sets(mol);
     const auto estate_values = compute_mordred_estate_values(mol);
     const auto labute_asa_values = compute_labute_asa_values(mol);
+    const auto smr_vsa_values =
+        labute_asa_values.has_value()
+            ? compute_smr_vsa_values(mol, *labute_asa_values)
+            : std::optional<std::array<double, 9>>{};
     const auto vsa_estate_values =
         labute_asa_values.has_value()
             ? compute_vsa_estate_values(mol, *labute_asa_values)
@@ -4929,6 +5066,14 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
         "LabuteASA",
         labute_asa_values.has_value() ? std::optional<double>{labute_asa_values->total}
                                       : std::nullopt);
+    if (smr_vsa_values.has_value()) {
+        for (std::size_t index = 0u; index < smr_vsa_values->size(); ++index) {
+            set_float(
+                builder,
+                "SMR_VSA" + std::to_string(index + 1u),
+                (*smr_vsa_values)[index]);
+        }
+    }
     if (estate_vsa_values.has_value()) {
         for (std::size_t index = 0u; index < estate_vsa_values->size(); ++index) {
             set_float(
