@@ -232,6 +232,11 @@ struct MordredRingAtomProperties {
     bool aromatic;
 };
 
+struct MordredEStateCountPattern {
+    const char* descriptor_name;
+    const char* smarts;
+};
+
 struct AtomicPropertyValue {
     std::uint32_t atomic_number;
     double value;
@@ -595,6 +600,136 @@ std::uint32_t count_unique_smarts_root_atoms(
         }
     }
     return static_cast<std::uint32_t>(matched_atom_indices.size());
+}
+
+const std::array<MordredEStateCountPattern, 79>& mordred_estate_count_patterns() {
+    static const std::array<MordredEStateCountPattern, 79> patterns{{
+        {"NsLi", "[LiD1]-*"},
+        {"NssBe", "[BeD2](-*)-*"},
+        {"NssssBe", "[BeD4](-*)(-*)(-*)-*"},
+        {"NssBH", "[BD2H](-*)-*"},
+        {"NsssB", "[BD3](-*)(-*)-*"},
+        {"NssssB", "[BD4](-*)(-*)(-*)-*"},
+        {"NsCH3", "[CD1H3]-*"},
+        {"NdCH2", "[CD1H2]=*"},
+        {"NssCH2", "[CD2H2](-*)-*"},
+        {"NtCH", "[CD1H]#*"},
+        {"NdsCH", "[CD2H](=*)-*"},
+        {"NaaCH", "[C,c;D2H](:*):*"},
+        {"NsssCH", "[CD3H](-*)(-*)-*"},
+        {"NddC", "[CD2H0](=*)=*"},
+        {"NtsC", "[CD2H0](#*)-*"},
+        {"NdssC", "[CD3H0](=*)(-*)-*"},
+        {"NaasC", "[C,c;D3H0](:*)(:*)-*"},
+        {"NaaaC", "[C,c;D3H0](:*)(:*):*"},
+        {"NssssC", "[CD4H0](-*)(-*)(-*)-*"},
+        {"NsNH3", "[ND1H3]-*"},
+        {"NsNH2", "[ND1H2]-*"},
+        {"NssNH2", "[ND2H2](-*)-*"},
+        {"NdNH", "[ND1H]=*"},
+        {"NssNH", "[ND2H](-*)-*"},
+        {"NaaNH", "[N,nD2H](:*):*"},
+        {"NtN", "[ND1H0]#*"},
+        {"NsssNH", "[ND3H](-*)(-*)-*"},
+        {"NdsN", "[ND2H0](=*)-*"},
+        {"NaaN", "[N,nD2H0](:*):*"},
+        {"NsssN", "[ND3H0](-*)(-*)-*"},
+        {"NddsN", "[ND3H0](~[OD1H0])(~[OD1H0])-,:*"},
+        {"NaasN", "[N,nD3H0](:*)(:*)-,:*"},
+        {"NssssN", "[ND4H0](-*)(-*)(-*)-*"},
+        {"NsOH", "[OD1H]-*"},
+        {"NdO", "[OD1H0]=*"},
+        {"NssO", "[OD2H0](-*)-*"},
+        {"NaaO", "[O,oD2H0](:*):*"},
+        {"NsF", "[FD1]-*"},
+        {"NsSiH3", "[SiD1H3]-*"},
+        {"NssSiH2", "[SiD2H2](-*)-*"},
+        {"NsssSiH", "[SiD3H1](-*)(-*)-*"},
+        {"NssssSi", "[SiD4H0](-*)(-*)(-*)-*"},
+        {"NsPH2", "[PD1H2]-*"},
+        {"NssPH", "[PD2H1](-*)-*"},
+        {"NsssP", "[PD3H0](-*)(-*)-*"},
+        {"NdsssP", "[PD4H0](=*)(-*)(-*)-*"},
+        {"NsssssP", "[PD5H0](-*)(-*)(-*)(-*)-*"},
+        {"NsSH", "[SD1H1]-*"},
+        {"NdS", "[SD1H0]=*"},
+        {"NssS", "[SD2H0](-*)-*"},
+        {"NaaS", "[S,sD2H0](:*):*"},
+        {"NdssS", "[SD3H0](=*)(-*)-*"},
+        {"NddssS", "[SD4H0](~[OD1H0])(~[OD1H0])(-*)-*"},
+        {"NsCl", "[ClD1]-*"},
+        {"NsGeH3", "[GeD1H3](-*)"},
+        {"NssGeH2", "[GeD2H2](-*)-*"},
+        {"NsssGeH", "[GeD3H1](-*)(-*)-*"},
+        {"NssssGe", "[GeD4H0](-*)(-*)(-*)-*"},
+        {"NsAsH2", "[AsD1H2]-*"},
+        {"NssAsH", "[AsD2H1](-*)-*"},
+        {"NsssAs", "[AsD3H0](-*)(-*)-*"},
+        {"NsssdAs", "[AsD4H0](=*)(-*)(-*)-*"},
+        {"NsssssAs", "[AsD5H0](-*)(-*)(-*)(-*)-*"},
+        {"NsSeH", "[SeD1H1]-*"},
+        {"NdSe", "[SeD1H0]=*"},
+        {"NssSe", "[SeD2H0](-*)-*"},
+        {"NaaSe", "[SeD2H0](:*):*"},
+        {"NdssSe", "[SeD3H0](=*)(-*)-*"},
+        {"NddssSe", "[SeD4H0](=*)(=*)(-*)-*"},
+        {"NsBr", "[BrD1]-*"},
+        {"NsSnH3", "[SnD1H3]-*"},
+        {"NssSnH2", "[SnD2H2](-*)-*"},
+        {"NsssSnH", "[SnD3H1](-*)(-*)-*"},
+        {"NssssSn", "[SnD4H0](-*)(-*)(-*)-*"},
+        {"NsI", "[ID1]-*"},
+        {"NsPbH3", "[PbD1H3]-*"},
+        {"NssPbH2", "[PbD2H2](-*)-*"},
+        {"NsssPbH", "[PbD3H1](-*)(-*)-*"},
+        {"NssssPb", "[PbD4H0](-*)(-*)(-*)-*"},
+    }};
+    return patterns;
+}
+
+OEChem::OEGraphMol implicit_hydrogen_estate_mol(const OEChem::OEMolBase& mol) {
+    OEChem::OEGraphMol working_mol(mol);
+    OEChem::OEFindRingAtomsAndBonds(working_mol);
+    OEChem::OEAssignAromaticFlags(working_mol);
+    // Mordred EState descriptors run with explicit_hydrogens=False; suppressing
+    // H atoms before SMARTS matching preserves H-count queries on heavy atoms.
+    OEChem::OESuppressHydrogens(working_mol);
+    OEChem::OEFindRingAtomsAndBonds(working_mol);
+    OEChem::OEAssignAromaticFlags(working_mol);
+    return working_mol;
+}
+
+std::uint32_t count_mordred_estate_pattern(
+    const OEChem::OEMolBase& mol,
+    const char* smarts) {
+    std::unordered_set<unsigned int> matched_atom_indices;
+    OEChem::OESubSearch search(smarts);
+    if (!search) {
+        return 0u;
+    }
+    for (OESystem::OEIter<OEChem::OEMatchBase> match = search.Match(mol, false); match;
+         ++match) {
+        for (OESystem::OEIter<OEChem::OEMatchPair<OEChem::OEAtomBase>> atom_match =
+                 match->GetAtoms();
+             atom_match; ++atom_match) {
+            if (atom_match->pattern != nullptr && atom_match->target != nullptr
+                && atom_match->pattern->GetIdx() == 0u) {
+                matched_atom_indices.insert(atom_match->target->GetIdx());
+            }
+        }
+    }
+    return static_cast<std::uint32_t>(matched_atom_indices.size());
+}
+
+std::vector<std::uint32_t> compute_mordred_estate_count_values(
+    const OEChem::OEMolBase& mol) {
+    const auto working_mol = implicit_hydrogen_estate_mol(mol);
+    std::vector<std::uint32_t> counts;
+    counts.reserve(mordred_estate_count_patterns().size());
+    for (const auto& pattern : mordred_estate_count_patterns()) {
+        counts.push_back(count_mordred_estate_pattern(working_mol, pattern.smarts));
+    }
+    return counts;
 }
 
 struct CrippenPattern {
@@ -4331,6 +4466,7 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
     const auto ec_index =
         compute_eccentric_connectivity_index(heavy_atom_graph, heavy_atom_distances);
     const auto ring_count_values = compute_ring_count_value_sets(mol);
+    const auto estate_count_values = compute_mordred_estate_count_values(mol);
     DescriptorSetBuilder builder(MordredDescriptorSchema());
 
     const auto all_atoms = values.heavy_atoms + values.hydrogens;
@@ -4406,6 +4542,12 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
     set_float(builder, "fragCpx", compute_fragment_complexity(values));
     set_int(builder, "nHBAcc", values.hbond_acceptors);
     set_int(builder, "nHBDon", values.hbond_donors);
+    for (std::size_t index = 0u; index < mordred_estate_count_patterns().size(); ++index) {
+        set_int(
+            builder,
+            mordred_estate_count_patterns()[index].descriptor_name,
+            estate_count_values[index]);
+    }
 
     set_int(builder, "nRot", values.rotatable_bonds);
     if (values.heavy_bonds != 0u) {

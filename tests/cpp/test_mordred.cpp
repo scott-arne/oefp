@@ -38,6 +38,26 @@ const std::vector<std::string>& supported_count_names() {
     return names;
 }
 
+const std::vector<std::string>& estate_count_names() {
+    static const std::vector<std::string> names{
+        "NsLi",    "NssBe",    "NssssBe", "NssBH",    "NsssB",   "NssssB",
+        "NsCH3",   "NdCH2",    "NssCH2",  "NtCH",     "NdsCH",   "NaaCH",
+        "NsssCH",  "NddC",     "NtsC",    "NdssC",    "NaasC",   "NaaaC",
+        "NssssC",  "NsNH3",    "NsNH2",   "NssNH2",   "NdNH",    "NssNH",
+        "NaaNH",   "NtN",      "NsssNH",  "NdsN",     "NaaN",    "NsssN",
+        "NddsN",   "NaasN",    "NssssN",  "NsOH",     "NdO",     "NssO",
+        "NaaO",    "NsF",      "NsSiH3",  "NssSiH2",  "NsssSiH", "NssssSi",
+        "NsPH2",   "NssPH",    "NsssP",   "NdsssP",   "NsssssP", "NsSH",
+        "NdS",     "NssS",     "NaaS",    "NdssS",    "NddssS",  "NsCl",
+        "NsGeH3",  "NssGeH2",  "NsssGeH", "NssssGe",  "NsAsH2",  "NssAsH",
+        "NsssAs",  "NsssdAs",  "NsssssAs", "NsSeH",   "NdSe",    "NssSe",
+        "NaaSe",   "NdssSe",   "NddssSe", "NsBr",     "NsSnH3",  "NssSnH2",
+        "NsssSnH", "NssssSn",  "NsI",     "NsPbH3",   "NssPbH2", "NsssPbH",
+        "NssssPb",
+    };
+    return names;
+}
+
 std::uint32_t count_or_zero(
     const std::map<std::string, std::uint32_t>& counts,
     const std::string& key) {
@@ -156,6 +176,65 @@ TEST(MordredDescriptorTest, CountSubsetMatchesCopiedMordredReferences) {
                 static_cast<std::int64_t>(count_or_zero(expected.nonzero, name)))
                 << name;
         }
+    }
+}
+
+TEST(MordredDescriptorTest, EStateCountDescriptorsMatchRepresentativeTypes) {
+    struct Case {
+        std::string smiles;
+        std::map<std::string, std::uint32_t> nonzero;
+    };
+
+    const std::vector<Case> cases{
+        {
+            "CCO",
+            {
+                {"NsCH3", 1},
+                {"NssCH2", 1},
+                {"NsOH", 1},
+            },
+        },
+        {
+            "c1ccncc1",
+            {
+                {"NaaCH", 5},
+                {"NaaN", 1},
+            },
+        },
+        {
+            "CC(C)(C)Cl",
+            {
+                {"NsCH3", 3},
+                {"NssssC", 1},
+                {"NsCl", 1},
+            },
+        },
+    };
+
+    for (const auto& expected : cases) {
+        SCOPED_TRACE(expected.smiles);
+        const auto descriptors = MakeMordredDescriptors(mol_from_smiles(expected.smiles));
+
+        for (const auto& name : estate_count_names()) {
+            EXPECT_TRUE(descriptors.Has(name)) << name;
+            EXPECT_EQ(
+                descriptors.Int(name),
+                static_cast<std::int64_t>(count_or_zero(expected.nonzero, name)))
+                << name;
+        }
+    }
+}
+
+TEST(MordredDescriptorTest, EStateCountDescriptorsTreatExplicitHydrogensAsImplicit) {
+    OEChem::OEGraphMol explicit_mol = mol_from_smiles("CCO");
+    OEChem::OEAddExplicitHydrogens(explicit_mol);
+
+    const auto implicit_descriptors = MakeMordredDescriptors(mol_from_smiles("CCO"));
+    const auto explicit_descriptors = MakeMordredDescriptors(explicit_mol);
+
+    for (const auto& name : estate_count_names()) {
+        EXPECT_TRUE(explicit_descriptors.Has(name)) << name;
+        EXPECT_EQ(explicit_descriptors.Int(name), implicit_descriptors.Int(name)) << name;
     }
 }
 

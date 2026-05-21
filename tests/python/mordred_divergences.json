@@ -4532,6 +4532,638 @@
       "status": "exact",
       "primitive": "OpenEye explicit-hydrogen all-atom graph, RDKit-style atom-code grouping, Shannon entropy, and RDKit-compatible information-content atom masses",
       "reason": "OEFP matches Mordred InformationContent values on the committed Mordred parity fixture except for explicitly classified fused-aromatic row-level divergences."
+    },
+    {
+      "descriptor": "NsLi",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState AtomTypes.TypeAtoms SMARTS root-atom count for sLi with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState count values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "NssBe",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState AtomTypes.TypeAtoms SMARTS root-atom count for ssBe with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState count values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "NssssBe",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState AtomTypes.TypeAtoms SMARTS root-atom count for ssssBe with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState count values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "NssBH",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState AtomTypes.TypeAtoms SMARTS root-atom count for ssBH with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState count values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "NsssB",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState AtomTypes.TypeAtoms SMARTS root-atom count for sssB with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState count values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "NssssB",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState AtomTypes.TypeAtoms SMARTS root-atom count for ssssB with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState count values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "NsCH3",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState AtomTypes.TypeAtoms SMARTS root-atom count for sCH3 with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState count values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "NdCH2",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState AtomTypes.TypeAtoms SMARTS root-atom count for dCH2 with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState count values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "NssCH2",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState AtomTypes.TypeAtoms SMARTS root-atom count for ssCH2 with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState count values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "NtCH",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState AtomTypes.TypeAtoms SMARTS root-atom count for tCH with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState count values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "NdsCH",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState AtomTypes.TypeAtoms SMARTS root-atom count for dsCH with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState count values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "NaaCH",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState AtomTypes.TypeAtoms SMARTS root-atom count for aaCH with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState count values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "NsssCH",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState AtomTypes.TypeAtoms SMARTS root-atom count for sssCH with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState count values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "NddC",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState AtomTypes.TypeAtoms SMARTS root-atom count for ddC with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState count values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "NtsC",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState AtomTypes.TypeAtoms SMARTS root-atom count for tsC with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState count values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "NdssC",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState AtomTypes.TypeAtoms SMARTS root-atom count for dssC with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState count values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "NaasC",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState AtomTypes.TypeAtoms SMARTS root-atom count for aasC with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState count values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "NaaaC",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState AtomTypes.TypeAtoms SMARTS root-atom count for aaaC with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState count values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "NssssC",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState AtomTypes.TypeAtoms SMARTS root-atom count for ssssC with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState count values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "NsNH3",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState AtomTypes.TypeAtoms SMARTS root-atom count for sNH3 with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState count values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "NsNH2",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState AtomTypes.TypeAtoms SMARTS root-atom count for sNH2 with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState count values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "NssNH2",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState AtomTypes.TypeAtoms SMARTS root-atom count for ssNH2 with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState count values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "NdNH",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState AtomTypes.TypeAtoms SMARTS root-atom count for dNH with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState count values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "NssNH",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState AtomTypes.TypeAtoms SMARTS root-atom count for ssNH with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState count values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "NaaNH",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState AtomTypes.TypeAtoms SMARTS root-atom count for aaNH with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState count values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "NtN",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState AtomTypes.TypeAtoms SMARTS root-atom count for tN with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState count values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "NsssNH",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState AtomTypes.TypeAtoms SMARTS root-atom count for sssNH with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState count values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "NdsN",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState AtomTypes.TypeAtoms SMARTS root-atom count for dsN with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState count values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "NaaN",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState AtomTypes.TypeAtoms SMARTS root-atom count for aaN with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState count values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "NsssN",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState AtomTypes.TypeAtoms SMARTS root-atom count for sssN with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState count values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "NddsN",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState AtomTypes.TypeAtoms SMARTS root-atom count for ddsN with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState count values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "NaasN",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState AtomTypes.TypeAtoms SMARTS root-atom count for aasN with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState count values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "NssssN",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState AtomTypes.TypeAtoms SMARTS root-atom count for ssssN with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState count values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "NsOH",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState AtomTypes.TypeAtoms SMARTS root-atom count for sOH with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState count values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "NdO",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState AtomTypes.TypeAtoms SMARTS root-atom count for dO with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState count values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "NssO",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState AtomTypes.TypeAtoms SMARTS root-atom count for ssO with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState count values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "NaaO",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState AtomTypes.TypeAtoms SMARTS root-atom count for aaO with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState count values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "NsF",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState AtomTypes.TypeAtoms SMARTS root-atom count for sF with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState count values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "NsSiH3",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState AtomTypes.TypeAtoms SMARTS root-atom count for sSiH3 with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState count values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "NssSiH2",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState AtomTypes.TypeAtoms SMARTS root-atom count for ssSiH2 with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState count values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "NsssSiH",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState AtomTypes.TypeAtoms SMARTS root-atom count for sssSiH with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState count values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "NssssSi",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState AtomTypes.TypeAtoms SMARTS root-atom count for ssssSi with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState count values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "NsPH2",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState AtomTypes.TypeAtoms SMARTS root-atom count for sPH2 with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState count values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "NssPH",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState AtomTypes.TypeAtoms SMARTS root-atom count for ssPH with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState count values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "NsssP",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState AtomTypes.TypeAtoms SMARTS root-atom count for sssP with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState count values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "NdsssP",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState AtomTypes.TypeAtoms SMARTS root-atom count for dsssP with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState count values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "NsssssP",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState AtomTypes.TypeAtoms SMARTS root-atom count for sssssP with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState count values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "NsSH",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState AtomTypes.TypeAtoms SMARTS root-atom count for sSH with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState count values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "NdS",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState AtomTypes.TypeAtoms SMARTS root-atom count for dS with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState count values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "NssS",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState AtomTypes.TypeAtoms SMARTS root-atom count for ssS with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState count values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "NaaS",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState AtomTypes.TypeAtoms SMARTS root-atom count for aaS with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState count values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "NdssS",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState AtomTypes.TypeAtoms SMARTS root-atom count for dssS with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState count values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "NddssS",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState AtomTypes.TypeAtoms SMARTS root-atom count for ddssS with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState count values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "NsCl",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState AtomTypes.TypeAtoms SMARTS root-atom count for sCl with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState count values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "NsGeH3",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState AtomTypes.TypeAtoms SMARTS root-atom count for sGeH3 with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState count values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "NssGeH2",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState AtomTypes.TypeAtoms SMARTS root-atom count for ssGeH2 with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState count values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "NsssGeH",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState AtomTypes.TypeAtoms SMARTS root-atom count for sssGeH with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState count values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "NssssGe",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState AtomTypes.TypeAtoms SMARTS root-atom count for ssssGe with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState count values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "NsAsH2",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState AtomTypes.TypeAtoms SMARTS root-atom count for sAsH2 with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState count values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "NssAsH",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState AtomTypes.TypeAtoms SMARTS root-atom count for ssAsH with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState count values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "NsssAs",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState AtomTypes.TypeAtoms SMARTS root-atom count for sssAs with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState count values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "NsssdAs",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState AtomTypes.TypeAtoms SMARTS root-atom count for sssdAs with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState count values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "NsssssAs",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState AtomTypes.TypeAtoms SMARTS root-atom count for sssssAs with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState count values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "NsSeH",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState AtomTypes.TypeAtoms SMARTS root-atom count for sSeH with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState count values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "NdSe",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState AtomTypes.TypeAtoms SMARTS root-atom count for dSe with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState count values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "NssSe",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState AtomTypes.TypeAtoms SMARTS root-atom count for ssSe with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState count values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "NaaSe",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState AtomTypes.TypeAtoms SMARTS root-atom count for aaSe with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState count values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "NdssSe",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState AtomTypes.TypeAtoms SMARTS root-atom count for dssSe with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState count values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "NddssSe",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState AtomTypes.TypeAtoms SMARTS root-atom count for ddssSe with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState count values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "NsBr",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState AtomTypes.TypeAtoms SMARTS root-atom count for sBr with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState count values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "NsSnH3",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState AtomTypes.TypeAtoms SMARTS root-atom count for sSnH3 with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState count values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "NssSnH2",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState AtomTypes.TypeAtoms SMARTS root-atom count for ssSnH2 with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState count values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "NsssSnH",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState AtomTypes.TypeAtoms SMARTS root-atom count for sssSnH with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState count values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "NssssSn",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState AtomTypes.TypeAtoms SMARTS root-atom count for ssssSn with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState count values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "NsI",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState AtomTypes.TypeAtoms SMARTS root-atom count for sI with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState count values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "NsPbH3",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState AtomTypes.TypeAtoms SMARTS root-atom count for sPbH3 with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState count values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "NssPbH2",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState AtomTypes.TypeAtoms SMARTS root-atom count for ssPbH2 with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState count values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "NsssPbH",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState AtomTypes.TypeAtoms SMARTS root-atom count for sssPbH with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState count values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "NssssPb",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState AtomTypes.TypeAtoms SMARTS root-atom count for ssssPb with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState count values on the committed Mordred parity fixture."
     }
   ],
   "row_divergences": [

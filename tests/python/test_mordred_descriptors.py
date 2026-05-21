@@ -74,6 +74,88 @@ SUPPORTED_COUNT_NAMES = (
     "nX",
 )
 
+ESTATE_COUNT_NAMES = (
+    "NsLi",
+    "NssBe",
+    "NssssBe",
+    "NssBH",
+    "NsssB",
+    "NssssB",
+    "NsCH3",
+    "NdCH2",
+    "NssCH2",
+    "NtCH",
+    "NdsCH",
+    "NaaCH",
+    "NsssCH",
+    "NddC",
+    "NtsC",
+    "NdssC",
+    "NaasC",
+    "NaaaC",
+    "NssssC",
+    "NsNH3",
+    "NsNH2",
+    "NssNH2",
+    "NdNH",
+    "NssNH",
+    "NaaNH",
+    "NtN",
+    "NsssNH",
+    "NdsN",
+    "NaaN",
+    "NsssN",
+    "NddsN",
+    "NaasN",
+    "NssssN",
+    "NsOH",
+    "NdO",
+    "NssO",
+    "NaaO",
+    "NsF",
+    "NsSiH3",
+    "NssSiH2",
+    "NsssSiH",
+    "NssssSi",
+    "NsPH2",
+    "NssPH",
+    "NsssP",
+    "NdsssP",
+    "NsssssP",
+    "NsSH",
+    "NdS",
+    "NssS",
+    "NaaS",
+    "NdssS",
+    "NddssS",
+    "NsCl",
+    "NsGeH3",
+    "NssGeH2",
+    "NsssGeH",
+    "NssssGe",
+    "NsAsH2",
+    "NssAsH",
+    "NsssAs",
+    "NsssdAs",
+    "NsssssAs",
+    "NsSeH",
+    "NdSe",
+    "NssSe",
+    "NaaSe",
+    "NdssSe",
+    "NddssSe",
+    "NsBr",
+    "NsSnH3",
+    "NssSnH2",
+    "NsssSnH",
+    "NssssSn",
+    "NsI",
+    "NsPbH3",
+    "NssPbH2",
+    "NsssPbH",
+    "NssssPb",
+)
+
 ENABLED_SOURCE_TYPES = {
     "AcidBase",
     "Aromatic",
@@ -467,6 +549,7 @@ def _enabled_descriptor_names(payload: dict[str, Any]) -> tuple[str, ...]:
         for definition in payload["definitions"]
         if definition["source_type"] in ENABLED_SOURCE_TYPES
         or definition["name"] in ENABLED_DESCRIPTOR_NAMES
+        or definition["name"] in ESTATE_COUNT_NAMES
     )
 
 
@@ -558,7 +641,8 @@ def test_mordred_descriptors_match_enabled_reference_values():
     names = _enabled_descriptor_names(payload)
     row_divergences = _row_divergence_policy()
 
-    assert len(names) == 566
+    assert len(names) == 645
+    assert set(ESTATE_COUNT_NAMES) <= set(names)
     assert {"VR1_A", "VR2_A", "VR3_A", "VR1_D", "VR2_D", "VR3_D"} <= set(names)
     assert {"SpAbs_Dt", "VR1_Dt", "VR2_Dt", "VR3_Dt", "DetourIndex"} <= set(names)
     assert {"SM1_DzZ", "VR1_DzZ", "VR2_DzZ", "VR3_DzZ"} <= set(names)
