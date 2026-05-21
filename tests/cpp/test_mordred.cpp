@@ -55,7 +55,9 @@ TEST(MordredDescriptorTest, DescriptorRowCarriesFullSchema) {
     EXPECT_TRUE(descriptors.Has("GhoseFilter"));
     EXPECT_TRUE(descriptors.Has("ABC"));
     EXPECT_TRUE(descriptors.Has("SpAbs_A"));
+    EXPECT_TRUE(descriptors.Has("SpAbs_D"));
     EXPECT_FALSE(descriptors.Has("VE1_A"));
+    EXPECT_FALSE(descriptors.Has("VE1_D"));
 }
 
 TEST(MordredDescriptorTest, CountSubsetMatchesCopiedMordredReferences) {
@@ -822,6 +824,110 @@ TEST(MordredDescriptorTest, AdjacencyMatrixEigenvalueDescriptorsAreMissingWhenRe
         "SpAD_A",
         "SpMAD_A",
         "LogEE_A",
+    };
+
+    const OEChem::OEGraphMol empty_mol;
+    const std::vector<std::pair<std::string, OEChem::OEGraphMol>> cases{
+        {"empty", empty_mol},
+        {"[H][H]", mol_from_smiles("[H][H]")},
+        {"C.CC", mol_from_smiles("C.CC")},
+    };
+
+    for (const auto& expected : cases) {
+        SCOPED_TRACE(expected.first);
+        const auto descriptors = MakeMordredDescriptors(expected.second);
+
+        for (const auto& name : descriptor_names) {
+            EXPECT_FALSE(descriptors.Has(name)) << name;
+        }
+    }
+}
+
+TEST(MordredDescriptorTest, DistanceMatrixEigenvalueDescriptorsMatchMordredReferences) {
+    struct Case {
+        std::string smiles;
+        std::map<std::string, double> expected_values;
+    };
+
+    const std::vector<Case> cases{
+        {
+            "C",
+            {
+                {"SpAbs_D", 0.0},
+                {"SpMax_D", 0.0},
+                {"SpDiam_D", 0.0},
+                {"SpAD_D", 0.0},
+                {"SpMAD_D", 0.0},
+                {"LogEE_D", 0.6931471805599453},
+            },
+        },
+        {
+            "CC",
+            {
+                {"SpAbs_D", 2.0},
+                {"SpMax_D", 1.0},
+                {"SpDiam_D", 2.0},
+                {"SpAD_D", 2.0},
+                {"SpMAD_D", 1.0},
+                {"LogEE_D", 1.4076059644443804},
+            },
+        },
+        {
+            "CCO",
+            {
+                {"SpAbs_D", 5.464101615137755},
+                {"SpMax_D", 2.7320508075688776},
+                {"SpDiam_D", 4.732050807568878},
+                {"SpAD_D", 5.464101615137755},
+                {"SpMAD_D", 1.8213672050459184},
+                {"LogEE_D", 2.832072756761435},
+            },
+        },
+        {
+            "c1ccncc1",
+            {
+                {"SpAbs_D", 18.000000000000007},
+                {"SpMax_D", 9.000000000000002},
+                {"SpDiam_D", 13.000000000000002},
+                {"SpAD_D", 18.000000000000007},
+                {"SpMAD_D", 3.0000000000000013},
+                {"LogEE_D", 9.000420061762542},
+            },
+        },
+        {
+            "CCCCCC",
+            {
+                {"SpAbs_D", 24.21862300782596},
+                {"SpMax_D", 12.109311503912979},
+                {"SpDiam_D", 19.573413119050734},
+                {"SpAD_D", 24.21862300782596},
+                {"SpMAD_D", 4.036437167970994},
+                {"LogEE_D", 12.109325540282484},
+            },
+        },
+    };
+
+    for (const auto& expected : cases) {
+        SCOPED_TRACE(expected.smiles);
+        const auto descriptors = MakeMordredDescriptors(mol_from_smiles(expected.smiles));
+
+        for (const auto& [name, value] : expected.expected_values) {
+            EXPECT_TRUE(descriptors.Has(name)) << name;
+            if (descriptors.Has(name)) {
+                EXPECT_NEAR(descriptors.Float(name), value, 1.0e-8) << name;
+            }
+        }
+    }
+}
+
+TEST(MordredDescriptorTest, DistanceMatrixEigenvalueDescriptorsAreMissingWhenRequiredMatrixIsMissing) {
+    const std::vector<std::string> descriptor_names{
+        "SpAbs_D",
+        "SpMax_D",
+        "SpDiam_D",
+        "SpAD_D",
+        "SpMAD_D",
+        "LogEE_D",
     };
 
     const OEChem::OEGraphMol empty_mol;

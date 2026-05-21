@@ -147,7 +147,7 @@ struct MordredTopologicalChargeValues {
     double global10 = 0.0;
 };
 
-struct MordredAdjacencyMatrixEigenvalueValues {
+struct MordredMatrixEigenvalueValues {
     double spectral_absolute = 0.0;
     double spectral_max = 0.0;
     double spectral_diameter = 0.0;
@@ -1922,25 +1922,15 @@ std::optional<std::vector<double>> symmetric_eigenvalues_jacobi(
     return std::nullopt;
 }
 
-std::optional<MordredAdjacencyMatrixEigenvalueValues> compute_adjacency_matrix_eigenvalue_values(
-    const MordredHeavyAtomGraph& graph) {
-    if (!is_connected_heavy_atom_graph(graph)) {
-        return std::nullopt;
-    }
-
-    const auto atom_count = graph.atoms.size();
-    std::vector<double> adjacency_matrix(atom_count * atom_count, 0.0);
-    for (const auto [begin, end] : graph.bonds) {
-        adjacency_matrix[begin * atom_count + end] = 1.0;
-        adjacency_matrix[end * atom_count + begin] = 1.0;
-    }
-
-    auto eigenvalues = symmetric_eigenvalues_jacobi(std::move(adjacency_matrix), atom_count);
+std::optional<MordredMatrixEigenvalueValues> compute_matrix_eigenvalue_values(
+    std::vector<double> matrix,
+    std::size_t atom_count) {
+    auto eigenvalues = symmetric_eigenvalues_jacobi(std::move(matrix), atom_count);
     if (!eigenvalues.has_value()) {
         return std::nullopt;
     }
 
-    MordredAdjacencyMatrixEigenvalueValues values;
+    MordredMatrixEigenvalueValues values;
     const auto [min_eigenvalue, max_eigenvalue] =
         std::minmax_element(eigenvalues->begin(), eigenvalues->end());
     const auto mean = std::accumulate(eigenvalues->begin(), eigenvalues->end(), 0.0)
@@ -1964,6 +1954,41 @@ std::optional<MordredAdjacencyMatrixEigenvalueValues> compute_adjacency_matrix_e
     values.log_estrada_like = a + std::log(exp_sum);
 
     return values;
+}
+
+std::optional<MordredMatrixEigenvalueValues> compute_adjacency_matrix_eigenvalue_values(
+    const MordredHeavyAtomGraph& graph) {
+    if (!is_connected_heavy_atom_graph(graph)) {
+        return std::nullopt;
+    }
+
+    const auto atom_count = graph.atoms.size();
+    std::vector<double> adjacency_matrix(atom_count * atom_count, 0.0);
+    for (const auto [begin, end] : graph.bonds) {
+        adjacency_matrix[begin * atom_count + end] = 1.0;
+        adjacency_matrix[end * atom_count + begin] = 1.0;
+    }
+
+    return compute_matrix_eigenvalue_values(std::move(adjacency_matrix), atom_count);
+}
+
+std::optional<MordredMatrixEigenvalueValues> compute_distance_matrix_eigenvalue_values(
+    const MordredHeavyAtomGraph& graph,
+    const std::vector<std::vector<std::int64_t>>& distances) {
+    if (!is_connected_heavy_atom_graph(graph)) {
+        return std::nullopt;
+    }
+
+    const auto atom_count = graph.atoms.size();
+    std::vector<double> distance_matrix;
+    distance_matrix.reserve(atom_count * atom_count);
+    for (const auto& row : distances) {
+        for (const auto distance : row) {
+            distance_matrix.push_back(static_cast<double>(distance));
+        }
+    }
+
+    return compute_matrix_eigenvalue_values(std::move(distance_matrix), atom_count);
 }
 
 std::optional<double> compute_vertex_adjacency_information(const MordredHeavyAtomGraph& graph) {
@@ -2930,13 +2955,24 @@ void set_topological_charge_values(
 
 void set_adjacency_matrix_eigenvalue_values(
     DescriptorSetBuilder& builder,
-    const MordredAdjacencyMatrixEigenvalueValues& values) {
+    const MordredMatrixEigenvalueValues& values) {
     set_float(builder, "SpAbs_A", values.spectral_absolute);
     set_float(builder, "SpMax_A", values.spectral_max);
     set_float(builder, "SpDiam_A", values.spectral_diameter);
     set_float(builder, "SpAD_A", values.spectral_absolute_deviation);
     set_float(builder, "SpMAD_A", values.spectral_mean_absolute_deviation);
     set_float(builder, "LogEE_A", values.log_estrada_like);
+}
+
+void set_distance_matrix_eigenvalue_values(
+    DescriptorSetBuilder& builder,
+    const MordredMatrixEigenvalueValues& values) {
+    set_float(builder, "SpAbs_D", values.spectral_absolute);
+    set_float(builder, "SpMax_D", values.spectral_max);
+    set_float(builder, "SpDiam_D", values.spectral_diameter);
+    set_float(builder, "SpAD_D", values.spectral_absolute_deviation);
+    set_float(builder, "SpMAD_D", values.spectral_mean_absolute_deviation);
+    set_float(builder, "LogEE_D", values.log_estrada_like);
 }
 
 void set_eccentric_connectivity_index(DescriptorSetBuilder& builder, std::int64_t value) {
@@ -2996,6 +3032,8 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
         compute_topological_charge_values(heavy_atom_graph, heavy_atom_distances);
     const auto adjacency_matrix_eigenvalue_values =
         compute_adjacency_matrix_eigenvalue_values(heavy_atom_graph);
+    const auto distance_matrix_eigenvalue_values =
+        compute_distance_matrix_eigenvalue_values(heavy_atom_graph, heavy_atom_distances);
     const auto abc_index_values =
         compute_abc_index_values(heavy_atom_graph, heavy_atom_distances);
     const auto wiener_values = compute_wiener_values(heavy_atom_distances);
@@ -3171,6 +3209,9 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
     set_topological_charge_values(builder, topological_charge_values);
     if (adjacency_matrix_eigenvalue_values.has_value()) {
         set_adjacency_matrix_eigenvalue_values(builder, *adjacency_matrix_eigenvalue_values);
+    }
+    if (distance_matrix_eigenvalue_values.has_value()) {
+        set_distance_matrix_eigenvalue_values(builder, *distance_matrix_eigenvalue_values);
     }
     set_eccentric_connectivity_index(builder, ec_index);
     set_ring_count_values(builder, ring_count_values.base);
