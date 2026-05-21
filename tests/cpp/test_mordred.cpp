@@ -58,6 +58,17 @@ const std::vector<std::string>& estate_count_names() {
     return names;
 }
 
+const std::vector<std::string>& estate_sum_names() {
+    static const std::vector<std::string> names = [] {
+        auto sum_names = estate_count_names();
+        for (auto& name : sum_names) {
+            name[0] = 'S';
+        }
+        return sum_names;
+    }();
+    return names;
+}
+
 std::uint32_t count_or_zero(
     const std::map<std::string, std::uint32_t>& counts,
     const std::string& key) {
@@ -235,6 +246,79 @@ TEST(MordredDescriptorTest, EStateCountDescriptorsTreatExplicitHydrogensAsImplic
     for (const auto& name : estate_count_names()) {
         EXPECT_TRUE(explicit_descriptors.Has(name)) << name;
         EXPECT_EQ(explicit_descriptors.Int(name), implicit_descriptors.Int(name)) << name;
+    }
+}
+
+TEST(MordredDescriptorTest, EStateSumDescriptorsMatchRepresentativeTypes) {
+    struct Case {
+        std::string smiles;
+        std::map<std::string, double> nonzero;
+    };
+
+    const std::vector<Case> cases{
+        {
+            "CCO",
+            {
+                {"SsCH3", 1.6805555555555556},
+                {"SssCH2", 0.25},
+                {"SsOH", 7.569444444444445},
+            },
+        },
+        {
+            "c1ccncc1",
+            {
+                {"SaaCH", 9.215277777777779},
+                {"SaaN", 3.7847222222222223},
+            },
+        },
+        {
+            "CC(C)(C)Cl",
+            {
+                {"SsCH3", 5.858796296296297},
+                {"SssssC", -0.02777777777777768},
+                {"SsCl", 5.530092592592592},
+            },
+        },
+        {
+            "CC#N",
+            {
+                {"SsCH3", 1.4305555555555556},
+                {"StN", 7.319444444444445},
+            },
+        },
+    };
+
+    for (const auto& expected : cases) {
+        SCOPED_TRACE(expected.smiles);
+        const auto descriptors = MakeMordredDescriptors(mol_from_smiles(expected.smiles));
+
+        for (const auto& [name, expected_value] : expected.nonzero) {
+            EXPECT_TRUE(descriptors.Has(name)) << name;
+            EXPECT_NEAR(descriptors.Float(name), expected_value, 1.0e-12) << name;
+        }
+    }
+}
+
+TEST(MordredDescriptorTest, EStateSumDescriptorsUseZeroForAbsentTypes) {
+    const auto descriptors = MakeMordredDescriptors(mol_from_smiles("C"));
+
+    for (const auto& name : estate_sum_names()) {
+        EXPECT_TRUE(descriptors.Has(name)) << name;
+        EXPECT_NEAR(descriptors.Float(name), 0.0, 1.0e-12) << name;
+    }
+}
+
+TEST(MordredDescriptorTest, EStateSumDescriptorsTreatExplicitHydrogensAsImplicit) {
+    OEChem::OEGraphMol explicit_mol = mol_from_smiles("CCO");
+    OEChem::OEAddExplicitHydrogens(explicit_mol);
+
+    const auto implicit_descriptors = MakeMordredDescriptors(mol_from_smiles("CCO"));
+    const auto explicit_descriptors = MakeMordredDescriptors(explicit_mol);
+
+    for (const auto& name : estate_sum_names()) {
+        EXPECT_TRUE(explicit_descriptors.Has(name)) << name;
+        EXPECT_NEAR(explicit_descriptors.Float(name), implicit_descriptors.Float(name), 1.0e-12)
+            << name;
     }
 }
 

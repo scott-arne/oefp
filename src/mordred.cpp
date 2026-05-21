@@ -699,13 +699,13 @@ OEChem::OEGraphMol implicit_hydrogen_estate_mol(const OEChem::OEMolBase& mol) {
     return working_mol;
 }
 
-std::uint32_t count_mordred_estate_pattern(
+std::unordered_set<unsigned int> mordred_estate_pattern_root_atom_indices(
     const OEChem::OEMolBase& mol,
     const char* smarts) {
     std::unordered_set<unsigned int> matched_atom_indices;
     OEChem::OESubSearch search(smarts);
     if (!search) {
-        return 0u;
+        return matched_atom_indices;
     }
     for (OESystem::OEIter<OEChem::OEMatchBase> match = search.Match(mol, false); match;
          ++match) {
@@ -718,6 +718,13 @@ std::uint32_t count_mordred_estate_pattern(
             }
         }
     }
+    return matched_atom_indices;
+}
+
+std::uint32_t count_mordred_estate_pattern(
+    const OEChem::OEMolBase& mol,
+    const char* smarts) {
+    const auto matched_atom_indices = mordred_estate_pattern_root_atom_indices(mol, smarts);
     return static_cast<std::uint32_t>(matched_atom_indices.size());
 }
 
@@ -3760,6 +3767,110 @@ std::optional<int> mordred_outer_electrons(std::uint32_t atomic_number) {
     return outer_electrons[atomic_number];
 }
 
+std::uint32_t mordred_principal_quantum_number(std::uint32_t atomic_number) {
+    if (atomic_number <= 2u) {
+        return 1u;
+    }
+    if (atomic_number <= 10u) {
+        return 2u;
+    }
+    if (atomic_number <= 18u) {
+        return 3u;
+    }
+    if (atomic_number <= 36u) {
+        return 4u;
+    }
+    if (atomic_number <= 54u) {
+        return 5u;
+    }
+    if (atomic_number <= 86u) {
+        return 6u;
+    }
+    return 7u;
+}
+
+double mordred_estate_intrinsic_state(
+    const OEChem::OEAtomBase& atom,
+    std::size_t heavy_atom_degree) {
+    const auto degree = static_cast<std::uint32_t>(heavy_atom_degree);
+    if (degree == 0u) {
+        return 0.0;
+    }
+
+    const auto atomic_number = static_cast<std::uint32_t>(atom.GetAtomicNum());
+    const auto outer_electrons = mordred_outer_electrons(atomic_number);
+    if (!outer_electrons.has_value()) {
+        return 0.0;
+    }
+
+    const auto principal_quantum_number =
+        static_cast<double>(mordred_principal_quantum_number(atomic_number));
+    const auto valence_delta =
+        static_cast<double>(*outer_electrons) - static_cast<double>(atom.GetTotalHCount());
+    const auto intrinsic_state =
+        4.0 / (principal_quantum_number * principal_quantum_number) * valence_delta + 1.0;
+    return intrinsic_state / static_cast<double>(degree);
+}
+
+std::vector<double> compute_mordred_estate_indices(const MordredHeavyAtomGraph& graph) {
+    const auto atom_count = graph.atoms.size();
+    std::vector<double> intrinsic_states(atom_count, 0.0);
+    std::vector<double> accumulators(atom_count, 0.0);
+    for (std::size_t atom_index = 0u; atom_index < atom_count; ++atom_index) {
+        intrinsic_states[atom_index] = mordred_estate_intrinsic_state(
+            *graph.atoms[atom_index],
+            graph.adjacency[atom_index].size());
+    }
+
+    const auto distances = compute_mordred_heavy_atom_distances(graph);
+    for (std::size_t left = 0u; left < atom_count; ++left) {
+        for (std::size_t right = left + 1u; right < atom_count; ++right) {
+            const auto distance = distances[left][right];
+            if (distance >= kMordredDisconnectedDistance) {
+                continue;
+            }
+            const auto path_length = static_cast<double>(distance + 1);
+            const auto contribution =
+                (intrinsic_states[left] - intrinsic_states[right])
+                / (path_length * path_length);
+            accumulators[left] += contribution;
+            accumulators[right] -= contribution;
+        }
+    }
+
+    std::vector<double> indices(atom_count, 0.0);
+    for (std::size_t atom_index = 0u; atom_index < atom_count; ++atom_index) {
+        indices[atom_index] = accumulators[atom_index] + intrinsic_states[atom_index];
+    }
+    return indices;
+}
+
+std::vector<double> compute_mordred_estate_sum_values(const OEChem::OEMolBase& mol) {
+    const auto working_mol = implicit_hydrogen_estate_mol(mol);
+    const auto graph = build_mordred_heavy_atom_graph(working_mol);
+    const auto indices = compute_mordred_estate_indices(graph);
+    std::unordered_map<unsigned int, double> index_by_atom_id;
+    for (std::size_t atom_index = 0u; atom_index < graph.atoms.size(); ++atom_index) {
+        index_by_atom_id.emplace(graph.atoms[atom_index]->GetIdx(), indices[atom_index]);
+    }
+
+    std::vector<double> sums;
+    sums.reserve(mordred_estate_count_patterns().size());
+    for (const auto& pattern : mordred_estate_count_patterns()) {
+        double sum = 0.0;
+        const auto matched_atom_indices =
+            mordred_estate_pattern_root_atom_indices(working_mol, pattern.smarts);
+        for (const auto atom_id : matched_atom_indices) {
+            const auto index = index_by_atom_id.find(atom_id);
+            if (index != index_by_atom_id.end()) {
+                sum += index->second;
+            }
+        }
+        sums.push_back(sum);
+    }
+    return sums;
+}
+
 double chi_sigma_electrons(const OEChem::OEAtomBase& atom) {
     double sigma_electrons = 0.0;
     for (OESystem::OEIter<OEChem::OEAtomBase> neighbor = atom.GetAtoms(); neighbor; ++neighbor) {
@@ -4467,6 +4578,7 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
         compute_eccentric_connectivity_index(heavy_atom_graph, heavy_atom_distances);
     const auto ring_count_values = compute_ring_count_value_sets(mol);
     const auto estate_count_values = compute_mordred_estate_count_values(mol);
+    const auto estate_sum_values = compute_mordred_estate_sum_values(mol);
     DescriptorSetBuilder builder(MordredDescriptorSchema());
 
     const auto all_atoms = values.heavy_atoms + values.hydrogens;
@@ -4547,6 +4659,11 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
             builder,
             mordred_estate_count_patterns()[index].descriptor_name,
             estate_count_values[index]);
+    }
+    for (std::size_t index = 0u; index < mordred_estate_count_patterns().size(); ++index) {
+        std::string descriptor_name = mordred_estate_count_patterns()[index].descriptor_name;
+        descriptor_name[0] = 'S';
+        set_float(builder, descriptor_name, estate_sum_values[index]);
     }
 
     set_int(builder, "nRot", values.rotatable_bonds);

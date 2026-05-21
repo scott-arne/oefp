@@ -5164,6 +5164,638 @@
       "status": "exact",
       "primitive": "RDKit EState AtomTypes.TypeAtoms SMARTS root-atom count for ssssPb with explicit hydrogens removed",
       "reason": "OEFP matches Mordred EState count values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "SsLi",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices sum for sLi atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState sum values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "SssBe",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices sum for ssBe atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState sum values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "SssssBe",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices sum for ssssBe atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState sum values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "SssBH",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices sum for ssBH atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState sum values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "SsssB",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices sum for sssB atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState sum values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "SssssB",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices sum for ssssB atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState sum values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "SsCH3",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices sum for sCH3 atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState sum values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "SdCH2",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices sum for dCH2 atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState sum values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "SssCH2",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices sum for ssCH2 atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState sum values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "StCH",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices sum for tCH atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState sum values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "SdsCH",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices sum for dsCH atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState sum values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "SaaCH",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices sum for aaCH atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState sum values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "SsssCH",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices sum for sssCH atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState sum values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "SddC",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices sum for ddC atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState sum values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "StsC",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices sum for tsC atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState sum values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "SdssC",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices sum for dssC atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState sum values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "SaasC",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices sum for aasC atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState sum values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "SaaaC",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices sum for aaaC atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState sum values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "SssssC",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices sum for ssssC atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState sum values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "SsNH3",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices sum for sNH3 atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState sum values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "SsNH2",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices sum for sNH2 atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState sum values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "SssNH2",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices sum for ssNH2 atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState sum values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "SdNH",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices sum for dNH atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState sum values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "SssNH",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices sum for ssNH atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState sum values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "SaaNH",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices sum for aaNH atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState sum values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "StN",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices sum for tN atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState sum values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "SsssNH",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices sum for sssNH atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState sum values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "SdsN",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices sum for dsN atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState sum values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "SaaN",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices sum for aaN atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState sum values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "SsssN",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices sum for sssN atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState sum values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "SddsN",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices sum for ddsN atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState sum values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "SaasN",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices sum for aasN atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState sum values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "SssssN",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices sum for ssssN atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState sum values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "SsOH",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices sum for sOH atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState sum values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "SdO",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices sum for dO atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState sum values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "SssO",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices sum for ssO atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState sum values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "SaaO",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices sum for aaO atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState sum values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "SsF",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices sum for sF atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState sum values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "SsSiH3",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices sum for sSiH3 atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState sum values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "SssSiH2",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices sum for ssSiH2 atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState sum values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "SsssSiH",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices sum for sssSiH atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState sum values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "SssssSi",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices sum for ssssSi atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState sum values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "SsPH2",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices sum for sPH2 atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState sum values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "SssPH",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices sum for ssPH atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState sum values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "SsssP",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices sum for sssP atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState sum values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "SdsssP",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices sum for dsssP atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState sum values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "SsssssP",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices sum for sssssP atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState sum values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "SsSH",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices sum for sSH atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState sum values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "SdS",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices sum for dS atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState sum values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "SssS",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices sum for ssS atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState sum values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "SaaS",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices sum for aaS atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState sum values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "SdssS",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices sum for dssS atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState sum values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "SddssS",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices sum for ddssS atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState sum values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "SsCl",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices sum for sCl atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState sum values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "SsGeH3",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices sum for sGeH3 atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState sum values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "SssGeH2",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices sum for ssGeH2 atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState sum values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "SsssGeH",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices sum for sssGeH atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState sum values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "SssssGe",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices sum for ssssGe atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState sum values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "SsAsH2",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices sum for sAsH2 atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState sum values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "SssAsH",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices sum for ssAsH atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState sum values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "SsssAs",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices sum for sssAs atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState sum values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "SsssdAs",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices sum for sssdAs atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState sum values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "SsssssAs",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices sum for sssssAs atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState sum values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "SsSeH",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices sum for sSeH atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState sum values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "SdSe",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices sum for dSe atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState sum values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "SssSe",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices sum for ssSe atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState sum values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "SaaSe",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices sum for aaSe atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState sum values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "SdssSe",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices sum for dssSe atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState sum values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "SddssSe",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices sum for ddssSe atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState sum values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "SsBr",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices sum for sBr atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState sum values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "SsSnH3",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices sum for sSnH3 atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState sum values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "SssSnH2",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices sum for ssSnH2 atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState sum values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "SsssSnH",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices sum for sssSnH atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState sum values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "SssssSn",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices sum for ssssSn atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState sum values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "SsI",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices sum for sI atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState sum values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "SsPbH3",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices sum for sPbH3 atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState sum values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "SssPbH2",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices sum for ssPbH2 atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState sum values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "SsssPbH",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices sum for sssPbH atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState sum values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "SssssPb",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices sum for ssssPb atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState sum values on the committed Mordred parity fixture."
     }
   ],
   "row_divergences": [
