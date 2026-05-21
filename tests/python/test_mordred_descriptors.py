@@ -82,6 +82,7 @@ ENABLED_SOURCE_TYPES = {
     "BondCount",
     "CarbonTypes",
     "Constitutional",
+    "DetourMatrix",
     "HydrogenBond",
     "Lipinski",
     "McGowanVolume",
@@ -124,6 +125,20 @@ ENABLED_DESCRIPTOR_NAMES = {
     "VR1_D",
     "VR2_D",
     "VR3_D",
+    "SpAbs_Dt",
+    "SpMax_Dt",
+    "SpDiam_Dt",
+    "SpAD_Dt",
+    "SpMAD_Dt",
+    "LogEE_Dt",
+    "SM1_Dt",
+    "VE1_Dt",
+    "VE2_Dt",
+    "VE3_Dt",
+    "VR1_Dt",
+    "VR2_Dt",
+    "VR3_Dt",
+    "DetourIndex",
     "SpAbs_DzZ",
     "SpMax_DzZ",
     "SpDiam_DzZ",
@@ -542,8 +557,9 @@ def test_mordred_descriptors_match_enabled_reference_values():
     names = _enabled_descriptor_names(payload)
     row_divergences = _row_divergence_policy()
 
-    assert len(names) == 510
+    assert len(names) == 524
     assert {"VR1_A", "VR2_A", "VR3_A", "VR1_D", "VR2_D", "VR3_D"} <= set(names)
+    assert {"SpAbs_Dt", "VR1_Dt", "VR2_Dt", "VR3_Dt", "DetourIndex"} <= set(names)
     assert {"SM1_DzZ", "VR1_DzZ", "VR2_DzZ", "VR3_DzZ"} <= set(names)
     assert {"SpAbs_Dzm", "VR3_Dzm", "SpAbs_Dzi", "VR3_Dzi"} <= set(names)
     assert {"MDEC-11", "MDEC-12", "MDEC-44"} <= set(names)

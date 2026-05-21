@@ -179,6 +179,16 @@ struct MordredMatrixEigenvalueValues {
     std::optional<double> randic_eigenvector_log;
 };
 
+struct MordredDetourMatrixValues {
+    MordredMatrixEigenvalueValues matrix;
+    std::int64_t detour_index = 0;
+};
+
+struct MordredDetourBlock {
+    std::vector<std::size_t> nodes;
+    std::vector<std::int64_t> longest_paths;
+};
+
 using MordredAtomicPropertyLookup = std::optional<double> (*)(std::uint32_t);
 
 struct MordredBaryszMatrixProperty {
@@ -2305,6 +2315,329 @@ std::optional<MordredMatrixEigenvalueValues> compute_distance_matrix_eigenvalue_
     return compute_matrix_eigenvalue_values(std::move(distance_matrix), atom_count, graph.bonds);
 }
 
+std::int64_t& matrix_entry(
+    std::vector<std::int64_t>& matrix,
+    std::size_t size,
+    std::size_t row,
+    std::size_t column) {
+    return matrix[row * size + column];
+}
+
+std::int64_t matrix_entry(
+    const std::vector<std::int64_t>& matrix,
+    std::size_t size,
+    std::size_t row,
+    std::size_t column) {
+    return matrix[row * size + column];
+}
+
+std::pair<std::size_t, std::size_t> normalized_edge(std::size_t begin, std::size_t end) {
+    return begin < end ? std::make_pair(begin, end) : std::make_pair(end, begin);
+}
+
+void collect_mordred_biconnected_components(
+    const std::vector<std::vector<std::size_t>>& adjacency,
+    std::size_t atom,
+    std::size_t parent,
+    std::size_t& visit_order,
+    std::vector<std::size_t>& discovery,
+    std::vector<std::size_t>& lowlink,
+    std::vector<std::pair<std::size_t, std::size_t>>& edge_stack,
+    std::vector<std::vector<std::pair<std::size_t, std::size_t>>>& components) {
+    discovery[atom] = ++visit_order;
+    lowlink[atom] = discovery[atom];
+
+    for (const auto neighbor : adjacency[atom]) {
+        if (discovery[neighbor] == 0u) {
+            edge_stack.push_back(normalized_edge(atom, neighbor));
+            collect_mordred_biconnected_components(
+                adjacency,
+                neighbor,
+                atom,
+                visit_order,
+                discovery,
+                lowlink,
+                edge_stack,
+                components);
+            lowlink[atom] = std::min(lowlink[atom], lowlink[neighbor]);
+
+            if (lowlink[neighbor] >= discovery[atom]) {
+                std::vector<std::pair<std::size_t, std::size_t>> component;
+                const auto stop_edge = normalized_edge(atom, neighbor);
+                while (!edge_stack.empty()) {
+                    const auto edge = edge_stack.back();
+                    edge_stack.pop_back();
+                    component.push_back(edge);
+                    if (edge == stop_edge) {
+                        break;
+                    }
+                }
+                components.push_back(std::move(component));
+            }
+        } else if (neighbor != parent && discovery[neighbor] < discovery[atom]) {
+            edge_stack.push_back(normalized_edge(atom, neighbor));
+            lowlink[atom] = std::min(lowlink[atom], discovery[neighbor]);
+        }
+    }
+}
+
+std::vector<std::vector<std::pair<std::size_t, std::size_t>>> mordred_biconnected_edge_components(
+    const MordredHeavyAtomGraph& graph) {
+    const auto adjacency = simple_heavy_atom_adjacency(graph);
+    std::vector<std::size_t> discovery(graph.atoms.size(), 0u);
+    std::vector<std::size_t> lowlink(graph.atoms.size(), 0u);
+    std::vector<std::pair<std::size_t, std::size_t>> edge_stack;
+    std::vector<std::vector<std::pair<std::size_t, std::size_t>>> components;
+    std::size_t visit_order = 0u;
+
+    for (std::size_t atom = 0u; atom < graph.atoms.size(); ++atom) {
+        if (discovery[atom] != 0u) {
+            continue;
+        }
+        collect_mordred_biconnected_components(
+            adjacency,
+            atom,
+            graph.atoms.size(),
+            visit_order,
+            discovery,
+            lowlink,
+            edge_stack,
+            components);
+    }
+
+    return components;
+}
+
+void accumulate_mordred_longest_simple_paths(
+    const std::vector<std::vector<std::size_t>>& adjacency,
+    std::size_t size,
+    std::size_t start,
+    std::size_t atom,
+    std::int64_t distance,
+    std::vector<bool>& visited,
+    std::vector<std::int64_t>& longest_paths) {
+    for (const auto neighbor : adjacency[atom]) {
+        if (visited[neighbor]) {
+            continue;
+        }
+
+        visited[neighbor] = true;
+        const auto next_distance = distance + 1;
+        auto& longest_path = matrix_entry(longest_paths, size, start, neighbor);
+        if (next_distance > longest_path) {
+            longest_path = next_distance;
+        }
+        accumulate_mordred_longest_simple_paths(
+            adjacency,
+            size,
+            start,
+            neighbor,
+            next_distance,
+            visited,
+            longest_paths);
+        visited[neighbor] = false;
+    }
+}
+
+MordredDetourBlock compute_mordred_detour_block(
+    const std::vector<std::pair<std::size_t, std::size_t>>& edges,
+    std::size_t atom_count) {
+    MordredDetourBlock block;
+    std::vector<bool> in_block(atom_count, false);
+    for (const auto [begin, end] : edges) {
+        in_block[begin] = true;
+        in_block[end] = true;
+    }
+    for (std::size_t atom = 0u; atom < atom_count; ++atom) {
+        if (in_block[atom]) {
+            block.nodes.push_back(atom);
+        }
+    }
+
+    std::vector<std::vector<std::size_t>> adjacency(atom_count);
+    for (const auto [begin, end] : edges) {
+        adjacency[begin].push_back(end);
+        adjacency[end].push_back(begin);
+    }
+
+    block.longest_paths.assign(atom_count * atom_count, -1);
+    for (const auto atom : block.nodes) {
+        matrix_entry(block.longest_paths, atom_count, atom, atom) = 0;
+        std::vector<bool> visited(atom_count, false);
+        visited[atom] = true;
+        accumulate_mordred_longest_simple_paths(
+            adjacency,
+            atom_count,
+            atom,
+            atom,
+            0,
+            visited,
+            block.longest_paths);
+    }
+
+    for (const auto begin : block.nodes) {
+        for (const auto end : block.nodes) {
+            const auto longest = std::max(
+                matrix_entry(block.longest_paths, atom_count, begin, end),
+                matrix_entry(block.longest_paths, atom_count, end, begin));
+            matrix_entry(block.longest_paths, atom_count, begin, end) = longest;
+            matrix_entry(block.longest_paths, atom_count, end, begin) = longest;
+        }
+    }
+
+    return block;
+}
+
+std::optional<std::vector<double>> compute_mordred_detour_matrix(
+    const MordredHeavyAtomGraph& graph) {
+    if (!is_connected_heavy_atom_graph(graph)) {
+        return std::nullopt;
+    }
+
+    const auto atom_count = graph.atoms.size();
+    if (atom_count == 1u) {
+        return std::vector<double>{0.0};
+    }
+
+    auto edge_components = mordred_biconnected_edge_components(graph);
+    if (edge_components.empty()) {
+        return std::nullopt;
+    }
+
+    std::vector<MordredDetourBlock> queue;
+    queue.reserve(edge_components.size());
+    for (const auto& component : edge_components) {
+        queue.push_back(compute_mordred_detour_block(component, atom_count));
+    }
+
+    auto current = queue.back();
+    queue.pop_back();
+    std::vector<bool> active(atom_count, false);
+    for (const auto atom : current.nodes) {
+        active[atom] = true;
+    }
+
+    while (!queue.empty()) {
+        auto merge_block = queue.end();
+        std::size_t common_atom = atom_count;
+        for (auto iter = queue.end(); iter != queue.begin();) {
+            --iter;
+            std::size_t common_count = 0u;
+            std::size_t candidate_common = atom_count;
+            for (const auto atom : iter->nodes) {
+                if (active[atom]) {
+                    ++common_count;
+                    candidate_common = atom;
+                }
+            }
+            if (common_count == 1u) {
+                merge_block = iter;
+                common_atom = candidate_common;
+                break;
+            }
+        }
+        if (merge_block == queue.end()) {
+            return std::nullopt;
+        }
+
+        auto block = std::move(*merge_block);
+        queue.erase(merge_block);
+        std::vector<bool> merged_active = active;
+        for (const auto atom : block.nodes) {
+            merged_active[atom] = true;
+        }
+
+        std::vector<std::int64_t> merged(atom_count * atom_count, -1);
+        for (std::size_t begin = 0u; begin < atom_count; ++begin) {
+            if (!merged_active[begin]) {
+                continue;
+            }
+            for (std::size_t end = begin; end < atom_count; ++end) {
+                if (!merged_active[end]) {
+                    continue;
+                }
+
+                const auto current_path =
+                    matrix_entry(current.longest_paths, atom_count, begin, end);
+                const auto block_path =
+                    matrix_entry(block.longest_paths, atom_count, begin, end);
+                std::int64_t detour = -1;
+                if (current_path >= 0) {
+                    detour = current_path;
+                } else if (block_path >= 0) {
+                    detour = block_path;
+                } else if (begin == common_atom && end == common_atom) {
+                    detour = std::max(current_path, block_path);
+                } else {
+                    const auto begin_to_common =
+                        matrix_entry(current.longest_paths, atom_count, begin, common_atom);
+                    const auto end_to_common =
+                        matrix_entry(block.longest_paths, atom_count, end, common_atom);
+                    const auto reverse_begin_to_common =
+                        matrix_entry(block.longest_paths, atom_count, begin, common_atom);
+                    const auto reverse_end_to_common =
+                        matrix_entry(current.longest_paths, atom_count, end, common_atom);
+
+                    if (begin_to_common >= 0 && end_to_common >= 0) {
+                        detour = begin_to_common + end_to_common;
+                    } else if (reverse_end_to_common >= 0 && reverse_begin_to_common >= 0) {
+                        detour = reverse_end_to_common + reverse_begin_to_common;
+                    }
+                }
+
+                if (detour < 0) {
+                    return std::nullopt;
+                }
+                matrix_entry(merged, atom_count, begin, end) = detour;
+                matrix_entry(merged, atom_count, end, begin) = detour;
+            }
+        }
+
+        current.nodes.clear();
+        for (std::size_t atom = 0u; atom < atom_count; ++atom) {
+            if (merged_active[atom]) {
+                current.nodes.push_back(atom);
+            }
+        }
+        current.longest_paths = std::move(merged);
+        active = std::move(merged_active);
+    }
+
+    std::vector<double> detour_matrix;
+    detour_matrix.reserve(atom_count * atom_count);
+    for (const auto distance : current.longest_paths) {
+        if (distance < 0) {
+            return std::nullopt;
+        }
+        detour_matrix.push_back(static_cast<double>(distance));
+    }
+    return detour_matrix;
+}
+
+std::optional<MordredDetourMatrixValues> compute_detour_matrix_values(
+    const MordredHeavyAtomGraph& graph) {
+    auto detour_matrix = compute_mordred_detour_matrix(graph);
+    if (!detour_matrix.has_value()) {
+        return std::nullopt;
+    }
+
+    MordredDetourMatrixValues values;
+    for (const auto distance : *detour_matrix) {
+        values.detour_index += static_cast<std::int64_t>(distance);
+    }
+    values.detour_index /= 2;
+
+    auto matrix_values = compute_matrix_eigenvalue_values(
+        std::move(*detour_matrix),
+        graph.atoms.size(),
+        graph.bonds);
+    if (!matrix_values.has_value()) {
+        return std::nullopt;
+    }
+    values.matrix = *matrix_values;
+    return values;
+}
+
 std::optional<double> mordred_atomic_number_property(std::uint32_t atomic_number) {
     return static_cast<double>(atomic_number);
 }
@@ -3490,6 +3823,25 @@ void set_distance_matrix_eigenvalue_values(
     set_optional_float(builder, "VR3_D", values.randic_eigenvector_log);
 }
 
+void set_detour_matrix_values(
+    DescriptorSetBuilder& builder,
+    const MordredDetourMatrixValues& values) {
+    set_float(builder, "SpAbs_Dt", values.matrix.spectral_absolute);
+    set_float(builder, "SpMax_Dt", values.matrix.spectral_max);
+    set_float(builder, "SpDiam_Dt", values.matrix.spectral_diameter);
+    set_float(builder, "SpAD_Dt", values.matrix.spectral_absolute_deviation);
+    set_float(builder, "SpMAD_Dt", values.matrix.spectral_mean_absolute_deviation);
+    set_float(builder, "LogEE_Dt", values.matrix.log_estrada_like);
+    set_float(builder, "SM1_Dt", values.matrix.spectral_moment);
+    set_float(builder, "VE1_Dt", values.matrix.eigenvector_coefficient_sum);
+    set_float(builder, "VE2_Dt", values.matrix.eigenvector_coefficient_mean);
+    set_float(builder, "VE3_Dt", values.matrix.eigenvector_coefficient_log);
+    set_float(builder, "VR1_Dt", values.matrix.randic_eigenvector_sum);
+    set_float(builder, "VR2_Dt", values.matrix.randic_eigenvector_mean);
+    set_optional_float(builder, "VR3_Dt", values.matrix.randic_eigenvector_log);
+    builder.Set("DetourIndex", DescriptorValue::Int(values.detour_index));
+}
+
 std::string barysz_descriptor_name(const std::string& method, const char* suffix) {
     return method + "_Dz" + suffix;
 }
@@ -3591,6 +3943,7 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
         compute_adjacency_matrix_eigenvalue_values(heavy_atom_graph);
     const auto distance_matrix_eigenvalue_values =
         compute_distance_matrix_eigenvalue_values(heavy_atom_graph, heavy_atom_distances);
+    const auto detour_matrix_values = compute_detour_matrix_values(heavy_atom_graph);
     std::vector<std::pair<const char*, std::optional<MordredMatrixEigenvalueValues>>>
         barysz_matrix_values;
     barysz_matrix_values.reserve(mordred_barysz_matrix_properties().size());
@@ -3789,6 +4142,9 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
     }
     if (distance_matrix_eigenvalue_values.has_value()) {
         set_distance_matrix_eigenvalue_values(builder, *distance_matrix_eigenvalue_values);
+    }
+    if (detour_matrix_values.has_value()) {
+        set_detour_matrix_values(builder, *detour_matrix_values);
     }
     for (const auto& [suffix, property_values] : barysz_matrix_values) {
         if (property_values.has_value()) {

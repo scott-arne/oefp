@@ -56,10 +56,14 @@ TEST(MordredDescriptorTest, DescriptorRowCarriesFullSchema) {
     EXPECT_TRUE(descriptors.Has("ABC"));
     EXPECT_TRUE(descriptors.Has("SpAbs_A"));
     EXPECT_TRUE(descriptors.Has("SpAbs_D"));
+    EXPECT_TRUE(descriptors.Has("SpAbs_Dt"));
     EXPECT_TRUE(descriptors.Has("VE1_A"));
     EXPECT_TRUE(descriptors.Has("VE1_D"));
+    EXPECT_TRUE(descriptors.Has("VE1_Dt"));
     EXPECT_TRUE(descriptors.Has("VR1_A"));
     EXPECT_TRUE(descriptors.Has("VR1_D"));
+    EXPECT_TRUE(descriptors.Has("VR1_Dt"));
+    EXPECT_TRUE(descriptors.Has("DetourIndex"));
 }
 
 TEST(MordredDescriptorTest, CountSubsetMatchesCopiedMordredReferences) {
@@ -1187,6 +1191,163 @@ TEST(MordredDescriptorTest, DistanceMatrixEigenvalueDescriptorsAreMissingWhenReq
         "VR1_D",
         "VR2_D",
         "VR3_D",
+    };
+
+    const OEChem::OEGraphMol empty_mol;
+    const std::vector<std::pair<std::string, OEChem::OEGraphMol>> cases{
+        {"empty", empty_mol},
+        {"[H][H]", mol_from_smiles("[H][H]")},
+        {"C.CC", mol_from_smiles("C.CC")},
+    };
+
+    for (const auto& expected : cases) {
+        SCOPED_TRACE(expected.first);
+        const auto descriptors = MakeMordredDescriptors(expected.second);
+
+        for (const auto& name : descriptor_names) {
+            EXPECT_FALSE(descriptors.Has(name)) << name;
+        }
+    }
+}
+
+TEST(MordredDescriptorTest, DetourMatrixDescriptorsMatchMordredReferences) {
+    struct Case {
+        std::string smiles;
+        std::map<std::string, double> expected_float_values;
+        std::int64_t expected_detour_index;
+    };
+
+    const std::vector<Case> cases{
+        {
+            "C",
+            {
+                {"SpAbs_Dt", 0.0},
+                {"SpMax_Dt", 0.0},
+                {"SpDiam_Dt", 0.0},
+                {"SpAD_Dt", 0.0},
+                {"SpMAD_Dt", 0.0},
+                {"LogEE_Dt", 0.6931471805599453},
+                {"SM1_Dt", 0.0},
+                {"VE1_Dt", 1.0},
+                {"VE2_Dt", 1.0},
+                {"VE3_Dt", -2.3025850929940455},
+                {"VR1_Dt", 0.0},
+                {"VR2_Dt", 0.0},
+            },
+            0,
+        },
+        {
+            "CCO",
+            {
+                {"SpAbs_Dt", 5.464101615137755},
+                {"SpMax_Dt", 2.7320508075688776},
+                {"SpDiam_Dt", 4.732050807568878},
+                {"SpAD_Dt", 5.464101615137755},
+                {"SpMAD_Dt", 1.8213672050459184},
+                {"LogEE_Dt", 2.832072756761435},
+                {"SM1_Dt", 0.0},
+                {"VE1_Dt", 1.7156269037800915},
+                {"VE2_Dt", 0.5718756345933639},
+                {"VE3_Dt", -0.6641942489393373},
+                {"VR1_Dt", 3.7224194364083996},
+                {"VR2_Dt", 1.2408064788028},
+                {"VR3_Dt", 0.11040103868100991},
+            },
+            4,
+        },
+        {
+            "C1CCCCC1",
+            {
+                {"SpAbs_Dt", 42.0},
+                {"SpMax_Dt", 21.0},
+                {"SpDiam_Dt", 27.0},
+                {"SpAD_Dt", 42.0},
+                {"SpMAD_Dt", 7.0},
+                {"LogEE_Dt", 21.000000000972364},
+                {"SM1_Dt", 0.0},
+                {"VE1_Dt", 2.4494897427831788},
+                {"VE2_Dt", 0.40824829046386313},
+                {"VE3_Dt", 0.3850541108480373},
+                {"VR1_Dt", 14.696938456699067},
+                {"VR2_Dt", 2.449489742783178},
+                {"VR3_Dt", 2.1768135800760917},
+            },
+            63,
+        },
+        {
+            "c1ccncc1",
+            {
+                {"SpAbs_Dt", 42.0},
+                {"SpMax_Dt", 21.0},
+                {"SpDiam_Dt", 27.0},
+                {"SpAD_Dt", 42.0},
+                {"SpMAD_Dt", 7.0},
+                {"LogEE_Dt", 21.000000000972364},
+                {"SM1_Dt", 0.0},
+                {"VE1_Dt", 2.4494897427831788},
+                {"VE2_Dt", 0.40824829046386313},
+                {"VE3_Dt", 0.3850541108480373},
+                {"VR1_Dt", 14.696938456699067},
+                {"VR2_Dt", 2.449489742783178},
+                {"VR3_Dt", 2.1768135800760917},
+            },
+            63,
+        },
+        {
+            "C12C3C4C1C5C2C3C45",
+            {
+                {"SpAbs_Dt", 91.99999999999999},
+                {"SpMax_Dt", 45.999999999999986},
+                {"SpDiam_Dt", 55.999999999999986},
+                {"SpAD_Dt", 91.99999999999997},
+                {"SpMAD_Dt", 11.499999999999996},
+                {"LogEE_Dt", 45.999999999999986},
+                {"SM1_Dt", 0.0},
+                {"VE1_Dt", 2.8284271247461907},
+                {"VE2_Dt", 0.35355339059327384},
+                {"VE3_Dt", 0.8165772195257084},
+                {"VR1_Dt", 33.941125496954264},
+                {"VR2_Dt", 4.242640687119283},
+                {"VR3_Dt", 3.3014838693137083},
+            },
+            184,
+        },
+    };
+
+    for (const auto& expected : cases) {
+        SCOPED_TRACE(expected.smiles);
+        const auto descriptors = MakeMordredDescriptors(mol_from_smiles(expected.smiles));
+
+        for (const auto& [name, value] : expected.expected_float_values) {
+            EXPECT_TRUE(descriptors.Has(name)) << name;
+            if (descriptors.Has(name)) {
+                EXPECT_NEAR(descriptors.Float(name), value, 1.0e-8) << name;
+            }
+        }
+        ASSERT_TRUE(descriptors.Has("DetourIndex"));
+        EXPECT_EQ(descriptors.Int("DetourIndex"), expected.expected_detour_index);
+        if (expected.smiles == "C") {
+            EXPECT_FALSE(descriptors.Has("VR3_Dt"));
+        }
+    }
+}
+
+TEST(MordredDescriptorTest, DetourMatrixDescriptorsAreMissingWhenRequiredMatrixIsMissing) {
+    const std::vector<std::string> descriptor_names{
+        "SpAbs_Dt",
+        "SpMax_Dt",
+        "SpDiam_Dt",
+        "SpAD_Dt",
+        "SpMAD_Dt",
+        "LogEE_Dt",
+        "SM1_Dt",
+        "VE1_Dt",
+        "VE2_Dt",
+        "VE3_Dt",
+        "VR1_Dt",
+        "VR2_Dt",
+        "VR3_Dt",
+        "DetourIndex",
     };
 
     const OEChem::OEGraphMol empty_mol;

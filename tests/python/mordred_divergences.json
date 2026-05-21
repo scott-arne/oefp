@@ -230,6 +230,118 @@
       "reason": "OEFP matches Mordred VR3_D values on the committed Mordred parity fixture; singleton heavy-atom rows remain missing through Mordred rethrow_zerodiv log(0) behavior without suppressing other matrix descriptors."
     },
     {
+      "descriptor": "SpAbs_Dt",
+      "family": "DetourMatrix",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/DetourMatrix.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom unweighted detour matrix, Mordred DetourMatrix.py biconnected-component longest-simple-path merge, and private symmetric eigenvalue calculation matching Mordred _matrix_attributes.py Eigen with np.linalg.eigh",
+      "reason": "OEFP matches Mordred SpAbs_Dt values on the committed Mordred parity fixture; disconnected and no-heavy molecules remain missing through DetourMatrixBase.require_connected."
+    },
+    {
+      "descriptor": "SpMax_Dt",
+      "family": "DetourMatrix",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/DetourMatrix.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom unweighted detour matrix, Mordred DetourMatrix.py biconnected-component longest-simple-path merge, and private symmetric eigenvalue calculation matching Mordred _matrix_attributes.py Eigen with np.linalg.eigh",
+      "reason": "OEFP matches Mordred SpMax_Dt values on the committed Mordred parity fixture; disconnected and no-heavy molecules remain missing through DetourMatrixBase.require_connected."
+    },
+    {
+      "descriptor": "SpDiam_Dt",
+      "family": "DetourMatrix",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/DetourMatrix.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom unweighted detour matrix, Mordred DetourMatrix.py biconnected-component longest-simple-path merge, and private symmetric eigenvalue calculation matching Mordred _matrix_attributes.py Eigen with np.linalg.eigh",
+      "reason": "OEFP matches Mordred SpDiam_Dt values on the committed Mordred parity fixture; disconnected and no-heavy molecules remain missing through DetourMatrixBase.require_connected."
+    },
+    {
+      "descriptor": "SpAD_Dt",
+      "family": "DetourMatrix",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/DetourMatrix.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom unweighted detour matrix, Mordred DetourMatrix.py biconnected-component longest-simple-path merge, and private symmetric eigenvalue calculation matching Mordred _matrix_attributes.py Eigen with np.linalg.eigh",
+      "reason": "OEFP matches Mordred SpAD_Dt values on the committed Mordred parity fixture; disconnected and no-heavy molecules remain missing through DetourMatrixBase.require_connected."
+    },
+    {
+      "descriptor": "SpMAD_Dt",
+      "family": "DetourMatrix",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/DetourMatrix.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom unweighted detour matrix, Mordred DetourMatrix.py biconnected-component longest-simple-path merge, and private symmetric eigenvalue calculation matching Mordred _matrix_attributes.py Eigen with np.linalg.eigh",
+      "reason": "OEFP matches Mordred SpMAD_Dt values on the committed Mordred parity fixture; disconnected and no-heavy molecules remain missing through DetourMatrixBase.require_connected."
+    },
+    {
+      "descriptor": "LogEE_Dt",
+      "family": "DetourMatrix",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/DetourMatrix.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom unweighted detour matrix, Mordred DetourMatrix.py biconnected-component longest-simple-path merge, private symmetric eigenvalue calculation matching Mordred _matrix_attributes.py Eigen with np.linalg.eigh, and Mordred LogEE log-sum-exp formula",
+      "reason": "OEFP matches Mordred LogEE_Dt values on the committed Mordred parity fixture; disconnected and no-heavy molecules remain missing through DetourMatrixBase.require_connected."
+    },
+    {
+      "descriptor": "SM1_Dt",
+      "family": "DetourMatrix",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/DetourMatrix.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom unweighted detour matrix, Mordred DetourMatrix.py biconnected-component longest-simple-path merge, and Mordred _matrix_attributes.py SM1 trace formula",
+      "reason": "OEFP matches Mordred SM1_Dt values on the committed Mordred parity fixture; disconnected and no-heavy molecules remain missing through DetourMatrixBase.require_connected."
+    },
+    {
+      "descriptor": "VE1_Dt",
+      "family": "DetourMatrix",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/DetourMatrix.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom unweighted detour matrix, Mordred DetourMatrix.py biconnected-component longest-simple-path merge, and private symmetric eigensystem calculation matching Mordred _matrix_attributes.py Eigen with np.linalg.eigh",
+      "reason": "OEFP matches Mordred VE1_Dt values on the committed Mordred parity fixture; disconnected and no-heavy molecules remain missing through DetourMatrixBase.require_connected."
+    },
+    {
+      "descriptor": "VE2_Dt",
+      "family": "DetourMatrix",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/DetourMatrix.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom unweighted detour matrix, Mordred DetourMatrix.py biconnected-component longest-simple-path merge, and private symmetric eigensystem calculation matching Mordred _matrix_attributes.py Eigen with np.linalg.eigh",
+      "reason": "OEFP matches Mordred VE2_Dt values on the committed Mordred parity fixture; disconnected and no-heavy molecules remain missing through DetourMatrixBase.require_connected."
+    },
+    {
+      "descriptor": "VE3_Dt",
+      "family": "DetourMatrix",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/DetourMatrix.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom unweighted detour matrix, Mordred DetourMatrix.py biconnected-component longest-simple-path merge, Mordred _matrix_attributes.py VE3 log scaling, and private symmetric eigensystem calculation matching Mordred Eigen with np.linalg.eigh",
+      "reason": "OEFP matches Mordred VE3_Dt values on the committed Mordred parity fixture; disconnected and no-heavy molecules remain missing through DetourMatrixBase.require_connected."
+    },
+    {
+      "descriptor": "VR1_Dt",
+      "family": "DetourMatrix",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/DetourMatrix.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom unweighted detour matrix, heavy-heavy graph bonds, Mordred DetourMatrix.py biconnected-component longest-simple-path merge, and private symmetric eigensystem calculation matching Mordred _matrix_attributes.py Eigen with np.linalg.eigh",
+      "reason": "OEFP matches Mordred VR1_Dt values on the committed Mordred parity fixture; singleton heavy-atom rows keep VR1_Dt as zero while disconnected and no-heavy molecules remain missing through DetourMatrixBase.require_connected."
+    },
+    {
+      "descriptor": "VR2_Dt",
+      "family": "DetourMatrix",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/DetourMatrix.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom unweighted detour matrix, heavy-heavy graph bonds, Mordred DetourMatrix.py biconnected-component longest-simple-path merge, and private symmetric eigensystem calculation matching Mordred _matrix_attributes.py Eigen with np.linalg.eigh",
+      "reason": "OEFP matches Mordred VR2_Dt values on the committed Mordred parity fixture; singleton heavy-atom rows keep VR2_Dt as zero while disconnected and no-heavy molecules remain missing through DetourMatrixBase.require_connected."
+    },
+    {
+      "descriptor": "VR3_Dt",
+      "family": "DetourMatrix",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/DetourMatrix.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom unweighted detour matrix, heavy-heavy graph bonds, Mordred DetourMatrix.py biconnected-component longest-simple-path merge, Mordred _matrix_attributes.py VR3 log scaling, and private symmetric eigensystem calculation matching Mordred Eigen with np.linalg.eigh",
+      "reason": "OEFP matches Mordred VR3_Dt values on the committed Mordred parity fixture; singleton heavy-atom rows remain missing through Mordred rethrow_zerodiv log(0) behavior without suppressing other matrix descriptors."
+    },
+    {
+      "descriptor": "DetourIndex",
+      "family": "DetourMatrix",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/DetourMatrix.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom unweighted detour matrix and Mordred DetourIndex int(0.5 * D.sum()) aggregation",
+      "reason": "OEFP matches Mordred DetourIndex values on the committed Mordred parity fixture; disconnected and no-heavy molecules remain missing through DetourMatrixBase.require_connected."
+    },
+    {
       "descriptor": "SpAbs_DzZ",
       "family": "BaryszMatrix",
       "source": "/Users/johnss51/Development/python/mordred/mordred/BaryszMatrix.py",
