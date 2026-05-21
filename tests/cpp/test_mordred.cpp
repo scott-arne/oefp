@@ -623,6 +623,30 @@ TEST(MordredDescriptorTest, FusedRingCountDescriptorsMatchMordredGroupingReferen
     }
 }
 
+TEST(MordredDescriptorTest, FrameworkDescriptorMatchesMordredReferences) {
+    struct Case {
+        std::string smiles;
+        double expected_value;
+    };
+
+    const std::vector<Case> cases{
+        {"CCO", 0.0},
+        {"C1CCCCC1", 0.3333333333333333},
+        {"C1=CC2=C(C=C1)C=CC=C2", 0.5555555555555556},
+        {"C12C3C4C1C5C2C3C45", 0.5},
+        {"FC(F)(F)c1ccc(Br)cc1", 0.4},
+        {"c1ccccc1CCc2ccccc2", 0.5},
+    };
+
+    for (const auto& expected : cases) {
+        SCOPED_TRACE(expected.smiles);
+        const auto descriptors = MakeMordredDescriptors(mol_from_smiles(expected.smiles));
+
+        ASSERT_TRUE(descriptors.Has("fMF"));
+        EXPECT_NEAR(descriptors.Float("fMF"), expected.expected_value, 1.0e-12);
+    }
+}
+
 TEST(MordredDescriptorTest, ZagrebDescriptorsUseHeavyAtomGraphDegrees) {
     struct Case {
         std::string smiles;

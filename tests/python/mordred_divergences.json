@@ -990,6 +990,14 @@
       "reason": "OEFP matches Mordred fragCpx values on the committed Mordred parity fixture."
     },
     {
+      "descriptor": "fMF",
+      "family": "Framework",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Framework.py",
+      "status": "exact",
+      "primitive": "RingCount.py Chem.GetSymmSSSR-equivalent selected ring basis collapsed to framework ring nodes with shortest-path linker atom union over the heavy-atom graph",
+      "reason": "OEFP matches Mordred fMF values on the committed Mordred parity fixture."
+    },
+    {
       "descriptor": "MID",
       "family": "MolecularId",
       "source": "/Users/johnss51/Development/python/mordred/mordred/MolecularId.py",

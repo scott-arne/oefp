@@ -1605,6 +1605,24 @@ std::vector<std::vector<std::size_t>> component_adjacency(
     return component;
 }
 
+std::vector<std::vector<std::size_t>> compute_global_base_ring_cycles(
+    const std::vector<std::vector<std::size_t>>& adjacency) {
+    std::vector<std::vector<std::size_t>> cycles;
+    for (const auto& atoms : connected_components(adjacency)) {
+        const auto component_adjacency_values = component_adjacency(adjacency, atoms);
+        const auto base_cycles = compute_component_base_ring_cycles(component_adjacency_values);
+        for (const auto& cycle : base_cycles) {
+            std::vector<std::size_t> global_cycle;
+            global_cycle.reserve(cycle.size());
+            for (const auto atom : cycle) {
+                global_cycle.push_back(atoms[atom]);
+            }
+            cycles.push_back(std::move(global_cycle));
+        }
+    }
+    return cycles;
+}
+
 std::vector<MordredRingAtomProperties> component_atom_properties(
     const std::vector<MordredRingAtomProperties>& atom_properties,
     const std::vector<std::size_t>& component_atoms) {
@@ -1888,6 +1906,121 @@ bool is_connected_heavy_atom_graph(const MordredHeavyAtomGraph& graph) {
     }
 
     return std::all_of(visited.begin(), visited.end(), [](bool value) { return value; });
+}
+
+std::vector<std::vector<std::size_t>> simple_heavy_atom_adjacency(
+    const MordredHeavyAtomGraph& graph) {
+    std::vector<std::vector<std::size_t>> adjacency(graph.atoms.size());
+    for (std::size_t atom = 0u; atom < graph.adjacency.size(); ++atom) {
+        adjacency[atom].reserve(graph.adjacency[atom].size());
+        for (const auto& neighbor : graph.adjacency[atom]) {
+            adjacency[atom].push_back(neighbor.atom_index);
+        }
+        std::sort(adjacency[atom].begin(), adjacency[atom].end());
+    }
+    return adjacency;
+}
+
+void add_collapsed_edge(
+    std::vector<std::vector<std::size_t>>& adjacency,
+    std::size_t left,
+    std::size_t right) {
+    if (left == right) {
+        return;
+    }
+    adjacency[left].push_back(right);
+    adjacency[right].push_back(left);
+}
+
+void collect_shortest_path_linkers(
+    const std::vector<std::vector<std::size_t>>& collapsed_adjacency,
+    std::size_t atom_count,
+    std::size_t source,
+    std::size_t target,
+    std::vector<bool>& linkers) {
+    std::vector<std::size_t> parent(collapsed_adjacency.size(), collapsed_adjacency.size());
+    std::vector<std::size_t> queue;
+    queue.reserve(collapsed_adjacency.size());
+    parent[source] = source;
+    queue.push_back(source);
+
+    for (std::size_t current_index = 0u;
+         current_index < queue.size() && parent[target] == collapsed_adjacency.size();
+         ++current_index) {
+        const auto current = queue[current_index];
+        for (const auto neighbor : collapsed_adjacency[current]) {
+            if (parent[neighbor] != collapsed_adjacency.size()) {
+                continue;
+            }
+            parent[neighbor] = current;
+            queue.push_back(neighbor);
+            if (neighbor == target) {
+                break;
+            }
+        }
+    }
+
+    if (parent[target] == collapsed_adjacency.size()) {
+        return;
+    }
+
+    for (auto node = target; node != source; node = parent[node]) {
+        if (node < atom_count) {
+            linkers[node] = true;
+        }
+    }
+}
+
+std::optional<double> compute_framework_ratio(
+    const MordredHeavyAtomGraph& graph,
+    std::uint32_t atom_count_with_implicit_hydrogens) {
+    const auto atom_count = graph.atoms.size();
+    if (atom_count == 0u || atom_count_with_implicit_hydrogens == 0u) {
+        return std::nullopt;
+    }
+
+    const auto rings = compute_global_base_ring_cycles(simple_heavy_atom_adjacency(graph));
+    if (rings.empty()) {
+        return 0.0;
+    }
+
+    std::vector<std::size_t> collapsed_node_for_atom(atom_count);
+    std::iota(collapsed_node_for_atom.begin(), collapsed_node_for_atom.end(), 0u);
+    std::vector<bool> ring_atoms(atom_count, false);
+    for (std::size_t ring_index = 0u; ring_index < rings.size(); ++ring_index) {
+        const auto ring_node = atom_count + ring_index;
+        for (const auto atom : rings[ring_index]) {
+            collapsed_node_for_atom[atom] = ring_node;
+            ring_atoms[atom] = true;
+        }
+    }
+
+    std::vector<std::vector<std::size_t>> collapsed_adjacency(atom_count + rings.size());
+    for (const auto& bond : graph.bonds) {
+        add_collapsed_edge(
+            collapsed_adjacency,
+            collapsed_node_for_atom[bond.first],
+            collapsed_node_for_atom[bond.second]);
+    }
+
+    std::vector<bool> linkers(atom_count, false);
+    for (std::size_t left = 0u; left < rings.size(); ++left) {
+        for (std::size_t right = left + 1u; right < rings.size(); ++right) {
+            collect_shortest_path_linkers(
+                collapsed_adjacency,
+                atom_count,
+                atom_count + left,
+                atom_count + right,
+                linkers);
+        }
+    }
+
+    const auto linker_count =
+        static_cast<std::size_t>(std::count(linkers.begin(), linkers.end(), true));
+    const auto ring_atom_count =
+        static_cast<std::size_t>(std::count(ring_atoms.begin(), ring_atoms.end(), true));
+    return static_cast<double>(linker_count + ring_atom_count)
+           / static_cast<double>(atom_count_with_implicit_hydrogens);
 }
 
 void accumulate_molecular_id_paths(
@@ -3410,6 +3543,7 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
     const auto all_atoms = values.heavy_atoms + values.hydrogens;
     const auto all_bonds = values.heavy_bonds + values.hydrogens;
     const auto all_single_bonds = values.single_heavy_bonds + values.hydrogens;
+    const auto framework_ratio = compute_framework_ratio(heavy_atom_graph, all_atoms);
 
     // Mordred's kekulized bond counts use RDKit's alternating aromatic form.
     // For the supported count subset, this parity approximation matches the
@@ -3588,6 +3722,7 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
     set_eccentric_connectivity_index(builder, ec_index);
     set_ring_count_values(builder, ring_count_values.base);
     set_fused_ring_count_values(builder, ring_count_values.fused);
+    set_optional_float(builder, "fMF", framework_ratio);
     set_float(builder, "TopoPSA(NO)", values.topo_psa_no);
     set_float(builder, "TopoPSA", values.topo_psa);
     set_float(builder, "MW", values.exact_weight);
