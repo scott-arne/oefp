@@ -157,6 +157,8 @@ ESTATE_COUNT_NAMES = (
 )
 
 ESTATE_SUM_NAMES = tuple("S" + name[1:] for name in ESTATE_COUNT_NAMES)
+ESTATE_MAX_NAMES = tuple("MAX" + name[1:] for name in ESTATE_COUNT_NAMES)
+ESTATE_MIN_NAMES = tuple("MIN" + name[1:] for name in ESTATE_COUNT_NAMES)
 
 ENABLED_SOURCE_TYPES = {
     "AcidBase",
@@ -553,6 +555,8 @@ def _enabled_descriptor_names(payload: dict[str, Any]) -> tuple[str, ...]:
         or definition["name"] in ENABLED_DESCRIPTOR_NAMES
         or definition["name"] in ESTATE_COUNT_NAMES
         or definition["name"] in ESTATE_SUM_NAMES
+        or definition["name"] in ESTATE_MAX_NAMES
+        or definition["name"] in ESTATE_MIN_NAMES
     )
 
 
@@ -644,9 +648,11 @@ def test_mordred_descriptors_match_enabled_reference_values():
     names = _enabled_descriptor_names(payload)
     row_divergences = _row_divergence_policy()
 
-    assert len(names) == 724
+    assert len(names) == 882
     assert set(ESTATE_COUNT_NAMES) <= set(names)
     assert set(ESTATE_SUM_NAMES) <= set(names)
+    assert set(ESTATE_MAX_NAMES) <= set(names)
+    assert set(ESTATE_MIN_NAMES) <= set(names)
     assert {"VR1_A", "VR2_A", "VR3_A", "VR1_D", "VR2_D", "VR3_D"} <= set(names)
     assert {"SpAbs_Dt", "VR1_Dt", "VR2_Dt", "VR3_Dt", "DetourIndex"} <= set(names)
     assert {"SM1_DzZ", "VR1_DzZ", "VR2_DzZ", "VR3_DzZ"} <= set(names)

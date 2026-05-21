@@ -5796,6 +5796,1270 @@
       "status": "exact",
       "primitive": "RDKit EState.EStateIndices sum for ssssPb atom types with explicit hydrogens removed",
       "reason": "OEFP matches Mordred EState sum values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MAXsLi",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices maximum for sLi atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MAXssBe",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices maximum for ssBe atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MAXssssBe",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices maximum for ssssBe atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MAXssBH",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices maximum for ssBH atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MAXsssB",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices maximum for sssB atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MAXssssB",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices maximum for ssssB atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MAXsCH3",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices maximum for sCH3 atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MAXdCH2",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices maximum for dCH2 atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MAXssCH2",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices maximum for ssCH2 atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MAXtCH",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices maximum for tCH atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MAXdsCH",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices maximum for dsCH atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MAXaaCH",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices maximum for aaCH atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MAXsssCH",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices maximum for sssCH atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MAXddC",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices maximum for ddC atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MAXtsC",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices maximum for tsC atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MAXdssC",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices maximum for dssC atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MAXaasC",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices maximum for aasC atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MAXaaaC",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices maximum for aaaC atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MAXssssC",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices maximum for ssssC atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MAXsNH3",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices maximum for sNH3 atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MAXsNH2",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices maximum for sNH2 atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MAXssNH2",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices maximum for ssNH2 atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MAXdNH",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices maximum for dNH atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MAXssNH",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices maximum for ssNH atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MAXaaNH",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices maximum for aaNH atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MAXtN",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices maximum for tN atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MAXsssNH",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices maximum for sssNH atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MAXdsN",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices maximum for dsN atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MAXaaN",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices maximum for aaN atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MAXsssN",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices maximum for sssN atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MAXddsN",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices maximum for ddsN atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MAXaasN",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices maximum for aasN atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MAXssssN",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices maximum for ssssN atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MAXsOH",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices maximum for sOH atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MAXdO",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices maximum for dO atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MAXssO",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices maximum for ssO atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MAXaaO",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices maximum for aaO atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MAXsF",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices maximum for sF atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MAXsSiH3",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices maximum for sSiH3 atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MAXssSiH2",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices maximum for ssSiH2 atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MAXsssSiH",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices maximum for sssSiH atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MAXssssSi",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices maximum for ssssSi atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MAXsPH2",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices maximum for sPH2 atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MAXssPH",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices maximum for ssPH atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MAXsssP",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices maximum for sssP atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MAXdsssP",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices maximum for dsssP atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MAXsssssP",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices maximum for sssssP atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MAXsSH",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices maximum for sSH atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MAXdS",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices maximum for dS atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MAXssS",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices maximum for ssS atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MAXaaS",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices maximum for aaS atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MAXdssS",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices maximum for dssS atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MAXddssS",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices maximum for ddssS atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MAXsCl",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices maximum for sCl atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MAXsGeH3",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices maximum for sGeH3 atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MAXssGeH2",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices maximum for ssGeH2 atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MAXsssGeH",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices maximum for sssGeH atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MAXssssGe",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices maximum for ssssGe atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MAXsAsH2",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices maximum for sAsH2 atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MAXssAsH",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices maximum for ssAsH atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MAXsssAs",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices maximum for sssAs atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MAXsssdAs",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices maximum for sssdAs atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MAXsssssAs",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices maximum for sssssAs atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MAXsSeH",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices maximum for sSeH atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MAXdSe",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices maximum for dSe atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MAXssSe",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices maximum for ssSe atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MAXaaSe",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices maximum for aaSe atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MAXdssSe",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices maximum for dssSe atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MAXddssSe",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices maximum for ddssSe atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MAXsBr",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices maximum for sBr atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MAXsSnH3",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices maximum for sSnH3 atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MAXssSnH2",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices maximum for ssSnH2 atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MAXsssSnH",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices maximum for sssSnH atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MAXssssSn",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices maximum for ssssSn atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MAXsI",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices maximum for sI atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MAXsPbH3",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices maximum for sPbH3 atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MAXssPbH2",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices maximum for ssPbH2 atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MAXsssPbH",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices maximum for sssPbH atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MAXssssPb",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices maximum for ssssPb atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MINsLi",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices minimum for sLi atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MINssBe",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices minimum for ssBe atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MINssssBe",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices minimum for ssssBe atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MINssBH",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices minimum for ssBH atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MINsssB",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices minimum for sssB atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MINssssB",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices minimum for ssssB atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MINsCH3",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices minimum for sCH3 atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MINdCH2",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices minimum for dCH2 atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MINssCH2",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices minimum for ssCH2 atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MINtCH",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices minimum for tCH atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MINdsCH",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices minimum for dsCH atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MINaaCH",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices minimum for aaCH atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MINsssCH",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices minimum for sssCH atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MINddC",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices minimum for ddC atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MINtsC",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices minimum for tsC atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MINdssC",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices minimum for dssC atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MINaasC",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices minimum for aasC atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MINaaaC",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices minimum for aaaC atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MINssssC",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices minimum for ssssC atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MINsNH3",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices minimum for sNH3 atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MINsNH2",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices minimum for sNH2 atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MINssNH2",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices minimum for ssNH2 atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MINdNH",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices minimum for dNH atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MINssNH",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices minimum for ssNH atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MINaaNH",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices minimum for aaNH atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MINtN",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices minimum for tN atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MINsssNH",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices minimum for sssNH atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MINdsN",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices minimum for dsN atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MINaaN",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices minimum for aaN atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MINsssN",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices minimum for sssN atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MINddsN",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices minimum for ddsN atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MINaasN",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices minimum for aasN atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MINssssN",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices minimum for ssssN atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MINsOH",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices minimum for sOH atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MINdO",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices minimum for dO atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MINssO",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices minimum for ssO atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MINaaO",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices minimum for aaO atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MINsF",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices minimum for sF atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MINsSiH3",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices minimum for sSiH3 atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MINssSiH2",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices minimum for ssSiH2 atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MINsssSiH",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices minimum for sssSiH atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MINssssSi",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices minimum for ssssSi atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MINsPH2",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices minimum for sPH2 atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MINssPH",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices minimum for ssPH atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MINsssP",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices minimum for sssP atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MINdsssP",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices minimum for dsssP atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MINsssssP",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices minimum for sssssP atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MINsSH",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices minimum for sSH atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MINdS",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices minimum for dS atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MINssS",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices minimum for ssS atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MINaaS",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices minimum for aaS atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MINdssS",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices minimum for dssS atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MINddssS",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices minimum for ddssS atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MINsCl",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices minimum for sCl atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MINsGeH3",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices minimum for sGeH3 atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MINssGeH2",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices minimum for ssGeH2 atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MINsssGeH",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices minimum for sssGeH atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MINssssGe",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices minimum for ssssGe atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MINsAsH2",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices minimum for sAsH2 atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MINssAsH",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices minimum for ssAsH atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MINsssAs",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices minimum for sssAs atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MINsssdAs",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices minimum for sssdAs atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MINsssssAs",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices minimum for sssssAs atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MINsSeH",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices minimum for sSeH atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MINdSe",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices minimum for dSe atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MINssSe",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices minimum for ssSe atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MINaaSe",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices minimum for aaSe atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MINdssSe",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices minimum for dssSe atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MINddssSe",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices minimum for ddssSe atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MINsBr",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices minimum for sBr atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MINsSnH3",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices minimum for sSnH3 atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MINssSnH2",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices minimum for ssSnH2 atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MINsssSnH",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices minimum for sssSnH atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MINssssSn",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices minimum for ssssSn atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MINsI",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices minimum for sI atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MINsPbH3",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices minimum for sPbH3 atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MINssPbH2",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices minimum for ssPbH2 atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MINsssPbH",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices minimum for sssPbH atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MINssssPb",
+      "family": "EState",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/EState.py; /Users/johnss51/Applications/miniforge3/envs/main/lib/python3.13/site-packages/rdkit/Chem/EState/AtomTypes.py",
+      "status": "exact",
+      "primitive": "RDKit EState.EStateIndices minimum for ssssPb atom types with explicit hydrogens removed",
+      "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
     }
   ],
   "row_divergences": [

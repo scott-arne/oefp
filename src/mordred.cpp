@@ -232,9 +232,16 @@ struct MordredRingAtomProperties {
     bool aromatic;
 };
 
-struct MordredEStateCountPattern {
+struct MordredEStatePattern {
     const char* descriptor_name;
     const char* smarts;
+};
+
+struct MordredEStateValues {
+    std::vector<std::uint32_t> counts;
+    std::vector<double> sums;
+    std::vector<std::optional<double>> maxima;
+    std::vector<std::optional<double>> minima;
 };
 
 struct AtomicPropertyValue {
@@ -602,8 +609,8 @@ std::uint32_t count_unique_smarts_root_atoms(
     return static_cast<std::uint32_t>(matched_atom_indices.size());
 }
 
-const std::array<MordredEStateCountPattern, 79>& mordred_estate_count_patterns() {
-    static const std::array<MordredEStateCountPattern, 79> patterns{{
+const std::array<MordredEStatePattern, 79>& mordred_estate_patterns() {
+    static const std::array<MordredEStatePattern, 79> patterns{{
         {"NsLi", "[LiD1]-*"},
         {"NssBe", "[BeD2](-*)-*"},
         {"NssssBe", "[BeD4](-*)(-*)(-*)-*"},
@@ -719,24 +726,6 @@ std::unordered_set<unsigned int> mordred_estate_pattern_root_atom_indices(
         }
     }
     return matched_atom_indices;
-}
-
-std::uint32_t count_mordred_estate_pattern(
-    const OEChem::OEMolBase& mol,
-    const char* smarts) {
-    const auto matched_atom_indices = mordred_estate_pattern_root_atom_indices(mol, smarts);
-    return static_cast<std::uint32_t>(matched_atom_indices.size());
-}
-
-std::vector<std::uint32_t> compute_mordred_estate_count_values(
-    const OEChem::OEMolBase& mol) {
-    const auto working_mol = implicit_hydrogen_estate_mol(mol);
-    std::vector<std::uint32_t> counts;
-    counts.reserve(mordred_estate_count_patterns().size());
-    for (const auto& pattern : mordred_estate_count_patterns()) {
-        counts.push_back(count_mordred_estate_pattern(working_mol, pattern.smarts));
-    }
-    return counts;
 }
 
 struct CrippenPattern {
@@ -3845,30 +3834,42 @@ std::vector<double> compute_mordred_estate_indices(const MordredHeavyAtomGraph& 
     return indices;
 }
 
-std::vector<double> compute_mordred_estate_sum_values(const OEChem::OEMolBase& mol) {
+MordredEStateValues compute_mordred_estate_values(const OEChem::OEMolBase& mol) {
     const auto working_mol = implicit_hydrogen_estate_mol(mol);
     const auto graph = build_mordred_heavy_atom_graph(working_mol);
     const auto indices = compute_mordred_estate_indices(graph);
-    std::unordered_map<unsigned int, double> index_by_atom_id;
-    for (std::size_t atom_index = 0u; atom_index < graph.atoms.size(); ++atom_index) {
-        index_by_atom_id.emplace(graph.atoms[atom_index]->GetIdx(), indices[atom_index]);
-    }
+    const auto& patterns = mordred_estate_patterns();
 
-    std::vector<double> sums;
-    sums.reserve(mordred_estate_count_patterns().size());
-    for (const auto& pattern : mordred_estate_count_patterns()) {
-        double sum = 0.0;
+    MordredEStateValues values;
+    values.counts.reserve(patterns.size());
+    values.sums.reserve(patterns.size());
+    values.maxima.reserve(patterns.size());
+    values.minima.reserve(patterns.size());
+
+    for (const auto& pattern : patterns) {
         const auto matched_atom_indices =
             mordred_estate_pattern_root_atom_indices(working_mol, pattern.smarts);
-        for (const auto atom_id : matched_atom_indices) {
-            const auto index = index_by_atom_id.find(atom_id);
-            if (index != index_by_atom_id.end()) {
-                sum += index->second;
+        double sum = 0.0;
+        std::optional<double> maximum;
+        std::optional<double> minimum;
+
+        for (std::size_t graph_index = 0u; graph_index < graph.atoms.size(); ++graph_index) {
+            const auto atom_id = graph.atoms[graph_index]->GetIdx();
+            if (matched_atom_indices.find(atom_id) == matched_atom_indices.end()) {
+                continue;
             }
+            const auto value = indices[graph_index];
+            sum += value;
+            maximum = maximum.has_value() ? std::max(*maximum, value) : value;
+            minimum = minimum.has_value() ? std::min(*minimum, value) : value;
         }
-        sums.push_back(sum);
+
+        values.counts.push_back(static_cast<std::uint32_t>(matched_atom_indices.size()));
+        values.sums.push_back(sum);
+        values.maxima.push_back(maximum);
+        values.minima.push_back(minimum);
     }
-    return sums;
+    return values;
 }
 
 double chi_sigma_electrons(const OEChem::OEAtomBase& atom) {
@@ -4577,8 +4578,7 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
     const auto ec_index =
         compute_eccentric_connectivity_index(heavy_atom_graph, heavy_atom_distances);
     const auto ring_count_values = compute_ring_count_value_sets(mol);
-    const auto estate_count_values = compute_mordred_estate_count_values(mol);
-    const auto estate_sum_values = compute_mordred_estate_sum_values(mol);
+    const auto estate_values = compute_mordred_estate_values(mol);
     DescriptorSetBuilder builder(MordredDescriptorSchema());
 
     const auto all_atoms = values.heavy_atoms + values.hydrogens;
@@ -4654,16 +4654,26 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
     set_float(builder, "fragCpx", compute_fragment_complexity(values));
     set_int(builder, "nHBAcc", values.hbond_acceptors);
     set_int(builder, "nHBDon", values.hbond_donors);
-    for (std::size_t index = 0u; index < mordred_estate_count_patterns().size(); ++index) {
+    for (std::size_t index = 0u; index < mordred_estate_patterns().size(); ++index) {
         set_int(
             builder,
-            mordred_estate_count_patterns()[index].descriptor_name,
-            estate_count_values[index]);
+            mordred_estate_patterns()[index].descriptor_name,
+            estate_values.counts[index]);
     }
-    for (std::size_t index = 0u; index < mordred_estate_count_patterns().size(); ++index) {
-        std::string descriptor_name = mordred_estate_count_patterns()[index].descriptor_name;
+    for (std::size_t index = 0u; index < mordred_estate_patterns().size(); ++index) {
+        std::string descriptor_name = mordred_estate_patterns()[index].descriptor_name;
         descriptor_name[0] = 'S';
-        set_float(builder, descriptor_name, estate_sum_values[index]);
+        set_float(builder, descriptor_name, estate_values.sums[index]);
+    }
+    for (std::size_t index = 0u; index < mordred_estate_patterns().size(); ++index) {
+        std::string descriptor_name = mordred_estate_patterns()[index].descriptor_name;
+        descriptor_name = "MAX" + descriptor_name.substr(1);
+        set_optional_float(builder, descriptor_name, estate_values.maxima[index]);
+    }
+    for (std::size_t index = 0u; index < mordred_estate_patterns().size(); ++index) {
+        std::string descriptor_name = mordred_estate_patterns()[index].descriptor_name;
+        descriptor_name = "MIN" + descriptor_name.substr(1);
+        set_optional_float(builder, descriptor_name, estate_values.minima[index]);
     }
 
     set_int(builder, "nRot", values.rotatable_bonds);

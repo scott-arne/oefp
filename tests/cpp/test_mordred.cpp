@@ -69,6 +69,28 @@ const std::vector<std::string>& estate_sum_names() {
     return names;
 }
 
+const std::vector<std::string>& estate_max_names() {
+    static const std::vector<std::string> names = [] {
+        auto max_names = estate_count_names();
+        for (auto& name : max_names) {
+            name = "MAX" + name.substr(1);
+        }
+        return max_names;
+    }();
+    return names;
+}
+
+const std::vector<std::string>& estate_min_names() {
+    static const std::vector<std::string> names = [] {
+        auto min_names = estate_count_names();
+        for (auto& name : min_names) {
+            name = "MIN" + name.substr(1);
+        }
+        return min_names;
+    }();
+    return names;
+}
+
 std::uint32_t count_or_zero(
     const std::map<std::string, std::uint32_t>& counts,
     const std::string& key) {
@@ -319,6 +341,94 @@ TEST(MordredDescriptorTest, EStateSumDescriptorsTreatExplicitHydrogensAsImplicit
         EXPECT_TRUE(explicit_descriptors.Has(name)) << name;
         EXPECT_NEAR(explicit_descriptors.Float(name), implicit_descriptors.Float(name), 1.0e-12)
             << name;
+    }
+}
+
+TEST(MordredDescriptorTest, EStateExtremaDescriptorsMatchRepresentativeTypes) {
+    struct Case {
+        std::string smiles;
+        std::map<std::string, double> expected_values;
+    };
+
+    const std::vector<Case> cases{
+        {
+            "CCO",
+            {
+                {"MAXsCH3", 1.6805555555555556},
+                {"MINsCH3", 1.6805555555555556},
+                {"MAXssCH2", 0.25},
+                {"MINssCH2", 0.25},
+                {"MAXsOH", 7.569444444444445},
+                {"MINsOH", 7.569444444444445},
+            },
+        },
+        {
+            "c1ccncc1",
+            {
+                {"MAXaaCH", 1.9375},
+                {"MINaaCH", 1.75},
+                {"MAXaaN", 3.7847222222222223},
+                {"MINaaN", 3.7847222222222223},
+            },
+        },
+        {
+            "CC(C)(C)Cl",
+            {
+                {"MAXsCH3", 1.9529320987654322},
+                {"MINsCH3", 1.9529320987654322},
+                {"MAXssssC", -0.02777777777777768},
+                {"MINssssC", -0.02777777777777768},
+                {"MAXsCl", 5.530092592592592},
+                {"MINsCl", 5.530092592592592},
+            },
+        },
+    };
+
+    for (const auto& expected : cases) {
+        SCOPED_TRACE(expected.smiles);
+        const auto descriptors = MakeMordredDescriptors(mol_from_smiles(expected.smiles));
+
+        for (const auto& [name, expected_value] : expected.expected_values) {
+            EXPECT_TRUE(descriptors.Has(name)) << name;
+            EXPECT_NEAR(descriptors.Float(name), expected_value, 1.0e-12) << name;
+        }
+    }
+}
+
+TEST(MordredDescriptorTest, EStateExtremaDescriptorsAreMissingForAbsentTypes) {
+    const auto methane_descriptors = MakeMordredDescriptors(mol_from_smiles("C"));
+    const auto ethanol_descriptors = MakeMordredDescriptors(mol_from_smiles("CCO"));
+
+    for (const auto& name : estate_max_names()) {
+        EXPECT_FALSE(methane_descriptors.Has(name)) << name;
+    }
+    for (const auto& name : estate_min_names()) {
+        EXPECT_FALSE(methane_descriptors.Has(name)) << name;
+    }
+    EXPECT_FALSE(ethanol_descriptors.Has("MAXsLi"));
+    EXPECT_FALSE(ethanol_descriptors.Has("MINsLi"));
+}
+
+TEST(MordredDescriptorTest, EStateExtremaDescriptorsTreatExplicitHydrogensAsImplicit) {
+    OEChem::OEGraphMol explicit_mol = mol_from_smiles("CCO");
+    OEChem::OEAddExplicitHydrogens(explicit_mol);
+
+    const auto implicit_descriptors = MakeMordredDescriptors(mol_from_smiles("CCO"));
+    const auto explicit_descriptors = MakeMordredDescriptors(explicit_mol);
+
+    for (const auto& name : estate_max_names()) {
+        EXPECT_EQ(explicit_descriptors.Has(name), implicit_descriptors.Has(name)) << name;
+        if (implicit_descriptors.Has(name)) {
+            EXPECT_NEAR(explicit_descriptors.Float(name), implicit_descriptors.Float(name), 1.0e-12)
+                << name;
+        }
+    }
+    for (const auto& name : estate_min_names()) {
+        EXPECT_EQ(explicit_descriptors.Has(name), implicit_descriptors.Has(name)) << name;
+        if (implicit_descriptors.Has(name)) {
+            EXPECT_NEAR(explicit_descriptors.Float(name), implicit_descriptors.Float(name), 1.0e-12)
+                << name;
+        }
     }
 }
 
