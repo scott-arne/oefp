@@ -1025,6 +1025,118 @@ TEST(MordredDescriptorTest, DistanceMatrixEigenvalueDescriptorsAreMissingWhenReq
     }
 }
 
+TEST(MordredDescriptorTest, BaryszAtomicNumberMatrixDescriptorsMatchMordredReferences) {
+    struct Case {
+        std::string smiles;
+        std::map<std::string, double> expected_values;
+    };
+
+    const std::vector<Case> cases{
+        {
+            "C",
+            {
+                {"SpAbs_DzZ", 0.0},
+                {"SpMax_DzZ", 0.0},
+                {"SpDiam_DzZ", 0.0},
+                {"SpAD_DzZ", 0.0},
+                {"SpMAD_DzZ", 0.0},
+                {"LogEE_DzZ", 0.6931471805599453},
+                {"SM1_DzZ", 0.0},
+                {"VE1_DzZ", 1.0},
+                {"VE2_DzZ", 1.0},
+                {"VE3_DzZ", -2.3025850929940455},
+                {"VR1_DzZ", 0.0},
+                {"VR2_DzZ", 0.0},
+            },
+        },
+        {
+            "CCO",
+            {
+                {"SpAbs_DzZ", 4.730475337133475},
+                {"SpMax_DzZ", 2.4902376685667376},
+                {"SpDiam_DzZ", 4.158938287189794},
+                {"SpAD_DzZ", 4.813808670466809},
+                {"SpMAD_DzZ", 1.604602890155603},
+                {"LogEE_DzZ", 2.625920832582195},
+                {"SM1_DzZ", 0.25},
+                {"VE1_DzZ", 1.7112782949565715},
+                {"VE2_DzZ", 0.5704260983188572},
+                {"VE3_DzZ", -0.6667321721706297},
+                {"VR1_DzZ", 3.76932889054404},
+                {"VR2_DzZ", 1.25644296351468},
+                {"VR3_DzZ", 0.12292416816947607},
+            },
+        },
+        {
+            "c1ccncc1",
+            {
+                {"SpAbs_DzZ", 11.261331130232497},
+                {"SpMax_DzZ", 5.676981473926306},
+                {"SpDiam_DzZ", 8.210668066766813},
+                {"SpAD_DzZ", 11.308950177851543},
+                {"SpMAD_DzZ", 1.8848250296419238},
+                {"LogEE_DzZ", 5.689526220366282},
+                {"SM1_DzZ", 0.1428571428571429},
+                {"VE1_DzZ", 2.449067149645903},
+                {"VE2_DzZ", 0.4081778582743172},
+                {"VE3_DzZ", 0.3848815730383908},
+                {"VR1_DzZ", 14.703129179892782},
+                {"VR2_DzZ", 2.4505215299821304},
+                {"VR3_DzZ", 2.17723471674569},
+            },
+        },
+    };
+
+    for (const auto& expected : cases) {
+        SCOPED_TRACE(expected.smiles);
+        const auto descriptors = MakeMordredDescriptors(mol_from_smiles(expected.smiles));
+
+        for (const auto& [name, value] : expected.expected_values) {
+            EXPECT_TRUE(descriptors.Has(name)) << name;
+            if (descriptors.Has(name)) {
+                EXPECT_NEAR(descriptors.Float(name), value, 1.0e-8) << name;
+            }
+        }
+        if (expected.smiles == "C") {
+            EXPECT_FALSE(descriptors.Has("VR3_DzZ"));
+        }
+    }
+}
+
+TEST(MordredDescriptorTest, BaryszAtomicNumberMatrixDescriptorsAreMissingWhenRequiredMatrixIsMissing) {
+    const std::vector<std::string> descriptor_names{
+        "SpAbs_DzZ",
+        "SpMax_DzZ",
+        "SpDiam_DzZ",
+        "SpAD_DzZ",
+        "SpMAD_DzZ",
+        "LogEE_DzZ",
+        "SM1_DzZ",
+        "VE1_DzZ",
+        "VE2_DzZ",
+        "VE3_DzZ",
+        "VR1_DzZ",
+        "VR2_DzZ",
+        "VR3_DzZ",
+    };
+
+    const OEChem::OEGraphMol empty_mol;
+    const std::vector<std::pair<std::string, OEChem::OEGraphMol>> cases{
+        {"empty", empty_mol},
+        {"[H][H]", mol_from_smiles("[H][H]")},
+        {"C.CC", mol_from_smiles("C.CC")},
+    };
+
+    for (const auto& expected : cases) {
+        SCOPED_TRACE(expected.first);
+        const auto descriptors = MakeMordredDescriptors(expected.second);
+
+        for (const auto& name : descriptor_names) {
+            EXPECT_FALSE(descriptors.Has(name)) << name;
+        }
+    }
+}
+
 TEST(MordredDescriptorTest, TopologicalChargeDescriptorsReturnZeroForEmptySelections) {
     const std::vector<std::string> descriptor_names{
         "GGI1", "GGI2",  "GGI3",  "GGI4",  "GGI5",  "GGI6",  "GGI7",

@@ -154,6 +154,7 @@ struct MordredMatrixEigenvalueValues {
     double spectral_absolute_deviation = 0.0;
     double spectral_mean_absolute_deviation = 0.0;
     double log_estrada_like = 0.0;
+    double spectral_moment = 0.0;
     double eigenvector_coefficient_sum = 0.0;
     double eigenvector_coefficient_mean = 0.0;
     double eigenvector_coefficient_log = 0.0;
@@ -1953,6 +1954,7 @@ std::optional<MordredMatrixEigenvalueValues> compute_matrix_eigenvalue_values(
     std::vector<double> matrix,
     std::size_t atom_count,
     const std::vector<std::pair<std::size_t, std::size_t>>& bonds) {
+    const auto spectral_moment = matrix_trace(matrix, atom_count);
     auto eigensystem = symmetric_eigensystem_jacobi(std::move(matrix), atom_count);
     if (!eigensystem.has_value()) {
         return std::nullopt;
@@ -1974,6 +1976,7 @@ std::optional<MordredMatrixEigenvalueValues> compute_matrix_eigenvalue_values(
     values.spectral_diameter = *max_eigenvalue - *min_eigenvalue;
     values.spectral_mean_absolute_deviation =
         values.spectral_absolute_deviation / static_cast<double>(atom_count);
+    values.spectral_moment = spectral_moment;
 
     const auto a = std::max(values.spectral_max, 0.0);
     double exp_sum = std::exp(-a);
@@ -2049,6 +2052,55 @@ std::optional<MordredMatrixEigenvalueValues> compute_distance_matrix_eigenvalue_
     }
 
     return compute_matrix_eigenvalue_values(std::move(distance_matrix), atom_count, graph.bonds);
+}
+
+std::optional<MordredMatrixEigenvalueValues> compute_barysz_atomic_number_matrix_values(
+    const MordredHeavyAtomGraph& graph) {
+    if (!is_connected_heavy_atom_graph(graph)) {
+        return std::nullopt;
+    }
+
+    constexpr double kCarbonReferenceAtomicNumber = 6.0;
+    const auto atom_count = graph.atoms.size();
+    std::vector<double> matrix(
+        atom_count * atom_count,
+        static_cast<double>(kMordredDisconnectedDistance));
+
+    for (std::size_t atom_index = 0u; atom_index < atom_count; ++atom_index) {
+        matrix[atom_index * atom_count + atom_index] = 0.0;
+        const auto atom_property =
+            static_cast<double>(graph.atoms[atom_index]->GetAtomicNum());
+        for (const auto& neighbor : graph.adjacency[atom_index]) {
+            const auto neighbor_property =
+                static_cast<double>(graph.atoms[neighbor.atom_index]->GetAtomicNum());
+            const auto edge_weight = kCarbonReferenceAtomicNumber * kCarbonReferenceAtomicNumber
+                / (atom_property * neighbor_property * neighbor.bond_order);
+            auto& distance = matrix[atom_index * atom_count + neighbor.atom_index];
+            distance = std::min(distance, edge_weight);
+        }
+    }
+
+    for (std::size_t via = 0u; via < atom_count; ++via) {
+        for (std::size_t begin = 0u; begin < atom_count; ++begin) {
+            for (std::size_t end = 0u; end < atom_count; ++end) {
+                const auto through_via =
+                    matrix[begin * atom_count + via] + matrix[via * atom_count + end];
+                auto& distance = matrix[begin * atom_count + end];
+                if (through_via < distance) {
+                    distance = through_via;
+                }
+            }
+        }
+    }
+
+    for (std::size_t atom_index = 0u; atom_index < atom_count; ++atom_index) {
+        const auto atom_property =
+            static_cast<double>(graph.atoms[atom_index]->GetAtomicNum());
+        matrix[atom_index * atom_count + atom_index] =
+            1.0 - kCarbonReferenceAtomicNumber / atom_property;
+    }
+
+    return compute_matrix_eigenvalue_values(std::move(matrix), atom_count, graph.bonds);
 }
 
 std::optional<double> compute_vertex_adjacency_information(const MordredHeavyAtomGraph& graph) {
@@ -3047,6 +3099,24 @@ void set_distance_matrix_eigenvalue_values(
     set_optional_float(builder, "VR3_D", values.randic_eigenvector_log);
 }
 
+void set_barysz_atomic_number_matrix_values(
+    DescriptorSetBuilder& builder,
+    const MordredMatrixEigenvalueValues& values) {
+    set_float(builder, "SpAbs_DzZ", values.spectral_absolute);
+    set_float(builder, "SpMax_DzZ", values.spectral_max);
+    set_float(builder, "SpDiam_DzZ", values.spectral_diameter);
+    set_float(builder, "SpAD_DzZ", values.spectral_absolute_deviation);
+    set_float(builder, "SpMAD_DzZ", values.spectral_mean_absolute_deviation);
+    set_float(builder, "LogEE_DzZ", values.log_estrada_like);
+    set_float(builder, "SM1_DzZ", values.spectral_moment);
+    set_float(builder, "VE1_DzZ", values.eigenvector_coefficient_sum);
+    set_float(builder, "VE2_DzZ", values.eigenvector_coefficient_mean);
+    set_float(builder, "VE3_DzZ", values.eigenvector_coefficient_log);
+    set_float(builder, "VR1_DzZ", values.randic_eigenvector_sum);
+    set_float(builder, "VR2_DzZ", values.randic_eigenvector_mean);
+    set_optional_float(builder, "VR3_DzZ", values.randic_eigenvector_log);
+}
+
 void set_eccentric_connectivity_index(DescriptorSetBuilder& builder, std::int64_t value) {
     builder.Set("ECIndex", DescriptorValue::Int(value));
 }
@@ -3106,6 +3176,8 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
         compute_adjacency_matrix_eigenvalue_values(heavy_atom_graph);
     const auto distance_matrix_eigenvalue_values =
         compute_distance_matrix_eigenvalue_values(heavy_atom_graph, heavy_atom_distances);
+    const auto barysz_atomic_number_matrix_values =
+        compute_barysz_atomic_number_matrix_values(heavy_atom_graph);
     const auto abc_index_values =
         compute_abc_index_values(heavy_atom_graph, heavy_atom_distances);
     const auto wiener_values = compute_wiener_values(heavy_atom_distances);
@@ -3284,6 +3356,9 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
     }
     if (distance_matrix_eigenvalue_values.has_value()) {
         set_distance_matrix_eigenvalue_values(builder, *distance_matrix_eigenvalue_values);
+    }
+    if (barysz_atomic_number_matrix_values.has_value()) {
+        set_barysz_atomic_number_matrix_values(builder, *barysz_atomic_number_matrix_values);
     }
     set_eccentric_connectivity_index(builder, ec_index);
     set_ring_count_values(builder, ring_count_values.base);

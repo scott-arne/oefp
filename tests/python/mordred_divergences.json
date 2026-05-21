@@ -230,6 +230,110 @@
       "reason": "OEFP matches Mordred VR3_D values on the committed Mordred parity fixture; singleton heavy-atom rows remain missing through Mordred rethrow_zerodiv log(0) behavior without suppressing other matrix descriptors."
     },
     {
+      "descriptor": "SpAbs_DzZ",
+      "family": "BaryszMatrix",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/BaryszMatrix.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom Barysz matrix weighted by atomic number, Mordred BaryszMatrix.py diagonal overwrite, weighted Floyd-Warshall paths, and private symmetric eigenvalue calculation matching Mordred _matrix_attributes.py Eigen with np.linalg.eigh",
+      "reason": "OEFP matches Mordred SpAbs_DzZ values on the committed Mordred parity fixture; disconnected and no-heavy molecules remain missing through MatrixAttributeBase.require_connected."
+    },
+    {
+      "descriptor": "SpMax_DzZ",
+      "family": "BaryszMatrix",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/BaryszMatrix.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom Barysz matrix weighted by atomic number, Mordred BaryszMatrix.py diagonal overwrite, weighted Floyd-Warshall paths, and private symmetric eigenvalue calculation matching Mordred _matrix_attributes.py Eigen with np.linalg.eigh",
+      "reason": "OEFP matches Mordred SpMax_DzZ values on the committed Mordred parity fixture; disconnected and no-heavy molecules remain missing through MatrixAttributeBase.require_connected."
+    },
+    {
+      "descriptor": "SpDiam_DzZ",
+      "family": "BaryszMatrix",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/BaryszMatrix.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom Barysz matrix weighted by atomic number, Mordred BaryszMatrix.py diagonal overwrite, weighted Floyd-Warshall paths, and private symmetric eigenvalue calculation matching Mordred _matrix_attributes.py Eigen with np.linalg.eigh",
+      "reason": "OEFP matches Mordred SpDiam_DzZ values on the committed Mordred parity fixture; disconnected and no-heavy molecules remain missing through MatrixAttributeBase.require_connected."
+    },
+    {
+      "descriptor": "SpAD_DzZ",
+      "family": "BaryszMatrix",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/BaryszMatrix.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom Barysz matrix weighted by atomic number, Mordred BaryszMatrix.py diagonal overwrite, weighted Floyd-Warshall paths, and private symmetric eigenvalue calculation matching Mordred _matrix_attributes.py Eigen with np.linalg.eigh",
+      "reason": "OEFP matches Mordred SpAD_DzZ values on the committed Mordred parity fixture; disconnected and no-heavy molecules remain missing through MatrixAttributeBase.require_connected."
+    },
+    {
+      "descriptor": "SpMAD_DzZ",
+      "family": "BaryszMatrix",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/BaryszMatrix.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom Barysz matrix weighted by atomic number, Mordred BaryszMatrix.py diagonal overwrite, weighted Floyd-Warshall paths, and private symmetric eigenvalue calculation matching Mordred _matrix_attributes.py Eigen with np.linalg.eigh",
+      "reason": "OEFP matches Mordred SpMAD_DzZ values on the committed Mordred parity fixture; disconnected and no-heavy molecules remain missing through MatrixAttributeBase.require_connected."
+    },
+    {
+      "descriptor": "LogEE_DzZ",
+      "family": "BaryszMatrix",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/BaryszMatrix.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom Barysz matrix weighted by atomic number, Mordred BaryszMatrix.py diagonal overwrite, weighted Floyd-Warshall paths, private symmetric eigenvalue calculation matching Mordred _matrix_attributes.py Eigen with np.linalg.eigh, and Mordred LogEE log-sum-exp formula",
+      "reason": "OEFP matches Mordred LogEE_DzZ values on the committed Mordred parity fixture; disconnected and no-heavy molecules remain missing through MatrixAttributeBase.require_connected."
+    },
+    {
+      "descriptor": "SM1_DzZ",
+      "family": "BaryszMatrix",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/BaryszMatrix.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom Barysz matrix weighted by atomic number, Mordred BaryszMatrix.py diagonal overwrite, weighted Floyd-Warshall paths, and Mordred _matrix_attributes.py SM1 trace formula",
+      "reason": "OEFP matches Mordred SM1_DzZ values on the committed Mordred parity fixture; disconnected and no-heavy molecules remain missing through MatrixAttributeBase.require_connected."
+    },
+    {
+      "descriptor": "VE1_DzZ",
+      "family": "BaryszMatrix",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/BaryszMatrix.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom Barysz matrix weighted by atomic number, Mordred BaryszMatrix.py diagonal overwrite, weighted Floyd-Warshall paths, and private symmetric eigensystem calculation matching Mordred _matrix_attributes.py Eigen with np.linalg.eigh",
+      "reason": "OEFP matches Mordred VE1_DzZ values on the committed Mordred parity fixture; disconnected and no-heavy molecules remain missing through MatrixAttributeBase.require_connected."
+    },
+    {
+      "descriptor": "VE2_DzZ",
+      "family": "BaryszMatrix",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/BaryszMatrix.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom Barysz matrix weighted by atomic number, Mordred BaryszMatrix.py diagonal overwrite, weighted Floyd-Warshall paths, and private symmetric eigensystem calculation matching Mordred _matrix_attributes.py Eigen with np.linalg.eigh",
+      "reason": "OEFP matches Mordred VE2_DzZ values on the committed Mordred parity fixture; disconnected and no-heavy molecules remain missing through MatrixAttributeBase.require_connected."
+    },
+    {
+      "descriptor": "VE3_DzZ",
+      "family": "BaryszMatrix",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/BaryszMatrix.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom Barysz matrix weighted by atomic number, Mordred BaryszMatrix.py diagonal overwrite, weighted Floyd-Warshall paths, Mordred _matrix_attributes.py VE3 log scaling, and private symmetric eigensystem calculation matching Mordred Eigen with np.linalg.eigh",
+      "reason": "OEFP matches Mordred VE3_DzZ values on the committed Mordred parity fixture; disconnected and no-heavy molecules remain missing through MatrixAttributeBase.require_connected."
+    },
+    {
+      "descriptor": "VR1_DzZ",
+      "family": "BaryszMatrix",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/BaryszMatrix.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom Barysz matrix weighted by atomic number, heavy-heavy graph bonds, Mordred BaryszMatrix.py diagonal overwrite, weighted Floyd-Warshall paths, and private symmetric eigensystem calculation matching Mordred _matrix_attributes.py Eigen with np.linalg.eigh",
+      "reason": "OEFP matches Mordred VR1_DzZ values on the committed Mordred parity fixture; singleton heavy-atom rows keep VR1_DzZ as zero while disconnected and no-heavy molecules remain missing through MatrixAttributeBase.require_connected."
+    },
+    {
+      "descriptor": "VR2_DzZ",
+      "family": "BaryszMatrix",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/BaryszMatrix.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom Barysz matrix weighted by atomic number, heavy-heavy graph bonds, Mordred BaryszMatrix.py diagonal overwrite, weighted Floyd-Warshall paths, and private symmetric eigensystem calculation matching Mordred _matrix_attributes.py Eigen with np.linalg.eigh",
+      "reason": "OEFP matches Mordred VR2_DzZ values on the committed Mordred parity fixture; singleton heavy-atom rows keep VR2_DzZ as zero while disconnected and no-heavy molecules remain missing through MatrixAttributeBase.require_connected."
+    },
+    {
+      "descriptor": "VR3_DzZ",
+      "family": "BaryszMatrix",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/BaryszMatrix.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom Barysz matrix weighted by atomic number, heavy-heavy graph bonds, Mordred BaryszMatrix.py diagonal overwrite, weighted Floyd-Warshall paths, Mordred _matrix_attributes.py VR3 log scaling, and private symmetric eigensystem calculation matching Mordred Eigen with np.linalg.eigh",
+      "reason": "OEFP matches Mordred VR3_DzZ values on the committed Mordred parity fixture; singleton heavy-atom rows remain missing through Mordred rethrow_zerodiv log(0) behavior without suppressing other matrix descriptors."
+    },
+    {
       "descriptor": "GGI1",
       "family": "TopologicalCharge",
       "source": "/Users/johnss51/Development/python/mordred/mordred/TopologicalCharge.py",

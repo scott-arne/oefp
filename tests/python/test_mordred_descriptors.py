@@ -122,6 +122,19 @@ ENABLED_DESCRIPTOR_NAMES = {
     "VR1_D",
     "VR2_D",
     "VR3_D",
+    "SpAbs_DzZ",
+    "SpMax_DzZ",
+    "SpDiam_DzZ",
+    "SpAD_DzZ",
+    "SpMAD_DzZ",
+    "LogEE_DzZ",
+    "SM1_DzZ",
+    "VE1_DzZ",
+    "VE2_DzZ",
+    "VE3_DzZ",
+    "VR1_DzZ",
+    "VR2_DzZ",
+    "VR3_DzZ",
     "GGI1",
     "GGI2",
     "GGI3",
@@ -506,8 +519,9 @@ def test_mordred_descriptors_match_enabled_reference_values():
     names = _enabled_descriptor_names(payload)
     row_divergences = _row_divergence_policy()
 
-    assert len(names) == 373
+    assert len(names) == 386
     assert {"VR1_A", "VR2_A", "VR3_A", "VR1_D", "VR2_D", "VR3_D"} <= set(names)
+    assert {"SM1_DzZ", "VR1_DzZ", "VR2_DzZ", "VR3_DzZ"} <= set(names)
     for row in payload["reference_rows"]:
         smiles = row["smiles"]
         descriptors = oefp.mordred_descriptors(_openeye_mol(row["smiles"]))
