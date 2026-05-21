@@ -86,6 +86,30 @@
       "reason": "OEFP matches Mordred LogEE_A values on the committed Mordred parity fixture; disconnected and no-heavy molecules remain missing through MatrixAttributeBase.require_connected."
     },
     {
+      "descriptor": "VE1_A",
+      "family": "AdjacencyMatrix",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/AdjacencyMatrix.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom unweighted adjacency matrix, Mordred _graph_matrix.py AdjacencyMatrix(False), and private symmetric eigensystem calculation matching Mordred _matrix_attributes.py Eigen with np.linalg.eigh",
+      "reason": "OEFP matches Mordred VE1_A values on the committed Mordred parity fixture; disconnected and no-heavy molecules remain missing through MatrixAttributeBase.require_connected."
+    },
+    {
+      "descriptor": "VE2_A",
+      "family": "AdjacencyMatrix",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/AdjacencyMatrix.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom unweighted adjacency matrix, Mordred _graph_matrix.py AdjacencyMatrix(False), and private symmetric eigensystem calculation matching Mordred _matrix_attributes.py Eigen with np.linalg.eigh",
+      "reason": "OEFP matches Mordred VE2_A values on the committed Mordred parity fixture; disconnected and no-heavy molecules remain missing through MatrixAttributeBase.require_connected."
+    },
+    {
+      "descriptor": "VE3_A",
+      "family": "AdjacencyMatrix",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/AdjacencyMatrix.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom unweighted adjacency matrix, Mordred _graph_matrix.py AdjacencyMatrix(False), and private symmetric eigensystem calculation matching Mordred _matrix_attributes.py Eigen with np.linalg.eigh",
+      "reason": "OEFP matches Mordred VE3_A values on the committed Mordred parity fixture; disconnected and no-heavy molecules remain missing through MatrixAttributeBase.require_connected."
+    },
+    {
       "descriptor": "SpAbs_D",
       "family": "DistanceMatrix",
       "source": "/Users/johnss51/Development/python/mordred/mordred/DistanceMatrix.py",
@@ -132,6 +156,30 @@
       "status": "exact",
       "primitive": "OpenEye heavy-atom shortest path distance matrix, Mordred _graph_matrix.py DistanceMatrix(False), private symmetric eigenvalue calculation matching Mordred _matrix_attributes.py Eigen with np.linalg.eigh, and Mordred LogEE log-sum-exp formula",
       "reason": "OEFP matches Mordred LogEE_D values on the committed Mordred parity fixture; disconnected and no-heavy molecules remain missing through MatrixAttributeBase.require_connected."
+    },
+    {
+      "descriptor": "VE1_D",
+      "family": "DistanceMatrix",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/DistanceMatrix.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom shortest path distance matrix, Mordred _graph_matrix.py DistanceMatrix(False), and private symmetric eigensystem calculation matching Mordred _matrix_attributes.py Eigen with np.linalg.eigh",
+      "reason": "OEFP matches Mordred VE1_D values on the committed Mordred parity fixture; disconnected and no-heavy molecules remain missing through MatrixAttributeBase.require_connected."
+    },
+    {
+      "descriptor": "VE2_D",
+      "family": "DistanceMatrix",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/DistanceMatrix.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom shortest path distance matrix, Mordred _graph_matrix.py DistanceMatrix(False), and private symmetric eigensystem calculation matching Mordred _matrix_attributes.py Eigen with np.linalg.eigh",
+      "reason": "OEFP matches Mordred VE2_D values on the committed Mordred parity fixture; disconnected and no-heavy molecules remain missing through MatrixAttributeBase.require_connected."
+    },
+    {
+      "descriptor": "VE3_D",
+      "family": "DistanceMatrix",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/DistanceMatrix.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom shortest path distance matrix, Mordred _graph_matrix.py DistanceMatrix(False), and private symmetric eigensystem calculation matching Mordred _matrix_attributes.py Eigen with np.linalg.eigh",
+      "reason": "OEFP matches Mordred VE3_D values on the committed Mordred parity fixture; disconnected and no-heavy molecules remain missing through MatrixAttributeBase.require_connected."
     },
     {
       "descriptor": "GGI1",

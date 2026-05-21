@@ -56,8 +56,10 @@ TEST(MordredDescriptorTest, DescriptorRowCarriesFullSchema) {
     EXPECT_TRUE(descriptors.Has("ABC"));
     EXPECT_TRUE(descriptors.Has("SpAbs_A"));
     EXPECT_TRUE(descriptors.Has("SpAbs_D"));
-    EXPECT_FALSE(descriptors.Has("VE1_A"));
-    EXPECT_FALSE(descriptors.Has("VE1_D"));
+    EXPECT_TRUE(descriptors.Has("VE1_A"));
+    EXPECT_TRUE(descriptors.Has("VE1_D"));
+    EXPECT_FALSE(descriptors.Has("VR1_A"));
+    EXPECT_FALSE(descriptors.Has("VR1_D"));
 }
 
 TEST(MordredDescriptorTest, CountSubsetMatchesCopiedMordredReferences) {
@@ -755,6 +757,9 @@ TEST(MordredDescriptorTest, AdjacencyMatrixEigenvalueDescriptorsMatchMordredRefe
                 {"SpAD_A", 0.0},
                 {"SpMAD_A", 0.0},
                 {"LogEE_A", 0.6931471805599453},
+                {"VE1_A", 1.0},
+                {"VE2_A", 1.0},
+                {"VE3_A", -2.3025850929940455},
             },
         },
         {
@@ -766,6 +771,9 @@ TEST(MordredDescriptorTest, AdjacencyMatrixEigenvalueDescriptorsMatchMordredRefe
                 {"SpAD_A", 2.0},
                 {"SpMAD_A", 1.0},
                 {"LogEE_A", 1.4076059644443804},
+                {"VE1_A", 1.414213562373095},
+                {"VE2_A", 0.7071067811865475},
+                {"VE3_A", -1.2628643221541278},
             },
         },
         {
@@ -777,6 +785,9 @@ TEST(MordredDescriptorTest, AdjacencyMatrixEigenvalueDescriptorsMatchMordredRefe
                 {"SpAD_A", 2.82842712474619},
                 {"SpMAD_A", 0.9428090415820632},
                 {"LogEE_A", 1.8494570055365824},
+                {"VE1_A", 1.7071067811865475},
+                {"VE2_A", 0.5690355937288492},
+                {"VE3_A", -0.6691728075863654},
             },
         },
         {
@@ -788,6 +799,9 @@ TEST(MordredDescriptorTest, AdjacencyMatrixEigenvalueDescriptorsMatchMordredRefe
                 {"SpAD_A", 7.999999999999998},
                 {"SpMAD_A", 1.333333333333333},
                 {"LogEE_A", 2.6876239260352994},
+                {"VE1_A", 2.4494897427831788},
+                {"VE2_A", 0.40824829046386313},
+                {"VE3_A", 0.3850541108480373},
             },
         },
         {
@@ -799,6 +813,9 @@ TEST(MordredDescriptorTest, AdjacencyMatrixEigenvalueDescriptorsMatchMordredRefe
                 {"SpAD_A", 6.987918414869867},
                 {"SpMAD_A", 1.164653069144978},
                 {"LogEE_A", 2.579830499327949},
+                {"VE1_A", 2.3418960180704147},
+                {"VE2_A", 0.3903160030117358},
+                {"VE3_A", 0.34013524164950576},
             },
         },
     };
@@ -824,6 +841,9 @@ TEST(MordredDescriptorTest, AdjacencyMatrixEigenvalueDescriptorsAreMissingWhenRe
         "SpAD_A",
         "SpMAD_A",
         "LogEE_A",
+        "VE1_A",
+        "VE2_A",
+        "VE3_A",
     };
 
     const OEChem::OEGraphMol empty_mol;
@@ -859,6 +879,9 @@ TEST(MordredDescriptorTest, DistanceMatrixEigenvalueDescriptorsMatchMordredRefer
                 {"SpAD_D", 0.0},
                 {"SpMAD_D", 0.0},
                 {"LogEE_D", 0.6931471805599453},
+                {"VE1_D", 1.0},
+                {"VE2_D", 1.0},
+                {"VE3_D", -2.3025850929940455},
             },
         },
         {
@@ -870,6 +893,9 @@ TEST(MordredDescriptorTest, DistanceMatrixEigenvalueDescriptorsMatchMordredRefer
                 {"SpAD_D", 2.0},
                 {"SpMAD_D", 1.0},
                 {"LogEE_D", 1.4076059644443804},
+                {"VE1_D", 1.414213562373095},
+                {"VE2_D", 0.7071067811865475},
+                {"VE3_D", -1.2628643221541278},
             },
         },
         {
@@ -881,6 +907,9 @@ TEST(MordredDescriptorTest, DistanceMatrixEigenvalueDescriptorsMatchMordredRefer
                 {"SpAD_D", 5.464101615137755},
                 {"SpMAD_D", 1.8213672050459184},
                 {"LogEE_D", 2.832072756761435},
+                {"VE1_D", 1.7156269037800915},
+                {"VE2_D", 0.5718756345933639},
+                {"VE3_D", -0.6641942489393373},
             },
         },
         {
@@ -892,6 +921,9 @@ TEST(MordredDescriptorTest, DistanceMatrixEigenvalueDescriptorsMatchMordredRefer
                 {"SpAD_D", 18.000000000000007},
                 {"SpMAD_D", 3.0000000000000013},
                 {"LogEE_D", 9.000420061762542},
+                {"VE1_D", 2.4494897427831788},
+                {"VE2_D", 0.40824829046386313},
+                {"VE3_D", 0.3850541108480373},
             },
         },
         {
@@ -903,6 +935,9 @@ TEST(MordredDescriptorTest, DistanceMatrixEigenvalueDescriptorsMatchMordredRefer
                 {"SpAD_D", 24.21862300782596},
                 {"SpMAD_D", 4.036437167970994},
                 {"LogEE_D", 12.109325540282484},
+                {"VE1_D", 2.4117970446931674},
+                {"VE2_D", 0.4019661741155279},
+                {"VE3_D", 0.3695465075674201},
             },
         },
     };
@@ -928,6 +963,9 @@ TEST(MordredDescriptorTest, DistanceMatrixEigenvalueDescriptorsAreMissingWhenReq
         "SpAD_D",
         "SpMAD_D",
         "LogEE_D",
+        "VE1_D",
+        "VE2_D",
+        "VE3_D",
     };
 
     const OEChem::OEGraphMol empty_mol;

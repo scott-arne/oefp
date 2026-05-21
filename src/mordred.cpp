@@ -154,6 +154,14 @@ struct MordredMatrixEigenvalueValues {
     double spectral_absolute_deviation = 0.0;
     double spectral_mean_absolute_deviation = 0.0;
     double log_estrada_like = 0.0;
+    double eigenvector_coefficient_sum = 0.0;
+    double eigenvector_coefficient_mean = 0.0;
+    double eigenvector_coefficient_log = 0.0;
+};
+
+struct MordredSymmetricEigensystem {
+    std::vector<double> eigenvalues;
+    std::vector<double> eigenvectors;
 };
 
 struct MordredRingCountSummary {
@@ -1847,14 +1855,22 @@ bool is_connected_heavy_atom_graph(const MordredHeavyAtomGraph& graph) {
     return std::all_of(visited.begin(), visited.end(), [](bool value) { return value; });
 }
 
-std::optional<std::vector<double>> symmetric_eigenvalues_jacobi(
+std::optional<MordredSymmetricEigensystem> symmetric_eigensystem_jacobi(
     std::vector<double> matrix,
     std::size_t dimension) {
+    MordredSymmetricEigensystem eigensystem;
     if (dimension == 0u) {
-        return std::vector<double>{};
+        return eigensystem;
     }
+
+    eigensystem.eigenvectors.assign(dimension * dimension, 0.0);
+    for (std::size_t index = 0u; index < dimension; ++index) {
+        eigensystem.eigenvectors[index * dimension + index] = 1.0;
+    }
+
     if (dimension == 1u) {
-        return std::vector<double>{matrix.front()};
+        eigensystem.eigenvalues = {matrix.front()};
+        return eigensystem;
     }
 
     constexpr double kTolerance = 1.0e-13;
@@ -1880,12 +1896,12 @@ std::optional<std::vector<double>> symmetric_eigenvalues_jacobi(
         }
 
         if (max_off_diagonal <= kTolerance) {
-            std::vector<double> eigenvalues;
-            eigenvalues.reserve(dimension);
+            eigensystem.eigenvalues.clear();
+            eigensystem.eigenvalues.reserve(dimension);
             for (std::size_t index = 0u; index < dimension; ++index) {
-                eigenvalues.push_back(matrix[at(index, index)]);
+                eigensystem.eigenvalues.push_back(matrix[at(index, index)]);
             }
-            return eigenvalues;
+            return eigensystem;
         }
 
         const auto app = matrix[at(pivot_row, pivot_row)];
@@ -1917,6 +1933,14 @@ std::optional<std::vector<double>> symmetric_eigenvalues_jacobi(
             matrix[at(index, pivot_column)] = rotated_iq;
             matrix[at(pivot_column, index)] = rotated_iq;
         }
+
+        // Mordred/NumPy returns eigenvectors as columns; keep the same layout.
+        for (std::size_t row = 0u; row < dimension; ++row) {
+            const auto vip = eigensystem.eigenvectors[at(row, pivot_row)];
+            const auto viq = eigensystem.eigenvectors[at(row, pivot_column)];
+            eigensystem.eigenvectors[at(row, pivot_row)] = c * vip - s * viq;
+            eigensystem.eigenvectors[at(row, pivot_column)] = s * vip + c * viq;
+        }
     }
 
     return std::nullopt;
@@ -1925,18 +1949,19 @@ std::optional<std::vector<double>> symmetric_eigenvalues_jacobi(
 std::optional<MordredMatrixEigenvalueValues> compute_matrix_eigenvalue_values(
     std::vector<double> matrix,
     std::size_t atom_count) {
-    auto eigenvalues = symmetric_eigenvalues_jacobi(std::move(matrix), atom_count);
-    if (!eigenvalues.has_value()) {
+    auto eigensystem = symmetric_eigensystem_jacobi(std::move(matrix), atom_count);
+    if (!eigensystem.has_value()) {
         return std::nullopt;
     }
 
     MordredMatrixEigenvalueValues values;
+    const auto& eigenvalues = eigensystem->eigenvalues;
     const auto [min_eigenvalue, max_eigenvalue] =
-        std::minmax_element(eigenvalues->begin(), eigenvalues->end());
-    const auto mean = std::accumulate(eigenvalues->begin(), eigenvalues->end(), 0.0)
+        std::minmax_element(eigenvalues.begin(), eigenvalues.end());
+    const auto mean = std::accumulate(eigenvalues.begin(), eigenvalues.end(), 0.0)
         / static_cast<double>(atom_count);
 
-    for (const auto eigenvalue : *eigenvalues) {
+    for (const auto eigenvalue : eigenvalues) {
         values.spectral_absolute += std::abs(eigenvalue);
         values.spectral_absolute_deviation += std::abs(eigenvalue - mean);
     }
@@ -1948,10 +1973,26 @@ std::optional<MordredMatrixEigenvalueValues> compute_matrix_eigenvalue_values(
 
     const auto a = std::max(values.spectral_max, 0.0);
     double exp_sum = std::exp(-a);
-    for (const auto eigenvalue : *eigenvalues) {
+    for (const auto eigenvalue : eigenvalues) {
         exp_sum += std::exp(eigenvalue - a);
     }
     values.log_estrada_like = a + std::log(exp_sum);
+
+    const auto dominant_index =
+        static_cast<std::size_t>(std::distance(eigenvalues.begin(), max_eigenvalue));
+    for (std::size_t row = 0u; row < atom_count; ++row) {
+        values.eigenvector_coefficient_sum +=
+            std::abs(eigensystem->eigenvectors[row * atom_count + dominant_index]);
+    }
+    values.eigenvector_coefficient_mean =
+        values.eigenvector_coefficient_sum / static_cast<double>(atom_count);
+
+    const auto eigenvector_log_argument =
+        0.1 * static_cast<double>(atom_count) * values.eigenvector_coefficient_sum;
+    if (eigenvector_log_argument <= 0.0) {
+        return std::nullopt;
+    }
+    values.eigenvector_coefficient_log = std::log(eigenvector_log_argument);
 
     return values;
 }
@@ -2962,6 +3003,9 @@ void set_adjacency_matrix_eigenvalue_values(
     set_float(builder, "SpAD_A", values.spectral_absolute_deviation);
     set_float(builder, "SpMAD_A", values.spectral_mean_absolute_deviation);
     set_float(builder, "LogEE_A", values.log_estrada_like);
+    set_float(builder, "VE1_A", values.eigenvector_coefficient_sum);
+    set_float(builder, "VE2_A", values.eigenvector_coefficient_mean);
+    set_float(builder, "VE3_A", values.eigenvector_coefficient_log);
 }
 
 void set_distance_matrix_eigenvalue_values(
@@ -2973,6 +3017,9 @@ void set_distance_matrix_eigenvalue_values(
     set_float(builder, "SpAD_D", values.spectral_absolute_deviation);
     set_float(builder, "SpMAD_D", values.spectral_mean_absolute_deviation);
     set_float(builder, "LogEE_D", values.log_estrada_like);
+    set_float(builder, "VE1_D", values.eigenvector_coefficient_sum);
+    set_float(builder, "VE2_D", values.eigenvector_coefficient_mean);
+    set_float(builder, "VE3_D", values.eigenvector_coefficient_log);
 }
 
 void set_eccentric_connectivity_index(DescriptorSetBuilder& builder, std::int64_t value) {
