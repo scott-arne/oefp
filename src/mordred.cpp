@@ -4067,6 +4067,43 @@ bool labute_values_align_with_crippen_atom_contributions(
     return true;
 }
 
+template <std::size_t BinCount>
+std::optional<std::array<double, BinCount>> compute_crippen_vsa_values(
+    const OEChem::OEMolBase& mol,
+    const MordredLabuteAsaValues& labute_values,
+    const std::array<double, BinCount>& bins,
+    const std::vector<double> MordredCrippenAtomContributions::*contribution_member) {
+    const auto crippen_contributions = compute_crippen_atom_contributions(mol);
+    if (!crippen_contributions.has_value()
+        || !labute_values_align_with_crippen_atom_contributions(
+            labute_values,
+            *crippen_contributions)) {
+        return std::nullopt;
+    }
+
+    const auto& property_contributions = (*crippen_contributions).*contribution_member;
+    if (property_contributions.size() != labute_values.atom_contributions.size()) {
+        return std::nullopt;
+    }
+
+    std::array<double, BinCount> values{};
+    for (std::size_t atom_index = 0u; atom_index < property_contributions.size(); ++atom_index) {
+        const auto property_contribution = property_contributions[atom_index];
+        const auto atom_contribution = labute_values.atom_contributions[atom_index];
+        if (!std::isfinite(property_contribution) || !std::isfinite(atom_contribution)) {
+            return std::nullopt;
+        }
+
+        // RDKit MOE VSA descriptors use upper_bound/bisect_right and hide the tail bin.
+        const auto bin = static_cast<std::size_t>(
+            std::upper_bound(bins.begin(), bins.end(), property_contribution) - bins.begin());
+        if (bin < values.size()) {
+            values[bin] += atom_contribution;
+        }
+    }
+    return values;
+}
+
 std::optional<std::array<double, 9>> compute_smr_vsa_values(
     const OEChem::OEMolBase& mol,
     const MordredLabuteAsaValues& labute_values) {
@@ -4082,33 +4119,35 @@ std::optional<std::array<double, 9>> compute_smr_vsa_values(
         4.0,
     }};
 
-    const auto crippen_contributions = compute_crippen_atom_contributions(mol);
-    if (!crippen_contributions.has_value()
-        || !labute_values_align_with_crippen_atom_contributions(
-            labute_values,
-            *crippen_contributions)) {
-        return std::nullopt;
-    }
+    return compute_crippen_vsa_values(
+        mol,
+        labute_values,
+        mr_bins,
+        &MordredCrippenAtomContributions::mr);
+}
 
-    std::array<double, 9> values{};
-    for (std::size_t atom_index = 0u; atom_index < crippen_contributions->mr.size();
-         ++atom_index) {
-        const auto mr_contribution = crippen_contributions->mr[atom_index];
-        const auto atom_contribution = labute_values.atom_contributions[atom_index];
-        if (!std::isfinite(mr_contribution) || !std::isfinite(atom_contribution)) {
-            return std::nullopt;
-        }
+std::optional<std::array<double, 11>> compute_slogp_vsa_values(
+    const OEChem::OEMolBase& mol,
+    const MordredLabuteAsaValues& labute_values) {
+    static constexpr std::array<double, 11> logp_bins{{
+        -0.4,
+        -0.2,
+        0.0,
+        0.1,
+        0.15,
+        0.2,
+        0.25,
+        0.3,
+        0.4,
+        0.5,
+        0.6,
+    }};
 
-        // RDKit SMR_VSA_ uses upper_bound/bisect_right on per-atom MR values.
-        // Mordred exposes bins 0..8 as SMR_VSA1..SMR_VSA9 and hides the tail.
-        const auto bin = static_cast<std::size_t>(
-            std::upper_bound(mr_bins.begin(), mr_bins.end(), mr_contribution)
-            - mr_bins.begin());
-        if (bin < values.size()) {
-            values[bin] += atom_contribution;
-        }
-    }
-    return values;
+    return compute_crippen_vsa_values(
+        mol,
+        labute_values,
+        logp_bins,
+        &MordredCrippenAtomContributions::logp);
 }
 
 std::optional<std::array<double, 9>> compute_vsa_estate_values(
@@ -4947,6 +4986,10 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
         labute_asa_values.has_value()
             ? compute_smr_vsa_values(mol, *labute_asa_values)
             : std::optional<std::array<double, 9>>{};
+    const auto slogp_vsa_values =
+        labute_asa_values.has_value()
+            ? compute_slogp_vsa_values(mol, *labute_asa_values)
+            : std::optional<std::array<double, 11>>{};
     const auto vsa_estate_values =
         labute_asa_values.has_value()
             ? compute_vsa_estate_values(mol, *labute_asa_values)
@@ -5072,6 +5115,14 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
                 builder,
                 "SMR_VSA" + std::to_string(index + 1u),
                 (*smr_vsa_values)[index]);
+        }
+    }
+    if (slogp_vsa_values.has_value()) {
+        for (std::size_t index = 0u; index < slogp_vsa_values->size(); ++index) {
+            set_float(
+                builder,
+                "SlogP_VSA" + std::to_string(index + 1u),
+                (*slogp_vsa_values)[index]);
         }
     }
     if (estate_vsa_values.has_value()) {

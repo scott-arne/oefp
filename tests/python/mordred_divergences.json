@@ -2078,6 +2078,94 @@
       "reason": "OEFP matches Mordred SMR_VSA9 values on the committed Mordred parity fixture."
     },
     {
+      "descriptor": "SlogP_VSA1",
+      "family": "MoeType",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/MoeType.py",
+      "status": "exact",
+      "primitive": "Mordred MoeType.SlogP_VSA calls RDKit MolSurf.py/MolSurf.cpp SlogP_VSA semantics: per-atom Crippen logP contributions from Crippen._GetAtomContribs/getCrippenAtomContribs on the hydrogen-suppressed molecule, RDKit _LabuteHelper/getLabuteAtomContribs per-atom Labute contributions after the leading hydrogen contribution, bin=bisect_right/std::upper_bound(logpBins, logP), ans[bin]+=Labute contribution.",
+      "reason": "OEFP matches Mordred SlogP_VSA1 values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "SlogP_VSA2",
+      "family": "MoeType",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/MoeType.py",
+      "status": "exact",
+      "primitive": "Mordred MoeType.SlogP_VSA calls RDKit MolSurf.py/MolSurf.cpp SlogP_VSA semantics: per-atom Crippen logP contributions from Crippen._GetAtomContribs/getCrippenAtomContribs on the hydrogen-suppressed molecule, RDKit _LabuteHelper/getLabuteAtomContribs per-atom Labute contributions after the leading hydrogen contribution, bin=bisect_right/std::upper_bound(logpBins, logP), ans[bin]+=Labute contribution.",
+      "reason": "OEFP matches Mordred SlogP_VSA2 values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "SlogP_VSA3",
+      "family": "MoeType",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/MoeType.py",
+      "status": "exact",
+      "primitive": "Mordred MoeType.SlogP_VSA calls RDKit MolSurf.py/MolSurf.cpp SlogP_VSA semantics: per-atom Crippen logP contributions from Crippen._GetAtomContribs/getCrippenAtomContribs on the hydrogen-suppressed molecule, RDKit _LabuteHelper/getLabuteAtomContribs per-atom Labute contributions after the leading hydrogen contribution, bin=bisect_right/std::upper_bound(logpBins, logP), ans[bin]+=Labute contribution.",
+      "reason": "OEFP matches Mordred SlogP_VSA3 values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "SlogP_VSA4",
+      "family": "MoeType",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/MoeType.py",
+      "status": "exact",
+      "primitive": "Mordred MoeType.SlogP_VSA calls RDKit MolSurf.py/MolSurf.cpp SlogP_VSA semantics: per-atom Crippen logP contributions from Crippen._GetAtomContribs/getCrippenAtomContribs on the hydrogen-suppressed molecule, RDKit _LabuteHelper/getLabuteAtomContribs per-atom Labute contributions after the leading hydrogen contribution, bin=bisect_right/std::upper_bound(logpBins, logP), ans[bin]+=Labute contribution.",
+      "reason": "OEFP matches Mordred SlogP_VSA4 values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "SlogP_VSA5",
+      "family": "MoeType",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/MoeType.py",
+      "status": "exact",
+      "primitive": "Mordred MoeType.SlogP_VSA calls RDKit MolSurf.py/MolSurf.cpp SlogP_VSA semantics: per-atom Crippen logP contributions from Crippen._GetAtomContribs/getCrippenAtomContribs on the hydrogen-suppressed molecule, RDKit _LabuteHelper/getLabuteAtomContribs per-atom Labute contributions after the leading hydrogen contribution, bin=bisect_right/std::upper_bound(logpBins, logP), ans[bin]+=Labute contribution.",
+      "reason": "OEFP matches Mordred SlogP_VSA5 values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "SlogP_VSA6",
+      "family": "MoeType",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/MoeType.py",
+      "status": "exact",
+      "primitive": "Mordred MoeType.SlogP_VSA calls RDKit MolSurf.py/MolSurf.cpp SlogP_VSA semantics: per-atom Crippen logP contributions from Crippen._GetAtomContribs/getCrippenAtomContribs on the hydrogen-suppressed molecule, RDKit _LabuteHelper/getLabuteAtomContribs per-atom Labute contributions after the leading hydrogen contribution, bin=bisect_right/std::upper_bound(logpBins, logP), ans[bin]+=Labute contribution.",
+      "reason": "OEFP matches Mordred SlogP_VSA6 values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "SlogP_VSA7",
+      "family": "MoeType",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/MoeType.py",
+      "status": "exact",
+      "primitive": "Mordred MoeType.SlogP_VSA calls RDKit MolSurf.py/MolSurf.cpp SlogP_VSA semantics: per-atom Crippen logP contributions from Crippen._GetAtomContribs/getCrippenAtomContribs on the hydrogen-suppressed molecule, RDKit _LabuteHelper/getLabuteAtomContribs per-atom Labute contributions after the leading hydrogen contribution, bin=bisect_right/std::upper_bound(logpBins, logP), ans[bin]+=Labute contribution.",
+      "reason": "OEFP matches Mordred SlogP_VSA7 values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "SlogP_VSA8",
+      "family": "MoeType",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/MoeType.py",
+      "status": "exact",
+      "primitive": "Mordred MoeType.SlogP_VSA calls RDKit MolSurf.py/MolSurf.cpp SlogP_VSA semantics: per-atom Crippen logP contributions from Crippen._GetAtomContribs/getCrippenAtomContribs on the hydrogen-suppressed molecule, RDKit _LabuteHelper/getLabuteAtomContribs per-atom Labute contributions after the leading hydrogen contribution, bin=bisect_right/std::upper_bound(logpBins, logP), ans[bin]+=Labute contribution.",
+      "reason": "OEFP matches Mordred SlogP_VSA8 values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "SlogP_VSA9",
+      "family": "MoeType",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/MoeType.py",
+      "status": "exact",
+      "primitive": "Mordred MoeType.SlogP_VSA calls RDKit MolSurf.py/MolSurf.cpp SlogP_VSA semantics: per-atom Crippen logP contributions from Crippen._GetAtomContribs/getCrippenAtomContribs on the hydrogen-suppressed molecule, RDKit _LabuteHelper/getLabuteAtomContribs per-atom Labute contributions after the leading hydrogen contribution, bin=bisect_right/std::upper_bound(logpBins, logP), ans[bin]+=Labute contribution.",
+      "reason": "OEFP matches Mordred SlogP_VSA9 values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "SlogP_VSA10",
+      "family": "MoeType",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/MoeType.py",
+      "status": "exact",
+      "primitive": "Mordred MoeType.SlogP_VSA calls RDKit MolSurf.py/MolSurf.cpp SlogP_VSA semantics: per-atom Crippen logP contributions from Crippen._GetAtomContribs/getCrippenAtomContribs on the hydrogen-suppressed molecule, RDKit _LabuteHelper/getLabuteAtomContribs per-atom Labute contributions after the leading hydrogen contribution, bin=bisect_right/std::upper_bound(logpBins, logP), ans[bin]+=Labute contribution.",
+      "reason": "OEFP matches Mordred SlogP_VSA10 values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "SlogP_VSA11",
+      "family": "MoeType",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/MoeType.py",
+      "status": "exact",
+      "primitive": "Mordred MoeType.SlogP_VSA calls RDKit MolSurf.py/MolSurf.cpp SlogP_VSA semantics: per-atom Crippen logP contributions from Crippen._GetAtomContribs/getCrippenAtomContribs on the hydrogen-suppressed molecule, RDKit _LabuteHelper/getLabuteAtomContribs per-atom Labute contributions after the leading hydrogen contribution, bin=bisect_right/std::upper_bound(logpBins, logP), ans[bin]+=Labute contribution.",
+      "reason": "OEFP matches Mordred SlogP_VSA11 values on the committed Mordred parity fixture."
+    },
+    {
       "descriptor": "VSA_EState1",
       "family": "MoeType",
       "source": "/Users/johnss51/Development/python/mordred/mordred/MoeType.py",

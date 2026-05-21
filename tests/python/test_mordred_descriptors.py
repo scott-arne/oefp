@@ -208,6 +208,17 @@ ENABLED_DESCRIPTOR_NAMES = {
     "SMR_VSA7",
     "SMR_VSA8",
     "SMR_VSA9",
+    "SlogP_VSA1",
+    "SlogP_VSA2",
+    "SlogP_VSA3",
+    "SlogP_VSA4",
+    "SlogP_VSA5",
+    "SlogP_VSA6",
+    "SlogP_VSA7",
+    "SlogP_VSA8",
+    "SlogP_VSA9",
+    "SlogP_VSA10",
+    "SlogP_VSA11",
     "VSA_EState1",
     "VSA_EState2",
     "VSA_EState3",
@@ -677,7 +688,7 @@ def test_mordred_descriptors_match_enabled_reference_values():
     names = _enabled_descriptor_names(payload)
     row_divergences = _row_divergence_policy()
 
-    assert len(names) == 911
+    assert len(names) == 922
     assert set(ESTATE_COUNT_NAMES) <= set(names)
     assert set(ESTATE_SUM_NAMES) <= set(names)
     assert set(ESTATE_MAX_NAMES) <= set(names)
@@ -694,6 +705,7 @@ def test_mordred_descriptors_match_enabled_reference_values():
     assert "fragCpx" in names
     assert "LabuteASA" in names
     assert {f"SMR_VSA{index}" for index in range(1, 10)} <= set(names)
+    assert {f"SlogP_VSA{index}" for index in range(1, 12)} <= set(names)
     assert {f"EState_VSA{index}" for index in range(1, 11)} <= set(names)
     assert {f"VSA_EState{index}" for index in range(1, 10)} <= set(names)
     assert {"MID", "AMID", "MID_h", "AMID_h", "MID_X", "AMID_X"} <= set(names)
