@@ -189,6 +189,11 @@ struct MordredDetourBlock {
     std::vector<std::int64_t> longest_paths;
 };
 
+struct MordredDetourSearchContext {
+    std::uint64_t max_operations = 0u;
+    std::uint64_t operations = 0u;
+};
+
 using MordredAtomicPropertyLookup = std::optional<double> (*)(std::uint32_t);
 
 struct MordredBaryszMatrixProperty {
@@ -2335,6 +2340,18 @@ std::pair<std::size_t, std::size_t> normalized_edge(std::size_t begin, std::size
     return begin < end ? std::make_pair(begin, end) : std::make_pair(end, begin);
 }
 
+// Mordred uses a wall-clock timeout here; OEFP uses a deterministic budget so
+// pathological cyclic blocks return missing without making tests timing-sensitive.
+constexpr std::uint64_t kDefaultMordredDetourSearchOperations = 5'000'000u;
+
+bool consume_mordred_detour_search_operation(MordredDetourSearchContext& context) {
+    if (context.operations >= context.max_operations) {
+        return false;
+    }
+    ++context.operations;
+    return true;
+}
+
 void collect_mordred_biconnected_components(
     const std::vector<std::vector<std::size_t>>& adjacency,
     std::size_t atom,
@@ -2408,17 +2425,21 @@ std::vector<std::vector<std::pair<std::size_t, std::size_t>>> mordred_biconnecte
     return components;
 }
 
-void accumulate_mordred_longest_simple_paths(
+bool accumulate_mordred_longest_simple_paths(
     const std::vector<std::vector<std::size_t>>& adjacency,
     std::size_t size,
     std::size_t start,
     std::size_t atom,
     std::int64_t distance,
     std::vector<bool>& visited,
-    std::vector<std::int64_t>& longest_paths) {
+    std::vector<std::int64_t>& longest_paths,
+    MordredDetourSearchContext& context) {
     for (const auto neighbor : adjacency[atom]) {
         if (visited[neighbor]) {
             continue;
+        }
+        if (!consume_mordred_detour_search_operation(context)) {
+            return false;
         }
 
         visited[neighbor] = true;
@@ -2427,21 +2448,26 @@ void accumulate_mordred_longest_simple_paths(
         if (next_distance > longest_path) {
             longest_path = next_distance;
         }
-        accumulate_mordred_longest_simple_paths(
+        if (!accumulate_mordred_longest_simple_paths(
             adjacency,
             size,
             start,
             neighbor,
             next_distance,
             visited,
-            longest_paths);
+            longest_paths,
+            context)) {
+            return false;
+        }
         visited[neighbor] = false;
     }
+    return true;
 }
 
-MordredDetourBlock compute_mordred_detour_block(
+std::optional<MordredDetourBlock> compute_mordred_detour_block(
     const std::vector<std::pair<std::size_t, std::size_t>>& edges,
-    std::size_t atom_count) {
+    std::size_t atom_count,
+    MordredDetourSearchContext& context) {
     MordredDetourBlock block;
     std::vector<bool> in_block(atom_count, false);
     for (const auto [begin, end] : edges) {
@@ -2465,14 +2491,17 @@ MordredDetourBlock compute_mordred_detour_block(
         matrix_entry(block.longest_paths, atom_count, atom, atom) = 0;
         std::vector<bool> visited(atom_count, false);
         visited[atom] = true;
-        accumulate_mordred_longest_simple_paths(
+        if (!accumulate_mordred_longest_simple_paths(
             adjacency,
             atom_count,
             atom,
             atom,
             0,
             visited,
-            block.longest_paths);
+            block.longest_paths,
+            context)) {
+            return std::nullopt;
+        }
     }
 
     for (const auto begin : block.nodes) {
@@ -2489,7 +2518,8 @@ MordredDetourBlock compute_mordred_detour_block(
 }
 
 std::optional<std::vector<double>> compute_mordred_detour_matrix(
-    const MordredHeavyAtomGraph& graph) {
+    const MordredHeavyAtomGraph& graph,
+    std::uint64_t max_search_operations = kDefaultMordredDetourSearchOperations) {
     if (!is_connected_heavy_atom_graph(graph)) {
         return std::nullopt;
     }
@@ -2506,8 +2536,13 @@ std::optional<std::vector<double>> compute_mordred_detour_matrix(
 
     std::vector<MordredDetourBlock> queue;
     queue.reserve(edge_components.size());
+    MordredDetourSearchContext search_context{max_search_operations, 0u};
     for (const auto& component : edge_components) {
-        queue.push_back(compute_mordred_detour_block(component, atom_count));
+        auto block = compute_mordred_detour_block(component, atom_count, search_context);
+        if (!block.has_value()) {
+            return std::nullopt;
+        }
+        queue.push_back(std::move(*block));
     }
 
     auto current = queue.back();
@@ -2615,8 +2650,9 @@ std::optional<std::vector<double>> compute_mordred_detour_matrix(
 }
 
 std::optional<MordredDetourMatrixValues> compute_detour_matrix_values(
-    const MordredHeavyAtomGraph& graph) {
-    auto detour_matrix = compute_mordred_detour_matrix(graph);
+    const MordredHeavyAtomGraph& graph,
+    std::uint64_t max_search_operations = kDefaultMordredDetourSearchOperations) {
+    auto detour_matrix = compute_mordred_detour_matrix(graph, max_search_operations);
     if (!detour_matrix.has_value()) {
         return std::nullopt;
     }
@@ -4177,5 +4213,22 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
 
     return builder.Build();
 }
+
+namespace test {
+
+DescriptorSet MakeMordredDetourDescriptorsForTesting(
+    const OEChem::OEMolBase& mol,
+    std::uint64_t max_search_operations) {
+    const auto heavy_atom_graph = build_mordred_heavy_atom_graph(mol);
+    const auto detour_matrix_values =
+        compute_detour_matrix_values(heavy_atom_graph, max_search_operations);
+    DescriptorSetBuilder builder(MordredDescriptorSchema());
+    if (detour_matrix_values.has_value()) {
+        set_detour_matrix_values(builder, *detour_matrix_values);
+    }
+    return builder.Build();
+}
+
+} // namespace test
 
 } // namespace OEFP

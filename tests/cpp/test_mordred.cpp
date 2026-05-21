@@ -12,6 +12,11 @@
 
 namespace OEFP {
 namespace test {
+
+DescriptorSet MakeMordredDetourDescriptorsForTesting(
+    const OEChem::OEMolBase& mol,
+    std::uint64_t max_search_operations);
+
 namespace {
 
 OEChem::OEGraphMol mol_from_smiles(const std::string& smiles) {
@@ -1364,6 +1369,31 @@ TEST(MordredDescriptorTest, DetourMatrixDescriptorsAreMissingWhenRequiredMatrixI
         for (const auto& name : descriptor_names) {
             EXPECT_FALSE(descriptors.Has(name)) << name;
         }
+    }
+}
+
+TEST(MordredDescriptorTest, DetourMatrixDescriptorsAreMissingWhenSearchBudgetIsExceeded) {
+    const auto descriptors =
+        MakeMordredDetourDescriptorsForTesting(mol_from_smiles("C1CCCCC1"), 1u);
+    const std::vector<std::string> descriptor_names{
+        "SpAbs_Dt",
+        "SpMax_Dt",
+        "SpDiam_Dt",
+        "SpAD_Dt",
+        "SpMAD_Dt",
+        "LogEE_Dt",
+        "SM1_Dt",
+        "VE1_Dt",
+        "VE2_Dt",
+        "VE3_Dt",
+        "VR1_Dt",
+        "VR2_Dt",
+        "VR3_Dt",
+        "DetourIndex",
+    };
+
+    for (const auto& name : descriptor_names) {
+        EXPECT_FALSE(descriptors.Has(name)) << name;
     }
 }
 
