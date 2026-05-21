@@ -1842,6 +1842,42 @@ struct MordredHeavyAtomGraph {
     std::vector<std::vector<std::size_t>> bond_neighbors;
 };
 
+struct MordredInformationContentValues {
+    std::array<std::optional<double>, 6> ic;
+    std::array<std::optional<double>, 6> tic;
+    std::array<std::optional<double>, 6> sic;
+    std::array<std::optional<double>, 6> bic;
+    std::array<std::optional<double>, 6> cic;
+    std::array<std::optional<double>, 6> mic;
+    std::array<std::optional<double>, 6> zmic;
+};
+
+struct InformationContentNeighbor {
+    std::size_t atom_index;
+    std::uint32_t bond_order;
+};
+
+struct InformationContentAtom {
+    const OEChem::OEAtomBase* atom = nullptr;
+    std::uint32_t atomic_number = 0u;
+    std::uint32_t degree = 0u;
+    std::vector<InformationContentNeighbor> neighbors;
+};
+
+struct InformationContentGraph {
+    OEChem::OEGraphMol mol;
+    std::vector<InformationContentAtom> atoms;
+    double bond_order_sum = 0.0;
+};
+
+struct InformationContentTreeNode {
+    bool unexpanded = true;
+    std::vector<std::pair<std::size_t, InformationContentTreeNode>> children;
+};
+
+using InformationContentTrail = std::vector<std::uint32_t>;
+using InformationContentAtomCode = std::vector<InformationContentTrail>;
+
 struct SimplePathWalkTotals {
     std::uint32_t count = 0u;
     double pi_sum = 0.0;
@@ -1903,6 +1939,285 @@ MordredHeavyAtomGraph build_mordred_heavy_atom_graph(const OEChem::OEMolBase& mo
         }
     }
     return graph;
+}
+
+InformationContentGraph build_information_content_graph(const OEChem::OEMolBase& mol) {
+    InformationContentGraph graph;
+    graph.mol = explicit_hydrogen_copy(mol);
+
+    std::unordered_map<unsigned int, std::size_t> atom_indices;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = graph.mol.GetAtoms(); atom; ++atom) {
+        atom_indices.emplace(atom->GetIdx(), graph.atoms.size());
+        graph.atoms.push_back({
+            &*atom,
+            static_cast<std::uint32_t>(atom->GetAtomicNum()),
+            static_cast<std::uint32_t>(atom->GetDegree()),
+            {},
+        });
+    }
+
+    for (OESystem::OEIter<OEChem::OEBondBase> bond = graph.mol.GetBonds(); bond; ++bond) {
+        const auto* begin = bond->GetBgn();
+        const auto* end = bond->GetEnd();
+        if (begin == nullptr || end == nullptr) {
+            continue;
+        }
+
+        const auto begin_index = atom_indices.find(begin->GetIdx());
+        const auto end_index = atom_indices.find(end->GetIdx());
+        if (begin_index == atom_indices.end() || end_index == atom_indices.end()) {
+            continue;
+        }
+
+        const auto bond_order = static_cast<std::uint32_t>(bond->GetOrder());
+        graph.bond_order_sum += static_cast<double>(bond_order);
+        graph.atoms[begin_index->second].neighbors.push_back({end_index->second, bond_order});
+        graph.atoms[end_index->second].neighbors.push_back({begin_index->second, bond_order});
+    }
+
+    for (std::size_t atom_index = 0u; atom_index < graph.atoms.size(); ++atom_index) {
+        auto& neighbors = graph.atoms[atom_index].neighbors;
+        std::stable_sort(
+            neighbors.begin(),
+            neighbors.end(),
+            [&graph, atom_index](const auto& left, const auto& right) {
+                const auto category = [&graph, atom_index](const auto& neighbor) {
+                    const auto& atom = graph.atoms[neighbor.atom_index];
+                    if (atom.atomic_number == 1u) {
+                        return 2;
+                    }
+                    const auto lhs = atom_index < neighbor.atom_index
+                        ? neighbor.atom_index - atom_index
+                        : atom_index - neighbor.atom_index;
+                    return lhs == 1u ? 0 : 1;
+                };
+                return category(left) < category(right);
+            });
+    }
+
+    return graph;
+}
+
+void expand_information_content_tree(
+    const InformationContentGraph& graph,
+    std::vector<std::pair<std::size_t, InformationContentTreeNode>>& tree,
+    std::unordered_set<std::size_t>& visited) {
+    for (auto& [src, node] : tree) {
+        visited.insert(src);
+
+        if (node.unexpanded) {
+            node.unexpanded = false;
+            for (const auto& neighbor : graph.atoms[src].neighbors) {
+                if (visited.find(neighbor.atom_index) == visited.end()) {
+                    node.children.push_back({neighbor.atom_index, {}});
+                }
+            }
+        } else {
+            expand_information_content_tree(graph, node.children, visited);
+        }
+    }
+}
+
+void collect_information_content_tree_code(
+    const InformationContentGraph& graph,
+    const std::vector<std::pair<std::size_t, InformationContentTreeNode>>& tree,
+    std::optional<std::size_t> before,
+    InformationContentTrail trail,
+    InformationContentAtomCode& code) {
+    if (tree.empty()) {
+        code.push_back(std::move(trail));
+        return;
+    }
+
+    for (const auto& [src, node] : tree) {
+        auto next = trail;
+        if (before.has_value()) {
+            const auto& before_neighbors = graph.atoms[*before].neighbors;
+            const auto found = std::find_if(
+                before_neighbors.begin(),
+                before_neighbors.end(),
+                [src](const InformationContentNeighbor& neighbor) {
+                    return neighbor.atom_index == src;
+                });
+            if (found != before_neighbors.end()) {
+                next.push_back(found->bond_order);
+            }
+        }
+        next.push_back(graph.atoms[src].atomic_number);
+        next.push_back(graph.atoms[src].degree);
+        collect_information_content_tree_code(graph, node.children, src, std::move(next), code);
+    }
+}
+
+InformationContentAtomCode information_content_atom_code(
+    const InformationContentGraph& graph,
+    std::size_t atom_index,
+    std::size_t order) {
+    if (order == 0u) {
+        return {{graph.atoms[atom_index].atomic_number}};
+    }
+
+    std::vector<std::pair<std::size_t, InformationContentTreeNode>> tree{{atom_index, {}}};
+    std::unordered_set<std::size_t> visited;
+    for (std::size_t step = 0u; step < order; ++step) {
+        expand_information_content_tree(graph, tree, visited);
+    }
+
+    InformationContentAtomCode code;
+    collect_information_content_tree_code(graph, tree, std::nullopt, {}, code);
+    std::sort(code.begin(), code.end());
+    return code;
+}
+
+std::optional<double> mordred_information_content_atom_mass(
+    const OEChem::OEAtomBase& atom) {
+    const auto atomic_number = static_cast<std::uint32_t>(atom.GetAtomicNum());
+    const auto isotope = static_cast<std::uint32_t>(atom.GetIsotope());
+    if (isotope != 0u) {
+        const auto mass = OEChem::OEGetIsotopicWeight(atomic_number, isotope);
+        return std::round(mass * 100000000.0) / 100000000.0;
+    }
+
+    switch (atomic_number) {
+    case 1u:
+        return 1.008;
+    case 6u:
+        return 12.011;
+    case 7u:
+        return 14.007;
+    case 8u:
+        return 15.999;
+    case 9u:
+        return 18.998;
+    case 11u:
+        return 22.99;
+    case 15u:
+        return 30.974;
+    case 16u:
+        return 32.067;
+    case 17u:
+        return 35.453;
+    case 34u:
+        return 78.96;
+    case 35u:
+        return 79.904;
+    case 53u:
+        return 126.904;
+    default:
+        break;
+    }
+
+    const auto mass = mordred_mass(atomic_number);
+    if (!mass.has_value()) {
+        return std::nullopt;
+    }
+    return *mass;
+}
+
+std::optional<double> shannon_entropy(
+    const std::vector<double>& class_sizes,
+    const std::vector<double>& weights) {
+    const double total = std::accumulate(class_sizes.begin(), class_sizes.end(), 0.0);
+    if (total <= 0.0) {
+        return std::nullopt;
+    }
+
+    double entropy = 0.0;
+    for (std::size_t index = 0u; index < class_sizes.size(); ++index) {
+        const auto probability = class_sizes[index] / total;
+        if (probability > 0.0) {
+            entropy -= weights[index] * probability * std::log2(probability);
+        }
+    }
+    return entropy;
+}
+
+std::optional<double> divide_by_valid_log2(double value, double denominator_argument) {
+    if (denominator_argument <= 0.0) {
+        return std::nullopt;
+    }
+
+    const auto denominator = std::log2(denominator_argument);
+    if (!std::isfinite(denominator) || denominator == 0.0) {
+        return std::nullopt;
+    }
+    return value / denominator;
+}
+
+MordredInformationContentValues compute_information_content_values(
+    const OEChem::OEMolBase& mol) {
+    const auto graph = build_information_content_graph(mol);
+    MordredInformationContentValues values;
+    const auto atom_count = graph.atoms.size();
+    if (atom_count == 0u) {
+        return values;
+    }
+
+    for (std::size_t order = 0u; order <= 5u; ++order) {
+        std::vector<InformationContentAtomCode> atom_codes;
+        atom_codes.reserve(atom_count);
+        std::map<InformationContentAtomCode, std::size_t> representative_ids;
+        for (std::size_t atom_index = 0u; atom_index < atom_count; ++atom_index) {
+            atom_codes.push_back(information_content_atom_code(graph, atom_index, order));
+            representative_ids[atom_codes.back()] = atom_index;
+        }
+
+        std::sort(atom_codes.begin(), atom_codes.end());
+
+        std::vector<double> class_sizes;
+        std::vector<std::size_t> representative_indices;
+        for (std::size_t begin = 0u; begin < atom_codes.size();) {
+            std::size_t end = begin + 1u;
+            while (end < atom_codes.size() && atom_codes[end] == atom_codes[begin]) {
+                ++end;
+            }
+            class_sizes.push_back(static_cast<double>(end - begin));
+            representative_indices.push_back(representative_ids[atom_codes[begin]]);
+            begin = end;
+        }
+
+        std::vector<double> unit_weights(class_sizes.size(), 1.0);
+        const auto ic = shannon_entropy(class_sizes, unit_weights);
+        if (!ic.has_value()) {
+            continue;
+        }
+
+        values.ic[order] = *ic;
+        values.tic[order] = static_cast<double>(atom_count) * *ic;
+        values.sic[order] = divide_by_valid_log2(*ic, static_cast<double>(atom_count));
+        values.bic[order] = divide_by_valid_log2(*ic, graph.bond_order_sum);
+        values.cic[order] = std::log2(static_cast<double>(atom_count)) - *ic;
+
+        std::vector<double> mass_weights;
+        std::vector<double> z_weights;
+        mass_weights.reserve(class_sizes.size());
+        z_weights.reserve(class_sizes.size());
+        bool weights_valid = true;
+        for (std::size_t class_index = 0u; class_index < class_sizes.size(); ++class_index) {
+            const auto representative_index = representative_indices[class_index];
+            const auto* atom = graph.atoms[representative_index].atom;
+            if (atom == nullptr) {
+                weights_valid = false;
+                break;
+            }
+            const auto mass = mordred_information_content_atom_mass(*atom);
+            if (!mass.has_value()) {
+                weights_valid = false;
+                break;
+            }
+            mass_weights.push_back(*mass);
+            z_weights.push_back(
+                class_sizes[class_index]
+                * static_cast<double>(graph.atoms[representative_index].atomic_number));
+        }
+
+        if (weights_valid) {
+            values.mic[order] = shannon_entropy(class_sizes, mass_weights);
+            values.zmic[order] = shannon_entropy(class_sizes, z_weights);
+        }
+    }
+
+    return values;
 }
 
 bool is_connected_heavy_atom_graph(const MordredHeavyAtomGraph& graph) {
@@ -3734,6 +4049,21 @@ void set_chi_non_path_values(
     }
 }
 
+void set_information_content_values(
+    DescriptorSetBuilder& builder,
+    const MordredInformationContentValues& values) {
+    for (std::size_t order = 0u; order <= 5u; ++order) {
+        const auto order_text = std::to_string(order);
+        set_optional_float(builder, "IC" + order_text, values.ic[order]);
+        set_optional_float(builder, "TIC" + order_text, values.tic[order]);
+        set_optional_float(builder, "SIC" + order_text, values.sic[order]);
+        set_optional_float(builder, "BIC" + order_text, values.bic[order]);
+        set_optional_float(builder, "CIC" + order_text, values.cic[order]);
+        set_optional_float(builder, "MIC" + order_text, values.mic[order]);
+        set_optional_float(builder, "ZMIC" + order_text, values.zmic[order]);
+    }
+}
+
 void set_zagreb_values(DescriptorSetBuilder& builder, const MordredZagrebValues& values) {
     set_float(builder, "Zagreb1", values.zagreb1);
     set_float(builder, "Zagreb2", values.zagreb2);
@@ -3995,6 +4325,7 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
         compute_molecular_distance_edge_values(heavy_atom_graph, heavy_atom_distances);
     const auto abc_index_values =
         compute_abc_index_values(heavy_atom_graph, heavy_atom_distances);
+    const auto information_content_values = compute_information_content_values(mol);
     const auto wiener_values = compute_wiener_values(heavy_atom_distances);
     const auto topological_index_values = compute_topological_index_values(heavy_atom_distances);
     const auto ec_index =
@@ -4161,6 +4492,7 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
         kappa_shape_index(values.heavy_atoms, path_count_values, 3u));
     set_chi_path_values(builder, chi_path_values);
     set_chi_non_path_values(builder, chi_non_path_values);
+    set_information_content_values(builder, information_content_values);
     set_zagreb_values(builder, zagreb_values);
     set_molecular_distance_edge_values(builder, molecular_distance_edge_values);
     set_abc_index_values(builder, abc_index_values);

@@ -4196,6 +4196,342 @@
       "status": "exact",
       "primitive": "OpenEye heavy-atom graph unweighted radius and diameter matching Mordred DistanceMatrix(False)",
       "reason": "OEFP matches Mordred PetitjeanIndex values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "IC0",
+      "family": "InformationContent",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/InformationContent.py",
+      "status": "exact",
+      "primitive": "OpenEye explicit-hydrogen all-atom graph, RDKit-style atom-code grouping, Shannon entropy, and RDKit-compatible information-content atom masses",
+      "reason": "OEFP matches Mordred InformationContent values on the committed Mordred parity fixture except for explicitly classified fused-aromatic row-level divergences."
+    },
+    {
+      "descriptor": "IC1",
+      "family": "InformationContent",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/InformationContent.py",
+      "status": "exact",
+      "primitive": "OpenEye explicit-hydrogen all-atom graph, RDKit-style atom-code grouping, Shannon entropy, and RDKit-compatible information-content atom masses",
+      "reason": "OEFP matches Mordred InformationContent values on the committed Mordred parity fixture except for explicitly classified fused-aromatic row-level divergences."
+    },
+    {
+      "descriptor": "IC2",
+      "family": "InformationContent",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/InformationContent.py",
+      "status": "exact",
+      "primitive": "OpenEye explicit-hydrogen all-atom graph, RDKit-style atom-code grouping, Shannon entropy, and RDKit-compatible information-content atom masses",
+      "reason": "OEFP matches Mordred InformationContent values on the committed Mordred parity fixture except for explicitly classified fused-aromatic row-level divergences."
+    },
+    {
+      "descriptor": "IC3",
+      "family": "InformationContent",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/InformationContent.py",
+      "status": "exact",
+      "primitive": "OpenEye explicit-hydrogen all-atom graph, RDKit-style atom-code grouping, Shannon entropy, and RDKit-compatible information-content atom masses",
+      "reason": "OEFP matches Mordred InformationContent values on the committed Mordred parity fixture except for explicitly classified fused-aromatic row-level divergences."
+    },
+    {
+      "descriptor": "IC4",
+      "family": "InformationContent",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/InformationContent.py",
+      "status": "exact",
+      "primitive": "OpenEye explicit-hydrogen all-atom graph, RDKit-style atom-code grouping, Shannon entropy, and RDKit-compatible information-content atom masses",
+      "reason": "OEFP matches Mordred InformationContent values on the committed Mordred parity fixture except for explicitly classified fused-aromatic row-level divergences."
+    },
+    {
+      "descriptor": "IC5",
+      "family": "InformationContent",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/InformationContent.py",
+      "status": "exact",
+      "primitive": "OpenEye explicit-hydrogen all-atom graph, RDKit-style atom-code grouping, Shannon entropy, and RDKit-compatible information-content atom masses",
+      "reason": "OEFP matches Mordred InformationContent values on the committed Mordred parity fixture except for explicitly classified fused-aromatic row-level divergences."
+    },
+    {
+      "descriptor": "TIC0",
+      "family": "InformationContent",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/InformationContent.py",
+      "status": "exact",
+      "primitive": "OpenEye explicit-hydrogen all-atom graph, RDKit-style atom-code grouping, Shannon entropy, and RDKit-compatible information-content atom masses",
+      "reason": "OEFP matches Mordred InformationContent values on the committed Mordred parity fixture except for explicitly classified fused-aromatic row-level divergences."
+    },
+    {
+      "descriptor": "TIC1",
+      "family": "InformationContent",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/InformationContent.py",
+      "status": "exact",
+      "primitive": "OpenEye explicit-hydrogen all-atom graph, RDKit-style atom-code grouping, Shannon entropy, and RDKit-compatible information-content atom masses",
+      "reason": "OEFP matches Mordred InformationContent values on the committed Mordred parity fixture except for explicitly classified fused-aromatic row-level divergences."
+    },
+    {
+      "descriptor": "TIC2",
+      "family": "InformationContent",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/InformationContent.py",
+      "status": "exact",
+      "primitive": "OpenEye explicit-hydrogen all-atom graph, RDKit-style atom-code grouping, Shannon entropy, and RDKit-compatible information-content atom masses",
+      "reason": "OEFP matches Mordred InformationContent values on the committed Mordred parity fixture except for explicitly classified fused-aromatic row-level divergences."
+    },
+    {
+      "descriptor": "TIC3",
+      "family": "InformationContent",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/InformationContent.py",
+      "status": "exact",
+      "primitive": "OpenEye explicit-hydrogen all-atom graph, RDKit-style atom-code grouping, Shannon entropy, and RDKit-compatible information-content atom masses",
+      "reason": "OEFP matches Mordred InformationContent values on the committed Mordred parity fixture except for explicitly classified fused-aromatic row-level divergences."
+    },
+    {
+      "descriptor": "TIC4",
+      "family": "InformationContent",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/InformationContent.py",
+      "status": "exact",
+      "primitive": "OpenEye explicit-hydrogen all-atom graph, RDKit-style atom-code grouping, Shannon entropy, and RDKit-compatible information-content atom masses",
+      "reason": "OEFP matches Mordred InformationContent values on the committed Mordred parity fixture except for explicitly classified fused-aromatic row-level divergences."
+    },
+    {
+      "descriptor": "TIC5",
+      "family": "InformationContent",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/InformationContent.py",
+      "status": "exact",
+      "primitive": "OpenEye explicit-hydrogen all-atom graph, RDKit-style atom-code grouping, Shannon entropy, and RDKit-compatible information-content atom masses",
+      "reason": "OEFP matches Mordred InformationContent values on the committed Mordred parity fixture except for explicitly classified fused-aromatic row-level divergences."
+    },
+    {
+      "descriptor": "SIC0",
+      "family": "InformationContent",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/InformationContent.py",
+      "status": "exact",
+      "primitive": "OpenEye explicit-hydrogen all-atom graph, RDKit-style atom-code grouping, Shannon entropy, and RDKit-compatible information-content atom masses",
+      "reason": "OEFP matches Mordred InformationContent values on the committed Mordred parity fixture except for explicitly classified fused-aromatic row-level divergences."
+    },
+    {
+      "descriptor": "SIC1",
+      "family": "InformationContent",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/InformationContent.py",
+      "status": "exact",
+      "primitive": "OpenEye explicit-hydrogen all-atom graph, RDKit-style atom-code grouping, Shannon entropy, and RDKit-compatible information-content atom masses",
+      "reason": "OEFP matches Mordred InformationContent values on the committed Mordred parity fixture except for explicitly classified fused-aromatic row-level divergences."
+    },
+    {
+      "descriptor": "SIC2",
+      "family": "InformationContent",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/InformationContent.py",
+      "status": "exact",
+      "primitive": "OpenEye explicit-hydrogen all-atom graph, RDKit-style atom-code grouping, Shannon entropy, and RDKit-compatible information-content atom masses",
+      "reason": "OEFP matches Mordred InformationContent values on the committed Mordred parity fixture except for explicitly classified fused-aromatic row-level divergences."
+    },
+    {
+      "descriptor": "SIC3",
+      "family": "InformationContent",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/InformationContent.py",
+      "status": "exact",
+      "primitive": "OpenEye explicit-hydrogen all-atom graph, RDKit-style atom-code grouping, Shannon entropy, and RDKit-compatible information-content atom masses",
+      "reason": "OEFP matches Mordred InformationContent values on the committed Mordred parity fixture except for explicitly classified fused-aromatic row-level divergences."
+    },
+    {
+      "descriptor": "SIC4",
+      "family": "InformationContent",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/InformationContent.py",
+      "status": "exact",
+      "primitive": "OpenEye explicit-hydrogen all-atom graph, RDKit-style atom-code grouping, Shannon entropy, and RDKit-compatible information-content atom masses",
+      "reason": "OEFP matches Mordred InformationContent values on the committed Mordred parity fixture except for explicitly classified fused-aromatic row-level divergences."
+    },
+    {
+      "descriptor": "SIC5",
+      "family": "InformationContent",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/InformationContent.py",
+      "status": "exact",
+      "primitive": "OpenEye explicit-hydrogen all-atom graph, RDKit-style atom-code grouping, Shannon entropy, and RDKit-compatible information-content atom masses",
+      "reason": "OEFP matches Mordred InformationContent values on the committed Mordred parity fixture except for explicitly classified fused-aromatic row-level divergences."
+    },
+    {
+      "descriptor": "BIC0",
+      "family": "InformationContent",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/InformationContent.py",
+      "status": "exact",
+      "primitive": "OpenEye explicit-hydrogen all-atom graph, RDKit-style atom-code grouping, Shannon entropy, and RDKit-compatible information-content atom masses",
+      "reason": "OEFP matches Mordred InformationContent values on the committed Mordred parity fixture except for explicitly classified fused-aromatic row-level divergences."
+    },
+    {
+      "descriptor": "BIC1",
+      "family": "InformationContent",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/InformationContent.py",
+      "status": "exact",
+      "primitive": "OpenEye explicit-hydrogen all-atom graph, RDKit-style atom-code grouping, Shannon entropy, and RDKit-compatible information-content atom masses",
+      "reason": "OEFP matches Mordred InformationContent values on the committed Mordred parity fixture except for explicitly classified fused-aromatic row-level divergences."
+    },
+    {
+      "descriptor": "BIC2",
+      "family": "InformationContent",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/InformationContent.py",
+      "status": "exact",
+      "primitive": "OpenEye explicit-hydrogen all-atom graph, RDKit-style atom-code grouping, Shannon entropy, and RDKit-compatible information-content atom masses",
+      "reason": "OEFP matches Mordred InformationContent values on the committed Mordred parity fixture except for explicitly classified fused-aromatic row-level divergences."
+    },
+    {
+      "descriptor": "BIC3",
+      "family": "InformationContent",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/InformationContent.py",
+      "status": "exact",
+      "primitive": "OpenEye explicit-hydrogen all-atom graph, RDKit-style atom-code grouping, Shannon entropy, and RDKit-compatible information-content atom masses",
+      "reason": "OEFP matches Mordred InformationContent values on the committed Mordred parity fixture except for explicitly classified fused-aromatic row-level divergences."
+    },
+    {
+      "descriptor": "BIC4",
+      "family": "InformationContent",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/InformationContent.py",
+      "status": "exact",
+      "primitive": "OpenEye explicit-hydrogen all-atom graph, RDKit-style atom-code grouping, Shannon entropy, and RDKit-compatible information-content atom masses",
+      "reason": "OEFP matches Mordred InformationContent values on the committed Mordred parity fixture except for explicitly classified fused-aromatic row-level divergences."
+    },
+    {
+      "descriptor": "BIC5",
+      "family": "InformationContent",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/InformationContent.py",
+      "status": "exact",
+      "primitive": "OpenEye explicit-hydrogen all-atom graph, RDKit-style atom-code grouping, Shannon entropy, and RDKit-compatible information-content atom masses",
+      "reason": "OEFP matches Mordred InformationContent values on the committed Mordred parity fixture except for explicitly classified fused-aromatic row-level divergences."
+    },
+    {
+      "descriptor": "CIC0",
+      "family": "InformationContent",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/InformationContent.py",
+      "status": "exact",
+      "primitive": "OpenEye explicit-hydrogen all-atom graph, RDKit-style atom-code grouping, Shannon entropy, and RDKit-compatible information-content atom masses",
+      "reason": "OEFP matches Mordred InformationContent values on the committed Mordred parity fixture except for explicitly classified fused-aromatic row-level divergences."
+    },
+    {
+      "descriptor": "CIC1",
+      "family": "InformationContent",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/InformationContent.py",
+      "status": "exact",
+      "primitive": "OpenEye explicit-hydrogen all-atom graph, RDKit-style atom-code grouping, Shannon entropy, and RDKit-compatible information-content atom masses",
+      "reason": "OEFP matches Mordred InformationContent values on the committed Mordred parity fixture except for explicitly classified fused-aromatic row-level divergences."
+    },
+    {
+      "descriptor": "CIC2",
+      "family": "InformationContent",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/InformationContent.py",
+      "status": "exact",
+      "primitive": "OpenEye explicit-hydrogen all-atom graph, RDKit-style atom-code grouping, Shannon entropy, and RDKit-compatible information-content atom masses",
+      "reason": "OEFP matches Mordred InformationContent values on the committed Mordred parity fixture except for explicitly classified fused-aromatic row-level divergences."
+    },
+    {
+      "descriptor": "CIC3",
+      "family": "InformationContent",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/InformationContent.py",
+      "status": "exact",
+      "primitive": "OpenEye explicit-hydrogen all-atom graph, RDKit-style atom-code grouping, Shannon entropy, and RDKit-compatible information-content atom masses",
+      "reason": "OEFP matches Mordred InformationContent values on the committed Mordred parity fixture except for explicitly classified fused-aromatic row-level divergences."
+    },
+    {
+      "descriptor": "CIC4",
+      "family": "InformationContent",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/InformationContent.py",
+      "status": "exact",
+      "primitive": "OpenEye explicit-hydrogen all-atom graph, RDKit-style atom-code grouping, Shannon entropy, and RDKit-compatible information-content atom masses",
+      "reason": "OEFP matches Mordred InformationContent values on the committed Mordred parity fixture except for explicitly classified fused-aromatic row-level divergences."
+    },
+    {
+      "descriptor": "CIC5",
+      "family": "InformationContent",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/InformationContent.py",
+      "status": "exact",
+      "primitive": "OpenEye explicit-hydrogen all-atom graph, RDKit-style atom-code grouping, Shannon entropy, and RDKit-compatible information-content atom masses",
+      "reason": "OEFP matches Mordred InformationContent values on the committed Mordred parity fixture except for explicitly classified fused-aromatic row-level divergences."
+    },
+    {
+      "descriptor": "MIC0",
+      "family": "InformationContent",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/InformationContent.py",
+      "status": "exact",
+      "primitive": "OpenEye explicit-hydrogen all-atom graph, RDKit-style atom-code grouping, Shannon entropy, and RDKit-compatible information-content atom masses",
+      "reason": "OEFP matches Mordred InformationContent values on the committed Mordred parity fixture except for explicitly classified fused-aromatic row-level divergences."
+    },
+    {
+      "descriptor": "MIC1",
+      "family": "InformationContent",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/InformationContent.py",
+      "status": "exact",
+      "primitive": "OpenEye explicit-hydrogen all-atom graph, RDKit-style atom-code grouping, Shannon entropy, and RDKit-compatible information-content atom masses",
+      "reason": "OEFP matches Mordred InformationContent values on the committed Mordred parity fixture except for explicitly classified fused-aromatic row-level divergences."
+    },
+    {
+      "descriptor": "MIC2",
+      "family": "InformationContent",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/InformationContent.py",
+      "status": "exact",
+      "primitive": "OpenEye explicit-hydrogen all-atom graph, RDKit-style atom-code grouping, Shannon entropy, and RDKit-compatible information-content atom masses",
+      "reason": "OEFP matches Mordred InformationContent values on the committed Mordred parity fixture except for explicitly classified fused-aromatic row-level divergences."
+    },
+    {
+      "descriptor": "MIC3",
+      "family": "InformationContent",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/InformationContent.py",
+      "status": "exact",
+      "primitive": "OpenEye explicit-hydrogen all-atom graph, RDKit-style atom-code grouping, Shannon entropy, and RDKit-compatible information-content atom masses",
+      "reason": "OEFP matches Mordred InformationContent values on the committed Mordred parity fixture except for explicitly classified fused-aromatic row-level divergences."
+    },
+    {
+      "descriptor": "MIC4",
+      "family": "InformationContent",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/InformationContent.py",
+      "status": "exact",
+      "primitive": "OpenEye explicit-hydrogen all-atom graph, RDKit-style atom-code grouping, Shannon entropy, and RDKit-compatible information-content atom masses",
+      "reason": "OEFP matches Mordred InformationContent values on the committed Mordred parity fixture except for explicitly classified fused-aromatic row-level divergences."
+    },
+    {
+      "descriptor": "MIC5",
+      "family": "InformationContent",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/InformationContent.py",
+      "status": "exact",
+      "primitive": "OpenEye explicit-hydrogen all-atom graph, RDKit-style atom-code grouping, Shannon entropy, and RDKit-compatible information-content atom masses",
+      "reason": "OEFP matches Mordred InformationContent values on the committed Mordred parity fixture except for explicitly classified fused-aromatic row-level divergences."
+    },
+    {
+      "descriptor": "ZMIC0",
+      "family": "InformationContent",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/InformationContent.py",
+      "status": "exact",
+      "primitive": "OpenEye explicit-hydrogen all-atom graph, RDKit-style atom-code grouping, Shannon entropy, and RDKit-compatible information-content atom masses",
+      "reason": "OEFP matches Mordred InformationContent values on the committed Mordred parity fixture except for explicitly classified fused-aromatic row-level divergences."
+    },
+    {
+      "descriptor": "ZMIC1",
+      "family": "InformationContent",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/InformationContent.py",
+      "status": "exact",
+      "primitive": "OpenEye explicit-hydrogen all-atom graph, RDKit-style atom-code grouping, Shannon entropy, and RDKit-compatible information-content atom masses",
+      "reason": "OEFP matches Mordred InformationContent values on the committed Mordred parity fixture except for explicitly classified fused-aromatic row-level divergences."
+    },
+    {
+      "descriptor": "ZMIC2",
+      "family": "InformationContent",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/InformationContent.py",
+      "status": "exact",
+      "primitive": "OpenEye explicit-hydrogen all-atom graph, RDKit-style atom-code grouping, Shannon entropy, and RDKit-compatible information-content atom masses",
+      "reason": "OEFP matches Mordred InformationContent values on the committed Mordred parity fixture except for explicitly classified fused-aromatic row-level divergences."
+    },
+    {
+      "descriptor": "ZMIC3",
+      "family": "InformationContent",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/InformationContent.py",
+      "status": "exact",
+      "primitive": "OpenEye explicit-hydrogen all-atom graph, RDKit-style atom-code grouping, Shannon entropy, and RDKit-compatible information-content atom masses",
+      "reason": "OEFP matches Mordred InformationContent values on the committed Mordred parity fixture except for explicitly classified fused-aromatic row-level divergences."
+    },
+    {
+      "descriptor": "ZMIC4",
+      "family": "InformationContent",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/InformationContent.py",
+      "status": "exact",
+      "primitive": "OpenEye explicit-hydrogen all-atom graph, RDKit-style atom-code grouping, Shannon entropy, and RDKit-compatible information-content atom masses",
+      "reason": "OEFP matches Mordred InformationContent values on the committed Mordred parity fixture except for explicitly classified fused-aromatic row-level divergences."
+    },
+    {
+      "descriptor": "ZMIC5",
+      "family": "InformationContent",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/InformationContent.py",
+      "status": "exact",
+      "primitive": "OpenEye explicit-hydrogen all-atom graph, RDKit-style atom-code grouping, Shannon entropy, and RDKit-compatible information-content atom masses",
+      "reason": "OEFP matches Mordred InformationContent values on the committed Mordred parity fixture except for explicitly classified fused-aromatic row-level divergences."
     }
   ],
   "row_divergences": [
@@ -4288,6 +4624,286 @@
       "source": "/Users/johnss51/Development/python/mordred/mordred/VdwVolumeABC.py",
       "primitive": "OpenEye ring-bond subgraph cycle rank",
       "reason": "Mordred uses RDKit SymmSSSR ring counts for Vabc; OpenEye cycle rank reports one fewer aliphatic ring for this bridged cage, increasing Vabc by one 3.8 aliphatic-ring penalty."
+    },
+    {
+      "status": "openeye_divergent",
+      "descriptor": "IC2",
+      "smiles": "C1=CC2=C(C=C1)C=CC=C2",
+      "reference": 2.058813890331201,
+      "observed": 1.836591668108979,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/InformationContent.py",
+      "primitive": "OpenEye fused-aromatic bond order and ring-closure neighbor traversal in the explicit-hydrogen information-content graph",
+      "reason": "Mordred uses RDKit Kekulize and RDKit atom-neighbor order when BFSTree expands this fused aromatic system; OpenEye exposes a different aromatic primitive for the same naphthalene row, changing higher-order rooted atom codes while lower-order and non-fused rows match."
+    },
+    {
+      "status": "openeye_divergent",
+      "descriptor": "IC3",
+      "smiles": "C1=CC2=C(C=C1)C=CC=C2",
+      "reference": 2.94770277922009,
+      "observed": 2.2810361125534238,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/InformationContent.py",
+      "primitive": "OpenEye fused-aromatic bond order and ring-closure neighbor traversal in the explicit-hydrogen information-content graph",
+      "reason": "Mordred uses RDKit Kekulize and RDKit atom-neighbor order when BFSTree expands this fused aromatic system; OpenEye exposes a different aromatic primitive for the same naphthalene row, changing higher-order rooted atom codes while lower-order and non-fused rows match."
+    },
+    {
+      "status": "openeye_divergent",
+      "descriptor": "IC4",
+      "smiles": "C1=CC2=C(C=C1)C=CC=C2",
+      "reference": 3.169925001442312,
+      "observed": 2.2810361125534238,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/InformationContent.py",
+      "primitive": "OpenEye fused-aromatic bond order and ring-closure neighbor traversal in the explicit-hydrogen information-content graph",
+      "reason": "Mordred uses RDKit Kekulize and RDKit atom-neighbor order when BFSTree expands this fused aromatic system; OpenEye exposes a different aromatic primitive for the same naphthalene row, changing higher-order rooted atom codes while lower-order and non-fused rows match."
+    },
+    {
+      "status": "openeye_divergent",
+      "descriptor": "IC5",
+      "smiles": "C1=CC2=C(C=C1)C=CC=C2",
+      "reference": 3.169925001442312,
+      "observed": 2.2810361125534238,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/InformationContent.py",
+      "primitive": "OpenEye fused-aromatic bond order and ring-closure neighbor traversal in the explicit-hydrogen information-content graph",
+      "reason": "Mordred uses RDKit Kekulize and RDKit atom-neighbor order when BFSTree expands this fused aromatic system; OpenEye exposes a different aromatic primitive for the same naphthalene row, changing higher-order rooted atom codes while lower-order and non-fused rows match."
+    },
+    {
+      "status": "openeye_divergent",
+      "descriptor": "TIC2",
+      "smiles": "C1=CC2=C(C=C1)C=CC=C2",
+      "reference": 37.05865002596162,
+      "observed": 33.05865002596162,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/InformationContent.py",
+      "primitive": "OpenEye fused-aromatic bond order and ring-closure neighbor traversal in the explicit-hydrogen information-content graph",
+      "reason": "Mordred uses RDKit Kekulize and RDKit atom-neighbor order when BFSTree expands this fused aromatic system; OpenEye exposes a different aromatic primitive for the same naphthalene row, changing higher-order rooted atom codes while lower-order and non-fused rows match."
+    },
+    {
+      "status": "openeye_divergent",
+      "descriptor": "TIC3",
+      "smiles": "C1=CC2=C(C=C1)C=CC=C2",
+      "reference": 53.05865002596162,
+      "observed": 41.058650025961626,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/InformationContent.py",
+      "primitive": "OpenEye fused-aromatic bond order and ring-closure neighbor traversal in the explicit-hydrogen information-content graph",
+      "reason": "Mordred uses RDKit Kekulize and RDKit atom-neighbor order when BFSTree expands this fused aromatic system; OpenEye exposes a different aromatic primitive for the same naphthalene row, changing higher-order rooted atom codes while lower-order and non-fused rows match."
+    },
+    {
+      "status": "openeye_divergent",
+      "descriptor": "TIC4",
+      "smiles": "C1=CC2=C(C=C1)C=CC=C2",
+      "reference": 57.05865002596162,
+      "observed": 41.058650025961626,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/InformationContent.py",
+      "primitive": "OpenEye fused-aromatic bond order and ring-closure neighbor traversal in the explicit-hydrogen information-content graph",
+      "reason": "Mordred uses RDKit Kekulize and RDKit atom-neighbor order when BFSTree expands this fused aromatic system; OpenEye exposes a different aromatic primitive for the same naphthalene row, changing higher-order rooted atom codes while lower-order and non-fused rows match."
+    },
+    {
+      "status": "openeye_divergent",
+      "descriptor": "TIC5",
+      "smiles": "C1=CC2=C(C=C1)C=CC=C2",
+      "reference": 57.05865002596162,
+      "observed": 41.058650025961626,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/InformationContent.py",
+      "primitive": "OpenEye fused-aromatic bond order and ring-closure neighbor traversal in the explicit-hydrogen information-content graph",
+      "reason": "Mordred uses RDKit Kekulize and RDKit atom-neighbor order when BFSTree expands this fused aromatic system; OpenEye exposes a different aromatic primitive for the same naphthalene row, changing higher-order rooted atom codes while lower-order and non-fused rows match."
+    },
+    {
+      "status": "openeye_divergent",
+      "descriptor": "SIC2",
+      "smiles": "C1=CC2=C(C=C1)C=CC=C2",
+      "reference": 0.4937292372450558,
+      "observed": 0.4404375780076933,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/InformationContent.py",
+      "primitive": "OpenEye fused-aromatic bond order and ring-closure neighbor traversal in the explicit-hydrogen information-content graph",
+      "reason": "Mordred uses RDKit Kekulize and RDKit atom-neighbor order when BFSTree expands this fused aromatic system; OpenEye exposes a different aromatic primitive for the same naphthalene row, changing higher-order rooted atom codes while lower-order and non-fused rows match."
+    },
+    {
+      "status": "openeye_divergent",
+      "descriptor": "SIC3",
+      "smiles": "C1=CC2=C(C=C1)C=CC=C2",
+      "reference": 0.706895874194506,
+      "observed": 0.5470208964824185,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/InformationContent.py",
+      "primitive": "OpenEye fused-aromatic bond order and ring-closure neighbor traversal in the explicit-hydrogen information-content graph",
+      "reason": "Mordred uses RDKit Kekulize and RDKit atom-neighbor order when BFSTree expands this fused aromatic system; OpenEye exposes a different aromatic primitive for the same naphthalene row, changing higher-order rooted atom codes while lower-order and non-fused rows match."
+    },
+    {
+      "status": "openeye_divergent",
+      "descriptor": "SIC4",
+      "smiles": "C1=CC2=C(C=C1)C=CC=C2",
+      "reference": 0.7601875334318685,
+      "observed": 0.5470208964824185,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/InformationContent.py",
+      "primitive": "OpenEye fused-aromatic bond order and ring-closure neighbor traversal in the explicit-hydrogen information-content graph",
+      "reason": "Mordred uses RDKit Kekulize and RDKit atom-neighbor order when BFSTree expands this fused aromatic system; OpenEye exposes a different aromatic primitive for the same naphthalene row, changing higher-order rooted atom codes while lower-order and non-fused rows match."
+    },
+    {
+      "status": "openeye_divergent",
+      "descriptor": "SIC5",
+      "smiles": "C1=CC2=C(C=C1)C=CC=C2",
+      "reference": 0.7601875334318685,
+      "observed": 0.5470208964824185,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/InformationContent.py",
+      "primitive": "OpenEye fused-aromatic bond order and ring-closure neighbor traversal in the explicit-hydrogen information-content graph",
+      "reason": "Mordred uses RDKit Kekulize and RDKit atom-neighbor order when BFSTree expands this fused aromatic system; OpenEye exposes a different aromatic primitive for the same naphthalene row, changing higher-order rooted atom codes while lower-order and non-fused rows match."
+    },
+    {
+      "status": "openeye_divergent",
+      "descriptor": "BIC2",
+      "smiles": "C1=CC2=C(C=C1)C=CC=C2",
+      "reference": 0.44903614588066443,
+      "observed": 0.4005685254394352,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/InformationContent.py",
+      "primitive": "OpenEye fused-aromatic bond order and ring-closure neighbor traversal in the explicit-hydrogen information-content graph",
+      "reason": "Mordred uses RDKit Kekulize and RDKit atom-neighbor order when BFSTree expands this fused aromatic system; OpenEye exposes a different aromatic primitive for the same naphthalene row, changing higher-order rooted atom codes while lower-order and non-fused rows match."
+    },
+    {
+      "status": "openeye_divergent",
+      "descriptor": "BIC3",
+      "smiles": "C1=CC2=C(C=C1)C=CC=C2",
+      "reference": 0.6429066276455814,
+      "observed": 0.4975037663218938,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/InformationContent.py",
+      "primitive": "OpenEye fused-aromatic bond order and ring-closure neighbor traversal in the explicit-hydrogen information-content graph",
+      "reason": "Mordred uses RDKit Kekulize and RDKit atom-neighbor order when BFSTree expands this fused aromatic system; OpenEye exposes a different aromatic primitive for the same naphthalene row, changing higher-order rooted atom codes while lower-order and non-fused rows match."
+    },
+    {
+      "status": "openeye_divergent",
+      "descriptor": "BIC4",
+      "smiles": "C1=CC2=C(C=C1)C=CC=C2",
+      "reference": 0.6913742480868106,
+      "observed": 0.4975037663218938,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/InformationContent.py",
+      "primitive": "OpenEye fused-aromatic bond order and ring-closure neighbor traversal in the explicit-hydrogen information-content graph",
+      "reason": "Mordred uses RDKit Kekulize and RDKit atom-neighbor order when BFSTree expands this fused aromatic system; OpenEye exposes a different aromatic primitive for the same naphthalene row, changing higher-order rooted atom codes while lower-order and non-fused rows match."
+    },
+    {
+      "status": "openeye_divergent",
+      "descriptor": "BIC5",
+      "smiles": "C1=CC2=C(C=C1)C=CC=C2",
+      "reference": 0.6913742480868106,
+      "observed": 0.4975037663218938,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/InformationContent.py",
+      "primitive": "OpenEye fused-aromatic bond order and ring-closure neighbor traversal in the explicit-hydrogen information-content graph",
+      "reason": "Mordred uses RDKit Kekulize and RDKit atom-neighbor order when BFSTree expands this fused aromatic system; OpenEye exposes a different aromatic primitive for the same naphthalene row, changing higher-order rooted atom codes while lower-order and non-fused rows match."
+    },
+    {
+      "status": "openeye_divergent",
+      "descriptor": "CIC2",
+      "smiles": "C1=CC2=C(C=C1)C=CC=C2",
+      "reference": 2.111111111111111,
+      "observed": 2.333333333333333,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/InformationContent.py",
+      "primitive": "OpenEye fused-aromatic bond order and ring-closure neighbor traversal in the explicit-hydrogen information-content graph",
+      "reason": "Mordred uses RDKit Kekulize and RDKit atom-neighbor order when BFSTree expands this fused aromatic system; OpenEye exposes a different aromatic primitive for the same naphthalene row, changing higher-order rooted atom codes while lower-order and non-fused rows match."
+    },
+    {
+      "status": "openeye_divergent",
+      "descriptor": "CIC3",
+      "smiles": "C1=CC2=C(C=C1)C=CC=C2",
+      "reference": 1.2222222222222223,
+      "observed": 1.8888888888888884,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/InformationContent.py",
+      "primitive": "OpenEye fused-aromatic bond order and ring-closure neighbor traversal in the explicit-hydrogen information-content graph",
+      "reason": "Mordred uses RDKit Kekulize and RDKit atom-neighbor order when BFSTree expands this fused aromatic system; OpenEye exposes a different aromatic primitive for the same naphthalene row, changing higher-order rooted atom codes while lower-order and non-fused rows match."
+    },
+    {
+      "status": "openeye_divergent",
+      "descriptor": "CIC4",
+      "smiles": "C1=CC2=C(C=C1)C=CC=C2",
+      "reference": 1.0,
+      "observed": 1.8888888888888884,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/InformationContent.py",
+      "primitive": "OpenEye fused-aromatic bond order and ring-closure neighbor traversal in the explicit-hydrogen information-content graph",
+      "reason": "Mordred uses RDKit Kekulize and RDKit atom-neighbor order when BFSTree expands this fused aromatic system; OpenEye exposes a different aromatic primitive for the same naphthalene row, changing higher-order rooted atom codes while lower-order and non-fused rows match."
+    },
+    {
+      "status": "openeye_divergent",
+      "descriptor": "CIC5",
+      "smiles": "C1=CC2=C(C=C1)C=CC=C2",
+      "reference": 1.0,
+      "observed": 1.8888888888888884,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/InformationContent.py",
+      "primitive": "OpenEye fused-aromatic bond order and ring-closure neighbor traversal in the explicit-hydrogen information-content graph",
+      "reason": "Mordred uses RDKit Kekulize and RDKit atom-neighbor order when BFSTree expands this fused aromatic system; OpenEye exposes a different aromatic primitive for the same naphthalene row, changing higher-order rooted atom codes while lower-order and non-fused rows match."
+    },
+    {
+      "status": "openeye_divergent",
+      "descriptor": "MIC2",
+      "smiles": "C1=CC2=C(C=C1)C=CC=C2",
+      "reference": 19.0072203963815,
+      "observed": 16.338109285270388,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/InformationContent.py",
+      "primitive": "OpenEye fused-aromatic bond order and ring-closure neighbor traversal in the explicit-hydrogen information-content graph",
+      "reason": "Mordred uses RDKit Kekulize and RDKit atom-neighbor order when BFSTree expands this fused aromatic system; OpenEye exposes a different aromatic primitive for the same naphthalene row, changing higher-order rooted atom codes while lower-order and non-fused rows match."
+    },
+    {
+      "status": "openeye_divergent",
+      "descriptor": "MIC3",
+      "smiles": "C1=CC2=C(C=C1)C=CC=C2",
+      "reference": 22.348331507492606,
+      "observed": 16.78610928527039,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/InformationContent.py",
+      "primitive": "OpenEye fused-aromatic bond order and ring-closure neighbor traversal in the explicit-hydrogen information-content graph",
+      "reason": "Mordred uses RDKit Kekulize and RDKit atom-neighbor order when BFSTree expands this fused aromatic system; OpenEye exposes a different aromatic primitive for the same naphthalene row, changing higher-order rooted atom codes while lower-order and non-fused rows match."
+    },
+    {
+      "status": "openeye_divergent",
+      "descriptor": "MIC4",
+      "smiles": "C1=CC2=C(C=C1)C=CC=C2",
+      "reference": 22.572331507492606,
+      "observed": 16.78610928527039,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/InformationContent.py",
+      "primitive": "OpenEye fused-aromatic bond order and ring-closure neighbor traversal in the explicit-hydrogen information-content graph",
+      "reason": "Mordred uses RDKit Kekulize and RDKit atom-neighbor order when BFSTree expands this fused aromatic system; OpenEye exposes a different aromatic primitive for the same naphthalene row, changing higher-order rooted atom codes while lower-order and non-fused rows match."
+    },
+    {
+      "status": "openeye_divergent",
+      "descriptor": "MIC5",
+      "smiles": "C1=CC2=C(C=C1)C=CC=C2",
+      "reference": 22.572331507492606,
+      "observed": 16.78610928527039,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/InformationContent.py",
+      "primitive": "OpenEye fused-aromatic bond order and ring-closure neighbor traversal in the explicit-hydrogen information-content graph",
+      "reason": "Mordred uses RDKit Kekulize and RDKit atom-neighbor order when BFSTree expands this fused aromatic system; OpenEye exposes a different aromatic primitive for the same naphthalene row, changing higher-order rooted atom codes while lower-order and non-fused rows match."
+    },
+    {
+      "status": "openeye_divergent",
+      "descriptor": "ZMIC2",
+      "smiles": "C1=CC2=C(C=C1)C=CC=C2",
+      "reference": 28.412366685256472,
+      "observed": 31.532166689102638,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/InformationContent.py",
+      "primitive": "OpenEye fused-aromatic bond order and ring-closure neighbor traversal in the explicit-hydrogen information-content graph",
+      "reason": "Mordred uses RDKit Kekulize and RDKit atom-neighbor order when BFSTree expands this fused aromatic system; OpenEye exposes a different aromatic primitive for the same naphthalene row, changing higher-order rooted atom codes while lower-order and non-fused rows match."
+    },
+    {
+      "status": "openeye_divergent",
+      "descriptor": "ZMIC3",
+      "smiles": "C1=CC2=C(C=C1)C=CC=C2",
+      "reference": 24.47051112264961,
+      "observed": 31.23007779764964,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/InformationContent.py",
+      "primitive": "OpenEye fused-aromatic bond order and ring-closure neighbor traversal in the explicit-hydrogen information-content graph",
+      "reason": "Mordred uses RDKit Kekulize and RDKit atom-neighbor order when BFSTree expands this fused aromatic system; OpenEye exposes a different aromatic primitive for the same naphthalene row, changing higher-order rooted atom codes while lower-order and non-fused rows match."
+    },
+    {
+      "status": "openeye_divergent",
+      "descriptor": "ZMIC4",
+      "smiles": "C1=CC2=C(C=C1)C=CC=C2",
+      "reference": 23.950544455341916,
+      "observed": 31.23007779764964,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/InformationContent.py",
+      "primitive": "OpenEye fused-aromatic bond order and ring-closure neighbor traversal in the explicit-hydrogen information-content graph",
+      "reason": "Mordred uses RDKit Kekulize and RDKit atom-neighbor order when BFSTree expands this fused aromatic system; OpenEye exposes a different aromatic primitive for the same naphthalene row, changing higher-order rooted atom codes while lower-order and non-fused rows match."
+    },
+    {
+      "status": "openeye_divergent",
+      "descriptor": "ZMIC5",
+      "smiles": "C1=CC2=C(C=C1)C=CC=C2",
+      "reference": 23.950544455341916,
+      "observed": 31.23007779764964,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/InformationContent.py",
+      "primitive": "OpenEye fused-aromatic bond order and ring-closure neighbor traversal in the explicit-hydrogen information-content graph",
+      "reason": "Mordred uses RDKit Kekulize and RDKit atom-neighbor order when BFSTree expands this fused aromatic system; OpenEye exposes a different aromatic primitive for the same naphthalene row, changing higher-order rooted atom codes while lower-order and non-fused rows match."
     }
   ]
 }

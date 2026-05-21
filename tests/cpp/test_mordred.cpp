@@ -159,6 +159,146 @@ TEST(MordredDescriptorTest, CountSubsetMatchesCopiedMordredReferences) {
     }
 }
 
+TEST(MordredDescriptorTest, InformationContentDescriptorsMatchCopiedMordredReferences) {
+    struct Case {
+        std::string smiles;
+        std::map<std::string, double> expected_values;
+    };
+
+    const std::vector<Case> cases{
+        {
+            "C",
+            {
+                {"IC0", 0.7219280948873623},
+                {"IC1", 0.7219280948873623},
+                {"IC5", 0.7219280948873623},
+                {"TIC0", 3.6096404744368114},
+                {"TIC5", 3.6096404744368114},
+                {"SIC0", 0.31091750708257115},
+                {"BIC0", 0.36096404744368116},
+                {"CIC0", 1.5999999999999999},
+                {"MIC0", 5.837338485255589},
+                {"MIC5", 5.837338485255589},
+                {"ZMIC0", 3.816483617504394},
+                {"ZMIC5", 3.816483617504394},
+            },
+        },
+        {
+            "CCO",
+            {
+                {"IC0", 1.224394445405986},
+                {"IC1", 1.8799649487271108},
+                {"IC2", 2.4193819456463714},
+                {"IC5", 2.4193819456463714},
+                {"TIC0", 11.019550008653875},
+                {"TIC1", 16.919684538543997},
+                {"TIC5", 21.774437510817343},
+                {"SIC0", 0.3862534428571301},
+                {"SIC1", 0.5930629109116868},
+                {"SIC5", 0.7632300273809492},
+                {"BIC0", 0.4081314818019954},
+                {"BIC1", 0.626654982909037},
+                {"BIC5", 0.8064606485487905},
+                {"CIC0", 1.945530556036326},
+                {"CIC1", 1.2899600527152013},
+                {"CIC5", 0.7505430557959407},
+                {"MIC0", 11.81993574300937},
+                {"MIC1", 14.925861921468176},
+                {"MIC5", 15.46959425436279},
+                {"ZMIC0", 10.944027785790624},
+                {"ZMIC1", 9.7520386326847},
+                {"ZMIC5", 9.945865282505357},
+            },
+        },
+        {
+            "c1ccncc1",
+            {
+                {"IC0", 1.3485878960124222},
+                {"IC1", 1.971747257128181},
+                {"IC2", 3.0271691184406184},
+                {"IC5", 3.4594316186372978},
+                {"TIC0", 14.834466856136645},
+                {"TIC1", 21.689219828409993},
+                {"TIC5", 38.053747805010275},
+                {"SIC0", 0.3898293259352366},
+                {"SIC1", 0.5699627784245295},
+                {"SIC5", 1.0000000000000002},
+                {"BIC0", 0.3542059838444498},
+                {"BIC1", 0.5178785002955785},
+                {"BIC5", 0.9086181061280522},
+                {"CIC0", 2.110843722624875},
+                {"CIC1", 1.4876843615091162},
+                {"CIC5", -4.440892098500626e-16},
+                {"MIC0", 11.136550050977693},
+                {"MIC1", 18.62131713733907},
+                {"MIC5", 24.87708726340432},
+                {"ZMIC0", 20.298103453336335},
+                {"ZMIC1", 17.762556474120785},
+                {"ZMIC5", 13.208738907524227},
+            },
+        },
+        {
+            "C[Na]",
+            {
+                {"IC0", 1.3709505944546687},
+                {"IC5", 1.3709505944546687},
+                {"TIC0", 6.854752972273344},
+                {"SIC0", 0.5904362833084089},
+                {"BIC0", 0.6854752972273344},
+                {"CIC0", 0.9509775004326935},
+                {"MIC0", 16.699677841182233},
+                {"ZMIC0", 9.221093592116203},
+            },
+        },
+        {
+            "[13CH4]",
+            {
+                {"IC0", 0.7219280948873623},
+                {"IC1", 0.7219280948873623},
+                {"TIC0", 3.6096404744368114},
+                {"SIC0", 0.31091750708257115},
+                {"BIC0", 0.36096404744368116},
+                {"CIC0", 1.5999999999999999},
+                {"MIC0", 6.298173801874281},
+                {"ZMIC0", 3.816483617504394},
+            },
+        },
+    };
+
+    for (const auto& expected : cases) {
+        SCOPED_TRACE(expected.smiles);
+        const auto descriptors = MakeMordredDescriptors(mol_from_smiles(expected.smiles));
+
+        for (const auto& [name, expected_value] : expected.expected_values) {
+            ASSERT_TRUE(descriptors.Has(name)) << name;
+            EXPECT_NEAR(descriptors.Float(name), expected_value, 1.0e-12) << name;
+        }
+    }
+}
+
+TEST(MordredDescriptorTest, InformationContentDescriptorsAreMissingForInvalidDenominators) {
+    const OEChem::OEGraphMol empty_mol;
+    const auto empty_descriptors = MakeMordredDescriptors(empty_mol);
+
+    EXPECT_FALSE(empty_descriptors.Has("IC0"));
+    EXPECT_FALSE(empty_descriptors.Has("TIC0"));
+    EXPECT_FALSE(empty_descriptors.Has("SIC0"));
+    EXPECT_FALSE(empty_descriptors.Has("BIC0"));
+    EXPECT_FALSE(empty_descriptors.Has("CIC0"));
+    EXPECT_FALSE(empty_descriptors.Has("MIC0"));
+    EXPECT_FALSE(empty_descriptors.Has("ZMIC0"));
+
+    const auto helium_descriptors = MakeMordredDescriptors(mol_from_smiles("[He]"));
+
+    EXPECT_TRUE(helium_descriptors.Has("IC0"));
+    EXPECT_TRUE(helium_descriptors.Has("TIC0"));
+    EXPECT_FALSE(helium_descriptors.Has("SIC0"));
+    EXPECT_FALSE(helium_descriptors.Has("BIC0"));
+    EXPECT_TRUE(helium_descriptors.Has("CIC0"));
+    EXPECT_TRUE(helium_descriptors.Has("MIC0"));
+    EXPECT_TRUE(helium_descriptors.Has("ZMIC0"));
+}
+
 TEST(MordredDescriptorTest, CrippenDescriptorsMatchCopiedMordredReferences) {
     struct Case {
         std::string smiles;
