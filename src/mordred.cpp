@@ -157,6 +157,9 @@ struct MordredMatrixEigenvalueValues {
     double eigenvector_coefficient_sum = 0.0;
     double eigenvector_coefficient_mean = 0.0;
     double eigenvector_coefficient_log = 0.0;
+    double randic_eigenvector_sum = 0.0;
+    double randic_eigenvector_mean = 0.0;
+    std::optional<double> randic_eigenvector_log;
 };
 
 struct MordredSymmetricEigensystem {
@@ -1948,7 +1951,8 @@ std::optional<MordredSymmetricEigensystem> symmetric_eigensystem_jacobi(
 
 std::optional<MordredMatrixEigenvalueValues> compute_matrix_eigenvalue_values(
     std::vector<double> matrix,
-    std::size_t atom_count) {
+    std::size_t atom_count,
+    const std::vector<std::pair<std::size_t, std::size_t>>& bonds) {
     auto eigensystem = symmetric_eigensystem_jacobi(std::move(matrix), atom_count);
     if (!eigensystem.has_value()) {
         return std::nullopt;
@@ -1994,6 +1998,21 @@ std::optional<MordredMatrixEigenvalueValues> compute_matrix_eigenvalue_values(
     }
     values.eigenvector_coefficient_log = std::log(eigenvector_log_argument);
 
+    for (const auto [begin, end] : bonds) {
+        const auto begin_coefficient =
+            eigensystem->eigenvectors[begin * atom_count + dominant_index];
+        const auto end_coefficient = eigensystem->eigenvectors[end * atom_count + dominant_index];
+        values.randic_eigenvector_sum += std::pow(begin_coefficient * end_coefficient, -0.5);
+    }
+    values.randic_eigenvector_mean =
+        values.randic_eigenvector_sum / static_cast<double>(atom_count);
+
+    const auto randic_log_argument =
+        0.1 * static_cast<double>(atom_count) * values.randic_eigenvector_sum;
+    if (randic_log_argument > 0.0) {
+        values.randic_eigenvector_log = std::log(randic_log_argument);
+    }
+
     return values;
 }
 
@@ -2010,7 +2029,7 @@ std::optional<MordredMatrixEigenvalueValues> compute_adjacency_matrix_eigenvalue
         adjacency_matrix[end * atom_count + begin] = 1.0;
     }
 
-    return compute_matrix_eigenvalue_values(std::move(adjacency_matrix), atom_count);
+    return compute_matrix_eigenvalue_values(std::move(adjacency_matrix), atom_count, graph.bonds);
 }
 
 std::optional<MordredMatrixEigenvalueValues> compute_distance_matrix_eigenvalue_values(
@@ -2029,7 +2048,7 @@ std::optional<MordredMatrixEigenvalueValues> compute_distance_matrix_eigenvalue_
         }
     }
 
-    return compute_matrix_eigenvalue_values(std::move(distance_matrix), atom_count);
+    return compute_matrix_eigenvalue_values(std::move(distance_matrix), atom_count, graph.bonds);
 }
 
 std::optional<double> compute_vertex_adjacency_information(const MordredHeavyAtomGraph& graph) {
@@ -3006,6 +3025,9 @@ void set_adjacency_matrix_eigenvalue_values(
     set_float(builder, "VE1_A", values.eigenvector_coefficient_sum);
     set_float(builder, "VE2_A", values.eigenvector_coefficient_mean);
     set_float(builder, "VE3_A", values.eigenvector_coefficient_log);
+    set_float(builder, "VR1_A", values.randic_eigenvector_sum);
+    set_float(builder, "VR2_A", values.randic_eigenvector_mean);
+    set_optional_float(builder, "VR3_A", values.randic_eigenvector_log);
 }
 
 void set_distance_matrix_eigenvalue_values(
@@ -3020,6 +3042,9 @@ void set_distance_matrix_eigenvalue_values(
     set_float(builder, "VE1_D", values.eigenvector_coefficient_sum);
     set_float(builder, "VE2_D", values.eigenvector_coefficient_mean);
     set_float(builder, "VE3_D", values.eigenvector_coefficient_log);
+    set_float(builder, "VR1_D", values.randic_eigenvector_sum);
+    set_float(builder, "VR2_D", values.randic_eigenvector_mean);
+    set_optional_float(builder, "VR3_D", values.randic_eigenvector_log);
 }
 
 void set_eccentric_connectivity_index(DescriptorSetBuilder& builder, std::int64_t value) {

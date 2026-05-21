@@ -58,8 +58,8 @@ TEST(MordredDescriptorTest, DescriptorRowCarriesFullSchema) {
     EXPECT_TRUE(descriptors.Has("SpAbs_D"));
     EXPECT_TRUE(descriptors.Has("VE1_A"));
     EXPECT_TRUE(descriptors.Has("VE1_D"));
-    EXPECT_FALSE(descriptors.Has("VR1_A"));
-    EXPECT_FALSE(descriptors.Has("VR1_D"));
+    EXPECT_TRUE(descriptors.Has("VR1_A"));
+    EXPECT_TRUE(descriptors.Has("VR1_D"));
 }
 
 TEST(MordredDescriptorTest, CountSubsetMatchesCopiedMordredReferences) {
@@ -760,6 +760,8 @@ TEST(MordredDescriptorTest, AdjacencyMatrixEigenvalueDescriptorsMatchMordredRefe
                 {"VE1_A", 1.0},
                 {"VE2_A", 1.0},
                 {"VE3_A", -2.3025850929940455},
+                {"VR1_A", 0.0},
+                {"VR2_A", 0.0},
             },
         },
         {
@@ -774,6 +776,9 @@ TEST(MordredDescriptorTest, AdjacencyMatrixEigenvalueDescriptorsMatchMordredRefe
                 {"VE1_A", 1.414213562373095},
                 {"VE2_A", 0.7071067811865475},
                 {"VE3_A", -1.2628643221541278},
+                {"VR1_A", 1.4142135623730951},
+                {"VR2_A", 0.7071067811865476},
+                {"VR3_A", -1.2628643221541276},
             },
         },
         {
@@ -788,6 +793,9 @@ TEST(MordredDescriptorTest, AdjacencyMatrixEigenvalueDescriptorsMatchMordredRefe
                 {"VE1_A", 1.7071067811865475},
                 {"VE2_A", 0.5690355937288492},
                 {"VE3_A", -0.6691728075863654},
+                {"VR1_A", 3.3635856610148585},
+                {"VR2_A", 1.1211952203382862},
+                {"VR3_A", 0.009034761653968602},
             },
         },
         {
@@ -802,6 +810,9 @@ TEST(MordredDescriptorTest, AdjacencyMatrixEigenvalueDescriptorsMatchMordredRefe
                 {"VE1_A", 2.4494897427831788},
                 {"VE2_A", 0.40824829046386313},
                 {"VE3_A", 0.3850541108480373},
+                {"VR1_A", 14.696938456699066},
+                {"VR2_A", 2.4494897427831774},
+                {"VR3_A", 2.1768135800760917},
             },
         },
         {
@@ -816,6 +827,9 @@ TEST(MordredDescriptorTest, AdjacencyMatrixEigenvalueDescriptorsMatchMordredRefe
                 {"VE1_A", 2.3418960180704147},
                 {"VE2_A", 0.3903160030117358},
                 {"VE3_A", 0.34013524164950576},
+                {"VR1_A", 12.628859982958033},
+                {"VR2_A", 2.104809997159672},
+                {"VR3_A", 2.0251590458905078},
             },
         },
     };
@@ -829,6 +843,9 @@ TEST(MordredDescriptorTest, AdjacencyMatrixEigenvalueDescriptorsMatchMordredRefe
             if (descriptors.Has(name)) {
                 EXPECT_NEAR(descriptors.Float(name), value, 1.0e-8) << name;
             }
+        }
+        if (expected.smiles == "C") {
+            EXPECT_FALSE(descriptors.Has("VR3_A"));
         }
     }
 }
@@ -844,6 +861,9 @@ TEST(MordredDescriptorTest, AdjacencyMatrixEigenvalueDescriptorsAreMissingWhenRe
         "VE1_A",
         "VE2_A",
         "VE3_A",
+        "VR1_A",
+        "VR2_A",
+        "VR3_A",
     };
 
     const OEChem::OEGraphMol empty_mol;
@@ -882,6 +902,8 @@ TEST(MordredDescriptorTest, DistanceMatrixEigenvalueDescriptorsMatchMordredRefer
                 {"VE1_D", 1.0},
                 {"VE2_D", 1.0},
                 {"VE3_D", -2.3025850929940455},
+                {"VR1_D", 0.0},
+                {"VR2_D", 0.0},
             },
         },
         {
@@ -896,6 +918,9 @@ TEST(MordredDescriptorTest, DistanceMatrixEigenvalueDescriptorsMatchMordredRefer
                 {"VE1_D", 1.414213562373095},
                 {"VE2_D", 0.7071067811865475},
                 {"VE3_D", -1.2628643221541278},
+                {"VR1_D", 1.4142135623730951},
+                {"VR2_D", 0.7071067811865476},
+                {"VR3_D", -1.2628643221541276},
             },
         },
         {
@@ -910,6 +935,9 @@ TEST(MordredDescriptorTest, DistanceMatrixEigenvalueDescriptorsMatchMordredRefer
                 {"VE1_D", 1.7156269037800915},
                 {"VE2_D", 0.5718756345933639},
                 {"VE3_D", -0.6641942489393373},
+                {"VR1_D", 3.7224194364083996},
+                {"VR2_D", 1.2408064788028},
+                {"VR3_D", 0.11040103868100991},
             },
         },
         {
@@ -924,6 +952,9 @@ TEST(MordredDescriptorTest, DistanceMatrixEigenvalueDescriptorsMatchMordredRefer
                 {"VE1_D", 2.4494897427831788},
                 {"VE2_D", 0.40824829046386313},
                 {"VE3_D", 0.3850541108480373},
+                {"VR1_D", 14.696938456699066},
+                {"VR2_D", 2.4494897427831774},
+                {"VR3_D", 2.1768135800760917},
             },
         },
         {
@@ -938,6 +969,9 @@ TEST(MordredDescriptorTest, DistanceMatrixEigenvalueDescriptorsMatchMordredRefer
                 {"VE1_D", 2.4117970446931674},
                 {"VE2_D", 0.4019661741155279},
                 {"VE3_D", 0.3695465075674201},
+                {"VR1_D", 13.316549998387089},
+                {"VR2_D", 2.2194249997311815},
+                {"VR3_D", 2.078181998667496},
             },
         },
     };
@@ -951,6 +985,9 @@ TEST(MordredDescriptorTest, DistanceMatrixEigenvalueDescriptorsMatchMordredRefer
             if (descriptors.Has(name)) {
                 EXPECT_NEAR(descriptors.Float(name), value, 1.0e-8) << name;
             }
+        }
+        if (expected.smiles == "C") {
+            EXPECT_FALSE(descriptors.Has("VR3_D"));
         }
     }
 }
@@ -966,6 +1003,9 @@ TEST(MordredDescriptorTest, DistanceMatrixEigenvalueDescriptorsAreMissingWhenReq
         "VE1_D",
         "VE2_D",
         "VE3_D",
+        "VR1_D",
+        "VR2_D",
+        "VR3_D",
     };
 
     const OEChem::OEGraphMol empty_mol;
