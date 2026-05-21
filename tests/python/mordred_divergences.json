@@ -990,6 +990,102 @@
       "reason": "OEFP matches Mordred fragCpx values on the committed Mordred parity fixture."
     },
     {
+      "descriptor": "MID",
+      "family": "MolecularId",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/MolecularId.py",
+      "status": "exact",
+      "primitive": "Heavy-atom simple-path atomic-id DFS with heavy-atom degree product edge weights, summed over all atoms and requiring a connected heavy-atom graph",
+      "reason": "OEFP matches Mordred MID values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "AMID",
+      "family": "MolecularId",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/MolecularId.py",
+      "status": "exact",
+      "primitive": "Heavy-atom simple-path atomic-id DFS with heavy-atom degree product edge weights, summed over all atoms and averaged by total heavy-atom count",
+      "reason": "OEFP matches Mordred AMID values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MID_h",
+      "family": "MolecularId",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/MolecularId.py",
+      "status": "exact",
+      "primitive": "Heavy-atom simple-path atomic-id DFS with heavy-atom degree product edge weights, summed over hetero atoms and requiring a connected heavy-atom graph",
+      "reason": "OEFP matches Mordred MID_h values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "AMID_h",
+      "family": "MolecularId",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/MolecularId.py",
+      "status": "exact",
+      "primitive": "Heavy-atom simple-path atomic-id DFS with heavy-atom degree product edge weights, summed over hetero atoms and averaged by total heavy-atom count",
+      "reason": "OEFP matches Mordred AMID_h values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MID_C",
+      "family": "MolecularId",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/MolecularId.py",
+      "status": "exact",
+      "primitive": "Heavy-atom simple-path atomic-id DFS with heavy-atom degree product edge weights, summed over carbon atoms and requiring a connected heavy-atom graph",
+      "reason": "OEFP matches Mordred MID_C values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "AMID_C",
+      "family": "MolecularId",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/MolecularId.py",
+      "status": "exact",
+      "primitive": "Heavy-atom simple-path atomic-id DFS with heavy-atom degree product edge weights, summed over carbon atoms and averaged by total heavy-atom count",
+      "reason": "OEFP matches Mordred AMID_C values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MID_N",
+      "family": "MolecularId",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/MolecularId.py",
+      "status": "exact",
+      "primitive": "Heavy-atom simple-path atomic-id DFS with heavy-atom degree product edge weights, summed over nitrogen atoms and requiring a connected heavy-atom graph",
+      "reason": "OEFP matches Mordred MID_N values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "AMID_N",
+      "family": "MolecularId",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/MolecularId.py",
+      "status": "exact",
+      "primitive": "Heavy-atom simple-path atomic-id DFS with heavy-atom degree product edge weights, summed over nitrogen atoms and averaged by total heavy-atom count",
+      "reason": "OEFP matches Mordred AMID_N values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MID_O",
+      "family": "MolecularId",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/MolecularId.py",
+      "status": "exact",
+      "primitive": "Heavy-atom simple-path atomic-id DFS with heavy-atom degree product edge weights, summed over oxygen atoms and requiring a connected heavy-atom graph",
+      "reason": "OEFP matches Mordred MID_O values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "AMID_O",
+      "family": "MolecularId",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/MolecularId.py",
+      "status": "exact",
+      "primitive": "Heavy-atom simple-path atomic-id DFS with heavy-atom degree product edge weights, summed over oxygen atoms and averaged by total heavy-atom count",
+      "reason": "OEFP matches Mordred AMID_O values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MID_X",
+      "family": "MolecularId",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/MolecularId.py",
+      "status": "exact",
+      "primitive": "Heavy-atom simple-path atomic-id DFS with heavy-atom degree product edge weights, summed over halogen atoms and requiring a connected heavy-atom graph",
+      "reason": "OEFP matches Mordred MID_X values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "AMID_X",
+      "family": "MolecularId",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/MolecularId.py",
+      "status": "exact",
+      "primitive": "Heavy-atom simple-path atomic-id DFS with heavy-atom degree product edge weights, summed over halogen atoms and averaged by total heavy-atom count",
+      "reason": "OEFP matches Mordred AMID_X values on the committed Mordred parity fixture."
+    },
+    {
       "descriptor": "nHBAcc",
       "family": "HydrogenBond",
       "source": "/Users/johnss51/Development/python/mordred/mordred/HydrogenBond.py",

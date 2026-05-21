@@ -153,6 +153,16 @@ struct MordredTopologicalChargeValues {
     double global10 = 0.0;
 };
 
+struct MordredMolecularIdValues {
+    std::size_t atom_count = 0u;
+    double any = 0.0;
+    double hetero = 0.0;
+    double carbon = 0.0;
+    double nitrogen = 0.0;
+    double oxygen = 0.0;
+    double halogen = 0.0;
+};
+
 struct MordredMatrixEigenvalueValues {
     double spectral_absolute = 0.0;
     double spectral_max = 0.0;
@@ -467,6 +477,11 @@ std::optional<double> bondi_atom_volume(std::uint32_t atomic_number) {
 bool is_halogen(std::uint32_t atomic_number) {
     return atomic_number == 9u || atomic_number == 17u || atomic_number == 35u
            || atomic_number == 53u;
+}
+
+bool is_mordred_molecular_id_halogen(std::uint32_t atomic_number) {
+    return atomic_number == 9u || atomic_number == 17u || atomic_number == 35u
+           || atomic_number == 53u || atomic_number == 85u || atomic_number == 117u;
 }
 
 double default_isotopic_mass(std::uint32_t atomic_number) {
@@ -1875,6 +1890,85 @@ bool is_connected_heavy_atom_graph(const MordredHeavyAtomGraph& graph) {
     return std::all_of(visited.begin(), visited.end(), [](bool value) { return value; });
 }
 
+void accumulate_molecular_id_paths(
+    const MordredHeavyAtomGraph& graph,
+    std::size_t atom_index,
+    double previous_weight,
+    std::vector<bool>& visited,
+    double& atomic_id) {
+    constexpr double kWeightLimit = 1.0e20;
+    visited[atom_index] = true;
+    const auto degree = static_cast<double>(graph.adjacency[atom_index].size());
+    for (const auto& neighbor : graph.adjacency[atom_index]) {
+        if (visited[neighbor.atom_index]) {
+            continue;
+        }
+
+        visited[neighbor.atom_index] = true;
+        const auto neighbor_degree =
+            static_cast<double>(graph.adjacency[neighbor.atom_index].size());
+        const auto weight = degree * neighbor_degree * previous_weight;
+        atomic_id += 1.0 / std::sqrt(weight);
+        if (weight < kWeightLimit) {
+            accumulate_molecular_id_paths(
+                graph,
+                neighbor.atom_index,
+                weight,
+                visited,
+                atomic_id);
+        }
+        visited[neighbor.atom_index] = false;
+    }
+}
+
+std::optional<std::vector<double>> compute_mordred_atomic_ids(
+    const MordredHeavyAtomGraph& graph) {
+    if (!is_connected_heavy_atom_graph(graph)) {
+        return std::nullopt;
+    }
+
+    std::vector<double> atomic_ids;
+    atomic_ids.reserve(graph.atoms.size());
+    for (std::size_t atom_index = 0u; atom_index < graph.atoms.size(); ++atom_index) {
+        std::vector<bool> visited(graph.atoms.size(), false);
+        double atomic_id = 0.0;
+        accumulate_molecular_id_paths(graph, atom_index, 1.0, visited, atomic_id);
+        atomic_ids.push_back(1.0 + atomic_id / 2.0);
+    }
+    return atomic_ids;
+}
+
+std::optional<MordredMolecularIdValues> compute_molecular_id_values(
+    const MordredHeavyAtomGraph& graph) {
+    const auto atomic_ids = compute_mordred_atomic_ids(graph);
+    if (!atomic_ids.has_value()) {
+        return std::nullopt;
+    }
+
+    MordredMolecularIdValues values;
+    values.atom_count = atomic_ids->size();
+    for (std::size_t atom_index = 0u; atom_index < atomic_ids->size(); ++atom_index) {
+        const auto atomic_id = (*atomic_ids)[atom_index];
+        const auto atomic_number =
+            static_cast<std::uint32_t>(graph.atoms[atom_index]->GetAtomicNum());
+        values.any += atomic_id;
+        if (atomic_number != 1u && atomic_number != 6u) {
+            values.hetero += atomic_id;
+        }
+        if (atomic_number == 6u) {
+            values.carbon += atomic_id;
+        } else if (atomic_number == 7u) {
+            values.nitrogen += atomic_id;
+        } else if (atomic_number == 8u) {
+            values.oxygen += atomic_id;
+        }
+        if (is_mordred_molecular_id_halogen(atomic_number)) {
+            values.halogen += atomic_id;
+        }
+    }
+    return values;
+}
+
 std::optional<MordredSymmetricEigensystem> symmetric_eigensystem_jacobi(
     std::vector<double> matrix,
     std::size_t dimension) {
@@ -3168,6 +3262,26 @@ void set_topological_charge_values(
     set_float(builder, "JGT10", values.global10);
 }
 
+void set_molecular_id_pair(
+    DescriptorSetBuilder& builder,
+    const std::string& qualifier,
+    double value,
+    std::size_t atom_count) {
+    set_float(builder, "MID" + qualifier, value);
+    set_float(builder, "AMID" + qualifier, value / static_cast<double>(atom_count));
+}
+
+void set_molecular_id_values(
+    DescriptorSetBuilder& builder,
+    const MordredMolecularIdValues& values) {
+    set_molecular_id_pair(builder, "", values.any, values.atom_count);
+    set_molecular_id_pair(builder, "_h", values.hetero, values.atom_count);
+    set_molecular_id_pair(builder, "_C", values.carbon, values.atom_count);
+    set_molecular_id_pair(builder, "_N", values.nitrogen, values.atom_count);
+    set_molecular_id_pair(builder, "_O", values.oxygen, values.atom_count);
+    set_molecular_id_pair(builder, "_X", values.halogen, values.atom_count);
+}
+
 void set_adjacency_matrix_eigenvalue_values(
     DescriptorSetBuilder& builder,
     const MordredMatrixEigenvalueValues& values) {
@@ -3275,6 +3389,7 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
     const auto bertz_ct = compute_bertz_ct(heavy_atom_graph);
     const auto topological_charge_values =
         compute_topological_charge_values(heavy_atom_graph, heavy_atom_distances);
+    const auto molecular_id_values = compute_molecular_id_values(heavy_atom_graph);
     const auto adjacency_matrix_eigenvalue_values =
         compute_adjacency_matrix_eigenvalue_values(heavy_atom_graph);
     const auto distance_matrix_eigenvalue_values =
@@ -3458,6 +3573,9 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
     set_wiener_values(builder, wiener_values);
     set_topological_index_values(builder, topological_index_values);
     set_topological_charge_values(builder, topological_charge_values);
+    if (molecular_id_values.has_value()) {
+        set_molecular_id_values(builder, *molecular_id_values);
+    }
     if (adjacency_matrix_eigenvalue_values.has_value()) {
         set_adjacency_matrix_eigenvalue_values(builder, *adjacency_matrix_eigenvalue_values);
     }

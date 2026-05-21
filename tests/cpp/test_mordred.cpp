@@ -198,6 +198,130 @@ TEST(MordredDescriptorTest, FragmentComplexityMatchesCopiedMordredReferences) {
     }
 }
 
+TEST(MordredDescriptorTest, MolecularIdDescriptorsMatchCopiedMordredReferences) {
+    struct Case {
+        std::string smiles;
+        std::map<std::string, double> expected_values;
+    };
+
+    const std::vector<Case> cases{
+        {
+            "C",
+            {
+                {"MID", 1.0},
+                {"AMID", 1.0},
+                {"MID_h", 0.0},
+                {"AMID_h", 0.0},
+                {"MID_C", 1.0},
+                {"AMID_C", 1.0},
+                {"MID_N", 0.0},
+                {"AMID_N", 0.0},
+                {"MID_O", 0.0},
+                {"AMID_O", 0.0},
+                {"MID_X", 0.0},
+                {"AMID_X", 0.0},
+            },
+        },
+        {
+            "CCO",
+            {
+                {"MID", 4.914213562373095},
+                {"AMID", 1.6380711874576983},
+                {"MID_h", 1.6035533905932737},
+                {"AMID_h", 0.5345177968644246},
+                {"MID_C", 3.310660171779821},
+                {"AMID_C", 1.1035533905932737},
+                {"MID_N", 0.0},
+                {"AMID_N", 0.0},
+                {"MID_O", 1.6035533905932737},
+                {"AMID_O", 0.5345177968644246},
+                {"MID_X", 0.0},
+                {"AMID_X", 0.0},
+            },
+        },
+        {
+            "c1ccncc1",
+            {
+                {"MID", 11.8125},
+                {"AMID", 1.96875},
+                {"MID_h", 1.96875},
+                {"AMID_h", 0.328125},
+                {"MID_C", 9.84375},
+                {"AMID_C", 1.640625},
+                {"MID_N", 1.96875},
+                {"AMID_N", 0.328125},
+                {"MID_O", 0.0},
+                {"AMID_O", 0.0},
+                {"MID_X", 0.0},
+                {"AMID_X", 0.0},
+            },
+        },
+        {
+            "CC(C)(C)Cl",
+            {
+                {"MID", 8.5},
+                {"AMID", 1.7},
+                {"MID_h", 1.625},
+                {"AMID_h", 0.325},
+                {"MID_C", 6.875},
+                {"AMID_C", 1.375},
+                {"MID_X", 1.625},
+                {"AMID_X", 0.325},
+            },
+        },
+        {
+            "O=S(=O)(N)C1=CC=CC=C1",
+            {
+                {"MID", 19.299499452491947},
+                {"AMID", 1.9299499452491946},
+                {"MID_h", 7.181685330138905},
+                {"AMID_h", 0.7181685330138905},
+                {"MID_C", 12.117814122353042},
+                {"AMID_C", 1.2117814122353043},
+                {"MID_N", 1.6863370660277812},
+                {"AMID_N", 0.16863370660277813},
+                {"MID_O", 3.3726741320555624},
+                {"AMID_O", 0.33726741320555625},
+            },
+        },
+        {
+            "CI",
+            {
+                {"MID", 3.0},
+                {"AMID", 1.5},
+                {"MID_h", 1.5},
+                {"AMID_h", 0.75},
+                {"MID_C", 1.5},
+                {"AMID_C", 0.75},
+                {"MID_X", 1.5},
+                {"AMID_X", 0.75},
+            },
+        },
+    };
+
+    for (const auto& expected : cases) {
+        SCOPED_TRACE(expected.smiles);
+        const auto descriptors = MakeMordredDescriptors(mol_from_smiles(expected.smiles));
+
+        for (const auto& [name, expected_value] : expected.expected_values) {
+            ASSERT_TRUE(descriptors.Has(name)) << name;
+            EXPECT_NEAR(descriptors.Float(name), expected_value, 1.0e-12) << name;
+        }
+    }
+}
+
+TEST(MordredDescriptorTest, MolecularIdDescriptorsAreMissingForDisconnectedHeavyAtomGraphs) {
+    const std::vector<std::string> names{
+        "MID",   "AMID",   "MID_h", "AMID_h", "MID_C", "AMID_C",
+        "MID_N", "AMID_N", "MID_O", "AMID_O", "MID_X", "AMID_X",
+    };
+    const auto descriptors = MakeMordredDescriptors(mol_from_smiles("C.CC"));
+
+    for (const auto& name : names) {
+        EXPECT_FALSE(descriptors.Has(name)) << name;
+    }
+}
+
 TEST(MordredDescriptorTest, AdditivePropertyDescriptorsMatchCopiedMordredReferences) {
     struct Case {
         std::string smiles;
