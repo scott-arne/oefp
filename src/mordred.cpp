@@ -179,6 +179,14 @@ struct MordredMatrixEigenvalueValues {
     std::optional<double> randic_eigenvector_log;
 };
 
+using MordredAtomicPropertyLookup = std::optional<double> (*)(std::uint32_t);
+
+struct MordredBaryszMatrixProperty {
+    const char* suffix;
+    double carbon_reference;
+    MordredAtomicPropertyLookup lookup;
+};
+
 struct MordredSymmetricEigensystem {
     std::vector<double> eigenvalues;
     std::vector<double> eigenvectors;
@@ -2297,27 +2305,62 @@ std::optional<MordredMatrixEigenvalueValues> compute_distance_matrix_eigenvalue_
     return compute_matrix_eigenvalue_values(std::move(distance_matrix), atom_count, graph.bonds);
 }
 
-std::optional<MordredMatrixEigenvalueValues> compute_barysz_atomic_number_matrix_values(
-    const MordredHeavyAtomGraph& graph) {
+std::optional<double> mordred_atomic_number_property(std::uint32_t atomic_number) {
+    return static_cast<double>(atomic_number);
+}
+
+const std::array<MordredBaryszMatrixProperty, 8>& mordred_barysz_matrix_properties() {
+    static const std::array<MordredBaryszMatrixProperty, 8> properties{{
+        {"Z", 6.0, mordred_atomic_number_property},
+        {"m", 12.011, mordred_mass},
+        {"v", 20.579526276115534, mordred_vdw_volume},
+        {"se", 2.746, mordred_sanderson},
+        {"pe", 2.55, mordred_pauling},
+        {"are", 2.5, mordred_allred_rocow},
+        {"p", 1.67, mordred_polarizability94},
+        {"i", 11.2603, mordred_ionization_potential},
+    }};
+    return properties;
+}
+
+std::optional<MordredMatrixEigenvalueValues> compute_barysz_matrix_values(
+    const MordredHeavyAtomGraph& graph,
+    MordredAtomicPropertyLookup property_lookup,
+    double carbon_reference) {
     if (!is_connected_heavy_atom_graph(graph)) {
         return std::nullopt;
     }
 
-    constexpr double kCarbonReferenceAtomicNumber = 6.0;
     const auto atom_count = graph.atoms.size();
+    std::vector<double> atom_properties;
+    atom_properties.reserve(atom_count);
+    for (const auto* atom : graph.atoms) {
+        const auto atom_property =
+            property_lookup(static_cast<std::uint32_t>(atom->GetAtomicNum()));
+        if (!atom_property.has_value() || !std::isfinite(*atom_property)
+            || *atom_property == 0.0) {
+            return std::nullopt;
+        }
+        atom_properties.push_back(*atom_property);
+    }
+
     std::vector<double> matrix(
         atom_count * atom_count,
         static_cast<double>(kMordredDisconnectedDistance));
 
     for (std::size_t atom_index = 0u; atom_index < atom_count; ++atom_index) {
         matrix[atom_index * atom_count + atom_index] = 0.0;
-        const auto atom_property =
-            static_cast<double>(graph.atoms[atom_index]->GetAtomicNum());
+        const auto atom_property = atom_properties[atom_index];
         for (const auto& neighbor : graph.adjacency[atom_index]) {
-            const auto neighbor_property =
-                static_cast<double>(graph.atoms[neighbor.atom_index]->GetAtomicNum());
-            const auto edge_weight = kCarbonReferenceAtomicNumber * kCarbonReferenceAtomicNumber
+            if (!std::isfinite(neighbor.bond_order) || neighbor.bond_order <= 0.0) {
+                return std::nullopt;
+            }
+            const auto neighbor_property = atom_properties[neighbor.atom_index];
+            const auto edge_weight = carbon_reference * carbon_reference
                 / (atom_property * neighbor_property * neighbor.bond_order);
+            if (!std::isfinite(edge_weight)) {
+                return std::nullopt;
+            }
             auto& distance = matrix[atom_index * atom_count + neighbor.atom_index];
             distance = std::min(distance, edge_weight);
         }
@@ -2337,10 +2380,8 @@ std::optional<MordredMatrixEigenvalueValues> compute_barysz_atomic_number_matrix
     }
 
     for (std::size_t atom_index = 0u; atom_index < atom_count; ++atom_index) {
-        const auto atom_property =
-            static_cast<double>(graph.atoms[atom_index]->GetAtomicNum());
         matrix[atom_index * atom_count + atom_index] =
-            1.0 - kCarbonReferenceAtomicNumber / atom_property;
+            1.0 - carbon_reference / atom_properties[atom_index];
     }
 
     return compute_matrix_eigenvalue_values(std::move(matrix), atom_count, graph.bonds);
@@ -3449,22 +3490,45 @@ void set_distance_matrix_eigenvalue_values(
     set_optional_float(builder, "VR3_D", values.randic_eigenvector_log);
 }
 
-void set_barysz_atomic_number_matrix_values(
+std::string barysz_descriptor_name(const std::string& method, const char* suffix) {
+    return method + "_Dz" + suffix;
+}
+
+void set_barysz_matrix_values(
     DescriptorSetBuilder& builder,
-    const MordredMatrixEigenvalueValues& values) {
-    set_float(builder, "SpAbs_DzZ", values.spectral_absolute);
-    set_float(builder, "SpMax_DzZ", values.spectral_max);
-    set_float(builder, "SpDiam_DzZ", values.spectral_diameter);
-    set_float(builder, "SpAD_DzZ", values.spectral_absolute_deviation);
-    set_float(builder, "SpMAD_DzZ", values.spectral_mean_absolute_deviation);
-    set_float(builder, "LogEE_DzZ", values.log_estrada_like);
-    set_float(builder, "SM1_DzZ", values.spectral_moment);
-    set_float(builder, "VE1_DzZ", values.eigenvector_coefficient_sum);
-    set_float(builder, "VE2_DzZ", values.eigenvector_coefficient_mean);
-    set_float(builder, "VE3_DzZ", values.eigenvector_coefficient_log);
-    set_float(builder, "VR1_DzZ", values.randic_eigenvector_sum);
-    set_float(builder, "VR2_DzZ", values.randic_eigenvector_mean);
-    set_optional_float(builder, "VR3_DzZ", values.randic_eigenvector_log);
+    const MordredMatrixEigenvalueValues& values,
+    const char* suffix) {
+    set_float(builder, barysz_descriptor_name("SpAbs", suffix), values.spectral_absolute);
+    set_float(builder, barysz_descriptor_name("SpMax", suffix), values.spectral_max);
+    set_float(builder, barysz_descriptor_name("SpDiam", suffix), values.spectral_diameter);
+    set_float(
+        builder,
+        barysz_descriptor_name("SpAD", suffix),
+        values.spectral_absolute_deviation);
+    set_float(
+        builder,
+        barysz_descriptor_name("SpMAD", suffix),
+        values.spectral_mean_absolute_deviation);
+    set_float(builder, barysz_descriptor_name("LogEE", suffix), values.log_estrada_like);
+    set_float(builder, barysz_descriptor_name("SM1", suffix), values.spectral_moment);
+    set_float(
+        builder,
+        barysz_descriptor_name("VE1", suffix),
+        values.eigenvector_coefficient_sum);
+    set_float(
+        builder,
+        barysz_descriptor_name("VE2", suffix),
+        values.eigenvector_coefficient_mean);
+    set_float(
+        builder,
+        barysz_descriptor_name("VE3", suffix),
+        values.eigenvector_coefficient_log);
+    set_float(builder, barysz_descriptor_name("VR1", suffix), values.randic_eigenvector_sum);
+    set_float(builder, barysz_descriptor_name("VR2", suffix), values.randic_eigenvector_mean);
+    set_optional_float(
+        builder,
+        barysz_descriptor_name("VR3", suffix),
+        values.randic_eigenvector_log);
 }
 
 void set_eccentric_connectivity_index(DescriptorSetBuilder& builder, std::int64_t value) {
@@ -3527,8 +3591,17 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
         compute_adjacency_matrix_eigenvalue_values(heavy_atom_graph);
     const auto distance_matrix_eigenvalue_values =
         compute_distance_matrix_eigenvalue_values(heavy_atom_graph, heavy_atom_distances);
-    const auto barysz_atomic_number_matrix_values =
-        compute_barysz_atomic_number_matrix_values(heavy_atom_graph);
+    std::vector<std::pair<const char*, std::optional<MordredMatrixEigenvalueValues>>>
+        barysz_matrix_values;
+    barysz_matrix_values.reserve(mordred_barysz_matrix_properties().size());
+    for (const auto& property : mordred_barysz_matrix_properties()) {
+        barysz_matrix_values.emplace_back(
+            property.suffix,
+            compute_barysz_matrix_values(
+                heavy_atom_graph,
+                property.lookup,
+                property.carbon_reference));
+    }
     const auto molecular_distance_edge_values =
         compute_molecular_distance_edge_values(heavy_atom_graph, heavy_atom_distances);
     const auto abc_index_values =
@@ -3717,8 +3790,10 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
     if (distance_matrix_eigenvalue_values.has_value()) {
         set_distance_matrix_eigenvalue_values(builder, *distance_matrix_eigenvalue_values);
     }
-    if (barysz_atomic_number_matrix_values.has_value()) {
-        set_barysz_atomic_number_matrix_values(builder, *barysz_atomic_number_matrix_values);
+    for (const auto& [suffix, property_values] : barysz_matrix_values) {
+        if (property_values.has_value()) {
+            set_barysz_matrix_values(builder, *property_values, suffix);
+        }
     }
     set_eccentric_connectivity_index(builder, ec_index);
     set_ring_count_values(builder, ring_count_values.base);
