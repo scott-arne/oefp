@@ -90,6 +90,7 @@ struct MordredAdditivePropertyValues {
 struct MordredLabuteAsaValues {
     double total = 0.0;
     std::vector<double> atom_contributions;
+    std::vector<unsigned int> atom_ids;
 };
 
 struct MordredWalkCountValues {
@@ -544,10 +545,13 @@ std::optional<MordredLabuteAsaValues> compute_labute_asa_values(const OEChem::OE
     OEChem::OEAssignAromaticFlags(working_mol);
 
     std::unordered_map<unsigned int, std::size_t> atom_indices;
+    std::vector<unsigned int> atom_ids;
     std::vector<double> radii;
     radii.reserve(working_mol.NumAtoms());
+    atom_ids.reserve(working_mol.NumAtoms());
     for (OESystem::OEIter<OEChem::OEAtomBase> atom = working_mol.GetAtoms(); atom; ++atom) {
         atom_indices.emplace(atom->GetIdx(), radii.size());
+        atom_ids.push_back(atom->GetIdx());
         radii.push_back(rdkit_bondi_radius(static_cast<std::uint32_t>(atom->GetAtomicNum())));
     }
 
@@ -630,7 +634,7 @@ std::optional<MordredLabuteAsaValues> compute_labute_asa_values(const OEChem::OE
             return std::nullopt;
         }
     }
-    return MordredLabuteAsaValues{total, std::move(atom_contribs)};
+    return MordredLabuteAsaValues{total, std::move(atom_contribs), std::move(atom_ids)};
 }
 
 bool is_halogen(std::uint32_t atomic_number) {
@@ -3958,6 +3962,22 @@ std::vector<double> compute_mordred_estate_indices(const MordredHeavyAtomGraph& 
     return indices;
 }
 
+bool labute_values_align_with_heavy_atom_graph(
+    const MordredLabuteAsaValues& labute_values,
+    const MordredHeavyAtomGraph& graph) {
+    if (labute_values.atom_contributions.size() != graph.atoms.size()
+        || labute_values.atom_ids.size() != graph.atoms.size()) {
+        return false;
+    }
+
+    for (std::size_t atom_index = 0u; atom_index < graph.atoms.size(); ++atom_index) {
+        if (labute_values.atom_ids[atom_index] != graph.atoms[atom_index]->GetIdx()) {
+            return false;
+        }
+    }
+    return true;
+}
+
 std::optional<std::array<double, 9>> compute_vsa_estate_values(
     const OEChem::OEMolBase& mol,
     const MordredLabuteAsaValues& labute_values) {
@@ -3975,7 +3995,9 @@ std::optional<std::array<double, 9>> compute_vsa_estate_values(
 
     const auto working_mol = implicit_hydrogen_estate_mol(mol);
     const auto graph = build_mordred_heavy_atom_graph(working_mol);
-    if (labute_values.atom_contributions.size() != graph.atoms.size()) {
+    // Labute and EState each work on their own hydrogen-suppressed molecule copy;
+    // the atom-id check keeps their per-heavy-atom vectors aligned before binning.
+    if (!labute_values_align_with_heavy_atom_graph(labute_values, graph)) {
         return std::nullopt;
     }
 
@@ -3994,6 +4016,49 @@ std::optional<std::array<double, 9>> compute_vsa_estate_values(
             - vsa_bins.begin());
         if (bin < values.size()) {
             values[bin] += estate_index;
+        }
+    }
+    return values;
+}
+
+std::optional<std::array<double, 10>> compute_estate_vsa_values(
+    const OEChem::OEMolBase& mol,
+    const MordredLabuteAsaValues& labute_values) {
+    static constexpr std::array<double, 10> estate_bins{{
+        -0.390,
+        0.290,
+        0.717,
+        1.165,
+        1.540,
+        1.807,
+        2.05,
+        4.69,
+        9.17,
+        15.0,
+    }};
+
+    const auto working_mol = implicit_hydrogen_estate_mol(mol);
+    const auto graph = build_mordred_heavy_atom_graph(working_mol);
+    if (!labute_values_align_with_heavy_atom_graph(labute_values, graph)) {
+        return std::nullopt;
+    }
+
+    const auto estate_indices = compute_mordred_estate_indices(graph);
+    std::array<double, 10> values{};
+    for (std::size_t atom_index = 0u; atom_index < graph.atoms.size(); ++atom_index) {
+        const auto estate_index = estate_indices[atom_index];
+        const auto atom_contribution = labute_values.atom_contributions[atom_index];
+        if (!std::isfinite(estate_index) || !std::isfinite(atom_contribution)) {
+            return std::nullopt;
+        }
+
+        // RDKit EState_VSA_ uses bisect_right on EState indices and adds
+        // per-heavy-atom Labute contributions; Mordred exposes only bins 0..9.
+        const auto bin = static_cast<std::size_t>(
+            std::upper_bound(estate_bins.begin(), estate_bins.end(), estate_index)
+            - estate_bins.begin());
+        if (bin < values.size()) {
+            values[bin] += atom_contribution;
         }
     }
     return values;
@@ -4749,6 +4814,10 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
         labute_asa_values.has_value()
             ? compute_vsa_estate_values(mol, *labute_asa_values)
             : std::optional<std::array<double, 9>>{};
+    const auto estate_vsa_values =
+        labute_asa_values.has_value()
+            ? compute_estate_vsa_values(mol, *labute_asa_values)
+            : std::optional<std::array<double, 10>>{};
     DescriptorSetBuilder builder(MordredDescriptorSchema());
 
     const auto all_atoms = values.heavy_atoms + values.hydrogens;
@@ -4860,6 +4929,14 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
         "LabuteASA",
         labute_asa_values.has_value() ? std::optional<double>{labute_asa_values->total}
                                       : std::nullopt);
+    if (estate_vsa_values.has_value()) {
+        for (std::size_t index = 0u; index < estate_vsa_values->size(); ++index) {
+            set_float(
+                builder,
+                "EState_VSA" + std::to_string(index + 1u),
+                (*estate_vsa_values)[index]);
+        }
+    }
     if (vsa_estate_values.has_value()) {
         for (std::size_t index = 0u; index < vsa_estate_values->size(); ++index) {
             set_float(
