@@ -647,6 +647,16 @@ TEST(MordredDescriptorTest, FrameworkDescriptorMatchesMordredReferences) {
     }
 }
 
+TEST(MordredDescriptorTest, FrameworkDescriptorDoesNotDoubleCountExplicitHydrogens) {
+    OEChem::OEGraphMol mol = mol_from_smiles("C1CCCCC1");
+    OEChem::OEAddExplicitHydrogens(mol);
+
+    const auto descriptors = MakeMordredDescriptors(mol);
+
+    ASSERT_TRUE(descriptors.Has("fMF"));
+    EXPECT_NEAR(descriptors.Float("fMF"), 0.3333333333333333, 1.0e-12);
+}
+
 TEST(MordredDescriptorTest, ZagrebDescriptorsUseHeavyAtomGraphDegrees) {
     struct Case {
         std::string smiles;

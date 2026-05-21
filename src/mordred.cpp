@@ -1973,9 +1973,9 @@ void collect_shortest_path_linkers(
 
 std::optional<double> compute_framework_ratio(
     const MordredHeavyAtomGraph& graph,
-    std::uint32_t atom_count_with_implicit_hydrogens) {
+    std::uint32_t framework_atom_count) {
     const auto atom_count = graph.atoms.size();
-    if (atom_count == 0u || atom_count_with_implicit_hydrogens == 0u) {
+    if (atom_count == 0u || framework_atom_count == 0u) {
         return std::nullopt;
     }
 
@@ -2020,7 +2020,7 @@ std::optional<double> compute_framework_ratio(
     const auto ring_atom_count =
         static_cast<std::size_t>(std::count(ring_atoms.begin(), ring_atoms.end(), true));
     return static_cast<double>(linker_count + ring_atom_count)
-           / static_cast<double>(atom_count_with_implicit_hydrogens);
+           / static_cast<double>(framework_atom_count);
 }
 
 void accumulate_molecular_id_paths(
@@ -3543,7 +3543,8 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
     const auto all_atoms = values.heavy_atoms + values.hydrogens;
     const auto all_bonds = values.heavy_bonds + values.hydrogens;
     const auto all_single_bonds = values.single_heavy_bonds + values.hydrogens;
-    const auto framework_ratio = compute_framework_ratio(heavy_atom_graph, all_atoms);
+    const auto framework_atom_count = count_atoms(explicit_hydrogen_copy(mol));
+    const auto framework_ratio = compute_framework_ratio(heavy_atom_graph, framework_atom_count);
 
     // Mordred's kekulized bond counts use RDKit's alternating aromatic form.
     // For the supported count subset, this parity approximation matches the
