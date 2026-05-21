@@ -131,6 +131,8 @@ struct MordredABCIndexValues {
 
 struct MordredMolecularDistanceEdgeValues {
     std::array<std::array<std::optional<double>, 5>, 5> carbon{};
+    std::array<std::array<std::optional<double>, 5>, 5> oxygen{};
+    std::array<std::array<std::optional<double>, 5>, 5> nitrogen{};
 };
 
 struct MordredWienerValues {
@@ -2436,27 +2438,27 @@ MordredABCIndexValues compute_abc_index_values(
     return values;
 }
 
-MordredMolecularDistanceEdgeValues compute_molecular_distance_edge_values(
+void compute_molecular_distance_edge_family(
     const MordredHeavyAtomGraph& graph,
-    const std::vector<std::vector<std::int64_t>>& distances) {
-    MordredMolecularDistanceEdgeValues values;
-    constexpr int kCarbonAtomicNumber = 6;
-
-    for (std::size_t valence1 = 1u; valence1 <= 4u; ++valence1) {
-        for (std::size_t valence2 = valence1; valence2 <= 4u; ++valence2) {
+    const std::vector<std::vector<std::int64_t>>& distances,
+    const int atomic_number,
+    const std::size_t max_degree,
+    std::array<std::array<std::optional<double>, 5>, 5>& output) {
+    for (std::size_t valence1 = 1u; valence1 <= max_degree; ++valence1) {
+        for (std::size_t valence2 = valence1; valence2 <= max_degree; ++valence2) {
             std::size_t selected_count = 0u;
             double log_distance_product = 0.0;
 
             for (std::size_t begin = 0u; begin < graph.atoms.size(); ++begin) {
                 const auto* begin_atom = graph.atoms[begin];
-                if (begin_atom->GetAtomicNum() != kCarbonAtomicNumber) {
+                if (begin_atom->GetAtomicNum() != atomic_number) {
                     continue;
                 }
                 const auto begin_degree = graph.adjacency[begin].size();
 
                 for (std::size_t end = begin + 1u; end < graph.atoms.size(); ++end) {
                     const auto* end_atom = graph.atoms[end];
-                    if (end_atom->GetAtomicNum() != kCarbonAtomicNumber) {
+                    if (end_atom->GetAtomicNum() != atomic_number) {
                         continue;
                     }
                     const auto end_degree = graph.adjacency[end].size();
@@ -2476,12 +2478,20 @@ MordredMolecularDistanceEdgeValues compute_molecular_distance_edge_values(
             if (selected_count == 0u) {
                 continue;
             }
-            values.carbon[valence1][valence2] =
+            output[valence1][valence2] =
                 static_cast<double>(selected_count)
                 / std::exp(log_distance_product / static_cast<double>(selected_count));
         }
     }
+}
 
+MordredMolecularDistanceEdgeValues compute_molecular_distance_edge_values(
+    const MordredHeavyAtomGraph& graph,
+    const std::vector<std::vector<std::int64_t>>& distances) {
+    MordredMolecularDistanceEdgeValues values;
+    compute_molecular_distance_edge_family(graph, distances, 6, 4u, values.carbon);
+    compute_molecular_distance_edge_family(graph, distances, 8, 2u, values.oxygen);
+    compute_molecular_distance_edge_family(graph, distances, 7, 3u, values.nitrogen);
     return values;
 }
 
@@ -3092,6 +3102,21 @@ void set_abc_index_values(DescriptorSetBuilder& builder, const MordredABCIndexVa
 void set_molecular_distance_edge_values(
     DescriptorSetBuilder& builder,
     const MordredMolecularDistanceEdgeValues& values) {
+    const auto set_family =
+        [&builder](
+            const std::string& prefix,
+            const std::size_t max_degree,
+            const std::array<std::array<std::optional<double>, 5>, 5>& family_values) {
+            for (std::size_t valence1 = 1u; valence1 <= max_degree; ++valence1) {
+                for (std::size_t valence2 = valence1; valence2 <= max_degree; ++valence2) {
+                    set_optional_float(
+                        builder,
+                        prefix + "-" + std::to_string(valence1) + std::to_string(valence2),
+                        family_values[valence1][valence2]);
+                }
+            }
+        };
+
     for (std::size_t valence1 = 1u; valence1 <= 4u; ++valence1) {
         for (std::size_t valence2 = valence1; valence2 <= 4u; ++valence2) {
             set_optional_float(
@@ -3100,6 +3125,8 @@ void set_molecular_distance_edge_values(
                 values.carbon[valence1][valence2]);
         }
     }
+    set_family("MDEO", 2u, values.oxygen);
+    set_family("MDEN", 3u, values.nitrogen);
 }
 
 void set_wiener_values(DescriptorSetBuilder& builder, const MordredWienerValues& values) {

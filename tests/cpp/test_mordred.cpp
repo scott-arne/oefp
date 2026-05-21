@@ -1209,6 +1209,89 @@ TEST(MordredDescriptorTest, CarbonMolecularDistanceEdgeDescriptorsMatchMordredRe
     }
 }
 
+TEST(MordredDescriptorTest, OxygenAndNitrogenMolecularDistanceEdgeDescriptorsMatchMordredReferences) {
+    struct Case {
+        std::string smiles;
+        std::map<std::string, double> expected_values;
+        std::vector<std::string> missing_values;
+    };
+
+    const std::vector<Case> cases{
+        {
+            "COC(=O)c1ccc(OCC)c(O)c1C(=O)OCC",
+            {
+                {"MDEO-11", 0.646330407009565},
+                {"MDEO-12", 2.345974797336829},
+                {"MDEO-22", 0.5646216173286172},
+            },
+            {},
+        },
+        {
+            "O=P(O)(O)O",
+            {{"MDEO-11", 3.000000000000001}},
+            {"MDEO-12", "MDEO-22"},
+        },
+        {
+            "NNN",
+            {
+                {"MDEN-11", 0.4999999999999999},
+                {"MDEN-12", 2.0},
+            },
+            {"MDEN-13", "MDEN-22", "MDEN-23", "MDEN-33"},
+        },
+        {
+            "CN(C)N",
+            {{"MDEN-13", 1.0}},
+            {"MDEN-11", "MDEN-12", "MDEN-22", "MDEN-23", "MDEN-33"},
+        },
+        {
+            "N1CCNCC1",
+            {{"MDEN-22", 0.33333333333333337}},
+            {"MDEN-11", "MDEN-12", "MDEN-13", "MDEN-23", "MDEN-33"},
+        },
+        {
+            "CN(C)NC",
+            {{"MDEN-23", 1.0}},
+            {"MDEN-11", "MDEN-12", "MDEN-13", "MDEN-22", "MDEN-33"},
+        },
+        {
+            "CN(C)N(C)C",
+            {{"MDEN-33", 1.0}},
+            {"MDEN-11", "MDEN-12", "MDEN-13", "MDEN-22", "MDEN-23"},
+        },
+        {
+            "O.N",
+            {},
+            {
+                "MDEO-11",
+                "MDEO-12",
+                "MDEO-22",
+                "MDEN-11",
+                "MDEN-12",
+                "MDEN-13",
+                "MDEN-22",
+                "MDEN-23",
+                "MDEN-33",
+            },
+        },
+    };
+
+    for (const auto& expected : cases) {
+        SCOPED_TRACE(expected.smiles);
+        const auto descriptors = MakeMordredDescriptors(mol_from_smiles(expected.smiles));
+
+        for (const auto& [name, value] : expected.expected_values) {
+            EXPECT_TRUE(descriptors.Has(name)) << name;
+            if (descriptors.Has(name)) {
+                EXPECT_NEAR(descriptors.Float(name), value, 1.0e-8) << name;
+            }
+        }
+        for (const auto& name : expected.missing_values) {
+            EXPECT_FALSE(descriptors.Has(name)) << name;
+        }
+    }
+}
+
 TEST(MordredDescriptorTest, TopologicalChargeDescriptorsReturnZeroForEmptySelections) {
     const std::vector<std::string> descriptor_names{
         "GGI1", "GGI2",  "GGI3",  "GGI4",  "GGI5",  "GGI6",  "GGI7",

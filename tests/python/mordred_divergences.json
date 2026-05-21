@@ -414,6 +414,78 @@
       "reason": "OEFP matches Mordred MDEC-44 no-pair missing behavior on the committed Mordred parity fixture."
     },
     {
+      "descriptor": "MDEO-11",
+      "family": "MolecularDistanceEdge",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/MolecularDistanceEdge.py",
+      "status": "exact",
+      "primitive": "Mordred MolecularDistanceEdge.py oxygen atom-pair selection using DistanceMatrix(False) and Valence(False) from /Users/johnss51/Development/python/mordred/mordred/_graph_matrix.py, with heavy-atom unweighted shortest-path distances and unweighted heavy-atom graph degree pairs",
+      "reason": "OEFP matches Mordred MDEO-11 values and no-pair missing behavior on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MDEO-12",
+      "family": "MolecularDistanceEdge",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/MolecularDistanceEdge.py",
+      "status": "exact",
+      "primitive": "Mordred MolecularDistanceEdge.py oxygen atom-pair selection using DistanceMatrix(False) and Valence(False) from /Users/johnss51/Development/python/mordred/mordred/_graph_matrix.py, with heavy-atom unweighted shortest-path distances and unweighted heavy-atom graph degree pairs",
+      "reason": "OEFP matches Mordred MDEO-12 values and no-pair missing behavior on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MDEO-22",
+      "family": "MolecularDistanceEdge",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/MolecularDistanceEdge.py",
+      "status": "exact",
+      "primitive": "Mordred MolecularDistanceEdge.py oxygen atom-pair selection using DistanceMatrix(False) and Valence(False) from /Users/johnss51/Development/python/mordred/mordred/_graph_matrix.py, with heavy-atom unweighted shortest-path distances and unweighted heavy-atom graph degree pairs",
+      "reason": "OEFP matches Mordred MDEO-22 values and no-pair missing behavior on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MDEN-11",
+      "family": "MolecularDistanceEdge",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/MolecularDistanceEdge.py",
+      "status": "exact",
+      "primitive": "Mordred MolecularDistanceEdge.py nitrogen atom-pair selection using DistanceMatrix(False) and Valence(False) from /Users/johnss51/Development/python/mordred/mordred/_graph_matrix.py, with heavy-atom unweighted shortest-path distances and unweighted heavy-atom graph degree pairs",
+      "reason": "OEFP matches Mordred MDEN-11 values and no-pair missing behavior in focused C++ regressions; committed fixture rows currently exercise no-pair missing behavior."
+    },
+    {
+      "descriptor": "MDEN-12",
+      "family": "MolecularDistanceEdge",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/MolecularDistanceEdge.py",
+      "status": "exact",
+      "primitive": "Mordred MolecularDistanceEdge.py nitrogen atom-pair selection using DistanceMatrix(False) and Valence(False) from /Users/johnss51/Development/python/mordred/mordred/_graph_matrix.py, with heavy-atom unweighted shortest-path distances and unweighted heavy-atom graph degree pairs",
+      "reason": "OEFP matches Mordred MDEN-12 values and no-pair missing behavior in focused C++ regressions; committed fixture rows currently exercise no-pair missing behavior."
+    },
+    {
+      "descriptor": "MDEN-13",
+      "family": "MolecularDistanceEdge",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/MolecularDistanceEdge.py",
+      "status": "exact",
+      "primitive": "Mordred MolecularDistanceEdge.py nitrogen atom-pair selection using DistanceMatrix(False) and Valence(False) from /Users/johnss51/Development/python/mordred/mordred/_graph_matrix.py, with heavy-atom unweighted shortest-path distances and unweighted heavy-atom graph degree pairs",
+      "reason": "OEFP matches Mordred MDEN-13 values and no-pair missing behavior in focused C++ regressions; committed fixture rows currently exercise no-pair missing behavior."
+    },
+    {
+      "descriptor": "MDEN-22",
+      "family": "MolecularDistanceEdge",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/MolecularDistanceEdge.py",
+      "status": "exact",
+      "primitive": "Mordred MolecularDistanceEdge.py nitrogen atom-pair selection using DistanceMatrix(False) and Valence(False) from /Users/johnss51/Development/python/mordred/mordred/_graph_matrix.py, with heavy-atom unweighted shortest-path distances and unweighted heavy-atom graph degree pairs",
+      "reason": "OEFP matches Mordred MDEN-22 values and no-pair missing behavior in focused C++ regressions; committed fixture rows currently exercise no-pair missing behavior."
+    },
+    {
+      "descriptor": "MDEN-23",
+      "family": "MolecularDistanceEdge",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/MolecularDistanceEdge.py",
+      "status": "exact",
+      "primitive": "Mordred MolecularDistanceEdge.py nitrogen atom-pair selection using DistanceMatrix(False) and Valence(False) from /Users/johnss51/Development/python/mordred/mordred/_graph_matrix.py, with heavy-atom unweighted shortest-path distances and unweighted heavy-atom graph degree pairs",
+      "reason": "OEFP matches Mordred MDEN-23 values and no-pair missing behavior in focused C++ regressions; committed fixture rows currently exercise no-pair missing behavior."
+    },
+    {
+      "descriptor": "MDEN-33",
+      "family": "MolecularDistanceEdge",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/MolecularDistanceEdge.py",
+      "status": "exact",
+      "primitive": "Mordred MolecularDistanceEdge.py nitrogen atom-pair selection using DistanceMatrix(False) and Valence(False) from /Users/johnss51/Development/python/mordred/mordred/_graph_matrix.py, with heavy-atom unweighted shortest-path distances and unweighted heavy-atom graph degree pairs",
+      "reason": "OEFP matches Mordred MDEN-33 values and no-pair missing behavior in focused C++ regressions; committed fixture rows currently exercise no-pair missing behavior."
+    },
+    {
       "descriptor": "GGI1",
       "family": "TopologicalCharge",
       "source": "/Users/johnss51/Development/python/mordred/mordred/TopologicalCharge.py",
