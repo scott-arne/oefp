@@ -87,6 +87,11 @@ struct MordredAdditivePropertyValues {
     std::optional<double> vabc;
 };
 
+struct MordredLabuteAsaValues {
+    double total = 0.0;
+    std::vector<double> atom_contributions;
+};
+
 struct MordredWalkCountValues {
     std::array<double, 11> mwc{};
     std::array<double, 11> srw{};
@@ -530,7 +535,7 @@ double rdkit_bondi_radius(std::uint32_t atomic_number) {
     return radii[atomic_number];
 }
 
-std::optional<double> compute_labute_asa(const OEChem::OEMolBase& mol) {
+std::optional<MordredLabuteAsaValues> compute_labute_asa_values(const OEChem::OEMolBase& mol) {
     OEChem::OEGraphMol working_mol(mol);
     OEChem::OEFindRingAtomsAndBonds(working_mol);
     OEChem::OEAssignAromaticFlags(working_mol);
@@ -620,7 +625,12 @@ std::optional<double> compute_labute_asa(const OEChem::OEMolBase& mol) {
     if (!std::isfinite(total)) {
         return std::nullopt;
     }
-    return total;
+    for (const auto atom_contribution : atom_contribs) {
+        if (!std::isfinite(atom_contribution)) {
+            return std::nullopt;
+        }
+    }
+    return MordredLabuteAsaValues{total, std::move(atom_contribs)};
 }
 
 bool is_halogen(std::uint32_t atomic_number) {
@@ -3948,6 +3958,47 @@ std::vector<double> compute_mordred_estate_indices(const MordredHeavyAtomGraph& 
     return indices;
 }
 
+std::optional<std::array<double, 9>> compute_vsa_estate_values(
+    const OEChem::OEMolBase& mol,
+    const MordredLabuteAsaValues& labute_values) {
+    static constexpr std::array<double, 9> vsa_bins{{
+        4.78,
+        5.00,
+        5.410,
+        5.740,
+        6.00,
+        6.07,
+        6.45,
+        7.00,
+        11.0,
+    }};
+
+    const auto working_mol = implicit_hydrogen_estate_mol(mol);
+    const auto graph = build_mordred_heavy_atom_graph(working_mol);
+    if (labute_values.atom_contributions.size() != graph.atoms.size()) {
+        return std::nullopt;
+    }
+
+    const auto estate_indices = compute_mordred_estate_indices(graph);
+    std::array<double, 9> values{};
+    for (std::size_t atom_index = 0u; atom_index < graph.atoms.size(); ++atom_index) {
+        const auto estate_index = estate_indices[atom_index];
+        const auto atom_contribution = labute_values.atom_contributions[atom_index];
+        if (!std::isfinite(estate_index) || !std::isfinite(atom_contribution)) {
+            return std::nullopt;
+        }
+
+        // RDKit uses bisect_right: exact boundary contributions move to the higher bin.
+        const auto bin = static_cast<std::size_t>(
+            std::upper_bound(vsa_bins.begin(), vsa_bins.end(), atom_contribution)
+            - vsa_bins.begin());
+        if (bin < values.size()) {
+            values[bin] += estate_index;
+        }
+    }
+    return values;
+}
+
 MordredEStateValues compute_mordred_estate_values(const OEChem::OEMolBase& mol) {
     const auto working_mol = implicit_hydrogen_estate_mol(mol);
     const auto graph = build_mordred_heavy_atom_graph(working_mol);
@@ -4693,7 +4744,11 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
         compute_eccentric_connectivity_index(heavy_atom_graph, heavy_atom_distances);
     const auto ring_count_values = compute_ring_count_value_sets(mol);
     const auto estate_values = compute_mordred_estate_values(mol);
-    const auto labute_asa = compute_labute_asa(mol);
+    const auto labute_asa_values = compute_labute_asa_values(mol);
+    const auto vsa_estate_values =
+        labute_asa_values.has_value()
+            ? compute_vsa_estate_values(mol, *labute_asa_values)
+            : std::optional<std::array<double, 9>>{};
     DescriptorSetBuilder builder(MordredDescriptorSchema());
 
     const auto all_atoms = values.heavy_atoms + values.hydrogens;
@@ -4800,7 +4855,19 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
     }
     set_float(builder, "SLogP", values.crippen_logp);
     set_float(builder, "SMR", values.crippen_mr);
-    set_optional_float(builder, "LabuteASA", labute_asa);
+    set_optional_float(
+        builder,
+        "LabuteASA",
+        labute_asa_values.has_value() ? std::optional<double>{labute_asa_values->total}
+                                      : std::nullopt);
+    if (vsa_estate_values.has_value()) {
+        for (std::size_t index = 0u; index < vsa_estate_values->size(); ++index) {
+            set_float(
+                builder,
+                "VSA_EState" + std::to_string(index + 1u),
+                (*vsa_estate_values)[index]);
+        }
+    }
     set_optional_float(builder, "SZ", additive_values.sz);
     set_optional_float(builder, "Sm", additive_values.sm);
     set_optional_float(builder, "Sv", additive_values.sv);

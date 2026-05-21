@@ -189,6 +189,15 @@ ENABLED_DESCRIPTOR_NAMES = {
     "BalabanJ",
     "BertzCT",
     "LabuteASA",
+    "VSA_EState1",
+    "VSA_EState2",
+    "VSA_EState3",
+    "VSA_EState4",
+    "VSA_EState5",
+    "VSA_EState6",
+    "VSA_EState7",
+    "VSA_EState8",
+    "VSA_EState9",
     "SpAbs_A",
     "SpMax_A",
     "SpDiam_A",
@@ -649,7 +658,7 @@ def test_mordred_descriptors_match_enabled_reference_values():
     names = _enabled_descriptor_names(payload)
     row_divergences = _row_divergence_policy()
 
-    assert len(names) == 883
+    assert len(names) == 892
     assert set(ESTATE_COUNT_NAMES) <= set(names)
     assert set(ESTATE_SUM_NAMES) <= set(names)
     assert set(ESTATE_MAX_NAMES) <= set(names)
@@ -665,6 +674,7 @@ def test_mordred_descriptors_match_enabled_reference_values():
     assert "fMF" in names
     assert "fragCpx" in names
     assert "LabuteASA" in names
+    assert {f"VSA_EState{index}" for index in range(1, 10)} <= set(names)
     assert {"MID", "AMID", "MID_h", "AMID_h", "MID_X", "AMID_X"} <= set(names)
     for row in payload["reference_rows"]:
         smiles = row["smiles"]

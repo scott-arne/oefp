@@ -2006,6 +2006,78 @@
       "reason": "OEFP matches Mordred LabuteASA values on the committed Mordred parity fixture."
     },
     {
+      "descriptor": "VSA_EState1",
+      "family": "MoeType",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/MoeType.py",
+      "status": "exact",
+      "primitive": "Mordred MoeType.VSA_EState calls RDKit EState_VSA.py VSA_EState_: propContribs=EStateIndices_(mol), volContribs=_LabuteHelper(mol), nbin=bisect_right(vsaBins, volContribs[i + 1]), ans[nbin]+=prop; RDKit MolSurf.py _LabuteHelper supplies per-heavy-atom Labute contributions after the leading hydrogen contribution.",
+      "reason": "OEFP matches Mordred VSA_EState1 values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "VSA_EState2",
+      "family": "MoeType",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/MoeType.py",
+      "status": "exact",
+      "primitive": "Mordred MoeType.VSA_EState calls RDKit EState_VSA.py VSA_EState_: propContribs=EStateIndices_(mol), volContribs=_LabuteHelper(mol), nbin=bisect_right(vsaBins, volContribs[i + 1]), ans[nbin]+=prop; RDKit MolSurf.py _LabuteHelper supplies per-heavy-atom Labute contributions after the leading hydrogen contribution.",
+      "reason": "OEFP matches Mordred VSA_EState2 values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "VSA_EState3",
+      "family": "MoeType",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/MoeType.py",
+      "status": "exact",
+      "primitive": "Mordred MoeType.VSA_EState calls RDKit EState_VSA.py VSA_EState_: propContribs=EStateIndices_(mol), volContribs=_LabuteHelper(mol), nbin=bisect_right(vsaBins, volContribs[i + 1]), ans[nbin]+=prop; RDKit MolSurf.py _LabuteHelper supplies per-heavy-atom Labute contributions after the leading hydrogen contribution.",
+      "reason": "OEFP matches Mordred VSA_EState3 values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "VSA_EState4",
+      "family": "MoeType",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/MoeType.py",
+      "status": "exact",
+      "primitive": "Mordred MoeType.VSA_EState calls RDKit EState_VSA.py VSA_EState_: propContribs=EStateIndices_(mol), volContribs=_LabuteHelper(mol), nbin=bisect_right(vsaBins, volContribs[i + 1]), ans[nbin]+=prop; RDKit MolSurf.py _LabuteHelper supplies per-heavy-atom Labute contributions after the leading hydrogen contribution.",
+      "reason": "OEFP matches Mordred VSA_EState4 values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "VSA_EState5",
+      "family": "MoeType",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/MoeType.py",
+      "status": "exact",
+      "primitive": "Mordred MoeType.VSA_EState calls RDKit EState_VSA.py VSA_EState_: propContribs=EStateIndices_(mol), volContribs=_LabuteHelper(mol), nbin=bisect_right(vsaBins, volContribs[i + 1]), ans[nbin]+=prop; RDKit MolSurf.py _LabuteHelper supplies per-heavy-atom Labute contributions after the leading hydrogen contribution.",
+      "reason": "OEFP matches Mordred VSA_EState5 values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "VSA_EState6",
+      "family": "MoeType",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/MoeType.py",
+      "status": "exact",
+      "primitive": "Mordred MoeType.VSA_EState calls RDKit EState_VSA.py VSA_EState_: propContribs=EStateIndices_(mol), volContribs=_LabuteHelper(mol), nbin=bisect_right(vsaBins, volContribs[i + 1]), ans[nbin]+=prop; RDKit MolSurf.py _LabuteHelper supplies per-heavy-atom Labute contributions after the leading hydrogen contribution.",
+      "reason": "OEFP matches Mordred VSA_EState6 values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "VSA_EState7",
+      "family": "MoeType",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/MoeType.py",
+      "status": "exact",
+      "primitive": "Mordred MoeType.VSA_EState calls RDKit EState_VSA.py VSA_EState_: propContribs=EStateIndices_(mol), volContribs=_LabuteHelper(mol), nbin=bisect_right(vsaBins, volContribs[i + 1]), ans[nbin]+=prop; RDKit MolSurf.py _LabuteHelper supplies per-heavy-atom Labute contributions after the leading hydrogen contribution.",
+      "reason": "OEFP matches Mordred VSA_EState7 values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "VSA_EState8",
+      "family": "MoeType",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/MoeType.py",
+      "status": "exact",
+      "primitive": "Mordred MoeType.VSA_EState calls RDKit EState_VSA.py VSA_EState_: propContribs=EStateIndices_(mol), volContribs=_LabuteHelper(mol), nbin=bisect_right(vsaBins, volContribs[i + 1]), ans[nbin]+=prop; RDKit MolSurf.py _LabuteHelper supplies per-heavy-atom Labute contributions after the leading hydrogen contribution.",
+      "reason": "OEFP matches Mordred VSA_EState8 values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "VSA_EState9",
+      "family": "MoeType",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/MoeType.py",
+      "status": "exact",
+      "primitive": "Mordred MoeType.VSA_EState calls RDKit EState_VSA.py VSA_EState_: propContribs=EStateIndices_(mol), volContribs=_LabuteHelper(mol), nbin=bisect_right(vsaBins, volContribs[i + 1]), ans[nbin]+=prop; RDKit MolSurf.py _LabuteHelper supplies per-heavy-atom Labute contributions after the leading hydrogen contribution.",
+      "reason": "OEFP matches Mordred VSA_EState9 values on the committed Mordred parity fixture."
+    },
+    {
       "descriptor": "SLogP",
       "family": "SLogP",
       "source": "/Users/johnss51/Development/python/mordred/mordred/SLogP.py",

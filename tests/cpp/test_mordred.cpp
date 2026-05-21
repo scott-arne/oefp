@@ -91,6 +91,21 @@ const std::vector<std::string>& estate_min_names() {
     return names;
 }
 
+const std::vector<std::string>& vsa_estate_names() {
+    static const std::vector<std::string> names{
+        "VSA_EState1",
+        "VSA_EState2",
+        "VSA_EState3",
+        "VSA_EState4",
+        "VSA_EState5",
+        "VSA_EState6",
+        "VSA_EState7",
+        "VSA_EState8",
+        "VSA_EState9",
+    };
+    return names;
+}
+
 std::uint32_t count_or_zero(
     const std::map<std::string, std::uint32_t>& counts,
     const std::string& key) {
@@ -640,6 +655,74 @@ TEST(MordredDescriptorTest, LabuteASAIsMissingForNonFiniteDummyAtomSurface) {
     const auto descriptors = MakeMordredDescriptors(mol_from_smiles("**"));
 
     EXPECT_FALSE(descriptors.Has("LabuteASA"));
+}
+
+TEST(MordredDescriptorTest, VSAEStateDescriptorsMatchCopiedMordredReferences) {
+    struct Case {
+        std::string smiles;
+        std::vector<double> expected_values;
+    };
+
+    const std::vector<Case> cases{
+        {
+            "CCO",
+            {0.0, 0.0, 7.569444444444445, 0.0, 0.0, 0.0, 0.0, 1.9305555555555556, 0.0},
+        },
+        {
+            "c1ccncc1",
+            {0.0, 3.7847222222222223, 0.0, 0.0, 0.0, 5.715277777777778, 3.5, 0.0, 0.0},
+        },
+        {
+            "O=S(=O)(N)C1=CC=CC=C1",
+            {
+                21.221296296296295,
+                0.14814814814814858,
+                4.828981481481481,
+                0.0,
+                0.0,
+                7.887731481481481,
+                0.0,
+                0.0,
+                -3.502824074074073,
+            },
+        },
+    };
+
+    for (const auto& expected : cases) {
+        SCOPED_TRACE(expected.smiles);
+        const auto descriptors = MakeMordredDescriptors(mol_from_smiles(expected.smiles));
+
+        ASSERT_EQ(expected.expected_values.size(), vsa_estate_names().size());
+        for (std::size_t index = 0u; index < vsa_estate_names().size(); ++index) {
+            const auto& name = vsa_estate_names()[index];
+            ASSERT_TRUE(descriptors.Has(name)) << name;
+            EXPECT_NEAR(descriptors.Float(name), expected.expected_values[index], 1.0e-12)
+                << name;
+        }
+    }
+}
+
+TEST(MordredDescriptorTest, VSAEStateDescriptorsTreatExplicitHydrogensAsImplicit) {
+    OEChem::OEGraphMol explicit_mol = mol_from_smiles("CCO");
+    OEChem::OEAddExplicitHydrogens(explicit_mol);
+
+    const auto implicit_descriptors = MakeMordredDescriptors(mol_from_smiles("CCO"));
+    const auto explicit_descriptors = MakeMordredDescriptors(explicit_mol);
+
+    for (const auto& name : vsa_estate_names()) {
+        ASSERT_TRUE(implicit_descriptors.Has(name)) << name;
+        ASSERT_TRUE(explicit_descriptors.Has(name)) << name;
+        EXPECT_NEAR(explicit_descriptors.Float(name), implicit_descriptors.Float(name), 1.0e-12)
+            << name;
+    }
+}
+
+TEST(MordredDescriptorTest, VSAEStateDescriptorsAreMissingForNonFiniteDummyAtomSurface) {
+    const auto descriptors = MakeMordredDescriptors(mol_from_smiles("**"));
+
+    for (const auto& name : vsa_estate_names()) {
+        EXPECT_FALSE(descriptors.Has(name)) << name;
+    }
 }
 
 TEST(MordredDescriptorTest, FragmentComplexityMatchesCopiedMordredReferences) {
