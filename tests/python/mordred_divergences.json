@@ -1998,6 +1998,14 @@
       "reason": "OEFP matches Mordred average molecular weight values on committed first-batch fixture rows except the exact-mass rows listed as row-level OpenEye isotope-mass divergences."
     },
     {
+      "descriptor": "LabuteASA",
+      "family": "MoeType",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/MoeType.py",
+      "status": "exact",
+      "primitive": "RDKit MolSurf.cpp calcLabuteASA/getLabuteAtomContribs semantics using PeriodicTable::getRb0 Bondi radii, bond scale factors {0.1, 0.0, 0.2, 0.3}, aromatic scale 0.1, and include-H surface contribution after Mordred explicit_hydrogens=False hydrogen suppression",
+      "reason": "OEFP matches Mordred LabuteASA values on the committed Mordred parity fixture."
+    },
+    {
       "descriptor": "SLogP",
       "family": "SLogP",
       "source": "/Users/johnss51/Development/python/mordred/mordred/SLogP.py",

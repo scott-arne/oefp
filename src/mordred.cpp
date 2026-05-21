@@ -509,6 +509,120 @@ std::optional<double> bondi_atom_volume(std::uint32_t atomic_number) {
     return sphere_volume(*radius);
 }
 
+double rdkit_bondi_radius(std::uint32_t atomic_number) {
+    static constexpr std::array<double, 119> radii{{
+        0.0,  0.33, 0.7,  1.23, 0.9,  0.82, 0.77, 0.7,  0.66, 0.611,
+        0.7,  1.54, 1.36, 1.18, 0.937, 0.89, 1.04, 0.997, 1.74, 2.03,
+        1.74, 1.44, 1.32, 1.22, 1.18, 1.17, 1.17, 1.16, 1.15, 1.17,
+        1.25, 1.26, 1.188, 1.2,  1.17, 1.167, 1.91, 2.16, 1.91, 1.62,
+        1.45, 1.34, 1.3,  1.27, 1.25, 1.25, 1.28, 1.34, 1.48, 1.44,
+        1.385, 1.4,  1.378, 1.387, 1.98, 2.35, 1.98, 1.69, 1.83, 1.82,
+        1.81, 1.8,  1.8,  1.99, 1.79, 1.76, 1.75, 1.74, 1.73, 1.72,
+        1.94, 1.72, 1.44, 1.34, 1.3,  1.28, 1.26, 1.27, 1.3,  1.34,
+        1.49, 1.48, 1.48, 1.45, 1.46, 1.45, 2.4,  2.0,  1.9,  1.88,
+        1.79, 1.61, 1.58, 1.55, 1.53, 1.07, 0.0,  0.0,  0.0,  0.0,
+        0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,
+        0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,
+    }};
+    if (atomic_number >= radii.size()) {
+        return 0.0;
+    }
+    return radii[atomic_number];
+}
+
+std::optional<double> compute_labute_asa(const OEChem::OEMolBase& mol) {
+    OEChem::OEGraphMol working_mol(mol);
+    OEChem::OEFindRingAtomsAndBonds(working_mol);
+    OEChem::OEAssignAromaticFlags(working_mol);
+    OEChem::OESuppressHydrogens(working_mol);
+    OEChem::OEFindRingAtomsAndBonds(working_mol);
+    OEChem::OEAssignAromaticFlags(working_mol);
+
+    std::unordered_map<unsigned int, std::size_t> atom_indices;
+    std::vector<double> radii;
+    radii.reserve(working_mol.NumAtoms());
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = working_mol.GetAtoms(); atom; ++atom) {
+        atom_indices.emplace(atom->GetIdx(), radii.size());
+        radii.push_back(rdkit_bondi_radius(static_cast<std::uint32_t>(atom->GetAtomicNum())));
+    }
+
+    std::vector<double> atom_contribs(radii.size(), 0.0);
+    for (OESystem::OEIter<OEChem::OEBondBase> bond = working_mol.GetBonds(); bond; ++bond) {
+        const auto* begin = bond->GetBgn();
+        const auto* end = bond->GetEnd();
+        if (begin == nullptr || end == nullptr) {
+            continue;
+        }
+
+        const auto begin_index = atom_indices.find(begin->GetIdx());
+        const auto end_index = atom_indices.find(end->GetIdx());
+        if (begin_index == atom_indices.end() || end_index == atom_indices.end()) {
+            continue;
+        }
+
+        const auto first_index = begin_index->second;
+        const auto second_index = end_index->second;
+        const auto first_radius = radii[first_index];
+        const auto second_radius = radii[second_index];
+        double bond_distance = first_radius + second_radius;
+        if (bond->IsAromatic()) {
+            bond_distance -= 0.1;
+        } else {
+            static constexpr std::array<double, 4> bond_scale_factors{{0.1, 0.0, 0.2, 0.3}};
+            const auto order = bond->GetOrder();
+            if (order < bond_scale_factors.size()) {
+                bond_distance -= bond_scale_factors[order];
+            }
+        }
+
+        const auto distance = std::min(
+            std::max(std::fabs(first_radius - second_radius), bond_distance),
+            first_radius + second_radius);
+        if (distance <= 0.0 || !std::isfinite(distance)) {
+            return std::nullopt;
+        }
+        atom_contribs[first_index] += second_radius * second_radius
+                                      - (first_radius - distance)
+                                            * (first_radius - distance) / distance;
+        atom_contribs[second_index] += first_radius * first_radius
+                                       - (second_radius - distance)
+                                             * (second_radius - distance) / distance;
+    }
+
+    double hydrogen_contrib = 0.0;
+    const auto hydrogen_radius = rdkit_bondi_radius(1u);
+    for (std::size_t index = 0u; index < radii.size(); ++index) {
+        const auto radius = radii[index];
+        const auto distance = radius + hydrogen_radius;
+        if (distance <= 0.0 || !std::isfinite(distance)) {
+            return std::nullopt;
+        }
+        atom_contribs[index] += hydrogen_radius * hydrogen_radius
+                                - (radius - distance) * (radius - distance) / distance;
+        hydrogen_contrib += radius * radius
+                            - (hydrogen_radius - distance)
+                                  * (hydrogen_radius - distance) / distance;
+    }
+
+    double total = 0.0;
+    for (std::size_t index = 0u; index < radii.size(); ++index) {
+        const auto radius = radii[index];
+        atom_contribs[index] = kPi * radius * (4.0 * radius - atom_contribs[index]);
+        total += atom_contribs[index];
+    }
+    // RDKit adds one hydrogen shielding term per atom after Mordred has removed
+    // explicit hydrogen atoms, which is why explicit-H inputs must be suppressed first.
+    if (std::fabs(hydrogen_contrib) > 1.0e-4) {
+        hydrogen_contrib =
+            kPi * hydrogen_radius * (4.0 * hydrogen_radius - hydrogen_contrib);
+        total += hydrogen_contrib;
+    }
+    if (!std::isfinite(total)) {
+        return std::nullopt;
+    }
+    return total;
+}
+
 bool is_halogen(std::uint32_t atomic_number) {
     return atomic_number == 9u || atomic_number == 17u || atomic_number == 35u
            || atomic_number == 53u;
@@ -4579,6 +4693,7 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
         compute_eccentric_connectivity_index(heavy_atom_graph, heavy_atom_distances);
     const auto ring_count_values = compute_ring_count_value_sets(mol);
     const auto estate_values = compute_mordred_estate_values(mol);
+    const auto labute_asa = compute_labute_asa(mol);
     DescriptorSetBuilder builder(MordredDescriptorSchema());
 
     const auto all_atoms = values.heavy_atoms + values.hydrogens;
@@ -4685,6 +4800,7 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
     }
     set_float(builder, "SLogP", values.crippen_logp);
     set_float(builder, "SMR", values.crippen_mr);
+    set_optional_float(builder, "LabuteASA", labute_asa);
     set_optional_float(builder, "SZ", additive_values.sz);
     set_optional_float(builder, "Sm", additive_values.sm);
     set_optional_float(builder, "Sv", additive_values.sv);

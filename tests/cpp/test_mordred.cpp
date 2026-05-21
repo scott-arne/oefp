@@ -597,6 +597,51 @@ TEST(MordredDescriptorTest, CrippenDescriptorsMatchCopiedMordredReferences) {
     }
 }
 
+TEST(MordredDescriptorTest, LabuteASAMatchesCopiedMordredReferences) {
+    struct Case {
+        std::string smiles;
+        double expected_value;
+    };
+
+    const std::vector<Case> cases{
+        {"C", 8.739251027829551},
+        {"CC", 15.104193142226158},
+        {"CCO", 19.89842689442217},
+        {"CC(=O)O", 24.059948994465934},
+        {"c1ccncc1", 36.651051100443475},
+        {"O=S(=O)(N)C1=CC=CC=C1", 59.53206970892476},
+    };
+
+    for (const auto& expected : cases) {
+        SCOPED_TRACE(expected.smiles);
+        const auto descriptors = MakeMordredDescriptors(mol_from_smiles(expected.smiles));
+
+        ASSERT_TRUE(descriptors.Has("LabuteASA"));
+        EXPECT_NEAR(descriptors.Float("LabuteASA"), expected.expected_value, 1.0e-8);
+    }
+}
+
+TEST(MordredDescriptorTest, LabuteASATreatsExplicitHydrogensAsImplicit) {
+    OEChem::OEGraphMol explicit_mol = mol_from_smiles("CCO");
+    OEChem::OEAddExplicitHydrogens(explicit_mol);
+
+    const auto implicit_descriptors = MakeMordredDescriptors(mol_from_smiles("CCO"));
+    const auto explicit_descriptors = MakeMordredDescriptors(explicit_mol);
+
+    ASSERT_TRUE(implicit_descriptors.Has("LabuteASA"));
+    ASSERT_TRUE(explicit_descriptors.Has("LabuteASA"));
+    EXPECT_NEAR(
+        explicit_descriptors.Float("LabuteASA"),
+        implicit_descriptors.Float("LabuteASA"),
+        1.0e-12);
+}
+
+TEST(MordredDescriptorTest, LabuteASAIsMissingForNonFiniteDummyAtomSurface) {
+    const auto descriptors = MakeMordredDescriptors(mol_from_smiles("**"));
+
+    EXPECT_FALSE(descriptors.Has("LabuteASA"));
+}
+
 TEST(MordredDescriptorTest, FragmentComplexityMatchesCopiedMordredReferences) {
     struct Case {
         std::string smiles;
