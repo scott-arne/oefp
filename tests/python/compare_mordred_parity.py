@@ -106,6 +106,13 @@ def _reference_value(value: Any) -> Any:
     return value
 
 
+def _is_absent_reference_value(value: Any) -> bool:
+    return (
+        isinstance(value, Mapping)
+        and value.get("state") in {"missing", "error", "nonfinite"}
+    )
+
+
 def _values_match(reference: Any, observed: Any) -> bool:
     expected = _reference_value(reference)
     if expected is None or observed is None:
@@ -200,7 +207,19 @@ def _compare(
                         )
                     )
             elif status == "not_applicable":
-                counts["not_applicable"] += 1
+                if _is_absent_reference_value(expected) and observed is None:
+                    counts["not_applicable"] += 1
+                else:
+                    counts["unclassified"] += 1
+                    unclassified.append(
+                        _format_difference(
+                            name,
+                            smiles,
+                            expected,
+                            observed,
+                            definitions[name],
+                        )
+                    )
             elif _values_match(expected, observed):
                 counts["exact"] += 1
             elif (name, smiles) in row_policies:

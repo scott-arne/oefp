@@ -235,6 +235,16 @@ ENABLED_SOURCE_TYPES = {
     "Weight",
 }
 
+NO_CONFORMER_3D_SOURCE_TYPES = {
+    "CPSA",
+    "GeometricalIndex",
+    "GravitationalIndex",
+    "MoRSE",
+    "MomentOfInertia",
+    "PBF",
+}
+CHARGE_ONLY_CPSA_DESCRIPTOR_NAMES = {"RNCG", "RPCG"}
+
 ENABLED_DESCRIPTOR_NAMES = {
     "ABC",
     "ABCGG",
@@ -713,6 +723,19 @@ def _enabled_descriptor_names(payload: dict[str, Any]) -> tuple[str, ...]:
         or definition["name"] in ESTATE_SUM_NAMES
         or definition["name"] in ESTATE_MAX_NAMES
         or definition["name"] in ESTATE_MIN_NAMES
+        or (
+            definition["source_type"] in NO_CONFORMER_3D_SOURCE_TYPES
+            and definition["name"] not in CHARGE_ONLY_CPSA_DESCRIPTOR_NAMES
+        )
+    )
+
+
+def _no_conformer_3d_descriptor_names(payload: dict[str, Any]) -> tuple[str, ...]:
+    return tuple(
+        definition["name"]
+        for definition in payload["definitions"]
+        if definition["source_type"] in NO_CONFORMER_3D_SOURCE_TYPES
+        and definition["name"] not in CHARGE_ONLY_CPSA_DESCRIPTOR_NAMES
     )
 
 
@@ -803,8 +826,14 @@ def test_mordred_descriptors_match_enabled_reference_values():
     payload = _reference_payload()
     names = _enabled_descriptor_names(payload)
     row_divergences = _row_divergence_policy()
+    all_names = _definition_names(payload)
+    no_conformer_3d_names = _no_conformer_3d_descriptor_names(payload)
 
-    assert len(names) == 1613
+    assert len(names) == 1826
+    assert set(names) == set(all_names)
+    assert len(set(all_names) - set(names)) == 0
+    assert len(no_conformer_3d_names) == 213
+    assert set(no_conformer_3d_names) <= set(names)
     assert set(AUTOCORRELATION_ATS_AATS_NAMES) <= set(names)
     assert set(AUTOCORRELATION_ATSC_AATSC_NAMES) <= set(names)
     assert set(AUTOCORRELATION_CHARGE_ATSC_AATSC_NAMES) <= set(names)
@@ -833,6 +862,7 @@ def test_mordred_descriptors_match_enabled_reference_values():
     assert {f"VSA_EState{index}" for index in range(1, 10)} <= set(names)
     assert {"ETA_alpha", "ETA_eta_BR", "ETA_epsilon_5", "ETA_dPsi_B"} <= set(names)
     assert {"MID", "AMID", "MID_h", "AMID_h", "MID_X", "AMID_X"} <= set(names)
+    assert CHARGE_ONLY_CPSA_DESCRIPTOR_NAMES <= set(names)
     for row in payload["reference_rows"]:
         smiles = row["smiles"]
         descriptors = oefp.mordred_descriptors(_openeye_mol(row["smiles"]))
@@ -912,6 +942,78 @@ def test_parity_harness_rejects_concrete_values_for_deferred_descriptors(
     ]
 
 
+def test_parity_harness_rejects_invalid_not_applicable_values(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    fake_oefp = SimpleNamespace(
+        mordred_descriptors=lambda _mol: {
+            "MissingReferenceConcreteObserved": 7,
+            "ConcreteReferenceNoneObserved": None,
+        }
+    )
+    monkeypatch.setitem(sys.modules, "oefp", fake_oefp)
+    monkeypatch.setattr(compare_mordred_parity, "_openeye_mol", lambda smiles: smiles)
+
+    references = {
+        "definitions": [
+            {
+                "name": "MissingReferenceConcreteObserved",
+                "source_type": "ThreeD",
+            },
+            {
+                "name": "ConcreteReferenceNoneObserved",
+                "source_type": "ThreeD",
+            },
+        ],
+        "reference_rows": [
+            {
+                "smiles": "CCO",
+                "values": [
+                    {
+                        "state": "missing",
+                        "error_type": "Missing3DCoordinate",
+                    },
+                    3.0,
+                ],
+            }
+        ],
+    }
+    policy = {
+        "policies": [
+            {
+                "descriptor": "MissingReferenceConcreteObserved",
+                "status": "not_applicable",
+            },
+            {
+                "descriptor": "ConcreteReferenceNoneObserved",
+                "status": "not_applicable",
+            },
+        ],
+        "row_divergences": [],
+    }
+
+    counts, unclassified = compare_mordred_parity._compare(
+        references,
+        policy,
+        ("MissingReferenceConcreteObserved", "ConcreteReferenceNoneObserved"),
+    )
+
+    assert counts == {
+        "exact": 0,
+        "accepted_divergences": 0,
+        "deferred": 0,
+        "not_applicable": 0,
+        "unclassified": 2,
+    }
+    assert unclassified == [
+        "MissingReferenceConcreteObserved CCO: "
+        "reference={'state': 'missing', 'error_type': 'Missing3DCoordinate'} "
+        "observed=7 primitive=ThreeD",
+        "ConcreteReferenceNoneObserved CCO: reference=3.0 observed=None "
+        "primitive=ThreeD",
+    ]
+
+
 def test_parity_harness_rejects_duplicate_descriptor_policies():
     policy = {
         "policies": [
@@ -965,7 +1067,11 @@ def test_mordred_reference_fixture_contains_full_schema_and_panel():
 
 def test_mordred_divergence_policy_manifest_is_valid():
     payload = _divergence_payload()
-    expected_descriptors = set(_enabled_descriptor_names(_reference_payload()))
+    reference_payload = _reference_payload()
+    expected_descriptors = set(_enabled_descriptor_names(reference_payload))
+    no_conformer_3d_descriptors = set(
+        _no_conformer_3d_descriptor_names(reference_payload)
+    )
 
     assert {
         "schema_version",
@@ -980,6 +1086,14 @@ def test_mordred_divergence_policy_manifest_is_valid():
     assert Counter(policy["descriptor"] for policy in policies) == {
         descriptor: 1 for descriptor in expected_descriptors
     }
+    policies_by_descriptor = {policy["descriptor"]: policy for policy in policies}
+    assert {
+        policy["descriptor"]
+        for policy in policies
+        if policy["status"] == "not_applicable"
+    } == no_conformer_3d_descriptors
+    assert policies_by_descriptor["RNCG"]["status"] == "exact"
+    assert policies_by_descriptor["RPCG"]["status"] == "exact"
     for policy in policies:
         assert POLICY_REQUIRED_FIELDS <= set(policy)
         assert policy["status"] in POLICY_STATUSES
