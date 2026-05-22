@@ -163,6 +163,24 @@ struct MordredMolecularDistanceEdgeValues {
     std::array<std::array<std::optional<double>, 5>, 5> nitrogen{};
 };
 
+struct MordredEtaNeighbor {
+    std::size_t atom_index;
+    std::uint32_t bond_order;
+    bool aromatic;
+};
+
+struct MordredEtaGraph {
+    std::vector<const OEChem::OEAtomBase*> atoms;
+    std::vector<std::vector<MordredEtaNeighbor>> adjacency;
+};
+
+struct MordredEtaValue {
+    const char* name;
+    std::optional<double> value;
+};
+
+using MordredEtaValues = std::vector<MordredEtaValue>;
+
 struct MordredWienerValues {
     std::int64_t wpath = 0;
     std::int64_t wpol = 0;
@@ -4568,6 +4586,733 @@ std::uint32_t mordred_principal_quantum_number(std::uint32_t atomic_number) {
     return 7u;
 }
 
+std::optional<double> eta_core_count(std::uint32_t atomic_number) {
+    if (atomic_number == 1u) {
+        return 0.0;
+    }
+
+    const auto outer_electrons = mordred_outer_electrons(atomic_number);
+    if (!outer_electrons.has_value()) {
+        return std::nullopt;
+    }
+
+    const auto period = mordred_principal_quantum_number(atomic_number);
+    if (period <= 1u || *outer_electrons == 0) {
+        return std::nullopt;
+    }
+
+    return (static_cast<double>(atomic_number) - static_cast<double>(*outer_electrons))
+           / (static_cast<double>(*outer_electrons) * static_cast<double>(period - 1u));
+}
+
+std::optional<double> eta_epsilon(const OEChem::OEAtomBase& atom) {
+    const auto atomic_number = static_cast<std::uint32_t>(atom.GetAtomicNum());
+    const auto outer_electrons = mordred_outer_electrons(atomic_number);
+    const auto core_count = eta_core_count(atomic_number);
+    if (!outer_electrons.has_value() || !core_count.has_value()) {
+        return std::nullopt;
+    }
+
+    return 0.3 * static_cast<double>(*outer_electrons) - *core_count;
+}
+
+bool has_aromatic_bonds(const OEChem::OEMolBase& mol) {
+    for (OESystem::OEIter<OEChem::OEBondBase> bond = mol.GetBonds(); bond; ++bond) {
+        if (bond->IsAromatic()) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void eta_kekulize_if_aromatic(OEChem::OEMolBase& mol) {
+    if (has_aromatic_bonds(mol)) {
+        OEChem::OEKekulize(mol);
+    }
+}
+
+OEChem::OEGraphMol eta_prepared_mol(
+    const OEChem::OEMolBase& mol,
+    bool explicit_hydrogens) {
+    OEChem::OEGraphMol working_mol(mol);
+    OEChem::OEFindRingAtomsAndBonds(working_mol);
+    OEChem::OEAssignAromaticFlags(working_mol);
+    OEChem::OESuppressHydrogens(working_mol);
+    if (explicit_hydrogens) {
+        OEChem::OEAddExplicitHydrogens(working_mol, false, false);
+    }
+    OEChem::OEFindRingAtomsAndBonds(working_mol);
+    OEChem::OEAssignAromaticFlags(working_mol);
+    if (!explicit_hydrogens) {
+        eta_kekulize_if_aromatic(working_mol);
+    }
+    return working_mol;
+}
+
+std::optional<OEChem::OEGraphMol> eta_altered_mol(
+    const OEChem::OEMolBase& mol,
+    bool explicit_hydrogens,
+    bool saturated) {
+    const auto source_mol = eta_prepared_mol(mol, false);
+    OEChem::OEGraphMol altered_mol;
+    std::unordered_map<unsigned int, OEChem::OEAtomBase*> atoms_by_source_id;
+
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = source_mol.GetAtoms(); atom; ++atom) {
+        if (is_hydrogen(*atom)) {
+            continue;
+        }
+
+        auto* new_atom = altered_mol.NewAtom(
+            saturated ? atom->GetAtomicNum() : static_cast<unsigned int>(6u));
+        if (new_atom == nullptr) {
+            return std::nullopt;
+        }
+        if (saturated) {
+            new_atom->SetFormalCharge(atom->GetFormalCharge());
+        }
+        atoms_by_source_id.emplace(atom->GetIdx(), new_atom);
+    }
+
+    for (OESystem::OEIter<OEChem::OEBondBase> bond = source_mol.GetBonds(); bond; ++bond) {
+        const auto* begin = bond->GetBgn();
+        const auto* end = bond->GetEnd();
+        if (begin == nullptr || end == nullptr || is_hydrogen(*begin) || is_hydrogen(*end)) {
+            continue;
+        }
+        if (!saturated && (begin->GetDegree() > 4u || end->GetDegree() > 4u)) {
+            return std::nullopt;
+        }
+
+        const auto new_begin = atoms_by_source_id.find(begin->GetIdx());
+        const auto new_end = atoms_by_source_id.find(end->GetIdx());
+        if (new_begin == atoms_by_source_id.end() || new_end == atoms_by_source_id.end()) {
+            continue;
+        }
+
+        const auto order =
+            saturated && (begin->GetAtomicNum() != 6u || end->GetAtomicNum() != 6u)
+                ? bond->GetOrder()
+                : 1u;
+        if (altered_mol.NewBond(new_begin->second, new_end->second, order) == nullptr) {
+            return std::nullopt;
+        }
+    }
+
+    OEChem::OEFindRingAtomsAndBonds(altered_mol);
+    OEChem::OEAssignAromaticFlags(altered_mol);
+    eta_kekulize_if_aromatic(altered_mol);
+    OEChem::OEAssignImplicitHydrogens(altered_mol);
+    if (explicit_hydrogens) {
+        OEChem::OEAddExplicitHydrogens(altered_mol, false, false);
+        OEChem::OEFindRingAtomsAndBonds(altered_mol);
+        OEChem::OEAssignAromaticFlags(altered_mol);
+        eta_kekulize_if_aromatic(altered_mol);
+    }
+
+    return altered_mol;
+}
+
+MordredEtaGraph build_eta_graph(const OEChem::OEMolBase& mol) {
+    MordredEtaGraph graph;
+    std::unordered_map<unsigned int, std::size_t> atom_indices;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        atom_indices.emplace(atom->GetIdx(), graph.atoms.size());
+        graph.atoms.push_back(&*atom);
+    }
+
+    graph.adjacency.resize(graph.atoms.size());
+    for (OESystem::OEIter<OEChem::OEBondBase> bond = mol.GetBonds(); bond; ++bond) {
+        const auto* begin = bond->GetBgn();
+        const auto* end = bond->GetEnd();
+        if (begin == nullptr || end == nullptr) {
+            continue;
+        }
+
+        const auto begin_index = atom_indices.find(begin->GetIdx());
+        const auto end_index = atom_indices.find(end->GetIdx());
+        if (begin_index == atom_indices.end() || end_index == atom_indices.end()) {
+            continue;
+        }
+
+        const auto order = static_cast<std::uint32_t>(bond->GetOrder());
+        const auto aromatic = bond->IsAromatic();
+        graph.adjacency[begin_index->second].push_back({end_index->second, order, aromatic});
+        graph.adjacency[end_index->second].push_back({begin_index->second, order, aromatic});
+    }
+    return graph;
+}
+
+bool is_connected_eta_graph(const MordredEtaGraph& graph) {
+    const auto atom_count = graph.atoms.size();
+    if (atom_count == 0u) {
+        return false;
+    }
+
+    std::vector<bool> visited(atom_count, false);
+    std::vector<std::size_t> queue;
+    queue.reserve(atom_count);
+    visited.front() = true;
+    queue.push_back(0u);
+
+    for (std::size_t head = 0u; head < queue.size(); ++head) {
+        const auto current = queue[head];
+        for (const auto& neighbor : graph.adjacency[current]) {
+            if (visited[neighbor.atom_index]) {
+                continue;
+            }
+            visited[neighbor.atom_index] = true;
+            queue.push_back(neighbor.atom_index);
+        }
+    }
+
+    return std::all_of(visited.begin(), visited.end(), [](bool value) { return value; });
+}
+
+std::vector<std::vector<std::int64_t>> compute_eta_distances(const MordredEtaGraph& graph) {
+    const auto atom_count = graph.atoms.size();
+    std::vector<std::vector<std::int64_t>> distances(
+        atom_count,
+        std::vector<std::int64_t>(atom_count, kMordredDisconnectedDistance));
+
+    for (std::size_t start = 0u; start < atom_count; ++start) {
+        std::vector<std::size_t> queue;
+        queue.reserve(atom_count);
+        distances[start][start] = 0;
+        queue.push_back(start);
+
+        for (std::size_t head = 0u; head < queue.size(); ++head) {
+            const auto current = queue[head];
+            for (const auto& neighbor : graph.adjacency[current]) {
+                if (distances[start][neighbor.atom_index] != kMordredDisconnectedDistance) {
+                    continue;
+                }
+                distances[start][neighbor.atom_index] = distances[start][current] + 1;
+                queue.push_back(neighbor.atom_index);
+            }
+        }
+    }
+
+    return distances;
+}
+
+std::optional<double> sum_eta_core_count(const MordredEtaGraph& graph) {
+    double value = 0.0;
+    for (const auto* atom : graph.atoms) {
+        const auto core_count = eta_core_count(static_cast<std::uint32_t>(atom->GetAtomicNum()));
+        if (!core_count.has_value()) {
+            return std::nullopt;
+        }
+        value += *core_count;
+    }
+    return value;
+}
+
+std::optional<double> eta_beta_sigma(const MordredEtaGraph& graph, std::size_t atom_index) {
+    const auto epsilon = eta_epsilon(*graph.atoms[atom_index]);
+    if (!epsilon.has_value()) {
+        return std::nullopt;
+    }
+
+    double value = 0.0;
+    for (const auto& neighbor : graph.adjacency[atom_index]) {
+        const auto* neighbor_atom = graph.atoms[neighbor.atom_index];
+        if (is_hydrogen(*neighbor_atom)) {
+            continue;
+        }
+        const auto neighbor_epsilon = eta_epsilon(*neighbor_atom);
+        if (!neighbor_epsilon.has_value()) {
+            return std::nullopt;
+        }
+        value += std::abs(*neighbor_epsilon - *epsilon) <= 0.3 ? 0.5 : 0.75;
+    }
+    return value;
+}
+
+std::optional<double> eta_non_sigma_contribution(
+    const MordredEtaGraph& graph,
+    std::size_t atom_index,
+    const MordredEtaNeighbor& neighbor) {
+    if (neighbor.bond_order == 1u) {
+        return 0.0;
+    }
+
+    const auto begin_epsilon = eta_epsilon(*graph.atoms[atom_index]);
+    const auto end_epsilon = eta_epsilon(*graph.atoms[neighbor.atom_index]);
+    if (!begin_epsilon.has_value() || !end_epsilon.has_value()) {
+        return std::nullopt;
+    }
+
+    const auto order_factor = neighbor.bond_order == 3u ? 2.0 : 1.0;
+    const auto epsilon_delta = std::abs(*begin_epsilon - *end_epsilon);
+    double coefficient = 1.0;
+    if (neighbor.aromatic) {
+        coefficient = 2.0;
+    } else if (epsilon_delta > 0.3) {
+        coefficient = 1.5;
+    }
+
+    return coefficient * order_factor;
+}
+
+std::optional<double> eta_beta_non_sigma(const MordredEtaGraph& graph, std::size_t atom_index) {
+    double value = 0.0;
+    for (const auto& neighbor : graph.adjacency[atom_index]) {
+        if (is_hydrogen(*graph.atoms[neighbor.atom_index])) {
+            continue;
+        }
+        const auto contribution = eta_non_sigma_contribution(graph, atom_index, neighbor);
+        if (!contribution.has_value()) {
+            return std::nullopt;
+        }
+        value += *contribution;
+    }
+    return value;
+}
+
+std::optional<double> eta_beta_delta(const MordredEtaGraph& graph, std::size_t atom_index) {
+    const auto* atom = graph.atoms[atom_index];
+    const auto outer_electrons =
+        mordred_outer_electrons(static_cast<std::uint32_t>(atom->GetAtomicNum()));
+    if (!outer_electrons.has_value()) {
+        return std::nullopt;
+    }
+
+    if (atom->IsAromatic() || atom->IsInRing()
+        || *outer_electrons <= static_cast<int>(atom->GetValence())) {
+        return 0.0;
+    }
+
+    for (const auto& neighbor : graph.adjacency[atom_index]) {
+        if (graph.atoms[neighbor.atom_index]->IsAromatic()) {
+            return 0.5;
+        }
+    }
+    return 0.0;
+}
+
+std::optional<double> eta_gamma(const MordredEtaGraph& graph, std::size_t atom_index) {
+    const auto sigma = eta_beta_sigma(graph, atom_index);
+    const auto non_sigma = eta_beta_non_sigma(graph, atom_index);
+    const auto delta = eta_beta_delta(graph, atom_index);
+    const auto core_count =
+        eta_core_count(static_cast<std::uint32_t>(graph.atoms[atom_index]->GetAtomicNum()));
+    if (!sigma.has_value() || !non_sigma.has_value() || !delta.has_value()
+        || !core_count.has_value()) {
+        return std::nullopt;
+    }
+
+    const auto beta = *sigma + *non_sigma + *delta;
+    if (beta == 0.0) {
+        return std::numeric_limits<double>::quiet_NaN();
+    }
+    return *core_count / beta;
+}
+
+std::optional<double> eta_composite_index(const MordredEtaGraph& graph, bool local) {
+    const auto atom_count = graph.atoms.size();
+    std::vector<double> gamma;
+    gamma.reserve(atom_count);
+    for (std::size_t atom_index = 0u; atom_index < atom_count; ++atom_index) {
+        const auto atom_gamma = eta_gamma(graph, atom_index);
+        if (!atom_gamma.has_value()) {
+            return std::nullopt;
+        }
+        gamma.push_back(*atom_gamma);
+    }
+
+    const auto distances = compute_eta_distances(graph);
+    double value = 0.0;
+    for (std::size_t left = 0u; left < atom_count; ++left) {
+        for (std::size_t right = left + 1u; right < atom_count; ++right) {
+            const auto distance = distances[left][right];
+            if ((local && distance != 1) || (!local && distance == 0)) {
+                continue;
+            }
+            const auto distance_value = static_cast<double>(distance);
+            const auto contribution =
+                std::sqrt(gamma[left] * gamma[right] / (distance_value * distance_value));
+            if (!std::isfinite(contribution)) {
+                return std::nullopt;
+            }
+            value += contribution;
+        }
+    }
+    return value;
+}
+
+std::optional<double> eta_epsilon_average(const MordredEtaGraph& graph) {
+    if (graph.atoms.empty()) {
+        return std::nullopt;
+    }
+
+    double value = 0.0;
+    for (const auto* atom : graph.atoms) {
+        const auto epsilon = eta_epsilon(*atom);
+        if (!epsilon.has_value()) {
+            return std::nullopt;
+        }
+        value += *epsilon;
+    }
+    return value / static_cast<double>(graph.atoms.size());
+}
+
+std::optional<double> eta_epsilon_5_average(const MordredEtaGraph& graph) {
+    double value = 0.0;
+    std::size_t count = 0u;
+
+    for (std::size_t atom_index = 0u; atom_index < graph.atoms.size(); ++atom_index) {
+        const auto* atom = graph.atoms[atom_index];
+        if (is_hydrogen(*atom)) {
+            if (graph.adjacency[atom_index].empty()) {
+                return std::nullopt;
+            }
+            const auto* neighbor = graph.atoms[graph.adjacency[atom_index].front().atom_index];
+            if (neighbor->GetAtomicNum() == 6u) {
+                continue;
+            }
+        }
+
+        const auto epsilon = eta_epsilon(*atom);
+        if (!epsilon.has_value()) {
+            return std::nullopt;
+        }
+        value += *epsilon;
+        ++count;
+    }
+
+    if (count == 0u) {
+        return std::nullopt;
+    }
+    return value / static_cast<double>(count);
+}
+
+std::uint32_t eta_saturated_default_valence(
+    const OEChem::OEAtomBase& atom,
+    std::uint32_t bond_order_sum) {
+    // Mirrors RDKit PeriodicTable::GetDefaultValence for AlterMolecule(...,
+    // saturated=True) AddHs behavior; -1 means "do not add implicit Hs".
+    static constexpr std::array<int, 119> default_valences{{
+        -1, 1, 0, 1, 2, 3, 4, 3, 2, 1, 0, 1, 2, 3, 4, 3,
+        2, 1, 0, 1, 2, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, 3, 4, 3, 2, 1, 0, 1, 2, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, 3, 2, 3, 2, 1, 0, 1, 2, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 2,
+        3, 2, 1, 0, 1, 2, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+    }};
+
+    const auto atomic_number = static_cast<std::uint32_t>(atom.GetAtomicNum());
+    const auto formal_charge = atom.GetFormalCharge();
+
+    if (atomic_number == 7u && formal_charge > 0) {
+        return std::max<std::uint32_t>(4u, bond_order_sum);
+    }
+    if (atomic_number == 8u && formal_charge < 0) {
+        return std::max<std::uint32_t>(1u, bond_order_sum);
+    }
+
+    const auto from_allowed_valences = [bond_order_sum](std::initializer_list<std::uint32_t> vals) {
+        for (const auto valence : vals) {
+            if (bond_order_sum <= valence) {
+                return valence;
+            }
+        }
+        return bond_order_sum;
+    };
+
+    if (atomic_number == 15u) {
+        return from_allowed_valences({3u, 5u});
+    }
+    if (atomic_number == 16u || atomic_number == 34u) {
+        return from_allowed_valences({2u, 4u, 6u});
+    }
+
+    if (atomic_number >= default_valences.size() || default_valences[atomic_number] < 0) {
+        return bond_order_sum;
+    }
+    return std::max<std::uint32_t>(
+        static_cast<std::uint32_t>(default_valences[atomic_number]),
+        bond_order_sum);
+}
+
+std::optional<double> eta_saturated_epsilon_average(const OEChem::OEMolBase& mol) {
+    const auto saturated_mol = eta_altered_mol(mol, false, true);
+    if (!saturated_mol.has_value()) {
+        return std::nullopt;
+    }
+
+    const auto graph = build_eta_graph(*saturated_mol);
+    if (graph.atoms.empty()) {
+        return std::nullopt;
+    }
+
+    double value = 0.0;
+    std::size_t count = 0u;
+    for (std::size_t atom_index = 0u; atom_index < graph.atoms.size(); ++atom_index) {
+        const auto* atom = graph.atoms[atom_index];
+        const auto epsilon = eta_epsilon(*atom);
+        if (!epsilon.has_value()) {
+            return std::nullopt;
+        }
+        value += *epsilon;
+        ++count;
+
+        std::uint32_t bond_order_sum = 0u;
+        for (const auto& neighbor : graph.adjacency[atom_index]) {
+            bond_order_sum += neighbor.bond_order;
+        }
+        const auto default_valence = eta_saturated_default_valence(*atom, bond_order_sum);
+        if (default_valence > bond_order_sum) {
+            const auto hydrogen_count = default_valence - bond_order_sum;
+            value += 0.3 * static_cast<double>(hydrogen_count);
+            count += hydrogen_count;
+        }
+    }
+
+    return value / static_cast<double>(count);
+}
+
+std::optional<double> optional_difference(
+    const std::optional<double>& left,
+    const std::optional<double>& right) {
+    if (!left.has_value() || !right.has_value()) {
+        return std::nullopt;
+    }
+    return *left - *right;
+}
+
+std::optional<double> optional_positive_delta(
+    const std::optional<double>& left,
+    const std::optional<double>& right,
+    double denominator) {
+    const auto difference = optional_difference(left, right);
+    if (!difference.has_value() || denominator == 0.0) {
+        return std::nullopt;
+    }
+    return std::max(*difference / denominator, 0.0);
+}
+
+std::optional<double> optional_average(
+    const std::optional<double>& value,
+    double denominator) {
+    if (!value.has_value() || denominator == 0.0) {
+        return std::nullopt;
+    }
+    return *value / denominator;
+}
+
+void add_eta_value(
+    MordredEtaValues& values,
+    const char* name,
+    const std::optional<double>& value) {
+    values.push_back({name, value});
+}
+
+std::optional<MordredEtaValues> compute_eta_values(
+    const OEChem::OEMolBase& mol,
+    std::uint32_t ring_count) {
+    const auto base_mol = eta_prepared_mol(mol, false);
+    const auto base_graph = build_eta_graph(base_mol);
+    if (!is_connected_eta_graph(base_graph)) {
+        return std::nullopt;
+    }
+
+    const auto atom_count = base_graph.atoms.size();
+    const auto atom_count_value = static_cast<double>(atom_count);
+    const auto alpha = sum_eta_core_count(base_graph);
+
+    std::optional<OEChem::OEGraphMol> reference_mol = eta_altered_mol(mol, false, false);
+    std::optional<MordredEtaGraph> reference_graph;
+    if (reference_mol.has_value()) {
+        reference_graph = build_eta_graph(*reference_mol);
+    }
+
+    const auto alpha_reference =
+        reference_graph.has_value() ? sum_eta_core_count(*reference_graph) : std::nullopt;
+
+    double beta_sigma = 0.0;
+    double beta_non_sigma_contribution = 0.0;
+    double beta_delta_contribution = 0.0;
+    bool beta_sigma_valid = true;
+    bool beta_non_sigma_valid = true;
+    bool beta_delta_valid = true;
+    for (std::size_t atom_index = 0u; atom_index < atom_count; ++atom_index) {
+        const auto sigma = eta_beta_sigma(base_graph, atom_index);
+        if (sigma.has_value()) {
+            beta_sigma += *sigma / 2.0;
+        } else {
+            beta_sigma_valid = false;
+        }
+
+        const auto non_sigma = eta_beta_non_sigma(base_graph, atom_index);
+        if (non_sigma.has_value()) {
+            beta_non_sigma_contribution += *non_sigma / 2.0;
+        } else {
+            beta_non_sigma_valid = false;
+        }
+
+        const auto delta = eta_beta_delta(base_graph, atom_index);
+        if (delta.has_value()) {
+            beta_delta_contribution += *delta;
+        } else {
+            beta_delta_valid = false;
+        }
+    }
+    const std::optional<double> beta_sigma_value =
+        beta_sigma_valid ? std::optional<double>{beta_sigma} : std::nullopt;
+    const std::optional<double> beta_non_sigma_delta_value =
+        beta_delta_valid ? std::optional<double>{beta_delta_contribution} : std::nullopt;
+    const std::optional<double> beta_non_sigma_value =
+        beta_non_sigma_valid && beta_delta_valid
+            ? std::optional<double>{beta_non_sigma_contribution + beta_delta_contribution}
+            : std::nullopt;
+    const std::optional<double> beta =
+        beta_sigma_value.has_value() && beta_non_sigma_value.has_value()
+            ? std::optional<double>{*beta_sigma_value + *beta_non_sigma_value}
+            : std::nullopt;
+
+    const auto eta = eta_composite_index(base_graph, false);
+    const auto eta_local = eta_composite_index(base_graph, true);
+    const auto eta_reference =
+        reference_graph.has_value() ? eta_composite_index(*reference_graph, false) : std::nullopt;
+    const auto eta_reference_local =
+        reference_graph.has_value() ? eta_composite_index(*reference_graph, true) : std::nullopt;
+    const auto eta_functionality = optional_difference(eta_reference, eta);
+    const auto eta_functionality_local = optional_difference(eta_reference_local, eta_local);
+
+    std::optional<double> eta_branch;
+    std::optional<double> eta_branch_ring;
+    if (eta_reference_local.has_value() && atom_count > 1u) {
+        const auto normal_local = atom_count == 2u
+            ? 1.0
+            : std::sqrt(2.0) + 0.5 * static_cast<double>(atom_count - 3u);
+        eta_branch = normal_local - *eta_reference_local;
+        eta_branch_ring = *eta_branch + 0.086 * static_cast<double>(ring_count);
+    }
+
+    const auto explicit_mol = eta_prepared_mol(mol, true);
+    const auto explicit_graph = build_eta_graph(explicit_mol);
+    const auto epsilon_1 = eta_epsilon_average(explicit_graph);
+    const auto epsilon_2 = eta_epsilon_average(base_graph);
+    const auto epsilon_5 = eta_epsilon_5_average(explicit_graph);
+
+    const auto reference_explicit_mol = eta_altered_mol(mol, true, false);
+    const auto epsilon_3 = reference_explicit_mol.has_value()
+        ? eta_epsilon_average(build_eta_graph(*reference_explicit_mol))
+        : std::optional<double>{};
+    const auto epsilon_4 = eta_saturated_epsilon_average(mol);
+
+    std::optional<double> psi;
+    if (alpha.has_value() && epsilon_2.has_value() && *epsilon_2 != 0.0) {
+        psi = *alpha / (atom_count_value * *epsilon_2);
+    }
+
+    MordredEtaValues values;
+    values.reserve(45u);
+    add_eta_value(values, "ETA_alpha", alpha);
+    add_eta_value(values, "AETA_alpha", optional_average(alpha, atom_count_value));
+    if (alpha.has_value() && *alpha != 0.0) {
+        for (const auto [name, degree] : {
+                 std::pair<const char*, std::size_t>{"ETA_shape_p", 1u},
+                 std::pair<const char*, std::size_t>{"ETA_shape_y", 3u},
+                 std::pair<const char*, std::size_t>{"ETA_shape_x", 4u},
+             }) {
+            double shape_alpha = 0.0;
+            bool shape_valid = true;
+            for (std::size_t atom_index = 0u; atom_index < atom_count; ++atom_index) {
+                if (base_graph.adjacency[atom_index].size() != degree) {
+                    continue;
+                }
+                const auto core_count = eta_core_count(
+                    static_cast<std::uint32_t>(base_graph.atoms[atom_index]->GetAtomicNum()));
+                if (!core_count.has_value()) {
+                    shape_valid = false;
+                    break;
+                }
+                shape_alpha += *core_count;
+            }
+            add_eta_value(values, name, shape_valid ? std::optional<double>{shape_alpha / *alpha}
+                                                    : std::nullopt);
+        }
+    } else {
+        add_eta_value(values, "ETA_shape_p", std::nullopt);
+        add_eta_value(values, "ETA_shape_y", std::nullopt);
+        add_eta_value(values, "ETA_shape_x", std::nullopt);
+    }
+
+    add_eta_value(values, "ETA_beta", beta);
+    add_eta_value(values, "AETA_beta", optional_average(beta, atom_count_value));
+    add_eta_value(values, "ETA_beta_s", beta_sigma_value);
+    add_eta_value(values, "AETA_beta_s", optional_average(beta_sigma_value, atom_count_value));
+    add_eta_value(values, "ETA_beta_ns", beta_non_sigma_value);
+    add_eta_value(
+        values,
+        "AETA_beta_ns",
+        optional_average(beta_non_sigma_value, atom_count_value));
+    add_eta_value(values, "ETA_beta_ns_d", beta_non_sigma_delta_value);
+    add_eta_value(
+        values,
+        "AETA_beta_ns_d",
+        optional_average(beta_non_sigma_delta_value, atom_count_value));
+    add_eta_value(values, "ETA_eta", eta);
+    add_eta_value(values, "AETA_eta", optional_average(eta, atom_count_value));
+    add_eta_value(values, "ETA_eta_L", eta_local);
+    add_eta_value(values, "AETA_eta_L", optional_average(eta_local, atom_count_value));
+    add_eta_value(values, "ETA_eta_R", eta_reference);
+    add_eta_value(values, "AETA_eta_R", optional_average(eta_reference, atom_count_value));
+    add_eta_value(values, "ETA_eta_RL", eta_reference_local);
+    add_eta_value(
+        values,
+        "AETA_eta_RL",
+        optional_average(eta_reference_local, atom_count_value));
+    add_eta_value(values, "ETA_eta_F", eta_functionality);
+    add_eta_value(
+        values,
+        "AETA_eta_F",
+        optional_average(eta_functionality, atom_count_value));
+    add_eta_value(values, "ETA_eta_FL", eta_functionality_local);
+    add_eta_value(
+        values,
+        "AETA_eta_FL",
+        optional_average(eta_functionality_local, atom_count_value));
+    add_eta_value(values, "ETA_eta_B", eta_branch);
+    add_eta_value(values, "AETA_eta_B", optional_average(eta_branch, atom_count_value));
+    add_eta_value(values, "ETA_eta_BR", eta_branch_ring);
+    add_eta_value(values, "AETA_eta_BR", optional_average(eta_branch_ring, atom_count_value));
+    add_eta_value(
+        values,
+        "ETA_dAlpha_A",
+        optional_positive_delta(alpha, alpha_reference, atom_count_value));
+    add_eta_value(
+        values,
+        "ETA_dAlpha_B",
+        optional_positive_delta(alpha_reference, alpha, atom_count_value));
+    add_eta_value(values, "ETA_epsilon_1", epsilon_1);
+    add_eta_value(values, "ETA_epsilon_2", epsilon_2);
+    add_eta_value(values, "ETA_epsilon_3", epsilon_3);
+    add_eta_value(values, "ETA_epsilon_4", epsilon_4);
+    add_eta_value(values, "ETA_epsilon_5", epsilon_5);
+    add_eta_value(values, "ETA_dEpsilon_A", optional_difference(epsilon_1, epsilon_3));
+    add_eta_value(values, "ETA_dEpsilon_B", optional_difference(epsilon_1, epsilon_4));
+    add_eta_value(values, "ETA_dEpsilon_C", optional_difference(epsilon_3, epsilon_4));
+    add_eta_value(values, "ETA_dEpsilon_D", optional_difference(epsilon_2, epsilon_5));
+    const auto delta_beta = optional_difference(beta_non_sigma_value, beta_sigma_value);
+    add_eta_value(values, "ETA_dBeta", delta_beta);
+    add_eta_value(values, "AETA_dBeta", optional_average(delta_beta, atom_count_value));
+    add_eta_value(values, "ETA_psi_1", psi);
+    add_eta_value(
+        values,
+        "ETA_dPsi_A",
+        psi.has_value() ? std::optional<double>{std::max(0.714 - *psi, 0.0)} : std::nullopt);
+    add_eta_value(
+        values,
+        "ETA_dPsi_B",
+        psi.has_value() ? std::optional<double>{std::max(*psi - 0.714, 0.0)} : std::nullopt);
+    return values;
+}
+
 double mordred_estate_intrinsic_state(
     const OEChem::OEAtomBase& atom,
     std::size_t heavy_atom_degree) {
@@ -5577,6 +6322,12 @@ void set_fused_ring_count_values(DescriptorSetBuilder& builder, const MordredRin
     set_ring_count_summary(builder, values.aliphatic_hetero, "FAH", 4u);
 }
 
+void set_eta_values(DescriptorSetBuilder& builder, const MordredEtaValues& values) {
+    for (const auto& value : values) {
+        set_optional_float(builder, value.name, value.value);
+    }
+}
+
 } // namespace
 
 DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
@@ -5622,6 +6373,7 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
     const auto ec_index =
         compute_eccentric_connectivity_index(heavy_atom_graph, heavy_atom_distances);
     const auto ring_count_values = compute_ring_count_value_sets(mol);
+    const auto eta_values = compute_eta_values(mol, ring_count_values.base.all.total);
     const auto estate_values = compute_mordred_estate_values(mol);
     const auto labute_asa_values = compute_labute_asa_values(mol);
     const auto peoe_vsa_values = compute_peoe_vsa_values(mol);
@@ -5898,6 +6650,9 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
     set_eccentric_connectivity_index(builder, ec_index);
     set_ring_count_values(builder, ring_count_values.base);
     set_fused_ring_count_values(builder, ring_count_values.fused);
+    if (eta_values.has_value()) {
+        set_eta_values(builder, *eta_values);
+    }
     set_optional_float(builder, "fMF", framework_ratio);
     set_float(builder, "TopoPSA(NO)", values.topo_psa_no);
     set_float(builder, "TopoPSA", values.topo_psa);

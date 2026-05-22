@@ -7484,6 +7484,366 @@
       "status": "exact",
       "primitive": "RDKit EState.EStateIndices minimum for ssssPb atom types with explicit hydrogens removed",
       "reason": "OEFP matches Mordred EState extrema values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "ETA_alpha",
+      "family": "ExtendedTopochemicalAtom",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/ExtendedTopochemicalAtom.py",
+      "status": "exact",
+      "primitive": "Mordred ExtendedTopochemicalAtom.py ETA descriptors using _atomic_property.py core, beta, epsilon, and gamma helpers, AlterMolecule reference and saturated graphs, RDKit topological distances, and RingCount.py SymmSSSR ring counts for ETA_eta_BR",
+      "reason": "OEFP matches Mordred ETA_alpha values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "AETA_alpha",
+      "family": "ExtendedTopochemicalAtom",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/ExtendedTopochemicalAtom.py",
+      "status": "exact",
+      "primitive": "Mordred ExtendedTopochemicalAtom.py ETA descriptors using _atomic_property.py core, beta, epsilon, and gamma helpers, AlterMolecule reference and saturated graphs, RDKit topological distances, and RingCount.py SymmSSSR ring counts for ETA_eta_BR",
+      "reason": "OEFP matches Mordred AETA_alpha values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "ETA_shape_p",
+      "family": "ExtendedTopochemicalAtom",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/ExtendedTopochemicalAtom.py",
+      "status": "exact",
+      "primitive": "Mordred ExtendedTopochemicalAtom.py ETA descriptors using _atomic_property.py core, beta, epsilon, and gamma helpers, AlterMolecule reference and saturated graphs, RDKit topological distances, and RingCount.py SymmSSSR ring counts for ETA_eta_BR",
+      "reason": "OEFP matches Mordred ETA_shape_p values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "ETA_shape_y",
+      "family": "ExtendedTopochemicalAtom",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/ExtendedTopochemicalAtom.py",
+      "status": "exact",
+      "primitive": "Mordred ExtendedTopochemicalAtom.py ETA descriptors using _atomic_property.py core, beta, epsilon, and gamma helpers, AlterMolecule reference and saturated graphs, RDKit topological distances, and RingCount.py SymmSSSR ring counts for ETA_eta_BR",
+      "reason": "OEFP matches Mordred ETA_shape_y values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "ETA_shape_x",
+      "family": "ExtendedTopochemicalAtom",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/ExtendedTopochemicalAtom.py",
+      "status": "exact",
+      "primitive": "Mordred ExtendedTopochemicalAtom.py ETA descriptors using _atomic_property.py core, beta, epsilon, and gamma helpers, AlterMolecule reference and saturated graphs, RDKit topological distances, and RingCount.py SymmSSSR ring counts for ETA_eta_BR",
+      "reason": "OEFP matches Mordred ETA_shape_x values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "ETA_beta",
+      "family": "ExtendedTopochemicalAtom",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/ExtendedTopochemicalAtom.py",
+      "status": "exact",
+      "primitive": "Mordred ExtendedTopochemicalAtom.py ETA descriptors using _atomic_property.py core, beta, epsilon, and gamma helpers, AlterMolecule reference and saturated graphs, RDKit topological distances, and RingCount.py SymmSSSR ring counts for ETA_eta_BR",
+      "reason": "OEFP matches Mordred ETA_beta values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "AETA_beta",
+      "family": "ExtendedTopochemicalAtom",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/ExtendedTopochemicalAtom.py",
+      "status": "exact",
+      "primitive": "Mordred ExtendedTopochemicalAtom.py ETA descriptors using _atomic_property.py core, beta, epsilon, and gamma helpers, AlterMolecule reference and saturated graphs, RDKit topological distances, and RingCount.py SymmSSSR ring counts for ETA_eta_BR",
+      "reason": "OEFP matches Mordred AETA_beta values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "ETA_beta_s",
+      "family": "ExtendedTopochemicalAtom",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/ExtendedTopochemicalAtom.py",
+      "status": "exact",
+      "primitive": "Mordred ExtendedTopochemicalAtom.py ETA descriptors using _atomic_property.py core, beta, epsilon, and gamma helpers, AlterMolecule reference and saturated graphs, RDKit topological distances, and RingCount.py SymmSSSR ring counts for ETA_eta_BR",
+      "reason": "OEFP matches Mordred ETA_beta_s values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "AETA_beta_s",
+      "family": "ExtendedTopochemicalAtom",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/ExtendedTopochemicalAtom.py",
+      "status": "exact",
+      "primitive": "Mordred ExtendedTopochemicalAtom.py ETA descriptors using _atomic_property.py core, beta, epsilon, and gamma helpers, AlterMolecule reference and saturated graphs, RDKit topological distances, and RingCount.py SymmSSSR ring counts for ETA_eta_BR",
+      "reason": "OEFP matches Mordred AETA_beta_s values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "ETA_beta_ns",
+      "family": "ExtendedTopochemicalAtom",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/ExtendedTopochemicalAtom.py",
+      "status": "exact",
+      "primitive": "Mordred ExtendedTopochemicalAtom.py ETA descriptors using _atomic_property.py core, beta, epsilon, and gamma helpers, AlterMolecule reference and saturated graphs, RDKit topological distances, and RingCount.py SymmSSSR ring counts for ETA_eta_BR",
+      "reason": "OEFP matches Mordred ETA_beta_ns values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "AETA_beta_ns",
+      "family": "ExtendedTopochemicalAtom",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/ExtendedTopochemicalAtom.py",
+      "status": "exact",
+      "primitive": "Mordred ExtendedTopochemicalAtom.py ETA descriptors using _atomic_property.py core, beta, epsilon, and gamma helpers, AlterMolecule reference and saturated graphs, RDKit topological distances, and RingCount.py SymmSSSR ring counts for ETA_eta_BR",
+      "reason": "OEFP matches Mordred AETA_beta_ns values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "ETA_beta_ns_d",
+      "family": "ExtendedTopochemicalAtom",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/ExtendedTopochemicalAtom.py",
+      "status": "exact",
+      "primitive": "Mordred ExtendedTopochemicalAtom.py ETA descriptors using _atomic_property.py core, beta, epsilon, and gamma helpers, AlterMolecule reference and saturated graphs, RDKit topological distances, and RingCount.py SymmSSSR ring counts for ETA_eta_BR",
+      "reason": "OEFP matches Mordred ETA_beta_ns_d values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "AETA_beta_ns_d",
+      "family": "ExtendedTopochemicalAtom",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/ExtendedTopochemicalAtom.py",
+      "status": "exact",
+      "primitive": "Mordred ExtendedTopochemicalAtom.py ETA descriptors using _atomic_property.py core, beta, epsilon, and gamma helpers, AlterMolecule reference and saturated graphs, RDKit topological distances, and RingCount.py SymmSSSR ring counts for ETA_eta_BR",
+      "reason": "OEFP matches Mordred AETA_beta_ns_d values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "ETA_eta",
+      "family": "ExtendedTopochemicalAtom",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/ExtendedTopochemicalAtom.py",
+      "status": "exact",
+      "primitive": "Mordred ExtendedTopochemicalAtom.py ETA descriptors using _atomic_property.py core, beta, epsilon, and gamma helpers, AlterMolecule reference and saturated graphs, RDKit topological distances, and RingCount.py SymmSSSR ring counts for ETA_eta_BR",
+      "reason": "OEFP matches Mordred ETA_eta values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "AETA_eta",
+      "family": "ExtendedTopochemicalAtom",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/ExtendedTopochemicalAtom.py",
+      "status": "exact",
+      "primitive": "Mordred ExtendedTopochemicalAtom.py ETA descriptors using _atomic_property.py core, beta, epsilon, and gamma helpers, AlterMolecule reference and saturated graphs, RDKit topological distances, and RingCount.py SymmSSSR ring counts for ETA_eta_BR",
+      "reason": "OEFP matches Mordred AETA_eta values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "ETA_eta_L",
+      "family": "ExtendedTopochemicalAtom",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/ExtendedTopochemicalAtom.py",
+      "status": "exact",
+      "primitive": "Mordred ExtendedTopochemicalAtom.py ETA descriptors using _atomic_property.py core, beta, epsilon, and gamma helpers, AlterMolecule reference and saturated graphs, RDKit topological distances, and RingCount.py SymmSSSR ring counts for ETA_eta_BR",
+      "reason": "OEFP matches Mordred ETA_eta_L values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "AETA_eta_L",
+      "family": "ExtendedTopochemicalAtom",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/ExtendedTopochemicalAtom.py",
+      "status": "exact",
+      "primitive": "Mordred ExtendedTopochemicalAtom.py ETA descriptors using _atomic_property.py core, beta, epsilon, and gamma helpers, AlterMolecule reference and saturated graphs, RDKit topological distances, and RingCount.py SymmSSSR ring counts for ETA_eta_BR",
+      "reason": "OEFP matches Mordred AETA_eta_L values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "ETA_eta_R",
+      "family": "ExtendedTopochemicalAtom",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/ExtendedTopochemicalAtom.py",
+      "status": "exact",
+      "primitive": "Mordred ExtendedTopochemicalAtom.py ETA descriptors using _atomic_property.py core, beta, epsilon, and gamma helpers, AlterMolecule reference and saturated graphs, RDKit topological distances, and RingCount.py SymmSSSR ring counts for ETA_eta_BR",
+      "reason": "OEFP matches Mordred ETA_eta_R values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "AETA_eta_R",
+      "family": "ExtendedTopochemicalAtom",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/ExtendedTopochemicalAtom.py",
+      "status": "exact",
+      "primitive": "Mordred ExtendedTopochemicalAtom.py ETA descriptors using _atomic_property.py core, beta, epsilon, and gamma helpers, AlterMolecule reference and saturated graphs, RDKit topological distances, and RingCount.py SymmSSSR ring counts for ETA_eta_BR",
+      "reason": "OEFP matches Mordred AETA_eta_R values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "ETA_eta_RL",
+      "family": "ExtendedTopochemicalAtom",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/ExtendedTopochemicalAtom.py",
+      "status": "exact",
+      "primitive": "Mordred ExtendedTopochemicalAtom.py ETA descriptors using _atomic_property.py core, beta, epsilon, and gamma helpers, AlterMolecule reference and saturated graphs, RDKit topological distances, and RingCount.py SymmSSSR ring counts for ETA_eta_BR",
+      "reason": "OEFP matches Mordred ETA_eta_RL values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "AETA_eta_RL",
+      "family": "ExtendedTopochemicalAtom",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/ExtendedTopochemicalAtom.py",
+      "status": "exact",
+      "primitive": "Mordred ExtendedTopochemicalAtom.py ETA descriptors using _atomic_property.py core, beta, epsilon, and gamma helpers, AlterMolecule reference and saturated graphs, RDKit topological distances, and RingCount.py SymmSSSR ring counts for ETA_eta_BR",
+      "reason": "OEFP matches Mordred AETA_eta_RL values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "ETA_eta_F",
+      "family": "ExtendedTopochemicalAtom",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/ExtendedTopochemicalAtom.py",
+      "status": "exact",
+      "primitive": "Mordred ExtendedTopochemicalAtom.py ETA descriptors using _atomic_property.py core, beta, epsilon, and gamma helpers, AlterMolecule reference and saturated graphs, RDKit topological distances, and RingCount.py SymmSSSR ring counts for ETA_eta_BR",
+      "reason": "OEFP matches Mordred ETA_eta_F values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "AETA_eta_F",
+      "family": "ExtendedTopochemicalAtom",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/ExtendedTopochemicalAtom.py",
+      "status": "exact",
+      "primitive": "Mordred ExtendedTopochemicalAtom.py ETA descriptors using _atomic_property.py core, beta, epsilon, and gamma helpers, AlterMolecule reference and saturated graphs, RDKit topological distances, and RingCount.py SymmSSSR ring counts for ETA_eta_BR",
+      "reason": "OEFP matches Mordred AETA_eta_F values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "ETA_eta_FL",
+      "family": "ExtendedTopochemicalAtom",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/ExtendedTopochemicalAtom.py",
+      "status": "exact",
+      "primitive": "Mordred ExtendedTopochemicalAtom.py ETA descriptors using _atomic_property.py core, beta, epsilon, and gamma helpers, AlterMolecule reference and saturated graphs, RDKit topological distances, and RingCount.py SymmSSSR ring counts for ETA_eta_BR",
+      "reason": "OEFP matches Mordred ETA_eta_FL values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "AETA_eta_FL",
+      "family": "ExtendedTopochemicalAtom",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/ExtendedTopochemicalAtom.py",
+      "status": "exact",
+      "primitive": "Mordred ExtendedTopochemicalAtom.py ETA descriptors using _atomic_property.py core, beta, epsilon, and gamma helpers, AlterMolecule reference and saturated graphs, RDKit topological distances, and RingCount.py SymmSSSR ring counts for ETA_eta_BR",
+      "reason": "OEFP matches Mordred AETA_eta_FL values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "ETA_eta_B",
+      "family": "ExtendedTopochemicalAtom",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/ExtendedTopochemicalAtom.py",
+      "status": "exact",
+      "primitive": "Mordred ExtendedTopochemicalAtom.py ETA descriptors using _atomic_property.py core, beta, epsilon, and gamma helpers, AlterMolecule reference and saturated graphs, RDKit topological distances, and RingCount.py SymmSSSR ring counts for ETA_eta_BR",
+      "reason": "OEFP matches Mordred ETA_eta_B values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "AETA_eta_B",
+      "family": "ExtendedTopochemicalAtom",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/ExtendedTopochemicalAtom.py",
+      "status": "exact",
+      "primitive": "Mordred ExtendedTopochemicalAtom.py ETA descriptors using _atomic_property.py core, beta, epsilon, and gamma helpers, AlterMolecule reference and saturated graphs, RDKit topological distances, and RingCount.py SymmSSSR ring counts for ETA_eta_BR",
+      "reason": "OEFP matches Mordred AETA_eta_B values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "ETA_eta_BR",
+      "family": "ExtendedTopochemicalAtom",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/ExtendedTopochemicalAtom.py",
+      "status": "exact",
+      "primitive": "Mordred ExtendedTopochemicalAtom.py ETA descriptors using _atomic_property.py core, beta, epsilon, and gamma helpers, AlterMolecule reference and saturated graphs, RDKit topological distances, and RingCount.py SymmSSSR ring counts for ETA_eta_BR",
+      "reason": "OEFP matches Mordred ETA_eta_BR values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "AETA_eta_BR",
+      "family": "ExtendedTopochemicalAtom",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/ExtendedTopochemicalAtom.py",
+      "status": "exact",
+      "primitive": "Mordred ExtendedTopochemicalAtom.py ETA descriptors using _atomic_property.py core, beta, epsilon, and gamma helpers, AlterMolecule reference and saturated graphs, RDKit topological distances, and RingCount.py SymmSSSR ring counts for ETA_eta_BR",
+      "reason": "OEFP matches Mordred AETA_eta_BR values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "ETA_dAlpha_A",
+      "family": "ExtendedTopochemicalAtom",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/ExtendedTopochemicalAtom.py",
+      "status": "exact",
+      "primitive": "Mordred ExtendedTopochemicalAtom.py ETA descriptors using _atomic_property.py core, beta, epsilon, and gamma helpers, AlterMolecule reference and saturated graphs, RDKit topological distances, and RingCount.py SymmSSSR ring counts for ETA_eta_BR",
+      "reason": "OEFP matches Mordred ETA_dAlpha_A values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "ETA_dAlpha_B",
+      "family": "ExtendedTopochemicalAtom",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/ExtendedTopochemicalAtom.py",
+      "status": "exact",
+      "primitive": "Mordred ExtendedTopochemicalAtom.py ETA descriptors using _atomic_property.py core, beta, epsilon, and gamma helpers, AlterMolecule reference and saturated graphs, RDKit topological distances, and RingCount.py SymmSSSR ring counts for ETA_eta_BR",
+      "reason": "OEFP matches Mordred ETA_dAlpha_B values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "ETA_epsilon_1",
+      "family": "ExtendedTopochemicalAtom",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/ExtendedTopochemicalAtom.py",
+      "status": "exact",
+      "primitive": "Mordred ExtendedTopochemicalAtom.py ETA descriptors using _atomic_property.py core, beta, epsilon, and gamma helpers, AlterMolecule reference and saturated graphs, RDKit topological distances, and RingCount.py SymmSSSR ring counts for ETA_eta_BR",
+      "reason": "OEFP matches Mordred ETA_epsilon_1 values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "ETA_epsilon_2",
+      "family": "ExtendedTopochemicalAtom",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/ExtendedTopochemicalAtom.py",
+      "status": "exact",
+      "primitive": "Mordred ExtendedTopochemicalAtom.py ETA descriptors using _atomic_property.py core, beta, epsilon, and gamma helpers, AlterMolecule reference and saturated graphs, RDKit topological distances, and RingCount.py SymmSSSR ring counts for ETA_eta_BR",
+      "reason": "OEFP matches Mordred ETA_epsilon_2 values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "ETA_epsilon_3",
+      "family": "ExtendedTopochemicalAtom",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/ExtendedTopochemicalAtom.py",
+      "status": "exact",
+      "primitive": "Mordred ExtendedTopochemicalAtom.py ETA descriptors using _atomic_property.py core, beta, epsilon, and gamma helpers, AlterMolecule reference and saturated graphs, RDKit topological distances, and RingCount.py SymmSSSR ring counts for ETA_eta_BR",
+      "reason": "OEFP matches Mordred ETA_epsilon_3 values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "ETA_epsilon_4",
+      "family": "ExtendedTopochemicalAtom",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/ExtendedTopochemicalAtom.py",
+      "status": "exact",
+      "primitive": "Mordred ExtendedTopochemicalAtom.py ETA descriptors using _atomic_property.py core, beta, epsilon, and gamma helpers, AlterMolecule reference and saturated graphs, RDKit topological distances, and RingCount.py SymmSSSR ring counts for ETA_eta_BR",
+      "reason": "OEFP matches Mordred ETA_epsilon_4 values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "ETA_epsilon_5",
+      "family": "ExtendedTopochemicalAtom",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/ExtendedTopochemicalAtom.py",
+      "status": "exact",
+      "primitive": "Mordred ExtendedTopochemicalAtom.py ETA descriptors using _atomic_property.py core, beta, epsilon, and gamma helpers, AlterMolecule reference and saturated graphs, RDKit topological distances, and RingCount.py SymmSSSR ring counts for ETA_eta_BR",
+      "reason": "OEFP matches Mordred ETA_epsilon_5 values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "ETA_dEpsilon_A",
+      "family": "ExtendedTopochemicalAtom",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/ExtendedTopochemicalAtom.py",
+      "status": "exact",
+      "primitive": "Mordred ExtendedTopochemicalAtom.py ETA descriptors using _atomic_property.py core, beta, epsilon, and gamma helpers, AlterMolecule reference and saturated graphs, RDKit topological distances, and RingCount.py SymmSSSR ring counts for ETA_eta_BR",
+      "reason": "OEFP matches Mordred ETA_dEpsilon_A values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "ETA_dEpsilon_B",
+      "family": "ExtendedTopochemicalAtom",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/ExtendedTopochemicalAtom.py",
+      "status": "exact",
+      "primitive": "Mordred ExtendedTopochemicalAtom.py ETA descriptors using _atomic_property.py core, beta, epsilon, and gamma helpers, AlterMolecule reference and saturated graphs, RDKit topological distances, and RingCount.py SymmSSSR ring counts for ETA_eta_BR",
+      "reason": "OEFP matches Mordred ETA_dEpsilon_B values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "ETA_dEpsilon_C",
+      "family": "ExtendedTopochemicalAtom",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/ExtendedTopochemicalAtom.py",
+      "status": "exact",
+      "primitive": "Mordred ExtendedTopochemicalAtom.py ETA descriptors using _atomic_property.py core, beta, epsilon, and gamma helpers, AlterMolecule reference and saturated graphs, RDKit topological distances, and RingCount.py SymmSSSR ring counts for ETA_eta_BR",
+      "reason": "OEFP matches Mordred ETA_dEpsilon_C values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "ETA_dEpsilon_D",
+      "family": "ExtendedTopochemicalAtom",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/ExtendedTopochemicalAtom.py",
+      "status": "exact",
+      "primitive": "Mordred ExtendedTopochemicalAtom.py ETA descriptors using _atomic_property.py core, beta, epsilon, and gamma helpers, AlterMolecule reference and saturated graphs, RDKit topological distances, and RingCount.py SymmSSSR ring counts for ETA_eta_BR",
+      "reason": "OEFP matches Mordred ETA_dEpsilon_D values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "ETA_dBeta",
+      "family": "ExtendedTopochemicalAtom",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/ExtendedTopochemicalAtom.py",
+      "status": "exact",
+      "primitive": "Mordred ExtendedTopochemicalAtom.py ETA descriptors using _atomic_property.py core, beta, epsilon, and gamma helpers, AlterMolecule reference and saturated graphs, RDKit topological distances, and RingCount.py SymmSSSR ring counts for ETA_eta_BR",
+      "reason": "OEFP matches Mordred ETA_dBeta values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "AETA_dBeta",
+      "family": "ExtendedTopochemicalAtom",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/ExtendedTopochemicalAtom.py",
+      "status": "exact",
+      "primitive": "Mordred ExtendedTopochemicalAtom.py ETA descriptors using _atomic_property.py core, beta, epsilon, and gamma helpers, AlterMolecule reference and saturated graphs, RDKit topological distances, and RingCount.py SymmSSSR ring counts for ETA_eta_BR",
+      "reason": "OEFP matches Mordred AETA_dBeta values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "ETA_psi_1",
+      "family": "ExtendedTopochemicalAtom",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/ExtendedTopochemicalAtom.py",
+      "status": "exact",
+      "primitive": "Mordred ExtendedTopochemicalAtom.py ETA descriptors using _atomic_property.py core, beta, epsilon, and gamma helpers, AlterMolecule reference and saturated graphs, RDKit topological distances, and RingCount.py SymmSSSR ring counts for ETA_eta_BR",
+      "reason": "OEFP matches Mordred ETA_psi_1 values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "ETA_dPsi_A",
+      "family": "ExtendedTopochemicalAtom",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/ExtendedTopochemicalAtom.py",
+      "status": "exact",
+      "primitive": "Mordred ExtendedTopochemicalAtom.py ETA descriptors using _atomic_property.py core, beta, epsilon, and gamma helpers, AlterMolecule reference and saturated graphs, RDKit topological distances, and RingCount.py SymmSSSR ring counts for ETA_eta_BR",
+      "reason": "OEFP matches Mordred ETA_dPsi_A values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "ETA_dPsi_B",
+      "family": "ExtendedTopochemicalAtom",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/ExtendedTopochemicalAtom.py",
+      "status": "exact",
+      "primitive": "Mordred ExtendedTopochemicalAtom.py ETA descriptors using _atomic_property.py core, beta, epsilon, and gamma helpers, AlterMolecule reference and saturated graphs, RDKit topological distances, and RingCount.py SymmSSSR ring counts for ETA_eta_BR",
+      "reason": "OEFP matches Mordred ETA_dPsi_B values on the committed Mordred parity fixture."
     }
   ],
   "row_divergences": [

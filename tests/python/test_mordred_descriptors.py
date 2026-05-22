@@ -198,6 +198,51 @@ ENABLED_DESCRIPTOR_NAMES = {
     "EState_VSA8",
     "EState_VSA9",
     "EState_VSA10",
+    "ETA_alpha",
+    "AETA_alpha",
+    "ETA_shape_p",
+    "ETA_shape_y",
+    "ETA_shape_x",
+    "ETA_beta",
+    "AETA_beta",
+    "ETA_beta_s",
+    "AETA_beta_s",
+    "ETA_beta_ns",
+    "AETA_beta_ns",
+    "ETA_beta_ns_d",
+    "AETA_beta_ns_d",
+    "ETA_eta",
+    "AETA_eta",
+    "ETA_eta_L",
+    "AETA_eta_L",
+    "ETA_eta_R",
+    "AETA_eta_R",
+    "ETA_eta_RL",
+    "AETA_eta_RL",
+    "ETA_eta_F",
+    "AETA_eta_F",
+    "ETA_eta_FL",
+    "AETA_eta_FL",
+    "ETA_eta_B",
+    "AETA_eta_B",
+    "ETA_eta_BR",
+    "AETA_eta_BR",
+    "ETA_dAlpha_A",
+    "ETA_dAlpha_B",
+    "ETA_epsilon_1",
+    "ETA_epsilon_2",
+    "ETA_epsilon_3",
+    "ETA_epsilon_4",
+    "ETA_epsilon_5",
+    "ETA_dEpsilon_A",
+    "ETA_dEpsilon_B",
+    "ETA_dEpsilon_C",
+    "ETA_dEpsilon_D",
+    "ETA_dBeta",
+    "AETA_dBeta",
+    "ETA_psi_1",
+    "ETA_dPsi_A",
+    "ETA_dPsi_B",
     "LabuteASA",
     "PEOE_VSA1",
     "PEOE_VSA2",
@@ -701,7 +746,7 @@ def test_mordred_descriptors_match_enabled_reference_values():
     names = _enabled_descriptor_names(payload)
     row_divergences = _row_divergence_policy()
 
-    assert len(names) == 935
+    assert len(names) == 980
     assert set(ESTATE_COUNT_NAMES) <= set(names)
     assert set(ESTATE_SUM_NAMES) <= set(names)
     assert set(ESTATE_MAX_NAMES) <= set(names)
@@ -722,6 +767,7 @@ def test_mordred_descriptors_match_enabled_reference_values():
     assert {f"SlogP_VSA{index}" for index in range(1, 12)} <= set(names)
     assert {f"EState_VSA{index}" for index in range(1, 11)} <= set(names)
     assert {f"VSA_EState{index}" for index in range(1, 10)} <= set(names)
+    assert {"ETA_alpha", "ETA_eta_BR", "ETA_epsilon_5", "ETA_dPsi_B"} <= set(names)
     assert {"MID", "AMID", "MID_h", "AMID_h", "MID_X", "AMID_X"} <= set(names)
     for row in payload["reference_rows"]:
         smiles = row["smiles"]

@@ -6,6 +6,7 @@
 
 #include <cstdint>
 #include <map>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -169,6 +170,24 @@ const std::vector<std::string>& peoe_vsa_names() {
         "PEOE_VSA11",
         "PEOE_VSA12",
         "PEOE_VSA13",
+    };
+    return names;
+}
+
+const std::vector<std::string>& eta_names() {
+    static const std::vector<std::string> names{
+        "ETA_alpha",       "AETA_alpha",      "ETA_shape_p",      "ETA_shape_y",
+        "ETA_shape_x",     "ETA_beta",        "AETA_beta",        "ETA_beta_s",
+        "AETA_beta_s",     "ETA_beta_ns",     "AETA_beta_ns",     "ETA_beta_ns_d",
+        "AETA_beta_ns_d",  "ETA_eta",         "AETA_eta",         "ETA_eta_L",
+        "AETA_eta_L",      "ETA_eta_R",       "AETA_eta_R",       "ETA_eta_RL",
+        "AETA_eta_RL",     "ETA_eta_F",       "AETA_eta_F",       "ETA_eta_FL",
+        "AETA_eta_FL",     "ETA_eta_B",       "AETA_eta_B",       "ETA_eta_BR",
+        "AETA_eta_BR",     "ETA_dAlpha_A",    "ETA_dAlpha_B",    "ETA_epsilon_1",
+        "ETA_epsilon_2",   "ETA_epsilon_3",   "ETA_epsilon_4",   "ETA_epsilon_5",
+        "ETA_dEpsilon_A",  "ETA_dEpsilon_B",  "ETA_dEpsilon_C",  "ETA_dEpsilon_D",
+        "ETA_dBeta",      "AETA_dBeta",      "ETA_psi_1",       "ETA_dPsi_A",
+        "ETA_dPsi_B",
     };
     return names;
 }
@@ -1148,6 +1167,147 @@ TEST(MordredDescriptorTest, PEOEVSADescriptorsTreatExplicitHydrogensAsImplicit) 
         ASSERT_TRUE(explicit_descriptors.Has(name)) << name;
         EXPECT_NEAR(explicit_descriptors.Float(name), implicit_descriptors.Float(name), 1.0e-12)
             << name;
+    }
+}
+
+TEST(MordredDescriptorTest, ETADescriptorsMatchCopiedMordredReferences) {
+    struct Case {
+        std::string smiles;
+        std::vector<std::optional<double>> expected_values;
+    };
+
+    const std::vector<Case> cases{
+        {
+            "CCO",
+            {
+                1.3333333333333333, 0.4444444444444444, 0.625, 0.0, 0.0, 1.25,
+                0.4166666666666667, 1.25, 0.4166666666666667, 0.0, 0.0, 0.0,
+                0.0, 1.387425886722793, 0.46247529557426437, 1.0540925533894598,
+                0.35136418446315326, 1.914213562373095, 0.6380711874576983,
+                1.4142135623730951, 0.47140452079103173, 0.5267876756503018,
+                0.17559589188343394, 0.3601210089836353, 0.12004033632787843,
+                0.0, 0.0, 0.0, 0.0, 0.0, 0.05555555555555558,
+                0.5185185185185185, 0.9555555555555554, 0.4090909090909091,
+                0.5185185185185185, 0.7916666666666666, 0.10942760942760937, 0.0,
+                -0.10942760942760937, 0.16388888888888875, -1.25,
+                -0.4166666666666667, 0.4651162790697675, 0.24888372093023248, 0.0,
+            },
+        },
+        {
+            "c1ccncc1",
+            {
+                2.9, 0.48333333333333334, 0.0, 0.0, 0.0, 9.5, 1.5833333333333333,
+                3.5, 0.5833333333333334, 6.0, 1.0, 0.0, 0.0, 1.5299412076857426,
+                0.2549902012809571, 0.9187870585962259, 0.15313117643270432, 5.0,
+                0.8333333333333334, 3.0, 0.5, 3.4700587923142576,
+                0.5783431320523763, 2.0812129414037743, 0.3468688235672957,
+                -0.08578643762690508, -0.01429773960448418, 0.00021356237309491655,
+                3.559372884915276e-05, 0.0, 0.01666666666666668,
+                0.5545454545454546, 0.7666666666666666, 0.43333333333333335,
+                0.48666666666666664, 0.7666666666666666, 0.12121212121212122,
+                0.06787878787878793, -0.05333333333333329, 0.0, 2.5,
+                0.4166666666666667, 0.6304347826086957, 0.08356521739130429, 0.0,
+            },
+        },
+        {
+            "O=S(=O)(N)C1=CC=CC=C1",
+            {
+                4.9, 0.49000000000000005, 0.21768707482993196, 0.1020408163265306,
+                0.17006802721088435, 14.5, 1.45, 5.5, 0.55, 9.0, 0.9, 0.0,
+                0.0, 4.386342814427244, 0.43863428144272437, 1.7701955334033679,
+                0.17701955334033678, 12.425643308094081, 1.242564330809408,
+                4.605171715522539, 0.4605171715522539, 8.039300493666836,
+                0.8039300493666837, 2.8349761821191715, 0.28349761821191716,
+                0.3090418468505556, 0.03090418468505556, 0.39504184685055554,
+                0.03950418468505555, 0.0, 0.009999999999999964, 0.6647058823529411,
+                0.9199999999999999, 0.43333333333333335, 0.5695652173913043,
+                0.8166666666666665, 0.2313725490196078, 0.09514066496163687,
+                -0.13623188405797093, 0.10333333333333339, 3.5, 0.35,
+                0.532608695652174, 0.18139130434782602, 0.0,
+            },
+        },
+        {
+            "C",
+            {
+                0.5, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                0.0, std::nullopt, std::nullopt, std::nullopt, std::nullopt, 0.0, 0.0,
+                0.38, 0.7, 0.38, 0.38, 0.7, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                0.7142857142857143, 0.0, 0.00028571428571433355,
+            },
+        },
+        {
+            "C12C3C4C1C5C2C3C45",
+            {
+                4.0, 0.5, 0.0, 1.0, 0.0, 6.0, 0.75, 6.0, 0.75, 0.0, 0.0,
+                0.0, 0.0, 6.444444444444444, 0.8055555555555555, 4.0, 0.5,
+                6.444444444444444, 0.8055555555555555, 4.0, 0.5, 0.0, 0.0, 0.0,
+                0.0, -0.08578643762690508, -0.010723304703363135,
+                0.43021356237309494, 0.05377669529663687, 0.0, 0.0, 0.5, 0.7,
+                0.5, 0.5, 0.7, 0.0, 0.0, 0.0, 0.0, -6.0, -0.75,
+                0.7142857142857143, 0.0, 0.00028571428571433355,
+            },
+        },
+    };
+
+    for (const auto& expected : cases) {
+        SCOPED_TRACE(expected.smiles);
+        const auto descriptors = MakeMordredDescriptors(mol_from_smiles(expected.smiles));
+
+        ASSERT_EQ(expected.expected_values.size(), eta_names().size());
+        for (std::size_t index = 0u; index < eta_names().size(); ++index) {
+            const auto& name = eta_names()[index];
+            const auto expected_value = expected.expected_values[index];
+            if (!expected_value.has_value()) {
+                EXPECT_FALSE(descriptors.Has(name)) << name;
+                continue;
+            }
+            ASSERT_TRUE(descriptors.Has(name)) << name;
+            EXPECT_NEAR(descriptors.Float(name), *expected_value, 1.0e-12) << name;
+        }
+    }
+}
+
+TEST(MordredDescriptorTest, ETABetaNonSigmaDescriptorsDoNotRequireSigmaEpsilon) {
+    const auto descriptors = MakeMordredDescriptors(mol_from_smiles("[He]"));
+
+    EXPECT_FALSE(descriptors.Has("ETA_beta_s"));
+    EXPECT_FALSE(descriptors.Has("AETA_beta_s"));
+    EXPECT_FALSE(descriptors.Has("ETA_beta"));
+    EXPECT_FALSE(descriptors.Has("AETA_beta"));
+    ASSERT_TRUE(descriptors.Has("ETA_beta_ns"));
+    ASSERT_TRUE(descriptors.Has("AETA_beta_ns"));
+    ASSERT_TRUE(descriptors.Has("ETA_beta_ns_d"));
+    ASSERT_TRUE(descriptors.Has("AETA_beta_ns_d"));
+    EXPECT_NEAR(descriptors.Float("ETA_beta_ns"), 0.0, 1.0e-12);
+    EXPECT_NEAR(descriptors.Float("AETA_beta_ns"), 0.0, 1.0e-12);
+    EXPECT_NEAR(descriptors.Float("ETA_beta_ns_d"), 0.0, 1.0e-12);
+    EXPECT_NEAR(descriptors.Float("AETA_beta_ns_d"), 0.0, 1.0e-12);
+}
+
+TEST(MordredDescriptorTest, ETASaturatedEpsilonDescriptorsUseGeneralDefaultValences) {
+    struct Case {
+        std::string smiles;
+        double epsilon_4;
+        double delta_epsilon_b;
+        double delta_epsilon_c;
+    };
+
+    const std::vector<Case> cases{
+        {"[Ne]", 2.15, 0.0, -1.77},
+        {"[SiH4]", 0.22999999999999998, 0.0, 0.15000000000000002},
+    };
+
+    for (const auto& expected : cases) {
+        SCOPED_TRACE(expected.smiles);
+        const auto descriptors = MakeMordredDescriptors(mol_from_smiles(expected.smiles));
+
+        ASSERT_TRUE(descriptors.Has("ETA_epsilon_4"));
+        ASSERT_TRUE(descriptors.Has("ETA_dEpsilon_B"));
+        ASSERT_TRUE(descriptors.Has("ETA_dEpsilon_C"));
+        EXPECT_NEAR(descriptors.Float("ETA_epsilon_4"), expected.epsilon_4, 1.0e-12);
+        EXPECT_NEAR(descriptors.Float("ETA_dEpsilon_B"), expected.delta_epsilon_b, 1.0e-12);
+        EXPECT_NEAR(descriptors.Float("ETA_dEpsilon_C"), expected.delta_epsilon_c, 1.0e-12);
     }
 }
 
