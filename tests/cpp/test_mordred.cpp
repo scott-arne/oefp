@@ -92,12 +92,12 @@ const std::vector<std::string>& estate_min_names() {
     return names;
 }
 
-const std::vector<std::string>& autocorrelation_ats_aats_names() {
+const std::vector<std::string>& autocorrelation_enabled_names() {
     static const std::vector<std::string> names = [] {
         std::vector<std::string> generated;
         for (const auto* suffix :
              {"Z", "m", "v", "se", "pe", "are", "p", "i", "dv", "d", "s"}) {
-            for (const auto* prefix : {"ATS", "AATS"}) {
+            for (const auto* prefix : {"ATS", "AATS", "ATSC", "AATSC"}) {
                 for (std::size_t lag = 0u; lag <= 8u; ++lag) {
                     generated.push_back(prefix + std::to_string(lag) + suffix);
                 }
@@ -1869,6 +1869,38 @@ TEST(MordredDescriptorTest, AutocorrelationDescriptorsUseExplicitHydrogenShortes
         {"AATS2s", 2.923076923076923},
         {"AATS3s", 2.3333333333333335},
         {"AATS4s", 1.0},
+        {"ATSC0dv", 22.888888888888886},
+        {"ATSC1dv", -1.2345679012345678},
+        {"ATSC2dv", -7.839506172839505},
+        {"ATSC3dv", -4.74074074074074},
+        {"ATSC4dv", 2.3703703703703702},
+        {"AATSC0dv", 2.5432098765432096},
+        {"AATSC1dv", -0.15432098765432098},
+        {"AATSC2dv", -0.6030389363722696},
+        {"AATSC3dv", -0.39506172839506165},
+        {"AATSC4dv", 0.7901234567901234},
+        {"ATSC0Z", 66.88888888888889},
+        {"ATSC1Z", -13.456790123456791},
+        {"ATSC2Z", -24.39506172839506},
+        {"ATSC3Z", -6.296296296296293},
+        {"ATSC4Z", 10.703703703703702},
+        {"AATSC0Z", 7.432098765432098},
+        {"AATSC1Z", -1.682098765432099},
+        {"AATSC2Z", -1.876543209876543},
+        {"AATSC3Z", -0.5246913580246911},
+        {"AATSC4Z", 3.5679012345679006},
+        {"ATSC0m", 314.77565355555555},
+        {"ATSC1m", -63.896508938271566},
+        {"ATSC2m", -116.86383002469132},
+        {"ATSC3m", -27.32296962962966},
+        {"ATSC4m", 50.6954818148148},
+        {"AATSC0m", 34.97507261728395},
+        {"AATSC1m", -7.987063617283946},
+        {"AATSC4m", 16.8984939382716},
+        {"ATSC0se", 0.9667315555555552},
+        {"ATSC2se", -0.1842966913580246},
+        {"AATSC0se", 0.10741461728395058},
+        {"AATSC2se", -0.014176668566001891},
     };
 
     for (const auto& [name, expected_value] : expected_values) {
@@ -1882,6 +1914,9 @@ TEST(MordredDescriptorTest, AutocorrelationDescriptorsUseExplicitHydrogenShortes
             EXPECT_TRUE(descriptors.Has("ATS" + lag_text + suffix)) << suffix << lag;
             EXPECT_EQ(descriptors.Float("ATS" + lag_text + suffix), 0.0) << suffix << lag;
             EXPECT_FALSE(descriptors.Has("AATS" + lag_text + suffix)) << suffix << lag;
+            EXPECT_TRUE(descriptors.Has("ATSC" + lag_text + suffix)) << suffix << lag;
+            EXPECT_EQ(descriptors.Float("ATSC" + lag_text + suffix), 0.0) << suffix << lag;
+            EXPECT_FALSE(descriptors.Has("AATSC" + lag_text + suffix)) << suffix << lag;
         }
     }
 }
@@ -1893,6 +1928,8 @@ TEST(MordredDescriptorTest, AutocorrelationIntrinsicStateDescriptorsAreMissingFo
         const auto lag_text = std::to_string(lag);
         EXPECT_FALSE(descriptors.Has("ATS" + lag_text + "s")) << lag;
         EXPECT_FALSE(descriptors.Has("AATS" + lag_text + "s")) << lag;
+        EXPECT_FALSE(descriptors.Has("ATSC" + lag_text + "s")) << lag;
+        EXPECT_FALSE(descriptors.Has("AATSC" + lag_text + "s")) << lag;
     }
 }
 
@@ -1903,7 +1940,7 @@ TEST(MordredDescriptorTest, AutocorrelationDescriptorsDoNotDoubleCountExplicitHy
     const auto implicit_descriptors = MakeMordredDescriptors(mol_from_smiles("CCO"));
     const auto explicit_descriptors = MakeMordredDescriptors(explicit_mol);
 
-    for (const auto& name : autocorrelation_ats_aats_names()) {
+    for (const auto& name : autocorrelation_enabled_names()) {
         EXPECT_EQ(explicit_descriptors.Has(name), implicit_descriptors.Has(name)) << name;
         if (implicit_descriptors.Has(name)) {
             EXPECT_NEAR(

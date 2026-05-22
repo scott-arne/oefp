@@ -187,6 +187,8 @@ struct MordredAutocorrelationValues {
     const char* suffix = "";
     std::array<std::optional<double>, 9> ats{};
     std::array<std::optional<double>, 9> aats{};
+    std::array<std::optional<double>, 9> atsc{};
+    std::array<std::optional<double>, 9> aatsc{};
 };
 
 struct MordredEtaNeighbor {
@@ -4798,15 +4800,29 @@ MordredAutocorrelationValues compute_autocorrelation_values(
     }
 
     std::array<double, 9> ats{};
+    std::array<double, 9> atsc{};
     std::array<std::size_t, 9> pair_counts{};
+    double atom_property_sum = 0.0;
     for (std::size_t atom_index = 0u; atom_index < atom_count; ++atom_index) {
         const auto atom_property = atom_properties[atom_index];
         ats[0] += atom_property * atom_property;
+        atom_property_sum += atom_property;
     }
     pair_counts[0] = atom_count;
 
+    std::vector<double> centered_properties;
+    centered_properties.reserve(atom_count);
+    const auto atom_property_mean =
+        atom_count == 0u ? 0.0 : atom_property_sum / static_cast<double>(atom_count);
+    for (const auto atom_property : atom_properties) {
+        const auto centered_property = atom_property - atom_property_mean;
+        centered_properties.push_back(centered_property);
+        atsc[0] += centered_property * centered_property;
+    }
+
     for (std::size_t left = 0u; left < atom_count; ++left) {
         const auto left_property = atom_properties[left];
+        const auto left_centered_property = centered_properties[left];
         for (std::size_t right = left + 1u; right < atom_count; ++right) {
             const auto distance = distance_values.distances[left][right];
             if (distance <= 0 || distance > 8) {
@@ -4814,14 +4830,17 @@ MordredAutocorrelationValues compute_autocorrelation_values(
             }
             const auto lag = static_cast<std::size_t>(distance);
             ats[lag] += left_property * atom_properties[right];
+            atsc[lag] += left_centered_property * centered_properties[right];
             ++pair_counts[lag];
         }
     }
 
     for (std::size_t lag = 0u; lag < values.aats.size(); ++lag) {
         values.ats[lag] = ats[lag];
+        values.atsc[lag] = atsc[lag];
         if (pair_counts[lag] != 0u) {
             values.aats[lag] = ats[lag] / static_cast<double>(pair_counts[lag]);
+            values.aatsc[lag] = atsc[lag] / static_cast<double>(pair_counts[lag]);
         }
     }
 
@@ -6714,6 +6733,8 @@ void set_autocorrelation_values(
             const auto lag_text = std::to_string(lag);
             set_optional_float(builder, "ATS" + lag_text + values.suffix, values.ats[lag]);
             set_optional_float(builder, "AATS" + lag_text + values.suffix, values.aats[lag]);
+            set_optional_float(builder, "ATSC" + lag_text + values.suffix, values.atsc[lag]);
+            set_optional_float(builder, "AATSC" + lag_text + values.suffix, values.aatsc[lag]);
         }
     }
 }

@@ -178,6 +178,12 @@ AUTOCORRELATION_ATS_AATS_NAMES = tuple(
     for kind in ("ATS", "AATS")
     for index in range(9)
 )
+AUTOCORRELATION_ATSC_AATSC_NAMES = tuple(
+    f"{kind}{index}{prop}"
+    for prop in AUTOCORRELATION_ATS_AATS_PROPERTIES
+    for kind in ("ATSC", "AATSC")
+    for index in range(9)
+)
 
 ENABLED_SOURCE_TYPES = {
     "AcidBase",
@@ -673,6 +679,7 @@ def _enabled_descriptor_names(payload: dict[str, Any]) -> tuple[str, ...]:
         if definition["source_type"] in ENABLED_SOURCE_TYPES
         or definition["name"] in ENABLED_DESCRIPTOR_NAMES
         or definition["name"] in AUTOCORRELATION_ATS_AATS_NAMES
+        or definition["name"] in AUTOCORRELATION_ATSC_AATSC_NAMES
         or definition["name"] in ESTATE_COUNT_NAMES
         or definition["name"] in ESTATE_SUM_NAMES
         or definition["name"] in ESTATE_MAX_NAMES
@@ -768,8 +775,9 @@ def test_mordred_descriptors_match_enabled_reference_values():
     names = _enabled_descriptor_names(payload)
     row_divergences = _row_divergence_policy()
 
-    assert len(names) == 1203
+    assert len(names) == 1401
     assert set(AUTOCORRELATION_ATS_AATS_NAMES) <= set(names)
+    assert set(AUTOCORRELATION_ATSC_AATSC_NAMES) <= set(names)
     assert set(ESTATE_COUNT_NAMES) <= set(names)
     assert set(ESTATE_SUM_NAMES) <= set(names)
     assert set(ESTATE_MAX_NAMES) <= set(names)
