@@ -210,7 +210,7 @@ def _compare(
 
         for name in selected:
             expected = expected_by_name[name]
-            observed = descriptors[name]
+            observed = descriptors[name]  # type: ignore[index]
             descriptor_policy = descriptor_policies.get(name, {})
             row_policy = row_policies.get((name, smiles), {})
             status = descriptor_policy.get("status")

@@ -2082,6 +2082,29 @@ TEST(MordredDescriptorTest, NoConformer3DDescriptorsUseGeneratedOmegaConformer) 
     EXPECT_EQ(mol.GetDimension(), 0u);
 }
 
+TEST(MordredDescriptorTest, NoConformerMoRSEDescriptorsUseGeneratedOmegaConformer) {
+    OEChem::OEGraphMol mol = mol_from_smiles("CCO");
+    ASSERT_EQ(mol.NumAtoms(), 3u);
+    ASSERT_EQ(mol.GetDimension(), 0u);
+
+    const auto descriptors = MakeMordredDescriptors(mol);
+
+    ASSERT_TRUE(descriptors.Has("Mor01"));
+    EXPECT_NEAR(descriptors.Float("Mor01"), 36.0, 1.0e-12);
+    ASSERT_TRUE(descriptors.Has("Mor01m"));
+    EXPECT_NEAR(descriptors.Float("Mor01m"), 5.447508788411778, 1.0e-12);
+
+    for (const auto* name : {"Mor02", "Mor32", "Mor02v", "Mor02se", "Mor32p"}) {
+        EXPECT_TRUE(descriptors.Has(name)) << name;
+        if (descriptors.Has(name)) {
+            EXPECT_TRUE(std::isfinite(descriptors.Float(name))) << name;
+        }
+    }
+
+    EXPECT_EQ(mol.NumAtoms(), 3u);
+    EXPECT_EQ(mol.GetDimension(), 0u);
+}
+
 TEST(MordredDescriptorTest, AutocorrelationIntrinsicStateDescriptorsAreMissingForMethane) {
     const auto descriptors = MakeMordredDescriptors(mol_from_smiles("C"));
 

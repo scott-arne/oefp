@@ -245,6 +245,11 @@ NO_CONFORMER_3D_SOURCE_TYPES = {
     "PBF",
 }
 CHARGE_ONLY_CPSA_DESCRIPTOR_NAMES = {"RNCG", "RPCG"}
+MORSE_DESCRIPTOR_NAMES = {
+    f"Mor{distance:02d}{suffix}"
+    for suffix in ("", "m", "v", "se", "p")
+    for distance in range(1, 33)
+}
 OMEGA_GENERATED_3D_DESCRIPTOR_NAMES = {
     "GeomDiameter",
     "GeomRadius",
@@ -258,7 +263,7 @@ OMEGA_GENERATED_3D_DESCRIPTOR_NAMES = {
     "MOMI-Y",
     "MOMI-Z",
     "PBF",
-}
+} | MORSE_DESCRIPTOR_NAMES
 OMEGA_UNSUPPORTED_3D_SMILES = {"C[Na]", "O=[Se]=O"}
 
 ENABLED_DESCRIPTOR_NAMES = {
@@ -850,6 +855,30 @@ def test_mordred_descriptors_generate_low_count_3d_values_with_omega_copy():
     assert mol.GetDimension() == 0
 
 
+def test_mordred_descriptors_generate_morse_values_with_omega_copy():
+    import oefp
+
+    mol = _openeye_mol("CCO")
+    assert mol.NumAtoms() == 3
+    assert mol.GetDimension() == 0
+
+    descriptors = oefp.mordred_descriptors(mol)
+
+    assert descriptors["Mor01"] == pytest.approx(36.0, rel=0.0, abs=1e-12)
+    assert descriptors["Mor01m"] == pytest.approx(
+        5.447508788411778,
+        rel=0.0,
+        abs=1e-12,
+    )
+    for name in ("Mor02", "Mor32", "Mor02v", "Mor02se", "Mor32p"):
+        value = descriptors[name]
+        assert value is not None, name
+        assert math.isfinite(value), name
+
+    assert mol.NumAtoms() == 3
+    assert mol.GetDimension() == 0
+
+
 def test_mordred_schema_matches_committed_fixture_definitions():
     import oefp
 
@@ -887,7 +916,7 @@ def test_mordred_descriptors_match_enabled_reference_values():
     assert set(names) == set(all_names)
     assert len(set(all_names) - set(names)) == 0
     assert len(no_conformer_3d_names) == 213
-    assert len(not_applicable_no_conformer_3d_names) == 201
+    assert len(not_applicable_no_conformer_3d_names) == 41
     assert set(no_conformer_3d_names) <= set(names)
     assert OMEGA_GENERATED_3D_DESCRIPTOR_NAMES <= set(no_conformer_3d_names)
     assert set(AUTOCORRELATION_ATS_AATS_NAMES) <= set(names)

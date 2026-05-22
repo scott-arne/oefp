@@ -289,6 +289,14 @@ struct MordredBaryszMatrixProperty {
     MordredAtomicPropertyLookup lookup;
 };
 
+struct MordredMoRSEProperty {
+    const char* suffix;
+    double carbon_reference;
+    MordredAtomicPropertyLookup lookup;
+};
+
+const std::array<MordredMoRSEProperty, 5>& mordred_morse_properties();
+
 struct MordredAutocorrelationProperty {
     const char* suffix;
     MordredAtomicPropertyLookup atomic_number_lookup;
@@ -400,6 +408,11 @@ struct MordredLowCount3DValues {
     MordredGravitationalIndexValues gravitational;
     std::optional<MordredMomentOfInertiaValues> moment_of_inertia;
     std::optional<double> pbf;
+};
+
+struct MordredMoRSEValues {
+    const char* suffix = "";
+    std::array<std::optional<double>, 33> values{};
 };
 
 struct AtomicPropertyValue {
@@ -3833,6 +3846,90 @@ std::optional<Mordred3DAtomSet> build_mordred_3d_atom_set(
     return atom_set;
 }
 
+std::optional<std::vector<double>> mordred_morse_atom_weights(
+    const Mordred3DAtomSet& atom_set,
+    const MordredMoRSEProperty& property) {
+    std::vector<double> weights;
+    weights.reserve(atom_set.atoms.size());
+
+    if (property.lookup == nullptr) {
+        weights.assign(atom_set.atoms.size(), 1.0);
+        return weights;
+    }
+
+    for (const auto& atom : atom_set.atoms) {
+        const auto value = property.lookup(atom.atomic_number);
+        if (!value.has_value()) {
+            return std::nullopt;
+        }
+        weights.push_back(*value / property.carbon_reference);
+    }
+    return weights;
+}
+
+std::optional<double> compute_mordred_morse_value(
+    const Mordred3DAtomSet& atom_set,
+    const std::vector<double>& weights,
+    std::size_t distance_index) {
+    const auto atom_count = atom_set.atoms.size();
+    if (atom_count <= 1u) {
+        return std::nullopt;
+    }
+
+    double total = 0.0;
+    for (std::size_t row = 0u; row < atom_count; ++row) {
+        for (std::size_t column = 0u; column < atom_count; ++column) {
+            if (row == column) {
+                continue;
+            }
+
+            double kernel = 1.0;
+            if (distance_index > 1u) {
+                const auto sr = static_cast<double>(distance_index - 1u)
+                    * atom_set.distances[row * atom_count + column];
+                if (sr == 0.0) {
+                    return std::nullopt;
+                }
+                kernel = std::sin(sr) / sr;
+            }
+            total += weights[row] * kernel * weights[column];
+        }
+    }
+    return 0.5 * total;
+}
+
+std::vector<MordredMoRSEValues> compute_mordred_morse_values(
+    const OEChem::OEMolBase& mol) {
+    auto explicit_mol = explicit_hydrogen_copy(mol);
+    auto three_d_mol = mordred_omega_single_conformer_copy(explicit_mol);
+    if (!three_d_mol.has_value()) {
+        return {};
+    }
+
+    auto atom_set = build_mordred_3d_atom_set(*three_d_mol, true);
+    if (!atom_set.has_value() || atom_set->atoms.size() <= 1u) {
+        return {};
+    }
+
+    std::vector<MordredMoRSEValues> values;
+    values.reserve(mordred_morse_properties().size());
+    for (const auto& property : mordred_morse_properties()) {
+        const auto weights = mordred_morse_atom_weights(*atom_set, property);
+        if (!weights.has_value()) {
+            continue;
+        }
+
+        MordredMoRSEValues property_values;
+        property_values.suffix = property.suffix;
+        for (std::size_t distance_index = 1u; distance_index <= 32u; ++distance_index) {
+            property_values.values[distance_index] =
+                compute_mordred_morse_value(*atom_set, *weights, distance_index);
+        }
+        values.push_back(std::move(property_values));
+    }
+    return values;
+}
+
 std::optional<MordredGeometricalIndexValues> compute_geometrical_index_values(
     const Mordred3DAtomSet& atom_set) {
     const auto atom_count = atom_set.atoms.size();
@@ -4575,6 +4672,17 @@ const std::array<MordredBaryszMatrixProperty, 8>& mordred_barysz_matrix_properti
         {"are", 2.5, mordred_allred_rocow},
         {"p", 1.67, mordred_polarizability94},
         {"i", 11.2603, mordred_ionization_potential},
+    }};
+    return properties;
+}
+
+const std::array<MordredMoRSEProperty, 5>& mordred_morse_properties() {
+    static const std::array<MordredMoRSEProperty, 5> properties{{
+        {"", 1.0, nullptr},
+        {"m", 12.011, mordred_mass},
+        {"v", 20.579526276115534, mordred_vdw_volume},
+        {"se", 2.746, mordred_sanderson},
+        {"p", 1.67, mordred_polarizability94},
     }};
     return properties;
 }
@@ -7245,6 +7353,25 @@ void set_low_count_3d_values(
     set_optional_float(builder, "PBF", values.pbf);
 }
 
+std::string mordred_morse_descriptor_name(std::size_t distance_index, const char* suffix) {
+    std::ostringstream stream;
+    stream << "Mor" << std::setw(2) << std::setfill('0') << distance_index << suffix;
+    return stream.str();
+}
+
+void set_mordred_morse_values(
+    DescriptorSetBuilder& builder,
+    const std::vector<MordredMoRSEValues>& values) {
+    for (const auto& property_values : values) {
+        for (std::size_t distance_index = 1u; distance_index <= 32u; ++distance_index) {
+            set_optional_float(
+                builder,
+                mordred_morse_descriptor_name(distance_index, property_values.suffix),
+                property_values.values[distance_index]);
+        }
+    }
+}
+
 void set_chi_path_values(DescriptorSetBuilder& builder, const MordredChiPathValues& values) {
     for (std::size_t order = 0u; order < 8u; ++order) {
         const auto order_text = std::to_string(order);
@@ -7621,6 +7748,7 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
             ? compute_estate_vsa_values(mol, *labute_asa_values)
             : std::optional<std::array<double, 10>>{};
     const auto low_count_3d_values = compute_low_count_3d_values(mol);
+    const auto morse_values = compute_mordred_morse_values(mol);
     DescriptorSetBuilder builder(MordredDescriptorSchema());
 
     const auto all_atoms = values.heavy_atoms + values.hydrogens;
@@ -7775,6 +7903,7 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
     if (low_count_3d_values.has_value()) {
         set_low_count_3d_values(builder, *low_count_3d_values);
     }
+    set_mordred_morse_values(builder, morse_values);
     set_optional_float(builder, "SZ", additive_values.sz);
     set_optional_float(builder, "Sm", additive_values.sm);
     set_optional_float(builder, "Sv", additive_values.sv);
