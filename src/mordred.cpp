@@ -191,6 +191,8 @@ struct MordredAutocorrelationValues {
     std::array<std::optional<double>, 9> aats{};
     std::array<std::optional<double>, 9> atsc{};
     std::array<std::optional<double>, 9> aatsc{};
+    std::array<std::optional<double>, 9> mats{};
+    std::array<std::optional<double>, 9> gats{};
 };
 
 struct MordredEtaNeighbor {
@@ -4855,6 +4857,7 @@ MordredAutocorrelationValues compute_autocorrelation_values_from_properties(
 
     std::array<double, 9> ats{};
     std::array<double, 9> atsc{};
+    std::array<double, 9> squared_differences{};
     std::array<std::size_t, 9> pair_counts{};
     double atom_property_sum = 0.0;
     for (std::size_t atom_index = 0u; atom_index < atom_count; ++atom_index) {
@@ -4888,11 +4891,14 @@ MordredAutocorrelationValues compute_autocorrelation_values_from_properties(
             if (include_raw_values) {
                 ats[lag] += left_property * atom_properties[right];
             }
+            const auto property_difference = left_property - atom_properties[right];
+            squared_differences[lag] += property_difference * property_difference;
             atsc[lag] += left_centered_property * centered_properties[right];
             ++pair_counts[lag];
         }
     }
 
+    const auto centered_sum_squares = atsc[0];
     for (std::size_t lag = 0u; lag < values.aats.size(); ++lag) {
         if (include_raw_values) {
             values.ats[lag] = ats[lag];
@@ -4903,6 +4909,30 @@ MordredAutocorrelationValues compute_autocorrelation_values_from_properties(
                 values.aats[lag] = ats[lag] / static_cast<double>(pair_counts[lag]);
             }
             values.aatsc[lag] = atsc[lag] / static_cast<double>(pair_counts[lag]);
+        }
+    }
+    if (centered_sum_squares == 0.0) {
+        return values;
+    }
+
+    for (std::size_t lag = 1u; lag < values.mats.size(); ++lag) {
+        if (!values.aatsc[lag].has_value()) {
+            continue;
+        }
+        values.mats[lag] =
+            static_cast<double>(atom_count) * *values.aatsc[lag] / centered_sum_squares;
+
+        if (atom_count <= 1u || pair_counts[lag] == 0u) {
+            continue;
+        }
+        // Mordred's GMat contains both directions for k > 0, while GSum is the
+        // unordered pair count; this is the reduced unordered-pair form.
+        const auto numerator =
+            squared_differences[lag] / (2.0 * static_cast<double>(pair_counts[lag]));
+        const auto denominator =
+            centered_sum_squares / (static_cast<double>(atom_count) - 1.0);
+        if (denominator != 0.0) {
+            values.gats[lag] = numerator / denominator;
         }
     }
 
@@ -6829,6 +6859,10 @@ void set_autocorrelation_values(
             set_optional_float(builder, "AATS" + lag_text + values.suffix, values.aats[lag]);
             set_optional_float(builder, "ATSC" + lag_text + values.suffix, values.atsc[lag]);
             set_optional_float(builder, "AATSC" + lag_text + values.suffix, values.aatsc[lag]);
+            if (lag != 0u) {
+                set_optional_float(builder, "MATS" + lag_text + values.suffix, values.mats[lag]);
+                set_optional_float(builder, "GATS" + lag_text + values.suffix, values.gats[lag]);
+            }
         }
     }
 }

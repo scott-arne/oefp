@@ -3334,6 +3334,1542 @@
       "reason": "OEFP matches Mordred AATSC8i values on the committed Mordred parity fixture."
     },
     {
+      "descriptor": "MATS1c",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 1 Moran autocorrelation semantics for c weights",
+      "reason": "OEFP matches Mordred MATS1c values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MATS2c",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 2 Moran autocorrelation semantics for c weights",
+      "reason": "OEFP matches Mordred MATS2c values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MATS3c",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 3 Moran autocorrelation semantics for c weights",
+      "reason": "OEFP matches Mordred MATS3c values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MATS4c",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 4 Moran autocorrelation semantics for c weights",
+      "reason": "OEFP matches Mordred MATS4c values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MATS5c",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 5 Moran autocorrelation semantics for c weights",
+      "reason": "OEFP matches Mordred MATS5c values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MATS6c",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 6 Moran autocorrelation semantics for c weights",
+      "reason": "OEFP matches Mordred MATS6c values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MATS7c",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 7 Moran autocorrelation semantics for c weights",
+      "reason": "OEFP matches Mordred MATS7c values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MATS8c",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 8 Moran autocorrelation semantics for c weights",
+      "reason": "OEFP matches Mordred MATS8c values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS1c",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 1 Geary autocorrelation semantics for c weights",
+      "reason": "OEFP matches Mordred GATS1c values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS2c",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 2 Geary autocorrelation semantics for c weights",
+      "reason": "OEFP matches Mordred GATS2c values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS3c",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 3 Geary autocorrelation semantics for c weights",
+      "reason": "OEFP matches Mordred GATS3c values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS4c",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 4 Geary autocorrelation semantics for c weights",
+      "reason": "OEFP matches Mordred GATS4c values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS5c",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 5 Geary autocorrelation semantics for c weights",
+      "reason": "OEFP matches Mordred GATS5c values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS6c",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 6 Geary autocorrelation semantics for c weights",
+      "reason": "OEFP matches Mordred GATS6c values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS7c",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 7 Geary autocorrelation semantics for c weights",
+      "reason": "OEFP matches Mordred GATS7c values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS8c",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 8 Geary autocorrelation semantics for c weights",
+      "reason": "OEFP matches Mordred GATS8c values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MATS1dv",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 1 Moran autocorrelation semantics for dv weights",
+      "reason": "OEFP matches Mordred MATS1dv values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MATS2dv",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 2 Moran autocorrelation semantics for dv weights",
+      "reason": "OEFP matches Mordred MATS2dv values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MATS3dv",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 3 Moran autocorrelation semantics for dv weights",
+      "reason": "OEFP matches Mordred MATS3dv values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MATS4dv",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 4 Moran autocorrelation semantics for dv weights",
+      "reason": "OEFP matches Mordred MATS4dv values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MATS5dv",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 5 Moran autocorrelation semantics for dv weights",
+      "reason": "OEFP matches Mordred MATS5dv values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MATS6dv",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 6 Moran autocorrelation semantics for dv weights",
+      "reason": "OEFP matches Mordred MATS6dv values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MATS7dv",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 7 Moran autocorrelation semantics for dv weights",
+      "reason": "OEFP matches Mordred MATS7dv values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MATS8dv",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 8 Moran autocorrelation semantics for dv weights",
+      "reason": "OEFP matches Mordred MATS8dv values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS1dv",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 1 Geary autocorrelation semantics for dv weights",
+      "reason": "OEFP matches Mordred GATS1dv values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS2dv",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 2 Geary autocorrelation semantics for dv weights",
+      "reason": "OEFP matches Mordred GATS2dv values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS3dv",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 3 Geary autocorrelation semantics for dv weights",
+      "reason": "OEFP matches Mordred GATS3dv values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS4dv",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 4 Geary autocorrelation semantics for dv weights",
+      "reason": "OEFP matches Mordred GATS4dv values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS5dv",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 5 Geary autocorrelation semantics for dv weights",
+      "reason": "OEFP matches Mordred GATS5dv values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS6dv",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 6 Geary autocorrelation semantics for dv weights",
+      "reason": "OEFP matches Mordred GATS6dv values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS7dv",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 7 Geary autocorrelation semantics for dv weights",
+      "reason": "OEFP matches Mordred GATS7dv values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS8dv",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 8 Geary autocorrelation semantics for dv weights",
+      "reason": "OEFP matches Mordred GATS8dv values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MATS1d",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 1 Moran autocorrelation semantics for d weights",
+      "reason": "OEFP matches Mordred MATS1d values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MATS2d",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 2 Moran autocorrelation semantics for d weights",
+      "reason": "OEFP matches Mordred MATS2d values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MATS3d",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 3 Moran autocorrelation semantics for d weights",
+      "reason": "OEFP matches Mordred MATS3d values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MATS4d",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 4 Moran autocorrelation semantics for d weights",
+      "reason": "OEFP matches Mordred MATS4d values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MATS5d",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 5 Moran autocorrelation semantics for d weights",
+      "reason": "OEFP matches Mordred MATS5d values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MATS6d",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 6 Moran autocorrelation semantics for d weights",
+      "reason": "OEFP matches Mordred MATS6d values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MATS7d",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 7 Moran autocorrelation semantics for d weights",
+      "reason": "OEFP matches Mordred MATS7d values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MATS8d",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 8 Moran autocorrelation semantics for d weights",
+      "reason": "OEFP matches Mordred MATS8d values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS1d",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 1 Geary autocorrelation semantics for d weights",
+      "reason": "OEFP matches Mordred GATS1d values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS2d",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 2 Geary autocorrelation semantics for d weights",
+      "reason": "OEFP matches Mordred GATS2d values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS3d",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 3 Geary autocorrelation semantics for d weights",
+      "reason": "OEFP matches Mordred GATS3d values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS4d",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 4 Geary autocorrelation semantics for d weights",
+      "reason": "OEFP matches Mordred GATS4d values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS5d",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 5 Geary autocorrelation semantics for d weights",
+      "reason": "OEFP matches Mordred GATS5d values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS6d",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 6 Geary autocorrelation semantics for d weights",
+      "reason": "OEFP matches Mordred GATS6d values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS7d",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 7 Geary autocorrelation semantics for d weights",
+      "reason": "OEFP matches Mordred GATS7d values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS8d",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 8 Geary autocorrelation semantics for d weights",
+      "reason": "OEFP matches Mordred GATS8d values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MATS1s",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 1 Moran autocorrelation semantics for s weights",
+      "reason": "OEFP matches Mordred MATS1s values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MATS2s",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 2 Moran autocorrelation semantics for s weights",
+      "reason": "OEFP matches Mordred MATS2s values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MATS3s",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 3 Moran autocorrelation semantics for s weights",
+      "reason": "OEFP matches Mordred MATS3s values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MATS4s",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 4 Moran autocorrelation semantics for s weights",
+      "reason": "OEFP matches Mordred MATS4s values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MATS5s",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 5 Moran autocorrelation semantics for s weights",
+      "reason": "OEFP matches Mordred MATS5s values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MATS6s",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 6 Moran autocorrelation semantics for s weights",
+      "reason": "OEFP matches Mordred MATS6s values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MATS7s",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 7 Moran autocorrelation semantics for s weights",
+      "reason": "OEFP matches Mordred MATS7s values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MATS8s",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 8 Moran autocorrelation semantics for s weights",
+      "reason": "OEFP matches Mordred MATS8s values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS1s",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 1 Geary autocorrelation semantics for s weights",
+      "reason": "OEFP matches Mordred GATS1s values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS2s",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 2 Geary autocorrelation semantics for s weights",
+      "reason": "OEFP matches Mordred GATS2s values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS3s",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 3 Geary autocorrelation semantics for s weights",
+      "reason": "OEFP matches Mordred GATS3s values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS4s",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 4 Geary autocorrelation semantics for s weights",
+      "reason": "OEFP matches Mordred GATS4s values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS5s",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 5 Geary autocorrelation semantics for s weights",
+      "reason": "OEFP matches Mordred GATS5s values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS6s",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 6 Geary autocorrelation semantics for s weights",
+      "reason": "OEFP matches Mordred GATS6s values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS7s",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 7 Geary autocorrelation semantics for s weights",
+      "reason": "OEFP matches Mordred GATS7s values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS8s",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 8 Geary autocorrelation semantics for s weights",
+      "reason": "OEFP matches Mordred GATS8s values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MATS1Z",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 1 Moran autocorrelation semantics for Z weights",
+      "reason": "OEFP matches Mordred MATS1Z values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MATS2Z",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 2 Moran autocorrelation semantics for Z weights",
+      "reason": "OEFP matches Mordred MATS2Z values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MATS3Z",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 3 Moran autocorrelation semantics for Z weights",
+      "reason": "OEFP matches Mordred MATS3Z values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MATS4Z",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 4 Moran autocorrelation semantics for Z weights",
+      "reason": "OEFP matches Mordred MATS4Z values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MATS5Z",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 5 Moran autocorrelation semantics for Z weights",
+      "reason": "OEFP matches Mordred MATS5Z values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MATS6Z",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 6 Moran autocorrelation semantics for Z weights",
+      "reason": "OEFP matches Mordred MATS6Z values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MATS7Z",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 7 Moran autocorrelation semantics for Z weights",
+      "reason": "OEFP matches Mordred MATS7Z values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MATS8Z",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 8 Moran autocorrelation semantics for Z weights",
+      "reason": "OEFP matches Mordred MATS8Z values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS1Z",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 1 Geary autocorrelation semantics for Z weights",
+      "reason": "OEFP matches Mordred GATS1Z values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS2Z",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 2 Geary autocorrelation semantics for Z weights",
+      "reason": "OEFP matches Mordred GATS2Z values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS3Z",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 3 Geary autocorrelation semantics for Z weights",
+      "reason": "OEFP matches Mordred GATS3Z values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS4Z",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 4 Geary autocorrelation semantics for Z weights",
+      "reason": "OEFP matches Mordred GATS4Z values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS5Z",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 5 Geary autocorrelation semantics for Z weights",
+      "reason": "OEFP matches Mordred GATS5Z values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS6Z",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 6 Geary autocorrelation semantics for Z weights",
+      "reason": "OEFP matches Mordred GATS6Z values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS7Z",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 7 Geary autocorrelation semantics for Z weights",
+      "reason": "OEFP matches Mordred GATS7Z values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS8Z",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 8 Geary autocorrelation semantics for Z weights",
+      "reason": "OEFP matches Mordred GATS8Z values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MATS1m",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 1 Moran autocorrelation semantics for m weights",
+      "reason": "OEFP matches Mordred MATS1m values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MATS2m",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 2 Moran autocorrelation semantics for m weights",
+      "reason": "OEFP matches Mordred MATS2m values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MATS3m",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 3 Moran autocorrelation semantics for m weights",
+      "reason": "OEFP matches Mordred MATS3m values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MATS4m",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 4 Moran autocorrelation semantics for m weights",
+      "reason": "OEFP matches Mordred MATS4m values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MATS5m",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 5 Moran autocorrelation semantics for m weights",
+      "reason": "OEFP matches Mordred MATS5m values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MATS6m",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 6 Moran autocorrelation semantics for m weights",
+      "reason": "OEFP matches Mordred MATS6m values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MATS7m",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 7 Moran autocorrelation semantics for m weights",
+      "reason": "OEFP matches Mordred MATS7m values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MATS8m",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 8 Moran autocorrelation semantics for m weights",
+      "reason": "OEFP matches Mordred MATS8m values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS1m",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 1 Geary autocorrelation semantics for m weights",
+      "reason": "OEFP matches Mordred GATS1m values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS2m",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 2 Geary autocorrelation semantics for m weights",
+      "reason": "OEFP matches Mordred GATS2m values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS3m",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 3 Geary autocorrelation semantics for m weights",
+      "reason": "OEFP matches Mordred GATS3m values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS4m",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 4 Geary autocorrelation semantics for m weights",
+      "reason": "OEFP matches Mordred GATS4m values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS5m",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 5 Geary autocorrelation semantics for m weights",
+      "reason": "OEFP matches Mordred GATS5m values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS6m",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 6 Geary autocorrelation semantics for m weights",
+      "reason": "OEFP matches Mordred GATS6m values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS7m",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 7 Geary autocorrelation semantics for m weights",
+      "reason": "OEFP matches Mordred GATS7m values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS8m",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 8 Geary autocorrelation semantics for m weights",
+      "reason": "OEFP matches Mordred GATS8m values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MATS1v",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 1 Moran autocorrelation semantics for v weights",
+      "reason": "OEFP matches Mordred MATS1v values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MATS2v",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 2 Moran autocorrelation semantics for v weights",
+      "reason": "OEFP matches Mordred MATS2v values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MATS3v",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 3 Moran autocorrelation semantics for v weights",
+      "reason": "OEFP matches Mordred MATS3v values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MATS4v",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 4 Moran autocorrelation semantics for v weights",
+      "reason": "OEFP matches Mordred MATS4v values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MATS5v",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 5 Moran autocorrelation semantics for v weights",
+      "reason": "OEFP matches Mordred MATS5v values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MATS6v",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 6 Moran autocorrelation semantics for v weights",
+      "reason": "OEFP matches Mordred MATS6v values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MATS7v",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 7 Moran autocorrelation semantics for v weights",
+      "reason": "OEFP matches Mordred MATS7v values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MATS8v",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 8 Moran autocorrelation semantics for v weights",
+      "reason": "OEFP matches Mordred MATS8v values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS1v",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 1 Geary autocorrelation semantics for v weights",
+      "reason": "OEFP matches Mordred GATS1v values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS2v",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 2 Geary autocorrelation semantics for v weights",
+      "reason": "OEFP matches Mordred GATS2v values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS3v",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 3 Geary autocorrelation semantics for v weights",
+      "reason": "OEFP matches Mordred GATS3v values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS4v",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 4 Geary autocorrelation semantics for v weights",
+      "reason": "OEFP matches Mordred GATS4v values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS5v",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 5 Geary autocorrelation semantics for v weights",
+      "reason": "OEFP matches Mordred GATS5v values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS6v",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 6 Geary autocorrelation semantics for v weights",
+      "reason": "OEFP matches Mordred GATS6v values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS7v",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 7 Geary autocorrelation semantics for v weights",
+      "reason": "OEFP matches Mordred GATS7v values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS8v",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 8 Geary autocorrelation semantics for v weights",
+      "reason": "OEFP matches Mordred GATS8v values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MATS1se",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 1 Moran autocorrelation semantics for se weights",
+      "reason": "OEFP matches Mordred MATS1se values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MATS2se",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 2 Moran autocorrelation semantics for se weights",
+      "reason": "OEFP matches Mordred MATS2se values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MATS3se",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 3 Moran autocorrelation semantics for se weights",
+      "reason": "OEFP matches Mordred MATS3se values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MATS4se",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 4 Moran autocorrelation semantics for se weights",
+      "reason": "OEFP matches Mordred MATS4se values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MATS5se",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 5 Moran autocorrelation semantics for se weights",
+      "reason": "OEFP matches Mordred MATS5se values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MATS6se",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 6 Moran autocorrelation semantics for se weights",
+      "reason": "OEFP matches Mordred MATS6se values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MATS7se",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 7 Moran autocorrelation semantics for se weights",
+      "reason": "OEFP matches Mordred MATS7se values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MATS8se",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 8 Moran autocorrelation semantics for se weights",
+      "reason": "OEFP matches Mordred MATS8se values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS1se",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 1 Geary autocorrelation semantics for se weights",
+      "reason": "OEFP matches Mordred GATS1se values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS2se",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 2 Geary autocorrelation semantics for se weights",
+      "reason": "OEFP matches Mordred GATS2se values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS3se",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 3 Geary autocorrelation semantics for se weights",
+      "reason": "OEFP matches Mordred GATS3se values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS4se",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 4 Geary autocorrelation semantics for se weights",
+      "reason": "OEFP matches Mordred GATS4se values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS5se",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 5 Geary autocorrelation semantics for se weights",
+      "reason": "OEFP matches Mordred GATS5se values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS6se",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 6 Geary autocorrelation semantics for se weights",
+      "reason": "OEFP matches Mordred GATS6se values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS7se",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 7 Geary autocorrelation semantics for se weights",
+      "reason": "OEFP matches Mordred GATS7se values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS8se",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 8 Geary autocorrelation semantics for se weights",
+      "reason": "OEFP matches Mordred GATS8se values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MATS1pe",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 1 Moran autocorrelation semantics for pe weights",
+      "reason": "OEFP matches Mordred MATS1pe values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MATS2pe",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 2 Moran autocorrelation semantics for pe weights",
+      "reason": "OEFP matches Mordred MATS2pe values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MATS3pe",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 3 Moran autocorrelation semantics for pe weights",
+      "reason": "OEFP matches Mordred MATS3pe values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MATS4pe",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 4 Moran autocorrelation semantics for pe weights",
+      "reason": "OEFP matches Mordred MATS4pe values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MATS5pe",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 5 Moran autocorrelation semantics for pe weights",
+      "reason": "OEFP matches Mordred MATS5pe values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MATS6pe",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 6 Moran autocorrelation semantics for pe weights",
+      "reason": "OEFP matches Mordred MATS6pe values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MATS7pe",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 7 Moran autocorrelation semantics for pe weights",
+      "reason": "OEFP matches Mordred MATS7pe values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MATS8pe",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 8 Moran autocorrelation semantics for pe weights",
+      "reason": "OEFP matches Mordred MATS8pe values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS1pe",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 1 Geary autocorrelation semantics for pe weights",
+      "reason": "OEFP matches Mordred GATS1pe values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS2pe",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 2 Geary autocorrelation semantics for pe weights",
+      "reason": "OEFP matches Mordred GATS2pe values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS3pe",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 3 Geary autocorrelation semantics for pe weights",
+      "reason": "OEFP matches Mordred GATS3pe values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS4pe",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 4 Geary autocorrelation semantics for pe weights",
+      "reason": "OEFP matches Mordred GATS4pe values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS5pe",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 5 Geary autocorrelation semantics for pe weights",
+      "reason": "OEFP matches Mordred GATS5pe values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS6pe",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 6 Geary autocorrelation semantics for pe weights",
+      "reason": "OEFP matches Mordred GATS6pe values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS7pe",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 7 Geary autocorrelation semantics for pe weights",
+      "reason": "OEFP matches Mordred GATS7pe values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS8pe",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 8 Geary autocorrelation semantics for pe weights",
+      "reason": "OEFP matches Mordred GATS8pe values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MATS1are",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 1 Moran autocorrelation semantics for are weights",
+      "reason": "OEFP matches Mordred MATS1are values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MATS2are",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 2 Moran autocorrelation semantics for are weights",
+      "reason": "OEFP matches Mordred MATS2are values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MATS3are",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 3 Moran autocorrelation semantics for are weights",
+      "reason": "OEFP matches Mordred MATS3are values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MATS4are",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 4 Moran autocorrelation semantics for are weights",
+      "reason": "OEFP matches Mordred MATS4are values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MATS5are",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 5 Moran autocorrelation semantics for are weights",
+      "reason": "OEFP matches Mordred MATS5are values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MATS6are",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 6 Moran autocorrelation semantics for are weights",
+      "reason": "OEFP matches Mordred MATS6are values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MATS7are",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 7 Moran autocorrelation semantics for are weights",
+      "reason": "OEFP matches Mordred MATS7are values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MATS8are",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 8 Moran autocorrelation semantics for are weights",
+      "reason": "OEFP matches Mordred MATS8are values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS1are",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 1 Geary autocorrelation semantics for are weights",
+      "reason": "OEFP matches Mordred GATS1are values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS2are",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 2 Geary autocorrelation semantics for are weights",
+      "reason": "OEFP matches Mordred GATS2are values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS3are",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 3 Geary autocorrelation semantics for are weights",
+      "reason": "OEFP matches Mordred GATS3are values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS4are",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 4 Geary autocorrelation semantics for are weights",
+      "reason": "OEFP matches Mordred GATS4are values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS5are",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 5 Geary autocorrelation semantics for are weights",
+      "reason": "OEFP matches Mordred GATS5are values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS6are",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 6 Geary autocorrelation semantics for are weights",
+      "reason": "OEFP matches Mordred GATS6are values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS7are",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 7 Geary autocorrelation semantics for are weights",
+      "reason": "OEFP matches Mordred GATS7are values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS8are",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 8 Geary autocorrelation semantics for are weights",
+      "reason": "OEFP matches Mordred GATS8are values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MATS1p",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 1 Moran autocorrelation semantics for p weights",
+      "reason": "OEFP matches Mordred MATS1p values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MATS2p",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 2 Moran autocorrelation semantics for p weights",
+      "reason": "OEFP matches Mordred MATS2p values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MATS3p",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 3 Moran autocorrelation semantics for p weights",
+      "reason": "OEFP matches Mordred MATS3p values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MATS4p",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 4 Moran autocorrelation semantics for p weights",
+      "reason": "OEFP matches Mordred MATS4p values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MATS5p",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 5 Moran autocorrelation semantics for p weights",
+      "reason": "OEFP matches Mordred MATS5p values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MATS6p",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 6 Moran autocorrelation semantics for p weights",
+      "reason": "OEFP matches Mordred MATS6p values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MATS7p",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 7 Moran autocorrelation semantics for p weights",
+      "reason": "OEFP matches Mordred MATS7p values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MATS8p",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 8 Moran autocorrelation semantics for p weights",
+      "reason": "OEFP matches Mordred MATS8p values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS1p",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 1 Geary autocorrelation semantics for p weights",
+      "reason": "OEFP matches Mordred GATS1p values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS2p",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 2 Geary autocorrelation semantics for p weights",
+      "reason": "OEFP matches Mordred GATS2p values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS3p",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 3 Geary autocorrelation semantics for p weights",
+      "reason": "OEFP matches Mordred GATS3p values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS4p",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 4 Geary autocorrelation semantics for p weights",
+      "reason": "OEFP matches Mordred GATS4p values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS5p",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 5 Geary autocorrelation semantics for p weights",
+      "reason": "OEFP matches Mordred GATS5p values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS6p",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 6 Geary autocorrelation semantics for p weights",
+      "reason": "OEFP matches Mordred GATS6p values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS7p",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 7 Geary autocorrelation semantics for p weights",
+      "reason": "OEFP matches Mordred GATS7p values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS8p",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 8 Geary autocorrelation semantics for p weights",
+      "reason": "OEFP matches Mordred GATS8p values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MATS1i",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 1 Moran autocorrelation semantics for i weights",
+      "reason": "OEFP matches Mordred MATS1i values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MATS2i",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 2 Moran autocorrelation semantics for i weights",
+      "reason": "OEFP matches Mordred MATS2i values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MATS3i",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 3 Moran autocorrelation semantics for i weights",
+      "reason": "OEFP matches Mordred MATS3i values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MATS4i",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 4 Moran autocorrelation semantics for i weights",
+      "reason": "OEFP matches Mordred MATS4i values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MATS5i",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 5 Moran autocorrelation semantics for i weights",
+      "reason": "OEFP matches Mordred MATS5i values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MATS6i",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 6 Moran autocorrelation semantics for i weights",
+      "reason": "OEFP matches Mordred MATS6i values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MATS7i",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 7 Moran autocorrelation semantics for i weights",
+      "reason": "OEFP matches Mordred MATS7i values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "MATS8i",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred MATS lag 8 Moran autocorrelation semantics for i weights",
+      "reason": "OEFP matches Mordred MATS8i values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS1i",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 1 Geary autocorrelation semantics for i weights",
+      "reason": "OEFP matches Mordred GATS1i values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS2i",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 2 Geary autocorrelation semantics for i weights",
+      "reason": "OEFP matches Mordred GATS2i values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS3i",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 3 Geary autocorrelation semantics for i weights",
+      "reason": "OEFP matches Mordred GATS3i values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS4i",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 4 Geary autocorrelation semantics for i weights",
+      "reason": "OEFP matches Mordred GATS4i values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS5i",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 5 Geary autocorrelation semantics for i weights",
+      "reason": "OEFP matches Mordred GATS5i values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS6i",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 6 Geary autocorrelation semantics for i weights",
+      "reason": "OEFP matches Mordred GATS6i values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS7i",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 7 Geary autocorrelation semantics for i weights",
+      "reason": "OEFP matches Mordred GATS7i values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "GATS8i",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GATS lag 8 Geary autocorrelation semantics for i weights",
+      "reason": "OEFP matches Mordred GATS8i values on the committed Mordred parity fixture."
+    },
+    {
       "descriptor": "BalabanJ",
       "family": "BalabanJ",
       "source": "/Users/johnss51/Development/python/mordred/mordred/BalabanJ.py",

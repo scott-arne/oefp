@@ -108,6 +108,14 @@ const std::vector<std::string>& autocorrelation_enabled_names() {
                 generated.push_back(prefix + std::to_string(lag) + "c");
             }
         }
+        for (const auto* suffix :
+             {"c", "dv", "d", "s", "Z", "m", "v", "se", "pe", "are", "p", "i"}) {
+            for (const auto* prefix : {"MATS", "GATS"}) {
+                for (std::size_t lag = 1u; lag <= 8u; ++lag) {
+                    generated.push_back(prefix + std::to_string(lag) + suffix);
+                }
+            }
+        }
         return generated;
     }();
     return names;
@@ -1916,6 +1924,38 @@ TEST(MordredDescriptorTest, AutocorrelationDescriptorsUseExplicitHydrogenShortes
         {"AATSC2c", -0.0012302731393274526},
         {"AATSC3c", -0.0005744320253651454},
         {"AATSC4c", 0.005328957225445714},
+        {"MATS1c", -0.5260636733546601},
+        {"MATS2c", -0.05197393758513099},
+        {"MATS3c", -0.02426737061783646},
+        {"MATS4c", 0.2251263409526737},
+        {"GATS1c", 1.3606078700270987},
+        {"GATS2c", 0.8441978623758071},
+        {"GATS3c", 1.0183378166865606},
+        {"GATS4c", 0.6401703428863297},
+        {"MATS1dv", -0.060679611650485445},
+        {"MATS2dv", -0.23711725168035844},
+        {"MATS3dv", -0.1553398058252427},
+        {"MATS4dv", 0.31067961165048547},
+        {"GATS1dv", 1.004854368932039},
+        {"GATS2dv", 1.1292008961911877},
+        {"GATS3dv", 1.1067961165048545},
+        {"GATS4dv", 0.0},
+        {"MATS1Z", -0.22632890365448508},
+        {"MATS2Z", -0.2524916943521595},
+        {"MATS3Z", -0.07059800664451825},
+        {"MATS4Z", 0.48006644518272423},
+        {"GATS1Z", 1.3305647840531563},
+        {"GATS2Z", 1.1592128801431127},
+        {"GATS3Z", 0.8571428571428572},
+        {"GATS4Z", 0.0},
+        {"MATS1se", -0.16084977744022685},
+        {"MATS2se", -0.131980813454149},
+        {"MATS3se", -0.1787178883624364},
+        {"MATS4se", 0.2157211515916628},
+        {"GATS1se", 1.0710770679301527},
+        {"GATS2se", 1.0256440434166436},
+        {"GATS3se", 1.1748342410118675},
+        {"GATS4se", 0.0},
     };
 
     for (const auto& [name, expected_value] : expected_values) {
@@ -1934,11 +1974,19 @@ TEST(MordredDescriptorTest, AutocorrelationDescriptorsUseExplicitHydrogenShortes
             EXPECT_FALSE(descriptors.Has("AATSC" + lag_text + suffix)) << suffix << lag;
         }
     }
-    for (std::size_t lag = 5u; lag <= 8u; ++lag) {
-        const auto lag_text = std::to_string(lag);
-        EXPECT_TRUE(descriptors.Has("ATSC" + lag_text + "c")) << lag;
-        EXPECT_EQ(descriptors.Float("ATSC" + lag_text + "c"), 0.0) << lag;
-        EXPECT_FALSE(descriptors.Has("AATSC" + lag_text + "c")) << lag;
+    for (const auto* suffix :
+         {"c", "dv", "d", "s", "Z", "m", "v", "se", "pe", "are", "p", "i"}) {
+        for (std::size_t lag = 5u; lag <= 8u; ++lag) {
+            const auto lag_text = std::to_string(lag);
+            if (std::string_view(suffix) == "c") {
+                EXPECT_TRUE(descriptors.Has("ATSC" + lag_text + suffix)) << suffix << lag;
+                EXPECT_EQ(descriptors.Float("ATSC" + lag_text + suffix), 0.0)
+                    << suffix << lag;
+                EXPECT_FALSE(descriptors.Has("AATSC" + lag_text + suffix)) << suffix << lag;
+            }
+            EXPECT_FALSE(descriptors.Has("MATS" + lag_text + suffix)) << suffix << lag;
+            EXPECT_FALSE(descriptors.Has("GATS" + lag_text + suffix)) << suffix << lag;
+        }
     }
 }
 
@@ -1949,6 +1997,10 @@ TEST(MordredDescriptorTest, AutocorrelationChargeDescriptorsAreMissingWhenGastei
         const auto lag_text = std::to_string(lag);
         EXPECT_FALSE(descriptors.Has("ATSC" + lag_text + "c")) << lag;
         EXPECT_FALSE(descriptors.Has("AATSC" + lag_text + "c")) << lag;
+        if (lag != 0u) {
+            EXPECT_FALSE(descriptors.Has("MATS" + lag_text + "c")) << lag;
+            EXPECT_FALSE(descriptors.Has("GATS" + lag_text + "c")) << lag;
+        }
     }
 }
 
@@ -1961,6 +2013,10 @@ TEST(MordredDescriptorTest, AutocorrelationIntrinsicStateDescriptorsAreMissingFo
         EXPECT_FALSE(descriptors.Has("AATS" + lag_text + "s")) << lag;
         EXPECT_FALSE(descriptors.Has("ATSC" + lag_text + "s")) << lag;
         EXPECT_FALSE(descriptors.Has("AATSC" + lag_text + "s")) << lag;
+        if (lag != 0u) {
+            EXPECT_FALSE(descriptors.Has("MATS" + lag_text + "s")) << lag;
+            EXPECT_FALSE(descriptors.Has("GATS" + lag_text + "s")) << lag;
+        }
     }
 }
 
