@@ -24,7 +24,7 @@ if not DOXYGEN_AVAILABLE:
 project = "OEFP"
 copyright = "2026, OEFP Contributors"
 author = "OEFP Contributors"
-release = "0.2.4"
+release = "0.2.5"
 version = "0.2"
 
 # -- General Configuration ----------------------------------------------------

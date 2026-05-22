@@ -1,32 +1,30 @@
 {
     "version": 6,
-    "cmakeMinimumRequired": {
-        "major": 3,
-        "minor": 21,
-        "patch": 0
-    },
+    "cmakeMinimumRequired": {"major": 3, "minor": 21, "patch": 0},
     "configurePresets": [
         {
-            "name": "release",
-            "binaryDir": "${sourceDir}/build-release",
+            "name": "default",
+            "displayName": "Default Config",
+            "binaryDir": "${sourceDir}/build",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Release",
-                "OPENEYE_ROOT": {"type": "PATH", "value": "$env{OPENEYE_ROOT}"},
-                "Python3_EXECUTABLE": {"type": "PATH", "value": "$env{Python3_EXECUTABLE}"}
+                "OPENEYE_ROOT": "/Users/johnss51/Support/openeye/lib/openeye/toolkits/2025.2.1/macOS-14.8-clang++16-universal",
+                "Python3_EXECUTABLE": "/Users/johnss51/Applications/miniforge3/envs/main/bin/python"
             }
         },
         {
             "name": "debug",
+            "displayName": "Debug",
             "binaryDir": "${sourceDir}/build-debug",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Debug",
-                "OPENEYE_ROOT": {"type": "PATH", "value": "$env{OPENEYE_ROOT}"},
-                "Python3_EXECUTABLE": {"type": "PATH", "value": "$env{Python3_EXECUTABLE}"}
+                "OPENEYE_ROOT": "/Users/johnss51/Support/openeye/lib/openeye/toolkits/2025.2.1/macOS-14.8-clang++16-universal",
+                "Python3_EXECUTABLE": "/Users/johnss51/Applications/miniforge3/envs/main/bin/python"
             }
         }
     ],
     "buildPresets": [
-        { "name": "release", "configurePreset": "release" },
-        { "name": "debug", "configurePreset": "debug" }
+        {"name": "default", "configurePreset": "default"},
+        {"name": "debug", "configurePreset": "debug"}
     ]
 }
