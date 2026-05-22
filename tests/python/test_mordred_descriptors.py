@@ -159,8 +159,12 @@ ESTATE_COUNT_NAMES = (
 ESTATE_SUM_NAMES = tuple("S" + name[1:] for name in ESTATE_COUNT_NAMES)
 ESTATE_MAX_NAMES = tuple("MAX" + name[1:] for name in ESTATE_COUNT_NAMES)
 ESTATE_MIN_NAMES = tuple("MIN" + name[1:] for name in ESTATE_COUNT_NAMES)
-AUTOCORRELATION_Z_NAMES = tuple(f"ATS{index}Z" for index in range(9)) + tuple(
-    f"AATS{index}Z" for index in range(9)
+AUTOCORRELATION_ATS_AATS_PROPERTIES = ("Z", "m", "v", "se", "pe", "are", "p", "i")
+AUTOCORRELATION_ATS_AATS_NAMES = tuple(
+    f"{kind}{index}{prop}"
+    for prop in AUTOCORRELATION_ATS_AATS_PROPERTIES
+    for kind in ("ATS", "AATS")
+    for index in range(9)
 )
 
 ENABLED_SOURCE_TYPES = {
@@ -656,7 +660,7 @@ def _enabled_descriptor_names(payload: dict[str, Any]) -> tuple[str, ...]:
         for definition in payload["definitions"]
         if definition["source_type"] in ENABLED_SOURCE_TYPES
         or definition["name"] in ENABLED_DESCRIPTOR_NAMES
-        or definition["name"] in AUTOCORRELATION_Z_NAMES
+        or definition["name"] in AUTOCORRELATION_ATS_AATS_NAMES
         or definition["name"] in ESTATE_COUNT_NAMES
         or definition["name"] in ESTATE_SUM_NAMES
         or definition["name"] in ESTATE_MAX_NAMES
@@ -752,8 +756,8 @@ def test_mordred_descriptors_match_enabled_reference_values():
     names = _enabled_descriptor_names(payload)
     row_divergences = _row_divergence_policy()
 
-    assert len(names) == 1023
-    assert set(AUTOCORRELATION_Z_NAMES) <= set(names)
+    assert len(names) == 1149
+    assert set(AUTOCORRELATION_ATS_AATS_NAMES) <= set(names)
     assert set(ESTATE_COUNT_NAMES) <= set(names)
     assert set(ESTATE_SUM_NAMES) <= set(names)
     assert set(ESTATE_MAX_NAMES) <= set(names)

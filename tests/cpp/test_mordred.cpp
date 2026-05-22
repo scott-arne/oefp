@@ -92,12 +92,18 @@ const std::vector<std::string>& estate_min_names() {
     return names;
 }
 
-const std::vector<std::string>& autocorrelation_z_names() {
-    static const std::vector<std::string> names{
-        "ATS0Z",  "ATS1Z",  "ATS2Z",  "ATS3Z",  "ATS4Z",  "ATS5Z",
-        "ATS6Z",  "ATS7Z",  "ATS8Z",  "AATS0Z", "AATS1Z", "AATS2Z",
-        "AATS3Z", "AATS4Z", "AATS5Z", "AATS6Z", "AATS7Z", "AATS8Z",
-    };
+const std::vector<std::string>& autocorrelation_ats_aats_names() {
+    static const std::vector<std::string> names = [] {
+        std::vector<std::string> generated;
+        for (const auto* suffix : {"Z", "m", "v", "se", "pe", "are", "p", "i"}) {
+            for (const auto* prefix : {"ATS", "AATS"}) {
+                for (std::size_t lag = 0u; lag <= 8u; ++lag) {
+                    generated.push_back(prefix + std::to_string(lag) + suffix);
+                }
+            }
+        }
+        return generated;
+    }();
     return names;
 }
 
@@ -1803,7 +1809,7 @@ TEST(MordredDescriptorTest, FrameworkDescriptorDoesNotDoubleCountExplicitHydroge
     EXPECT_NEAR(descriptors.Float("fMF"), 0.3333333333333333, 1.0e-12);
 }
 
-TEST(MordredDescriptorTest, AutocorrelationZDescriptorsUseExplicitHydrogenShortestPaths) {
+TEST(MordredDescriptorTest, AutocorrelationDescriptorsUseExplicitHydrogenShortestPaths) {
     const auto descriptors = MakeMordredDescriptors(mol_from_smiles("CCO"));
     const std::vector<std::pair<std::string, double>> expected_values{
         {"ATS0Z", 142.0},
@@ -1820,25 +1826,46 @@ TEST(MordredDescriptorTest, AutocorrelationZDescriptorsUseExplicitHydrogenShorte
         {"AATS2Z", 8.0},
         {"AATS3Z", 3.1666666666666665},
         {"AATS4Z", 1.0},
+        {"ATS0m", 550.592627},
+        {"ATS1m", 413.0905419999999},
+        {"AATS0m", 61.17695855555556},
+        {"AATS4m", 1.016064},
+        {"ATS0v", 1249.927047048598},
+        {"AATS3v", 50.78728864119676},
+        {"ATS0se", 68.743532},
+        {"AATS2se", 7.581220615384615},
+        {"ATS0pe", 53.878600000000006},
+        {"AATS1pe", 6.3615625},
+        {"ATS0are", 53.790000000000006},
+        {"AATS4are", 4.840000000000001},
+        {"ATS0p", 8.888681429094001},
+        {"AATS3p", 0.5228959588993333},
+        {"ATS0i", 1548.545910127994},
+        {"AATS4i", 184.917652024249},
     };
 
     for (const auto& [name, expected_value] : expected_values) {
         ASSERT_TRUE(descriptors.Has(name)) << name;
         EXPECT_NEAR(descriptors.Float(name), expected_value, 1.0e-12) << name;
     }
-    for (const auto* name : {"AATS5Z", "AATS6Z", "AATS7Z", "AATS8Z"}) {
-        EXPECT_FALSE(descriptors.Has(name)) << name;
+    for (const auto* suffix : {"Z", "m", "v", "se", "pe", "are", "p", "i"}) {
+        for (std::size_t lag = 5u; lag <= 8u; ++lag) {
+            const auto lag_text = std::to_string(lag);
+            EXPECT_TRUE(descriptors.Has("ATS" + lag_text + suffix)) << suffix << lag;
+            EXPECT_EQ(descriptors.Float("ATS" + lag_text + suffix), 0.0) << suffix << lag;
+            EXPECT_FALSE(descriptors.Has("AATS" + lag_text + suffix)) << suffix << lag;
+        }
     }
 }
 
-TEST(MordredDescriptorTest, AutocorrelationZDescriptorsDoNotDoubleCountExplicitHydrogens) {
+TEST(MordredDescriptorTest, AutocorrelationDescriptorsDoNotDoubleCountExplicitHydrogens) {
     OEChem::OEGraphMol explicit_mol = mol_from_smiles("CCO");
     OEChem::OEAddExplicitHydrogens(explicit_mol);
 
     const auto implicit_descriptors = MakeMordredDescriptors(mol_from_smiles("CCO"));
     const auto explicit_descriptors = MakeMordredDescriptors(explicit_mol);
 
-    for (const auto& name : autocorrelation_z_names()) {
+    for (const auto& name : autocorrelation_ats_aats_names()) {
         EXPECT_EQ(explicit_descriptors.Has(name), implicit_descriptors.Has(name)) << name;
         if (implicit_descriptors.Has(name)) {
             EXPECT_NEAR(

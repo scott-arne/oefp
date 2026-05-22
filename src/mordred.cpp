@@ -170,8 +170,14 @@ struct MordredMolecularDistanceEdgeValues {
     std::array<std::array<std::optional<double>, 5>, 5> nitrogen{};
 };
 
-struct MordredAutocorrelationZValues {
-    std::array<double, 9> ats{};
+struct MordredExplicitAtomDistanceValues {
+    std::vector<std::uint32_t> atomic_numbers;
+    std::vector<std::vector<std::int64_t>> distances;
+};
+
+struct MordredAutocorrelationValues {
+    const char* suffix = "";
+    std::array<std::optional<double>, 9> ats{};
     std::array<std::optional<double>, 9> aats{};
 };
 
@@ -257,6 +263,11 @@ using MordredAtomicPropertyLookup = std::optional<double> (*)(std::uint32_t);
 struct MordredBaryszMatrixProperty {
     const char* suffix;
     double carbon_reference;
+    MordredAtomicPropertyLookup lookup;
+};
+
+struct MordredAutocorrelationProperty {
+    const char* suffix;
     MordredAtomicPropertyLookup lookup;
 };
 
@@ -4103,6 +4114,20 @@ std::optional<double> mordred_atomic_number_property(std::uint32_t atomic_number
     return static_cast<double>(atomic_number);
 }
 
+const std::array<MordredAutocorrelationProperty, 8>& mordred_autocorrelation_properties() {
+    static const std::array<MordredAutocorrelationProperty, 8> properties{{
+        {"Z", mordred_atomic_number_property},
+        {"m", mordred_mass},
+        {"v", mordred_vdw_volume},
+        {"se", mordred_sanderson},
+        {"pe", mordred_pauling},
+        {"are", mordred_allred_rocow},
+        {"p", mordred_polarizability94},
+        {"i", mordred_ionization_potential},
+    }};
+    return properties;
+}
+
 const std::array<MordredBaryszMatrixProperty, 8>& mordred_barysz_matrix_properties() {
     static const std::array<MordredBaryszMatrixProperty, 8> properties{{
         {"Z", 6.0, mordred_atomic_number_property},
@@ -4639,25 +4664,27 @@ std::vector<std::vector<std::int64_t>> compute_mordred_heavy_atom_distances(
     return distances;
 }
 
-MordredAutocorrelationZValues compute_autocorrelation_z_values(const OEChem::OEMolBase& mol) {
-    MordredAutocorrelationZValues values;
+MordredExplicitAtomDistanceValues compute_mordred_explicit_atom_distances(
+    const OEChem::OEMolBase& mol) {
+    MordredExplicitAtomDistanceValues values;
     // Mordred Autocorrelation opts into explicit hydrogens, unlike most graph descriptors here.
     auto explicit_mol = explicit_hydrogen_copy(mol);
     std::vector<const OEChem::OEAtomBase*> atoms;
     std::unordered_map<unsigned int, std::size_t> atom_indices;
     for (OESystem::OEIter<OEChem::OEAtomBase> atom = explicit_mol.GetAtoms(); atom; ++atom) {
         atom_indices.emplace(atom->GetIdx(), atoms.size());
+        values.atomic_numbers.push_back(static_cast<std::uint32_t>(atom->GetAtomicNum()));
         atoms.push_back(&*atom);
     }
 
     const auto atom_count = atoms.size();
-    std::vector<std::vector<std::int64_t>> distances(
+    values.distances = std::vector<std::vector<std::int64_t>>(
         atom_count,
         std::vector<std::int64_t>(atom_count, kMordredDisconnectedDistance));
     for (std::size_t start = 0u; start < atom_count; ++start) {
         std::vector<std::size_t> queue;
         queue.reserve(atom_count);
-        distances[start][start] = 0;
+        values.distances[start][start] = 0;
         queue.push_back(start);
 
         for (std::size_t head = 0u; head < queue.size(); ++head) {
@@ -4669,42 +4696,76 @@ MordredAutocorrelationZValues compute_autocorrelation_z_values(const OEChem::OEM
                 if (neighbor_index == atom_indices.end()) {
                     continue;
                 }
-                if (distances[start][neighbor_index->second] != kMordredDisconnectedDistance) {
+                if (values.distances[start][neighbor_index->second]
+                    != kMordredDisconnectedDistance) {
                     continue;
                 }
-                distances[start][neighbor_index->second] = distances[start][current] + 1;
+                values.distances[start][neighbor_index->second] =
+                    values.distances[start][current] + 1;
                 queue.push_back(neighbor_index->second);
             }
         }
     }
 
-    std::array<std::uint32_t, 9> pair_counts{};
+    return values;
+}
+
+MordredAutocorrelationValues compute_autocorrelation_values(
+    const MordredExplicitAtomDistanceValues& distance_values,
+    const MordredAutocorrelationProperty& property) {
+    MordredAutocorrelationValues values;
+    values.suffix = property.suffix;
+
+    const auto atom_count = distance_values.atomic_numbers.size();
+    std::vector<double> atom_properties;
+    atom_properties.reserve(atom_count);
     for (std::size_t atom_index = 0u; atom_index < atom_count; ++atom_index) {
-        const auto atomic_number = static_cast<double>(atoms[atom_index]->GetAtomicNum());
-        values.ats[0] += atomic_number * atomic_number;
+        const auto atom_property = property.lookup(distance_values.atomic_numbers[atom_index]);
+        if (!atom_property.has_value() || !std::isfinite(*atom_property)) {
+            return values;
+        }
+        atom_properties.push_back(*atom_property);
     }
-    pair_counts[0] = static_cast<std::uint32_t>(atom_count);
+
+    std::array<double, 9> ats{};
+    std::array<std::size_t, 9> pair_counts{};
+    for (std::size_t atom_index = 0u; atom_index < atom_count; ++atom_index) {
+        const auto atom_property = atom_properties[atom_index];
+        ats[0] += atom_property * atom_property;
+    }
+    pair_counts[0] = atom_count;
 
     for (std::size_t left = 0u; left < atom_count; ++left) {
-        const auto left_atomic_number = static_cast<double>(atoms[left]->GetAtomicNum());
+        const auto left_property = atom_properties[left];
         for (std::size_t right = left + 1u; right < atom_count; ++right) {
-            const auto distance = distances[left][right];
+            const auto distance = distance_values.distances[left][right];
             if (distance <= 0 || distance > 8) {
                 continue;
             }
             const auto lag = static_cast<std::size_t>(distance);
-            const auto right_atomic_number = static_cast<double>(atoms[right]->GetAtomicNum());
-            values.ats[lag] += left_atomic_number * right_atomic_number;
+            ats[lag] += left_property * atom_properties[right];
             ++pair_counts[lag];
         }
     }
 
     for (std::size_t lag = 0u; lag < values.aats.size(); ++lag) {
+        values.ats[lag] = ats[lag];
         if (pair_counts[lag] != 0u) {
-            values.aats[lag] = values.ats[lag] / static_cast<double>(pair_counts[lag]);
+            values.aats[lag] = ats[lag] / static_cast<double>(pair_counts[lag]);
         }
     }
 
+    return values;
+}
+
+std::vector<MordredAutocorrelationValues> compute_autocorrelation_values(
+    const OEChem::OEMolBase& mol) {
+    const auto distance_values = compute_mordred_explicit_atom_distances(mol);
+    std::vector<MordredAutocorrelationValues> values;
+    values.reserve(mordred_autocorrelation_properties().size());
+    for (const auto& property : mordred_autocorrelation_properties()) {
+        values.push_back(compute_autocorrelation_values(distance_values, property));
+    }
     return values;
 }
 
@@ -6575,13 +6636,15 @@ void set_abc_index_values(DescriptorSetBuilder& builder, const MordredABCIndexVa
     set_float(builder, "ABCGG", values.abcgg);
 }
 
-void set_autocorrelation_z_values(
+void set_autocorrelation_values(
     DescriptorSetBuilder& builder,
-    const MordredAutocorrelationZValues& values) {
-    for (std::size_t lag = 0u; lag < values.ats.size(); ++lag) {
-        const auto lag_text = std::to_string(lag);
-        set_float(builder, "ATS" + lag_text + "Z", values.ats[lag]);
-        set_optional_float(builder, "AATS" + lag_text + "Z", values.aats[lag]);
+    const std::vector<MordredAutocorrelationValues>& value_sets) {
+    for (const auto& values : value_sets) {
+        for (std::size_t lag = 0u; lag < values.ats.size(); ++lag) {
+            const auto lag_text = std::to_string(lag);
+            set_optional_float(builder, "ATS" + lag_text + values.suffix, values.ats[lag]);
+            set_optional_float(builder, "AATS" + lag_text + values.suffix, values.aats[lag]);
+        }
     }
 }
 
@@ -6849,7 +6912,7 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
         compute_molecular_distance_edge_values(heavy_atom_graph, heavy_atom_distances);
     const auto abc_index_values =
         compute_abc_index_values(heavy_atom_graph, heavy_atom_distances);
-    const auto autocorrelation_z_values = compute_autocorrelation_z_values(mol);
+    const auto autocorrelation_values = compute_autocorrelation_values(mol);
     const auto information_content_values = compute_information_content_values(mol);
     const auto wiener_values = compute_wiener_values(heavy_atom_distances);
     const auto topological_index_values = compute_topological_index_values(heavy_atom_distances);
@@ -7108,7 +7171,7 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
     set_zagreb_values(builder, zagreb_values);
     set_molecular_distance_edge_values(builder, molecular_distance_edge_values);
     set_abc_index_values(builder, abc_index_values);
-    set_autocorrelation_z_values(builder, autocorrelation_z_values);
+    set_autocorrelation_values(builder, autocorrelation_values);
     set_optional_float(builder, "BalabanJ", balaban_j);
     set_float(builder, "BertzCT", bertz_ct);
     set_optional_float(builder, "VAdjMat", vertex_adjacency_information);
