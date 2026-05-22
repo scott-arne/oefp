@@ -2454,6 +2454,14 @@
       "reason": "OEFP matches Mordred GhoseFilter values on the committed Mordred parity fixture."
     },
     {
+      "descriptor": "FilterItLogS",
+      "family": "LogS",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/LogS.py",
+      "status": "exact",
+      "primitive": "Mordred FilterItLogS formula with RDKit MolWt average molecular weight dependency and SMARTS match counts",
+      "reason": "OEFP matches Mordred FilterItLogS values on the committed Mordred parity fixture."
+    },
+    {
       "descriptor": "SZ",
       "family": "Constitutional",
       "source": "/Users/johnss51/Development/python/mordred/mordred/Constitutional.py",

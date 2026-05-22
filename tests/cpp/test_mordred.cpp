@@ -212,6 +212,7 @@ TEST(MordredDescriptorTest, DescriptorRowCarriesFullSchema) {
     EXPECT_TRUE(descriptors.Has("MW"));
     EXPECT_TRUE(descriptors.Has("Lipinski"));
     EXPECT_TRUE(descriptors.Has("GhoseFilter"));
+    EXPECT_TRUE(descriptors.Has("FilterItLogS"));
     EXPECT_TRUE(descriptors.Has("ABC"));
     EXPECT_TRUE(descriptors.Has("SpAbs_A"));
     EXPECT_TRUE(descriptors.Has("SpAbs_D"));
@@ -3620,6 +3621,40 @@ TEST(MordredDescriptorTest, FilterDescriptorsMatchCopiedMordredReferences) {
         EXPECT_EQ(descriptors.Bool("Lipinski"), expected.lipinski);
         EXPECT_EQ(descriptors.Bool("GhoseFilter"), expected.ghose_filter);
     }
+}
+
+TEST(MordredDescriptorTest, FilterItLogSMatchesCopiedMordredReferences) {
+    struct Case {
+        std::string smiles;
+        double filter_it_log_s;
+    };
+
+    const std::vector<Case> cases{
+        {"CCO", 0.12920295684639066},
+        {"c1ccncc1", -1.1457316550674255},
+        {"FC(F)(F)c1ccc(Br)cc1", -3.5376041941451577},
+        {"OP(=O)(O)O", 1.909592793318916},
+        {"CCCCCCCCCCCCCCCC", -6.328636744352935},
+        {"[13CH4]", 0.4702608476455845},
+    };
+
+    for (const auto& expected : cases) {
+        SCOPED_TRACE(expected.smiles);
+        const auto descriptors = MakeMordredDescriptors(mol_from_smiles(expected.smiles));
+
+        ASSERT_TRUE(descriptors.Has("FilterItLogS"));
+        EXPECT_NEAR(descriptors.Float("FilterItLogS"), expected.filter_it_log_s, 1.0e-10);
+    }
+}
+
+TEST(MordredDescriptorTest, FilterItLogSDoesNotDoubleCountExplicitHydrogens) {
+    OEChem::OEGraphMol mol = mol_from_smiles("CCO");
+    OEChem::OEAddExplicitHydrogens(mol);
+
+    const auto descriptors = MakeMordredDescriptors(mol);
+
+    ASSERT_TRUE(descriptors.Has("FilterItLogS"));
+    EXPECT_NEAR(descriptors.Float("FilterItLogS"), 0.12920295684639066, 1.0e-10);
 }
 
 } // namespace test

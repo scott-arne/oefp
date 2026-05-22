@@ -172,6 +172,7 @@ ENABLED_SOURCE_TYPES = {
     "HydrogenBond",
     "InformationContent",
     "Lipinski",
+    "LogS",
     "McGowanVolume",
     "MolecularId",
     "Polarizability",
@@ -746,7 +747,7 @@ def test_mordred_descriptors_match_enabled_reference_values():
     names = _enabled_descriptor_names(payload)
     row_divergences = _row_divergence_policy()
 
-    assert len(names) == 980
+    assert len(names) == 981
     assert set(ESTATE_COUNT_NAMES) <= set(names)
     assert set(ESTATE_SUM_NAMES) <= set(names)
     assert set(ESTATE_MAX_NAMES) <= set(names)

@@ -113,6 +113,11 @@ struct MordredGasteigerParameters {
     double c;
 };
 
+struct MordredLogSPattern {
+    const char* smarts;
+    double coefficient;
+};
+
 std::optional<int> mordred_outer_electrons(std::uint32_t atomic_number);
 
 struct MordredWalkCountValues {
@@ -322,6 +327,28 @@ constexpr std::array<double, 111> kMordredMassValues{{
     269.0, 268.0, 271.0,
 }};
 
+// RDKit MolWt uses PeriodicTable::getAtomicWeight; these rounded weights differ
+// from OpenEye averages enough to affect FilterItLogS parity.
+constexpr std::array<double, 119> kRDKitAtomicWeights{{
+    0.0,     1.008,   4.003,   6.941,   9.012,   10.812,  12.011,
+    14.007,  15.999,  18.998,  20.18,   22.99,   24.305,  26.982,
+    28.086,  30.974,  32.067,  35.453,  39.948,  39.098,  40.078,
+    44.956,  47.867,  50.944,  51.996,  54.938,  55.845,  58.933,
+    58.693,  63.546,  65.39,   69.723,  72.61,   74.922,  78.96,
+    79.904,  83.8,    85.468,  87.62,   88.906,  91.224,  92.906,
+    95.94,   98.0,    101.07,  102.906, 106.42,  107.868, 112.412,
+    114.818, 118.711, 121.76,  127.6,   126.904, 131.29,  132.905,
+    137.328, 138.906, 140.116, 140.908, 144.24,  145.0,   150.36,
+    151.964, 157.25,  158.925, 162.5,   164.93,  167.26,  168.934,
+    173.04,  174.967, 178.49,  180.948, 183.84,  186.207, 190.23,
+    192.217, 195.078, 196.967, 200.59,  204.383, 207.2,   208.98,
+    209.0,   210.0,   222.0,   223.0,   226.0,   227.0,   232.038,
+    231.036, 238.029, 237.0,   244.0,   243.0,   247.0,   247.0,
+    251.0,   252.0,   257.0,   258.0,   259.0,   262.0,   267.0,
+    268.0,   269.0,   270.0,   269.0,   278.0,   281.0,   281.0,
+    285.0,   284.0,   289.0,   288.0,   293.0,   292.0,   294.0,
+}};
+
 constexpr std::array<double, 104> kMordredVdwRadii{{
     kMissingAtomicProperty, 1.1, 1.4, 1.82, 1.53, 1.92,
     1.7, 1.55, 1.52, 1.47, 1.54, 2.27,
@@ -508,6 +535,10 @@ double sphere_volume(double radius) {
 
 std::optional<double> mordred_mass(std::uint32_t atomic_number) {
     return lookup_atomic_property(kMordredMassValues, atomic_number);
+}
+
+std::optional<double> rdkit_atomic_weight(std::uint32_t atomic_number) {
+    return lookup_atomic_property(kRDKitAtomicWeights, atomic_number);
 }
 
 std::optional<double> mordred_vdw_volume(std::uint32_t atomic_number) {
@@ -793,6 +824,25 @@ double atom_exact_mass(const OEChem::OEAtomBase& atom) {
         return OEChem::OEGetIsotopicWeight(atomic_number, isotope);
     }
     return default_isotopic_mass(atomic_number);
+}
+
+std::optional<double> atom_mol_wt_mass(const OEChem::OEAtomBase& atom) {
+    const auto atomic_number = static_cast<std::uint32_t>(atom.GetAtomicNum());
+    const auto isotope = static_cast<std::uint32_t>(atom.GetIsotope());
+    if (isotope != 0u) {
+        return OEChem::OEGetIsotopicWeight(atomic_number, isotope);
+    }
+    return rdkit_atomic_weight(atomic_number);
+}
+
+std::uint32_t explicit_hydrogen_neighbor_count(const OEChem::OEAtomBase& atom) {
+    std::uint32_t count = 0u;
+    for (OESystem::OEIter<OEChem::OEAtomBase> nbr = atom.GetAtoms(); nbr; ++nbr) {
+        if (is_hydrogen(*nbr)) {
+            ++count;
+        }
+    }
+    return count;
 }
 
 double round_tpsa(double value) {
@@ -1715,6 +1765,91 @@ std::uint32_t count_mordred_bases(const OEChem::OEMolBase& mol) {
         "N-C=N",
     };
     return count_unique_smarts_root_atoms(mol, smarts_patterns);
+}
+
+std::optional<double> compute_mordred_mol_wt(const OEChem::OEMolBase& mol) {
+    const auto hydrogen_mass = rdkit_atomic_weight(1u);
+    if (!hydrogen_mass.has_value()) {
+        return std::nullopt;
+    }
+
+    double weight = 0.0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        const auto atom_mass = atom_mol_wt_mass(*atom);
+        if (!atom_mass.has_value()) {
+            return std::nullopt;
+        }
+        if (is_hydrogen(*atom)) {
+            weight += *atom_mass;
+            continue;
+        }
+        const auto total_hydrogens = static_cast<std::uint32_t>(atom->GetTotalHCount());
+        const auto explicit_hydrogens = explicit_hydrogen_neighbor_count(*atom);
+        const auto implicit_hydrogens =
+            explicit_hydrogens > total_hydrogens ? 0u : total_hydrogens - explicit_hydrogens;
+        weight += *atom_mass + static_cast<double>(implicit_hydrogens) * *hydrogen_mass;
+    }
+    return weight;
+}
+
+const std::array<MordredLogSPattern, 16>& mordred_log_s_patterns() {
+    static constexpr std::array<MordredLogSPattern, 16> patterns{{
+        {"[NH0;X3;v3]", 0.71535},
+        {"[NH2;X3;v3]", 0.41056},
+        {"[nH0;X3]", 0.82535},
+        {"[OH0;X2;v2]", 0.31464},
+        {"[OH0;X1;v2]", 0.14787},
+        {"[OH1;X2;v2]", 0.62998},
+        {"[CH2;!R]", -0.35634},
+        {"[CH3;!R]", -0.33888},
+        {"[CH0;R]", -0.21912},
+        {"[CH2;R]", -0.23057},
+        {"[ch0]", -0.37570},
+        {"[ch1]", -0.22435},
+        {"F", -0.21728},
+        {"Cl", -0.49721},
+        {"Br", -0.57982},
+        {"I", -0.51547},
+    }};
+    return patterns;
+}
+
+std::uint32_t count_smarts_matches(const OEChem::OEMolBase& mol, const char* smarts) {
+    OEChem::OESubSearch search(smarts);
+    if (!search) {
+        return 0u;
+    }
+
+    std::uint32_t count = 0u;
+    for (OESystem::OEIter<OEChem::OEMatchBase> match = search.Match(mol, false); match;
+         ++match) {
+        ++count;
+    }
+    return count;
+}
+
+std::optional<double> compute_filter_it_log_s(const OEChem::OEMolBase& mol) {
+    const auto molecular_weight = compute_mordred_mol_wt(mol);
+    if (!molecular_weight.has_value()) {
+        return std::nullopt;
+    }
+
+    OEChem::OEGraphMol working_mol(mol);
+    OEChem::OEFindRingAtomsAndBonds(working_mol);
+    OEChem::OEAssignAromaticFlags(working_mol);
+    OEChem::OEAssignHybridization(working_mol);
+    // LogS runs with explicit_hydrogens=False while its Weight dependency does not.
+    OEChem::OESuppressHydrogens(working_mol);
+    OEChem::OEFindRingAtomsAndBonds(working_mol);
+    OEChem::OEAssignAromaticFlags(working_mol);
+    OEChem::OEAssignHybridization(working_mol);
+
+    double log_s = 0.89823 - 0.10369 * std::sqrt(*molecular_weight);
+    for (const auto& pattern : mordred_log_s_patterns()) {
+        log_s += static_cast<double>(count_smarts_matches(working_mol, pattern.smarts))
+                 * pattern.coefficient;
+    }
+    return log_s;
 }
 
 void count_carbon_type(MordredFirstBatchValues& values, const OEChem::OEAtomBase& atom) {
@@ -6375,6 +6510,7 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
     const auto ring_count_values = compute_ring_count_value_sets(mol);
     const auto eta_values = compute_eta_values(mol, ring_count_values.base.all.total);
     const auto estate_values = compute_mordred_estate_values(mol);
+    const auto filter_it_log_s = compute_filter_it_log_s(mol);
     const auto labute_asa_values = compute_labute_asa_values(mol);
     const auto peoe_vsa_values = compute_peoe_vsa_values(mol);
     const auto smr_vsa_values =
@@ -6673,6 +6809,7 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
             && all_atoms >= 20u && all_atoms <= 70u
             && values.crippen_logp >= -0.4 && values.crippen_logp <= 5.6
             && values.crippen_mr >= 40.0 && values.crippen_mr <= 130.0);
+    set_optional_float(builder, "FilterItLogS", filter_it_log_s);
 
     return builder.Build();
 }
