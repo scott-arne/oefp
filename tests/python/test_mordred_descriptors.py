@@ -37,6 +37,14 @@ ROW_DIVERGENCE_REQUIRED_FIELDS = {
     "primitive",
     "reason",
 }
+GENERATED_OBSERVATION_REQUIRED_FIELDS = {
+    "status",
+    "descriptors",
+    "rows",
+    "source",
+    "primitive",
+    "reason",
+}
 _OPTIONAL_REFERENCE_MODULES_AT_IMPORT = {
     name
     for name in sys.modules
@@ -786,6 +794,16 @@ def _row_divergence_policy() -> dict[tuple[str, str], dict[str, Any]]:
     }
 
 
+def _generated_observation_policy() -> dict[tuple[str, str], Any]:
+    observations: dict[tuple[str, str], Any] = {}
+    for block in _divergence_payload()["generated_observations"]:
+        descriptors = tuple(block["descriptors"])
+        for row in block["rows"]:
+            for descriptor, observed in zip(descriptors, row["values"], strict=True):
+                observations[(descriptor, row["smiles"])] = observed
+    return observations
+
+
 def _reference_values_by_name(payload: dict[str, Any], row: dict[str, Any]) -> dict[str, Any]:
     return dict(zip(_definition_names(payload), row["values"], strict=True))
 
@@ -899,6 +917,7 @@ def test_mordred_descriptors_match_enabled_reference_values():
     payload = _reference_payload()
     names = _enabled_descriptor_names(payload)
     row_divergences = _row_divergence_policy()
+    generated_observations = _generated_observation_policy()
     row_policies = {
         (row["descriptor"], row["smiles"]): row
         for row in _divergence_payload()["row_divergences"]
@@ -973,6 +992,11 @@ def test_mordred_descriptors_match_enabled_reference_values():
                     assert row_policies[(name, smiles)]["status"] == "not_applicable"
                 else:
                     assert math.isfinite(actual)
+                    assert actual == pytest.approx(
+                        generated_observations[(name, smiles)],
+                        rel=1e-8,
+                        abs=1e-8,
+                    )
                 continue
             if isinstance(expected, dict):
                 assert expected["state"] in {"missing", "error", "nonfinite"}
@@ -1111,7 +1135,7 @@ def test_parity_harness_rejects_invalid_not_applicable_values(
     ]
 
 
-def test_parity_harness_accepts_openeye_divergent_missing_reference_values(
+def test_parity_harness_rejects_openeye_divergent_missing_reference_without_row_policy(
     monkeypatch: pytest.MonkeyPatch,
 ):
     fake_oefp = SimpleNamespace(
@@ -1159,12 +1183,16 @@ def test_parity_harness_accepts_openeye_divergent_missing_reference_values(
 
     assert counts == {
         "exact": 0,
-        "accepted_divergences": 1,
+        "accepted_divergences": 0,
         "deferred": 0,
         "not_applicable": 0,
-        "unclassified": 0,
+        "unclassified": 1,
     }
-    assert unclassified == []
+    assert unclassified == [
+        "Generated3D CCO: "
+        "reference={'state': 'missing', 'error_type': 'Missing3DCoordinate'} "
+        "observed=1.25 primitive=ThreeD"
+    ]
 
 
 def test_parity_harness_rejects_unlisted_openeye_divergent_missing_values(
@@ -1297,6 +1325,147 @@ def test_parity_harness_accepts_explicit_not_applicable_row_for_omega_failure(
     assert unclassified == []
 
 
+def test_parity_harness_accepts_explicit_openeye_divergent_row_for_omega_value(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    fake_oefp = SimpleNamespace(
+        mordred_descriptors=lambda _mol: {
+            "Generated3D": 1.25,
+        }
+    )
+    monkeypatch.setitem(sys.modules, "oefp", fake_oefp)
+    monkeypatch.setattr(compare_mordred_parity, "_openeye_mol", lambda smiles: smiles)
+
+    references = {
+        "definitions": [
+            {
+                "name": "Generated3D",
+                "source_type": "ThreeD",
+            }
+        ],
+        "reference_rows": [
+            {
+                "smiles": "CCO",
+                "values": [
+                    {
+                        "state": "missing",
+                        "error_type": "Missing3DCoordinate",
+                    }
+                ],
+            }
+        ],
+    }
+    policy = {
+        "policies": [
+            {
+                "descriptor": "Generated3D",
+                "status": "openeye_divergent",
+            }
+        ],
+        "row_divergences": [
+            {
+                "status": "openeye_divergent",
+                "descriptor": "Generated3D",
+                "smiles": "CCO",
+                "reference": {
+                    "state": "missing",
+                    "error_type": "Missing3DCoordinate",
+                },
+                "observed": 1.25,
+                "source": "local test",
+                "primitive": "OMEGA single-conformer generation",
+                "reason": "OpenEye-generated 3D value has no local Mordred reference.",
+            }
+        ],
+    }
+
+    counts, unclassified = compare_mordred_parity._compare(
+        references,
+        policy,
+        ("Generated3D",),
+    )
+
+    assert counts == {
+        "exact": 0,
+        "accepted_divergences": 1,
+        "deferred": 0,
+        "not_applicable": 0,
+        "unclassified": 0,
+    }
+    assert unclassified == []
+
+
+def test_parity_harness_accepts_pinned_generated_observation_for_omega_value(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    fake_oefp = SimpleNamespace(
+        mordred_descriptors=lambda _mol: {
+            "Generated3D": 1.25,
+        }
+    )
+    monkeypatch.setitem(sys.modules, "oefp", fake_oefp)
+    monkeypatch.setattr(compare_mordred_parity, "_openeye_mol", lambda smiles: smiles)
+
+    references = {
+        "definitions": [
+            {
+                "name": "Generated3D",
+                "source_type": "ThreeD",
+            }
+        ],
+        "reference_rows": [
+            {
+                "smiles": "CCO",
+                "values": [
+                    {
+                        "state": "missing",
+                        "error_type": "Missing3DCoordinate",
+                    }
+                ],
+            }
+        ],
+    }
+    policy = {
+        "policies": [
+            {
+                "descriptor": "Generated3D",
+                "status": "openeye_divergent",
+            }
+        ],
+        "row_divergences": [],
+        "generated_observations": [
+            {
+                "status": "openeye_divergent",
+                "descriptors": ["Generated3D"],
+                "rows": [
+                    {
+                        "smiles": "CCO",
+                        "values": [1.25],
+                    }
+                ],
+                "source": "local test",
+                "primitive": "OMEGA single-conformer generation",
+                "reason": "OpenEye-generated 3D value has no local Mordred reference.",
+            }
+        ],
+    }
+
+    counts, unclassified = compare_mordred_parity._compare(
+        references,
+        policy,
+        ("Generated3D",),
+    )
+
+    assert counts == {
+        "exact": 0,
+        "accepted_divergences": 1,
+        "deferred": 0,
+        "not_applicable": 0,
+        "unclassified": 0,
+    }
+    assert unclassified == []
+
+
 def test_parity_harness_rejects_duplicate_descriptor_policies():
     policy = {
         "policies": [
@@ -1361,6 +1530,7 @@ def test_mordred_divergence_policy_manifest_is_valid():
         "reference_sources",
         "policies",
         "row_divergences",
+        "generated_observations",
     } <= set(payload)
     assert payload["schema_version"] == 1
 
@@ -1394,6 +1564,25 @@ def test_mordred_divergence_policy_manifest_is_valid():
         (descriptor, smiles)
         for descriptor in OMEGA_GENERATED_3D_DESCRIPTOR_NAMES
         for smiles in OMEGA_UNSUPPORTED_3D_SMILES
+    }
+    generated_observation_keys = set()
+    for block in payload["generated_observations"]:
+        assert GENERATED_OBSERVATION_REQUIRED_FIELDS <= set(block)
+        assert block["status"] == "openeye_divergent"
+        descriptors = tuple(block["descriptors"])
+        assert set(descriptors) <= OMEGA_GENERATED_3D_DESCRIPTOR_NAMES
+        for row in block["rows"]:
+            assert set(row) == {"smiles", "values"}
+            assert len(row["values"]) == len(descriptors)
+            for descriptor, observed in zip(descriptors, row["values"], strict=True):
+                assert observed is not None
+                generated_observation_keys.add((descriptor, row["smiles"]))
+
+    assert generated_observation_keys == {
+        (descriptor, row["smiles"])
+        for descriptor in OMEGA_GENERATED_3D_DESCRIPTOR_NAMES
+        for row in reference_payload["reference_rows"]
+        if row["smiles"] not in OMEGA_UNSUPPORTED_3D_SMILES
     }
 
 

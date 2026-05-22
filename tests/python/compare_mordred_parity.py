@@ -92,6 +92,24 @@ def _row_divergence_policy(
     }
 
 
+def _generated_observation_policy(payload: Mapping[str, Any]) -> dict[tuple[str, str], Any]:
+    observations: dict[tuple[str, str], Any] = {}
+    duplicates: list[str] = []
+    for block in payload.get("generated_observations", []):
+        descriptors = tuple(str(descriptor) for descriptor in block["descriptors"])
+        for row in block["rows"]:
+            smiles = str(row["smiles"])
+            for descriptor, observed in zip(descriptors, row["values"], strict=True):
+                key = (descriptor, smiles)
+                if key in observations:
+                    duplicates.append(f"{descriptor} {smiles}")
+                observations[key] = observed
+    if duplicates:
+        formatted = ", ".join(sorted(duplicates))
+        raise ValueError(f"Duplicate generated observation entries: {formatted}")
+    return observations
+
+
 def _reference_values_by_name(
     descriptor_names: Sequence[str],
     row: Mapping[str, Any],
@@ -110,14 +128,6 @@ def _is_absent_reference_value(value: Any) -> bool:
         isinstance(value, Mapping)
         and value.get("state") in {"missing", "error", "nonfinite"}
     )
-
-
-def _is_concrete_observed_value(value: Any) -> bool:
-    if value is None:
-        return False
-    if isinstance(value, float):
-        return math.isfinite(value)
-    return True
 
 
 def _values_match(reference: Any, observed: Any) -> bool:
@@ -194,6 +204,7 @@ def _compare(
     definitions = _definitions_by_name(references)
     descriptor_policies = _descriptor_policy(policy)
     row_policies = _row_divergence_policy(policy)
+    generated_observations = _generated_observation_policy(policy)
     counts = {
         "exact": 0,
         "accepted_divergences": 0,
@@ -242,9 +253,7 @@ def _compare(
                         )
                     )
             elif status == "openeye_divergent":
-                if _is_absent_reference_value(expected) and _is_concrete_observed_value(observed):
-                    counts["accepted_divergences"] += 1
-                elif (
+                if (
                     row_policy.get("status") == "not_applicable"
                     and _is_absent_reference_value(expected)
                     and observed is None
@@ -252,6 +261,38 @@ def _compare(
                     and row_policy.get("observed") is None
                 ):
                     counts["not_applicable"] += 1
+                elif row_policy.get("status") == "openeye_divergent":
+                    if _policy_value_matches(row_policy.get("reference"), expected) and (
+                        _policy_value_matches(row_policy.get("observed"), observed)
+                    ):
+                        counts["accepted_divergences"] += 1
+                    else:
+                        counts["unclassified"] += 1
+                        unclassified.append(
+                            _format_difference(
+                                name,
+                                smiles,
+                                expected,
+                                observed,
+                                definitions[name],
+                            )
+                        )
+                elif _is_absent_reference_value(expected) and (
+                    (name, smiles) in generated_observations
+                ):
+                    if _policy_value_matches(generated_observations[(name, smiles)], observed):
+                        counts["accepted_divergences"] += 1
+                    else:
+                        counts["unclassified"] += 1
+                        unclassified.append(
+                            _format_difference(
+                                name,
+                                smiles,
+                                expected,
+                                observed,
+                                definitions[name],
+                            )
+                        )
                 else:
                     counts["unclassified"] += 1
                     unclassified.append(

@@ -385,6 +385,11 @@ struct Mordred3DAtomSet {
     std::vector<unsigned char> adjacency;
 };
 
+struct Mordred3DContext {
+    Mordred3DAtomSet all_atom_set;
+    Mordred3DAtomSet heavy_atom_set;
+};
+
 struct MordredGeometricalIndexValues {
     double diameter = 0.0;
     double radius = 0.0;
@@ -3846,6 +3851,25 @@ std::optional<Mordred3DAtomSet> build_mordred_3d_atom_set(
     return atom_set;
 }
 
+std::optional<Mordred3DContext> build_mordred_3d_context(const OEChem::OEMolBase& mol) {
+    auto explicit_mol = explicit_hydrogen_copy(mol);
+    auto three_d_mol = mordred_omega_single_conformer_copy(explicit_mol);
+    if (!three_d_mol.has_value()) {
+        return std::nullopt;
+    }
+
+    auto all_atom_set = build_mordred_3d_atom_set(*three_d_mol, true);
+    auto heavy_atom_set = build_mordred_3d_atom_set(*three_d_mol, false);
+    if (!all_atom_set.has_value() || !heavy_atom_set.has_value()) {
+        return std::nullopt;
+    }
+
+    Mordred3DContext context;
+    context.all_atom_set = std::move(*all_atom_set);
+    context.heavy_atom_set = std::move(*heavy_atom_set);
+    return context;
+}
+
 std::optional<std::vector<double>> mordred_morse_atom_weights(
     const Mordred3DAtomSet& atom_set,
     const MordredMoRSEProperty& property) {
@@ -3899,22 +3923,15 @@ std::optional<double> compute_mordred_morse_value(
 }
 
 std::vector<MordredMoRSEValues> compute_mordred_morse_values(
-    const OEChem::OEMolBase& mol) {
-    auto explicit_mol = explicit_hydrogen_copy(mol);
-    auto three_d_mol = mordred_omega_single_conformer_copy(explicit_mol);
-    if (!three_d_mol.has_value()) {
-        return {};
-    }
-
-    auto atom_set = build_mordred_3d_atom_set(*three_d_mol, true);
-    if (!atom_set.has_value() || atom_set->atoms.size() <= 1u) {
+    const std::optional<Mordred3DContext>& context) {
+    if (!context.has_value() || context->all_atom_set.atoms.size() <= 1u) {
         return {};
     }
 
     std::vector<MordredMoRSEValues> values;
     values.reserve(mordred_morse_properties().size());
     for (const auto& property : mordred_morse_properties()) {
-        const auto weights = mordred_morse_atom_weights(*atom_set, property);
+        const auto weights = mordred_morse_atom_weights(context->all_atom_set, property);
         if (!weights.has_value()) {
             continue;
         }
@@ -3923,7 +3940,10 @@ std::vector<MordredMoRSEValues> compute_mordred_morse_values(
         property_values.suffix = property.suffix;
         for (std::size_t distance_index = 1u; distance_index <= 32u; ++distance_index) {
             property_values.values[distance_index] =
-                compute_mordred_morse_value(*atom_set, *weights, distance_index);
+                compute_mordred_morse_value(
+                    context->all_atom_set,
+                    *weights,
+                    distance_index);
         }
         values.push_back(std::move(property_values));
     }
@@ -4120,23 +4140,17 @@ std::optional<double> compute_pbf_value(const Mordred3DAtomSet& atom_set) {
 }
 
 std::optional<MordredLowCount3DValues> compute_low_count_3d_values(
-    const OEChem::OEMolBase& mol) {
-    auto three_d_mol = mordred_omega_single_conformer_copy(mol);
-    if (!three_d_mol.has_value()) {
-        return std::nullopt;
-    }
-
-    auto all_atom_set = build_mordred_3d_atom_set(*three_d_mol, true);
-    auto heavy_atom_set = build_mordred_3d_atom_set(*three_d_mol, false);
-    if (!all_atom_set.has_value() || !heavy_atom_set.has_value()) {
+    const std::optional<Mordred3DContext>& context) {
+    if (!context.has_value()) {
         return std::nullopt;
     }
 
     MordredLowCount3DValues values;
-    values.geometrical = compute_geometrical_index_values(*all_atom_set);
-    values.gravitational = compute_gravitational_index_values(*heavy_atom_set, *all_atom_set);
-    values.moment_of_inertia = compute_moment_of_inertia_values(*all_atom_set);
-    values.pbf = compute_pbf_value(*all_atom_set);
+    values.geometrical = compute_geometrical_index_values(context->all_atom_set);
+    values.gravitational =
+        compute_gravitational_index_values(context->heavy_atom_set, context->all_atom_set);
+    values.moment_of_inertia = compute_moment_of_inertia_values(context->all_atom_set);
+    values.pbf = compute_pbf_value(context->all_atom_set);
     return values;
 }
 
@@ -7747,8 +7761,9 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
         labute_asa_values.has_value()
             ? compute_estate_vsa_values(mol, *labute_asa_values)
             : std::optional<std::array<double, 10>>{};
-    const auto low_count_3d_values = compute_low_count_3d_values(mol);
-    const auto morse_values = compute_mordred_morse_values(mol);
+    const auto three_d_context = build_mordred_3d_context(mol);
+    const auto low_count_3d_values = compute_low_count_3d_values(three_d_context);
+    const auto morse_values = compute_mordred_morse_values(three_d_context);
     DescriptorSetBuilder builder(MordredDescriptorSchema());
 
     const auto all_atoms = values.heavy_atoms + values.hydrogens;
