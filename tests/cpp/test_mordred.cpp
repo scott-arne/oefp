@@ -103,6 +103,11 @@ const std::vector<std::string>& autocorrelation_enabled_names() {
                 }
             }
         }
+        for (const auto* prefix : {"ATSC", "AATSC"}) {
+            for (std::size_t lag = 0u; lag <= 8u; ++lag) {
+                generated.push_back(prefix + std::to_string(lag) + "c");
+            }
+        }
         return generated;
     }();
     return names;
@@ -1901,6 +1906,16 @@ TEST(MordredDescriptorTest, AutocorrelationDescriptorsUseExplicitHydrogenShortes
         {"ATSC2se", -0.1842966913580246},
         {"AATSC0se", 0.10741461728395058},
         {"AATSC2se", -0.014176668566001891},
+        {"ATSC0c", 0.21303866453856574},
+        {"ATSC1c", -0.09961946882998138},
+        {"ATSC2c", -0.015993550811256883},
+        {"ATSC3c", -0.006893184304381744},
+        {"ATSC4c", 0.015986871676337142},
+        {"AATSC0c", 0.023670962726507302},
+        {"AATSC1c", -0.012452433603747672},
+        {"AATSC2c", -0.0012302731393274526},
+        {"AATSC3c", -0.0005744320253651454},
+        {"AATSC4c", 0.005328957225445714},
     };
 
     for (const auto& [name, expected_value] : expected_values) {
@@ -1918,6 +1933,22 @@ TEST(MordredDescriptorTest, AutocorrelationDescriptorsUseExplicitHydrogenShortes
             EXPECT_EQ(descriptors.Float("ATSC" + lag_text + suffix), 0.0) << suffix << lag;
             EXPECT_FALSE(descriptors.Has("AATSC" + lag_text + suffix)) << suffix << lag;
         }
+    }
+    for (std::size_t lag = 5u; lag <= 8u; ++lag) {
+        const auto lag_text = std::to_string(lag);
+        EXPECT_TRUE(descriptors.Has("ATSC" + lag_text + "c")) << lag;
+        EXPECT_EQ(descriptors.Float("ATSC" + lag_text + "c"), 0.0) << lag;
+        EXPECT_FALSE(descriptors.Has("AATSC" + lag_text + "c")) << lag;
+    }
+}
+
+TEST(MordredDescriptorTest, AutocorrelationChargeDescriptorsAreMissingWhenGasteigerFails) {
+    const auto descriptors = MakeMordredDescriptors(mol_from_smiles("C[Na]"));
+
+    for (std::size_t lag = 0u; lag <= 8u; ++lag) {
+        const auto lag_text = std::to_string(lag);
+        EXPECT_FALSE(descriptors.Has("ATSC" + lag_text + "c")) << lag;
+        EXPECT_FALSE(descriptors.Has("AATSC" + lag_text + "c")) << lag;
     }
 }
 

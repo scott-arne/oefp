@@ -2038,6 +2038,150 @@
       "reason": "OEFP matches Mordred AATSC8s values on the committed Mordred parity fixture."
     },
     {
+      "descriptor": "ATSC0c",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen Gasteiger charge vector matching Mordred AtomicProperty(True, c) centered CAVec values and unweighted shortest path matrix",
+      "reason": "OEFP matches Mordred ATSC0c values and missing charge behavior on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "ATSC1c",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen Gasteiger charge vector matching Mordred AtomicProperty(True, c) centered CAVec values and unweighted shortest path matrix",
+      "reason": "OEFP matches Mordred ATSC1c values and missing charge behavior on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "ATSC2c",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen Gasteiger charge vector matching Mordred AtomicProperty(True, c) centered CAVec values and unweighted shortest path matrix",
+      "reason": "OEFP matches Mordred ATSC2c values and missing charge behavior on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "ATSC3c",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen Gasteiger charge vector matching Mordred AtomicProperty(True, c) centered CAVec values and unweighted shortest path matrix",
+      "reason": "OEFP matches Mordred ATSC3c values and missing charge behavior on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "ATSC4c",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen Gasteiger charge vector matching Mordred AtomicProperty(True, c) centered CAVec values and unweighted shortest path matrix",
+      "reason": "OEFP matches Mordred ATSC4c values and missing charge behavior on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "ATSC5c",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen Gasteiger charge vector matching Mordred AtomicProperty(True, c) centered CAVec values and unweighted shortest path matrix",
+      "reason": "OEFP matches Mordred ATSC5c values and missing charge behavior on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "ATSC6c",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen Gasteiger charge vector matching Mordred AtomicProperty(True, c) centered CAVec values and unweighted shortest path matrix",
+      "reason": "OEFP matches Mordred ATSC6c values and missing charge behavior on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "ATSC7c",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen Gasteiger charge vector matching Mordred AtomicProperty(True, c) centered CAVec values and unweighted shortest path matrix",
+      "reason": "OEFP matches Mordred ATSC7c values and missing charge behavior on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "ATSC8c",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen Gasteiger charge vector matching Mordred AtomicProperty(True, c) centered CAVec values and unweighted shortest path matrix",
+      "reason": "OEFP matches Mordred ATSC8c values and missing charge behavior on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "AATSC0c",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen Gasteiger charge vector matching Mordred AtomicProperty(True, c) centered CAVec values and GSum lag divisors",
+      "reason": "OEFP matches Mordred AATSC0c values and missing charge behavior on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "AATSC1c",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen Gasteiger charge vector matching Mordred AtomicProperty(True, c) centered CAVec values and GSum lag divisors",
+      "reason": "OEFP matches Mordred AATSC1c values and missing charge behavior on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "AATSC2c",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen Gasteiger charge vector matching Mordred AtomicProperty(True, c) centered CAVec values and GSum lag divisors",
+      "reason": "OEFP matches Mordred AATSC2c values and missing charge behavior on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "AATSC3c",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen Gasteiger charge vector matching Mordred AtomicProperty(True, c) centered CAVec values and GSum lag divisors",
+      "reason": "OEFP matches Mordred AATSC3c values and missing charge behavior on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "AATSC4c",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen Gasteiger charge vector matching Mordred AtomicProperty(True, c) centered CAVec values and GSum lag divisors",
+      "reason": "OEFP matches Mordred AATSC4c values and missing charge behavior on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "AATSC5c",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen Gasteiger charge vector matching Mordred AtomicProperty(True, c) centered CAVec values and GSum lag divisors",
+      "reason": "OEFP matches Mordred AATSC5c values and missing charge behavior on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "AATSC6c",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen Gasteiger charge vector matching Mordred AtomicProperty(True, c) centered CAVec values and GSum lag divisors",
+      "reason": "OEFP matches Mordred AATSC6c values and missing charge behavior on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "AATSC7c",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen Gasteiger charge vector matching Mordred AtomicProperty(True, c) centered CAVec values and GSum lag divisors",
+      "reason": "OEFP matches Mordred AATSC7c values and missing charge behavior on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "AATSC8c",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen Gasteiger charge vector matching Mordred AtomicProperty(True, c) centered CAVec values and GSum lag divisors",
+      "reason": "OEFP matches Mordred AATSC8c values and missing charge behavior on the committed Mordred parity fixture."
+    },
+    {
       "descriptor": "ATSC0Z",
       "family": "Autocorrelation",
       "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",

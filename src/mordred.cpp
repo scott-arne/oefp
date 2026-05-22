@@ -180,7 +180,9 @@ struct MordredAutocorrelationAtomSnapshot {
 struct MordredExplicitAtomDistanceValues {
     std::vector<MordredAutocorrelationAtomSnapshot> atoms;
     std::vector<std::uint32_t> atomic_numbers;
+    std::vector<unsigned int> atom_ids;
     std::vector<std::vector<std::int64_t>> distances;
+    std::optional<std::vector<double>> gasteiger_charges;
 };
 
 struct MordredAutocorrelationValues {
@@ -282,6 +284,7 @@ struct MordredAutocorrelationProperty {
     const char* suffix;
     MordredAtomicPropertyLookup atomic_number_lookup;
     MordredAutocorrelationAtomPropertyLookup atom_lookup;
+    bool gasteiger_charge = false;
 };
 
 enum class MordredBCUTPropertyKind {
@@ -1687,7 +1690,9 @@ void split_gasteiger_formal_charges(
     }
 }
 
-MordredGasteigerAtomCharges compute_gasteiger_atom_charges(const OEChem::OEMolBase& mol) {
+MordredGasteigerAtomCharges compute_gasteiger_atom_charges(
+    const OEChem::OEMolBase& mol,
+    bool suppress_hydrogens) {
     static constexpr double ionxh = 20.02;
     static constexpr double damp_scale = 0.5;
     static constexpr double initial_damp = 0.5;
@@ -1697,10 +1702,12 @@ MordredGasteigerAtomCharges compute_gasteiger_atom_charges(const OEChem::OEMolBa
     OEChem::OEFindRingAtomsAndBonds(working_mol);
     OEChem::OEAssignAromaticFlags(working_mol);
     OEChem::OEAssignHybridization(working_mol);
-    OEChem::OESuppressHydrogens(working_mol);
-    OEChem::OEFindRingAtomsAndBonds(working_mol);
-    OEChem::OEAssignAromaticFlags(working_mol);
-    OEChem::OEAssignHybridization(working_mol);
+    if (suppress_hydrogens) {
+        OEChem::OESuppressHydrogens(working_mol);
+        OEChem::OEFindRingAtomsAndBonds(working_mol);
+        OEChem::OEAssignAromaticFlags(working_mol);
+        OEChem::OEAssignHybridization(working_mol);
+    }
 
     std::unordered_map<unsigned int, std::size_t> atom_indices;
     std::vector<OEChem::OEAtomBase*> atoms;
@@ -1776,7 +1783,8 @@ MordredGasteigerAtomCharges compute_gasteiger_atom_charges(const OEChem::OEMolBa
                           + ion_x[neighbor_index]);
             }
 
-            const auto implicit_hydrogens = atoms[atom_index]->GetTotalHCount();
+            const auto implicit_hydrogens =
+                suppress_hydrogens ? atoms[atom_index]->GetTotalHCount() : 0u;
             if (implicit_hydrogens > 0u) {
                 const auto hydrogen_charge =
                     hydrogen_charges[atom_index] / static_cast<double>(implicit_hydrogens);
@@ -1803,6 +1811,10 @@ MordredGasteigerAtomCharges compute_gasteiger_atom_charges(const OEChem::OEMolBa
         std::move(charges),
         std::move(hydrogen_charges),
         std::move(atom_ids)};
+}
+
+MordredGasteigerAtomCharges compute_gasteiger_atom_charges(const OEChem::OEMolBase& mol) {
+    return compute_gasteiger_atom_charges(mol, true);
 }
 
 std::uint32_t count_mordred_acids(const OEChem::OEMolBase& mol) {
@@ -4169,8 +4181,8 @@ std::optional<double> mordred_autocorrelation_intrinsic_state(
     return (std::pow(2.0 / period, 2.0) * *valence_electrons + 1.0) / *sigma_electrons;
 }
 
-const std::array<MordredAutocorrelationProperty, 11>& mordred_autocorrelation_properties() {
-    static const std::array<MordredAutocorrelationProperty, 11> properties{{
+const std::array<MordredAutocorrelationProperty, 12>& mordred_autocorrelation_properties() {
+    static const std::array<MordredAutocorrelationProperty, 12> properties{{
         {"Z", mordred_atomic_number_property, nullptr},
         {"m", mordred_mass, nullptr},
         {"v", mordred_vdw_volume, nullptr},
@@ -4182,6 +4194,7 @@ const std::array<MordredAutocorrelationProperty, 11>& mordred_autocorrelation_pr
         {"dv", nullptr, mordred_autocorrelation_valence_electrons},
         {"d", nullptr, mordred_autocorrelation_sigma_electrons},
         {"s", nullptr, mordred_autocorrelation_intrinsic_state},
+        {"c", nullptr, nullptr, true},
     }};
     return properties;
 }
@@ -4722,6 +4735,46 @@ std::vector<std::vector<std::int64_t>> compute_mordred_heavy_atom_distances(
     return distances;
 }
 
+std::optional<std::vector<double>> compute_explicit_gasteiger_charge_values(
+    const OEChem::OEMolBase& explicit_mol,
+    const std::vector<unsigned int>& atom_ids) {
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = explicit_mol.GetAtoms(); atom; ++atom) {
+        if (!has_mordred_gasteiger_parameters(
+                static_cast<std::uint32_t>(atom->GetAtomicNum()))) {
+            return std::nullopt;
+        }
+    }
+
+    const auto charges = compute_gasteiger_atom_charges(explicit_mol, false);
+    if (charges.charges.size() != charges.hydrogen_charges.size()
+        || charges.charges.size() != charges.atom_ids.size()) {
+        return std::nullopt;
+    }
+
+    std::unordered_map<unsigned int, std::size_t> charge_index_by_atom_id;
+    charge_index_by_atom_id.reserve(charges.atom_ids.size());
+    for (std::size_t index = 0u; index < charges.atom_ids.size(); ++index) {
+        charge_index_by_atom_id.emplace(charges.atom_ids[index], index);
+    }
+
+    std::vector<double> values;
+    values.reserve(atom_ids.size());
+    for (const auto atom_id : atom_ids) {
+        const auto found = charge_index_by_atom_id.find(atom_id);
+        if (found == charge_index_by_atom_id.end()) {
+            return std::nullopt;
+        }
+
+        const auto charge_index = found->second;
+        const auto value = charges.charges[charge_index] + charges.hydrogen_charges[charge_index];
+        if (!std::isfinite(value)) {
+            return std::nullopt;
+        }
+        values.push_back(value);
+    }
+    return values;
+}
+
 MordredExplicitAtomDistanceValues compute_mordred_explicit_atom_distances(
     const OEChem::OEMolBase& mol) {
     MordredExplicitAtomDistanceValues values;
@@ -4743,6 +4796,7 @@ MordredExplicitAtomDistanceValues compute_mordred_explicit_atom_distances(
         }
         values.atoms.push_back(snapshot);
         values.atomic_numbers.push_back(snapshot.atomic_number);
+        values.atom_ids.push_back(atom->GetIdx());
         atoms.push_back(&*atom);
     }
 
@@ -4776,27 +4830,27 @@ MordredExplicitAtomDistanceValues compute_mordred_explicit_atom_distances(
         }
     }
 
+    values.gasteiger_charges =
+        compute_explicit_gasteiger_charge_values(explicit_mol, values.atom_ids);
     return values;
 }
 
-MordredAutocorrelationValues compute_autocorrelation_values(
+MordredAutocorrelationValues compute_autocorrelation_values_from_properties(
     const MordredExplicitAtomDistanceValues& distance_values,
-    const MordredAutocorrelationProperty& property) {
+    const char* suffix,
+    const std::vector<double>& atom_properties,
+    bool include_raw_values) {
     MordredAutocorrelationValues values;
-    values.suffix = property.suffix;
+    values.suffix = suffix;
 
     const auto atom_count = distance_values.atomic_numbers.size();
-    std::vector<double> atom_properties;
-    atom_properties.reserve(atom_count);
-    for (std::size_t atom_index = 0u; atom_index < atom_count; ++atom_index) {
-        const auto atom_property =
-            property.atom_lookup != nullptr
-                ? property.atom_lookup(distance_values.atoms[atom_index])
-                : property.atomic_number_lookup(distance_values.atomic_numbers[atom_index]);
-        if (!atom_property.has_value() || !std::isfinite(*atom_property)) {
+    if (atom_properties.size() != atom_count) {
+        return values;
+    }
+    for (const auto atom_property : atom_properties) {
+        if (!std::isfinite(atom_property)) {
             return values;
         }
-        atom_properties.push_back(*atom_property);
     }
 
     std::array<double, 9> ats{};
@@ -4805,7 +4859,9 @@ MordredAutocorrelationValues compute_autocorrelation_values(
     double atom_property_sum = 0.0;
     for (std::size_t atom_index = 0u; atom_index < atom_count; ++atom_index) {
         const auto atom_property = atom_properties[atom_index];
-        ats[0] += atom_property * atom_property;
+        if (include_raw_values) {
+            ats[0] += atom_property * atom_property;
+        }
         atom_property_sum += atom_property;
     }
     pair_counts[0] = atom_count;
@@ -4829,22 +4885,60 @@ MordredAutocorrelationValues compute_autocorrelation_values(
                 continue;
             }
             const auto lag = static_cast<std::size_t>(distance);
-            ats[lag] += left_property * atom_properties[right];
+            if (include_raw_values) {
+                ats[lag] += left_property * atom_properties[right];
+            }
             atsc[lag] += left_centered_property * centered_properties[right];
             ++pair_counts[lag];
         }
     }
 
     for (std::size_t lag = 0u; lag < values.aats.size(); ++lag) {
-        values.ats[lag] = ats[lag];
+        if (include_raw_values) {
+            values.ats[lag] = ats[lag];
+        }
         values.atsc[lag] = atsc[lag];
         if (pair_counts[lag] != 0u) {
-            values.aats[lag] = ats[lag] / static_cast<double>(pair_counts[lag]);
+            if (include_raw_values) {
+                values.aats[lag] = ats[lag] / static_cast<double>(pair_counts[lag]);
+            }
             values.aatsc[lag] = atsc[lag] / static_cast<double>(pair_counts[lag]);
         }
     }
 
     return values;
+}
+
+MordredAutocorrelationValues compute_autocorrelation_values(
+    const MordredExplicitAtomDistanceValues& distance_values,
+    const MordredAutocorrelationProperty& property) {
+    MordredAutocorrelationValues values;
+    values.suffix = property.suffix;
+
+    if (property.gasteiger_charge) {
+        if (!distance_values.gasteiger_charges.has_value()) {
+            return values;
+        }
+        return compute_autocorrelation_values_from_properties(
+            distance_values, property.suffix, *distance_values.gasteiger_charges, false);
+    }
+
+    const auto atom_count = distance_values.atomic_numbers.size();
+    std::vector<double> atom_properties;
+    atom_properties.reserve(atom_count);
+    for (std::size_t atom_index = 0u; atom_index < atom_count; ++atom_index) {
+        const auto atom_property =
+            property.atom_lookup != nullptr
+                ? property.atom_lookup(distance_values.atoms[atom_index])
+                : property.atomic_number_lookup(distance_values.atomic_numbers[atom_index]);
+        if (!atom_property.has_value()) {
+            return values;
+        }
+        atom_properties.push_back(*atom_property);
+    }
+
+    return compute_autocorrelation_values_from_properties(
+        distance_values, property.suffix, atom_properties, true);
 }
 
 std::vector<MordredAutocorrelationValues> compute_autocorrelation_values(
