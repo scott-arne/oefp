@@ -2004,6 +2004,51 @@ TEST(MordredDescriptorTest, AutocorrelationChargeDescriptorsAreMissingWhenGastei
     }
 }
 
+TEST(MordredDescriptorTest, ChargeOnlyCPSADescriptorsMatchCopiedMordredReferences) {
+    struct Expected {
+        std::string smiles;
+        double rncg;
+        double rpcg;
+    };
+
+    const std::vector<Expected> expected_values{
+        {"CCO", 0.9045877396613667, 0.4789538253617588},
+        {"c1ccncc1", 0.6432110145510882, 0.2040343084490867},
+        {"CC#N", 1.0, 0.295556674716458},
+        {"C", 1.0, 0.25},
+    };
+
+    for (const auto& expected : expected_values) {
+        const auto descriptors = MakeMordredDescriptors(mol_from_smiles(expected.smiles));
+
+        ASSERT_TRUE(descriptors.Has("RNCG")) << expected.smiles;
+        EXPECT_NEAR(descriptors.Float("RNCG"), expected.rncg, 1.0e-12)
+            << expected.smiles;
+        ASSERT_TRUE(descriptors.Has("RPCG")) << expected.smiles;
+        EXPECT_NEAR(descriptors.Float("RPCG"), expected.rpcg, 1.0e-12)
+            << expected.smiles;
+    }
+}
+
+TEST(MordredDescriptorTest, ChargeOnlyCPSADescriptorsAreMissingWhenGasteigerFails) {
+    for (const auto* smiles : {"C[Na]", "O=[Se]=O"}) {
+        const auto descriptors = MakeMordredDescriptors(mol_from_smiles(smiles));
+
+        EXPECT_FALSE(descriptors.Has("RNCG")) << smiles;
+        EXPECT_FALSE(descriptors.Has("RPCG")) << smiles;
+    }
+}
+
+TEST(MordredDescriptorTest, ChargeOnlyCPSADescriptorsReturnZeroForEmptyMolecules) {
+    const OEChem::OEGraphMol empty_mol;
+    const auto descriptors = MakeMordredDescriptors(empty_mol);
+
+    ASSERT_TRUE(descriptors.Has("RNCG"));
+    EXPECT_EQ(descriptors.Float("RNCG"), 0.0);
+    ASSERT_TRUE(descriptors.Has("RPCG"));
+    EXPECT_EQ(descriptors.Float("RPCG"), 0.0);
+}
+
 TEST(MordredDescriptorTest, AutocorrelationIntrinsicStateDescriptorsAreMissingForMethane) {
     const auto descriptors = MakeMordredDescriptors(mol_from_smiles("C"));
 

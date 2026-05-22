@@ -164,6 +164,11 @@ struct MordredABCIndexValues {
     double abcgg = 0.0;
 };
 
+struct MordredCPSAChargeValues {
+    double rncg = 0.0;
+    double rpcg = 0.0;
+};
+
 struct MordredMolecularDistanceEdgeValues {
     std::array<std::array<std::optional<double>, 5>, 5> carbon{};
     std::array<std::array<std::optional<double>, 5>, 5> oxygen{};
@@ -4777,6 +4782,56 @@ std::optional<std::vector<double>> compute_explicit_gasteiger_charge_values(
     return values;
 }
 
+std::optional<double> compute_cpsa_relative_charge(
+    const std::vector<double>& charges,
+    bool positive) {
+    std::optional<double> selected_charge;
+    double selected_abs_charge = 0.0;
+    double charge_sum = 0.0;
+
+    for (const auto charge : charges) {
+        if (positive ? charge <= 0.0 : charge >= 0.0) {
+            continue;
+        }
+
+        const auto abs_charge = std::abs(charge);
+        if (!selected_charge.has_value() || abs_charge > selected_abs_charge) {
+            selected_charge = charge;
+            selected_abs_charge = abs_charge;
+        }
+        charge_sum += charge;
+    }
+
+    if (!selected_charge.has_value()) {
+        return 0.0;
+    }
+    if (charge_sum == 0.0) {
+        return std::nullopt;
+    }
+    return *selected_charge / charge_sum;
+}
+
+std::optional<MordredCPSAChargeValues> compute_cpsa_charge_values(
+    const OEChem::OEMolBase& mol) {
+    auto explicit_mol = explicit_hydrogen_copy(mol);
+    std::vector<unsigned int> atom_ids;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = explicit_mol.GetAtoms(); atom; ++atom) {
+        atom_ids.push_back(atom->GetIdx());
+    }
+
+    const auto charges = compute_explicit_gasteiger_charge_values(explicit_mol, atom_ids);
+    if (!charges.has_value()) {
+        return std::nullopt;
+    }
+
+    const auto rncg = compute_cpsa_relative_charge(*charges, false);
+    const auto rpcg = compute_cpsa_relative_charge(*charges, true);
+    if (!rncg.has_value() || !rpcg.has_value()) {
+        return std::nullopt;
+    }
+    return MordredCPSAChargeValues{*rncg, *rpcg};
+}
+
 MordredExplicitAtomDistanceValues compute_mordred_explicit_atom_distances(
     const OEChem::OEMolBase& mol) {
     MordredExplicitAtomDistanceValues values;
@@ -6849,6 +6904,13 @@ void set_abc_index_values(DescriptorSetBuilder& builder, const MordredABCIndexVa
     set_float(builder, "ABCGG", values.abcgg);
 }
 
+void set_cpsa_charge_values(
+    DescriptorSetBuilder& builder,
+    const MordredCPSAChargeValues& values) {
+    set_float(builder, "RNCG", values.rncg);
+    set_float(builder, "RPCG", values.rpcg);
+}
+
 void set_autocorrelation_values(
     DescriptorSetBuilder& builder,
     const std::vector<MordredAutocorrelationValues>& value_sets) {
@@ -7131,6 +7193,7 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
         compute_molecular_distance_edge_values(heavy_atom_graph, heavy_atom_distances);
     const auto abc_index_values =
         compute_abc_index_values(heavy_atom_graph, heavy_atom_distances);
+    const auto cpsa_charge_values = compute_cpsa_charge_values(mol);
     const auto autocorrelation_values = compute_autocorrelation_values(mol);
     const auto information_content_values = compute_information_content_values(mol);
     const auto wiener_values = compute_wiener_values(heavy_atom_distances);
@@ -7390,6 +7453,9 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
     set_zagreb_values(builder, zagreb_values);
     set_molecular_distance_edge_values(builder, molecular_distance_edge_values);
     set_abc_index_values(builder, abc_index_values);
+    if (cpsa_charge_values.has_value()) {
+        set_cpsa_charge_values(builder, *cpsa_charge_values);
+    }
     set_autocorrelation_values(builder, autocorrelation_values);
     set_optional_float(builder, "BalabanJ", balaban_j);
     set_float(builder, "BertzCT", bertz_ct);

@@ -296,6 +296,8 @@ ENABLED_DESCRIPTOR_NAMES = {
     "ETA_dPsi_A",
     "ETA_dPsi_B",
     "LabuteASA",
+    "RNCG",
+    "RPCG",
     "PEOE_VSA1",
     "PEOE_VSA2",
     "PEOE_VSA3",
@@ -802,7 +804,7 @@ def test_mordred_descriptors_match_enabled_reference_values():
     names = _enabled_descriptor_names(payload)
     row_divergences = _row_divergence_policy()
 
-    assert len(names) == 1611
+    assert len(names) == 1613
     assert set(AUTOCORRELATION_ATS_AATS_NAMES) <= set(names)
     assert set(AUTOCORRELATION_ATSC_AATSC_NAMES) <= set(names)
     assert set(AUTOCORRELATION_CHARGE_ATSC_AATSC_NAMES) <= set(names)
@@ -816,6 +818,7 @@ def test_mordred_descriptors_match_enabled_reference_values():
     assert {"SM1_DzZ", "VR1_DzZ", "VR2_DzZ", "VR3_DzZ"} <= set(names)
     assert {"SpAbs_Dzm", "VR3_Dzm", "SpAbs_Dzi", "VR3_Dzi"} <= set(names)
     assert {"BCUTc-1h", "BCUTc-1l", "BCUTi-1h", "BCUTi-1l"} <= set(names)
+    assert {"RNCG", "RPCG"} <= set(names)
     assert {"MDEC-11", "MDEC-12", "MDEC-44"} <= set(names)
     assert {"MDEO-11", "MDEO-12", "MDEO-22"} <= set(names)
     assert {"MDEN-11", "MDEN-12", "MDEN-33"} <= set(names)

@@ -12702,6 +12702,22 @@
       "reason": "OEFP matches Mordred ETA_dPsi_B values on the committed Mordred parity fixture."
     },
     {
+      "descriptor": "RNCG",
+      "family": "CPSA",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
+      "status": "exact",
+      "primitive": "OpenEye explicit-hydrogen Mordred Gasteiger charge values over all atoms, filtered to negative charges and normalized by the same-sign charge sum",
+      "reason": "OEFP matches Mordred RNCG values and missing charge-parameter behavior on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "RPCG",
+      "family": "CPSA",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
+      "status": "exact",
+      "primitive": "OpenEye explicit-hydrogen Mordred Gasteiger charge values over all atoms, filtered to positive charges and normalized by the same-sign charge sum",
+      "reason": "OEFP matches Mordred RPCG values and missing charge-parameter behavior on the committed Mordred parity fixture."
+    },
+    {
       "descriptor": "BCUTc-1h",
       "family": "BCUT",
       "source": "/Users/johnss51/Development/python/mordred/mordred/BCUT.py",
