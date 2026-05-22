@@ -102,6 +102,7 @@ struct MordredCrippenAtomContributions {
 
 struct MordredGasteigerAtomCharges {
     std::vector<double> charges;
+    std::vector<double> hydrogen_charges;
     std::vector<unsigned int> atom_ids;
 };
 
@@ -119,6 +120,7 @@ struct MordredLogSPattern {
 };
 
 std::optional<int> mordred_outer_electrons(std::uint32_t atomic_number);
+std::uint32_t mordred_principal_quantum_number(std::uint32_t atomic_number);
 
 struct MordredWalkCountValues {
     std::array<double, 11> mwc{};
@@ -251,6 +253,32 @@ struct MordredBaryszMatrixProperty {
     const char* suffix;
     double carbon_reference;
     MordredAtomicPropertyLookup lookup;
+};
+
+enum class MordredBCUTPropertyKind {
+    GasteigerCharge,
+    ValenceElectrons,
+    SigmaElectrons,
+    IntrinsicState,
+    AtomicNumber,
+    Mass,
+    VdwVolume,
+    Sanderson,
+    Pauling,
+    AllredRocow,
+    Polarizability,
+    IonizationPotential,
+};
+
+struct MordredBCUTProperty {
+    const char* suffix;
+    MordredBCUTPropertyKind kind;
+};
+
+struct MordredBCUTValues {
+    const char* suffix = "";
+    std::optional<double> high;
+    std::optional<double> low;
 };
 
 struct MordredSymmetricEigensystem {
@@ -1742,7 +1770,10 @@ MordredGasteigerAtomCharges compute_gasteiger_atom_charges(const OEChem::OEMolBa
         damp *= damp_scale;
     }
 
-    return MordredGasteigerAtomCharges{std::move(charges), std::move(atom_ids)};
+    return MordredGasteigerAtomCharges{
+        std::move(charges),
+        std::move(hydrogen_charges),
+        std::move(atom_ids)};
 }
 
 std::uint32_t count_mordred_acids(const OEChem::OEMolBase& mol) {
@@ -4081,6 +4112,24 @@ const std::array<MordredBaryszMatrixProperty, 8>& mordred_barysz_matrix_properti
     return properties;
 }
 
+const std::array<MordredBCUTProperty, 12>& mordred_bcut_properties() {
+    static const std::array<MordredBCUTProperty, 12> properties{{
+        {"c", MordredBCUTPropertyKind::GasteigerCharge},
+        {"dv", MordredBCUTPropertyKind::ValenceElectrons},
+        {"d", MordredBCUTPropertyKind::SigmaElectrons},
+        {"s", MordredBCUTPropertyKind::IntrinsicState},
+        {"Z", MordredBCUTPropertyKind::AtomicNumber},
+        {"m", MordredBCUTPropertyKind::Mass},
+        {"v", MordredBCUTPropertyKind::VdwVolume},
+        {"se", MordredBCUTPropertyKind::Sanderson},
+        {"pe", MordredBCUTPropertyKind::Pauling},
+        {"are", MordredBCUTPropertyKind::AllredRocow},
+        {"p", MordredBCUTPropertyKind::Polarizability},
+        {"i", MordredBCUTPropertyKind::IonizationPotential},
+    }};
+    return properties;
+}
+
 std::optional<MordredMatrixEigenvalueValues> compute_barysz_matrix_values(
     const MordredHeavyAtomGraph& graph,
     MordredAtomicPropertyLookup property_lookup,
@@ -4143,6 +4192,211 @@ std::optional<MordredMatrixEigenvalueValues> compute_barysz_matrix_values(
     }
 
     return compute_matrix_eigenvalue_values(std::move(matrix), atom_count, graph.bonds);
+}
+
+std::optional<double> mordred_bcut_valence_electrons(const OEChem::OEAtomBase& atom) {
+    const auto atomic_number = static_cast<std::uint32_t>(atom.GetAtomicNum());
+    if (atomic_number == 1u) {
+        return 0.0;
+    }
+
+    const auto outer_electrons = mordred_outer_electrons(atomic_number);
+    if (!outer_electrons.has_value()) {
+        return std::nullopt;
+    }
+
+    const auto formal_charge = atom.GetFormalCharge();
+    const auto zv = static_cast<double>(*outer_electrons - formal_charge);
+    const auto z = static_cast<double>(static_cast<int>(atomic_number) - formal_charge);
+    const auto hydrogens = static_cast<double>(atom.GetTotalHCount());
+    const auto denominator = z - zv - 1.0;
+    if (denominator == 0.0) {
+        return std::nullopt;
+    }
+    return (zv - hydrogens) / denominator;
+}
+
+double mordred_bcut_sigma_electrons(const OEChem::OEAtomBase& atom) {
+    double sigma_electrons = 0.0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> neighbor = atom.GetAtoms(); neighbor; ++neighbor) {
+        if (!is_hydrogen(*neighbor)) {
+            sigma_electrons += 1.0;
+        }
+    }
+    return sigma_electrons;
+}
+
+std::optional<double> mordred_bcut_intrinsic_state(const OEChem::OEAtomBase& atom) {
+    const auto sigma_electrons = mordred_bcut_sigma_electrons(atom);
+    if (sigma_electrons == 0.0) {
+        return std::nullopt;
+    }
+
+    const auto valence_electrons = mordred_bcut_valence_electrons(atom);
+    if (!valence_electrons.has_value()) {
+        return std::nullopt;
+    }
+
+    const auto period = static_cast<double>(
+        mordred_principal_quantum_number(static_cast<std::uint32_t>(atom.GetAtomicNum())));
+    return (std::pow(2.0 / period, 2.0) * *valence_electrons + 1.0) / sigma_electrons;
+}
+
+bool has_mordred_gasteiger_parameters(std::uint32_t atomic_number) {
+    return std::string(gasteiger_element_symbol(atomic_number)) != "X";
+}
+
+std::optional<std::vector<double>> compute_bcut_gasteiger_charge_values(
+    const OEChem::OEMolBase& mol,
+    const MordredHeavyAtomGraph& graph) {
+    for (const auto* atom : graph.atoms) {
+        if (atom == nullptr
+            || !has_mordred_gasteiger_parameters(
+                static_cast<std::uint32_t>(atom->GetAtomicNum()))) {
+            return std::nullopt;
+        }
+    }
+
+    const auto charges = compute_gasteiger_atom_charges(mol);
+    if (charges.charges.size() != charges.hydrogen_charges.size()
+        || charges.charges.size() != charges.atom_ids.size()) {
+        return std::nullopt;
+    }
+
+    std::unordered_map<unsigned int, std::size_t> charge_index_by_atom_id;
+    charge_index_by_atom_id.reserve(charges.atom_ids.size());
+    for (std::size_t index = 0u; index < charges.atom_ids.size(); ++index) {
+        charge_index_by_atom_id.emplace(charges.atom_ids[index], index);
+    }
+
+    std::vector<double> values;
+    values.reserve(graph.atoms.size());
+    for (const auto* atom : graph.atoms) {
+        const auto found = charge_index_by_atom_id.find(atom->GetIdx());
+        if (found == charge_index_by_atom_id.end()) {
+            return std::nullopt;
+        }
+
+        const auto charge_index = found->second;
+        const auto value = charges.charges[charge_index] + charges.hydrogen_charges[charge_index];
+        if (!std::isfinite(value)) {
+            return std::nullopt;
+        }
+        values.push_back(value);
+    }
+    return values;
+}
+
+std::optional<double> mordred_bcut_atom_property(
+    const OEChem::OEAtomBase& atom,
+    MordredBCUTPropertyKind property_kind) {
+    const auto atomic_number = static_cast<std::uint32_t>(atom.GetAtomicNum());
+    switch (property_kind) {
+    case MordredBCUTPropertyKind::ValenceElectrons:
+        return mordred_bcut_valence_electrons(atom);
+    case MordredBCUTPropertyKind::SigmaElectrons:
+        return mordred_bcut_sigma_electrons(atom);
+    case MordredBCUTPropertyKind::IntrinsicState:
+        return mordred_bcut_intrinsic_state(atom);
+    case MordredBCUTPropertyKind::AtomicNumber:
+        return static_cast<double>(atomic_number);
+    case MordredBCUTPropertyKind::Mass:
+        return mordred_mass(atomic_number);
+    case MordredBCUTPropertyKind::VdwVolume:
+        return mordred_vdw_volume(atomic_number);
+    case MordredBCUTPropertyKind::Sanderson:
+        return mordred_sanderson(atomic_number);
+    case MordredBCUTPropertyKind::Pauling:
+        return mordred_pauling(atomic_number);
+    case MordredBCUTPropertyKind::AllredRocow:
+        return mordred_allred_rocow(atomic_number);
+    case MordredBCUTPropertyKind::Polarizability:
+        return mordred_polarizability94(atomic_number);
+    case MordredBCUTPropertyKind::IonizationPotential:
+        return mordred_ionization_potential(atomic_number);
+    case MordredBCUTPropertyKind::GasteigerCharge:
+        break;
+    }
+    return std::nullopt;
+}
+
+std::optional<std::vector<double>> compute_bcut_atom_property_values(
+    const OEChem::OEMolBase& mol,
+    const MordredHeavyAtomGraph& graph,
+    MordredBCUTPropertyKind property_kind) {
+    if (property_kind == MordredBCUTPropertyKind::GasteigerCharge) {
+        return compute_bcut_gasteiger_charge_values(mol, graph);
+    }
+
+    std::vector<double> values;
+    values.reserve(graph.atoms.size());
+    for (const auto* atom : graph.atoms) {
+        const auto value = mordred_bcut_atom_property(*atom, property_kind);
+        if (!value.has_value() || !std::isfinite(*value)) {
+            return std::nullopt;
+        }
+        values.push_back(*value);
+    }
+    return values;
+}
+
+MordredBCUTValues compute_bcut_property_values(
+    const OEChem::OEMolBase& mol,
+    const MordredHeavyAtomGraph& graph,
+    const MordredBCUTProperty& property) {
+    MordredBCUTValues values;
+    values.suffix = property.suffix;
+    if (!is_connected_heavy_atom_graph(graph)) {
+        return values;
+    }
+
+    const auto atom_properties = compute_bcut_atom_property_values(mol, graph, property.kind);
+    if (!atom_properties.has_value()) {
+        return values;
+    }
+
+    const auto atom_count = graph.atoms.size();
+    std::vector<double> matrix(atom_count * atom_count, 0.001);
+    for (std::size_t atom_index = 0u; atom_index < atom_count; ++atom_index) {
+        matrix[atom_index * atom_count + atom_index] = (*atom_properties)[atom_index];
+    }
+
+    for (std::size_t atom_index = 0u; atom_index < graph.adjacency.size(); ++atom_index) {
+        for (const auto& neighbor : graph.adjacency[atom_index]) {
+            if (atom_index >= neighbor.atom_index) {
+                continue;
+            }
+            auto weight = neighbor.bond_order / 10.0;
+            if (graph.adjacency[atom_index].size() == 1u
+                || graph.adjacency[neighbor.atom_index].size() == 1u) {
+                weight += 0.01;
+            }
+            matrix[atom_index * atom_count + neighbor.atom_index] = weight;
+            matrix[neighbor.atom_index * atom_count + atom_index] = weight;
+        }
+    }
+
+    const auto eigensystem = symmetric_eigensystem_jacobi(std::move(matrix), atom_count);
+    if (!eigensystem.has_value() || eigensystem->eigenvalues.empty()) {
+        return values;
+    }
+
+    const auto [low, high] =
+        std::minmax_element(eigensystem->eigenvalues.begin(), eigensystem->eigenvalues.end());
+    values.high = *high;
+    values.low = *low;
+    return values;
+}
+
+std::vector<MordredBCUTValues> compute_bcut_values(
+    const OEChem::OEMolBase& mol,
+    const MordredHeavyAtomGraph& graph) {
+    std::vector<MordredBCUTValues> values;
+    values.reserve(mordred_bcut_properties().size());
+    for (const auto& property : mordred_bcut_properties()) {
+        values.push_back(compute_bcut_property_values(mol, graph, property));
+    }
+    return values;
 }
 
 std::optional<double> compute_vertex_adjacency_information(const MordredHeavyAtomGraph& graph) {
@@ -6420,6 +6674,14 @@ void set_barysz_matrix_values(
         values.randic_eigenvector_log);
 }
 
+void set_bcut_values(DescriptorSetBuilder& builder, const std::vector<MordredBCUTValues>& values) {
+    for (const auto& value : values) {
+        const std::string prefix = std::string("BCUT") + value.suffix + "-1";
+        set_optional_float(builder, prefix + "h", value.high);
+        set_optional_float(builder, prefix + "l", value.low);
+    }
+}
+
 void set_eccentric_connectivity_index(DescriptorSetBuilder& builder, std::int64_t value) {
     builder.Set("ECIndex", DescriptorValue::Int(value));
 }
@@ -6498,6 +6760,7 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
                 property.lookup,
                 property.carbon_reference));
     }
+    const auto bcut_values = compute_bcut_values(mol, heavy_atom_graph);
     const auto molecular_distance_edge_values =
         compute_molecular_distance_edge_values(heavy_atom_graph, heavy_atom_distances);
     const auto abc_index_values =
@@ -6783,6 +7046,7 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
             set_barysz_matrix_values(builder, *property_values, suffix);
         }
     }
+    set_bcut_values(builder, bcut_values);
     set_eccentric_connectivity_index(builder, ec_index);
     set_ring_count_values(builder, ring_count_values.base);
     set_fused_ring_count_values(builder, ring_count_values.fused);

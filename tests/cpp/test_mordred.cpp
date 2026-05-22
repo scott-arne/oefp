@@ -3193,6 +3193,122 @@ TEST(MordredDescriptorTest, ABCIndexDescriptorsUseHeavyAtomGraphBonds) {
     }
 }
 
+TEST(MordredDescriptorTest, BCUTDescriptorsMatchCopiedMordredReferences) {
+    struct Case {
+        std::string smiles;
+        std::map<std::string, double> expected_values;
+    };
+
+    const std::vector<Case> cases{
+        {
+            "CCO",
+            {
+                {"BCUTc-1h", 0.23986416976440156},
+                {"BCUTc-1l", -0.2231880157782134},
+                {"BCUTdv-1h", 5.0040342367868194},
+                {"BCUTdv-1l", 0.98801330903750961},
+                {"BCUTd-1h", 2.0236636933121388},
+                {"BCUTd-1l", 0.97733630668785876},
+                {"BCUTs-1h", 6.002690681094049},
+                {"BCUTs-1l", 1.4743187785938925},
+                {"BCUTZ-1h", 8.0060564568696382},
+                {"BCUTZ-1l", 5.8871511188701433},
+                {"BCUTm-1h", 16.002035870414815},
+                {"BCUTm-1l", 11.899541006020963},
+                {"BCUTv-1h", 20.690561052837154},
+                {"BCUTv-1l", 14.708165908556165},
+                {"BCUTse-1h", 3.6673527854084242},
+                {"BCUTse-1l", 2.6300398107359677},
+                {"BCUTpe-1h", 3.4536231595849411},
+                {"BCUTpe-1l", 2.4339309485564113},
+                {"BCUTare-1h", 3.5121228758528589},
+                {"BCUTare-1l", 2.3845406596351166},
+                {"BCUTp-1h", 1.7864292844639702},
+                {"BCUTp-1l", 0.78809335524288904},
+                {"BCUTi-1h", 13.623186744814703},
+                {"BCUTi-1l", 11.147867846924651},
+            },
+        },
+        {
+            "c1ccncc1",
+            {
+                {"BCUTc-1h", 0.32715805812013304},
+                {"BCUTc-1l", -0.37521123526977068},
+                {"BCUTdv-1h", 5.0224142662190747},
+                {"BCUTdv-1l", 2.7374773053912884},
+                {"BCUTZ-1h", 7.0442096307393109},
+                {"BCUTZ-1l", 5.7344422598034042},
+                {"BCUTp-1h", 1.9427341893031214},
+                {"BCUTp-1l", 1.0259025338290717},
+            },
+        },
+        {
+            "[H]OC([H])([H])C([H])([H])[H]",
+            {
+                {"BCUTdv-1h", 5.0040342367868194},
+                {"BCUTdv-1l", 0.98801330903750961},
+                {"BCUTs-1h", 6.002690681094049},
+                {"BCUTs-1l", 1.4743187785938925},
+            },
+        },
+        {
+            "C[N+](C)(C)CC(=O)[O-]",
+            {
+                {"BCUTc-1h", 0.40762645489119897},
+                {"BCUTc-1l", -0.62265763090687232},
+                {"BCUTdv-1h", 7.0041096337316553},
+                {"BCUTdv-1l", 0.98991714040672463},
+                {"BCUTd-1h", 4.0170477430037907},
+                {"BCUTd-1l", 0.97274980248979681},
+                {"BCUTs-1h", 8.0019335180269948},
+                {"BCUTs-1l", 1.1737804245142687},
+            },
+        },
+        {
+            "FC(F)(F)c1ccc(Br)cc1",
+            {
+                {"BCUTc-1h", 0.50127023841130369},
+                {"BCUTc-1l", -0.29081631723732487},
+                {"BCUTZ-1h", 35.000417663472206},
+                {"BCUTZ-1l", 5.6947306752705957},
+                {"BCUTm-1h", 79.904178375698692},
+                {"BCUTm-1l", 11.705898315340413},
+                {"BCUTi-1h", 17.430690042553053},
+                {"BCUTi-1l", 10.953126721509969},
+            },
+        },
+    };
+
+    for (const auto& expected : cases) {
+        SCOPED_TRACE(expected.smiles);
+        const auto descriptors = MakeMordredDescriptors(mol_from_smiles(expected.smiles));
+
+        for (const auto& [name, value] : expected.expected_values) {
+            EXPECT_TRUE(descriptors.Has(name)) << name;
+            if (descriptors.Has(name)) {
+                EXPECT_NEAR(descriptors.Float(name), value, 1.0e-8) << name;
+            }
+        }
+    }
+}
+
+TEST(MordredDescriptorTest, BCUTDescriptorsAreMissingForMissingAtomicProperties) {
+    const std::map<std::string, std::vector<std::string>> missing_by_smiles{
+        {"C", {"BCUTs-1h", "BCUTs-1l"}},
+        {"[13CH4]", {"BCUTs-1h", "BCUTs-1l"}},
+        {"C[Na]", {"BCUTc-1h", "BCUTc-1l"}},
+    };
+
+    for (const auto& [smiles, descriptor_names] : missing_by_smiles) {
+        SCOPED_TRACE(smiles);
+        const auto descriptors = MakeMordredDescriptors(mol_from_smiles(smiles));
+
+        for (const auto& name : descriptor_names) {
+            EXPECT_FALSE(descriptors.Has(name)) << name;
+        }
+    }
+}
+
 TEST(MordredDescriptorTest, WalkCountDescriptorsMatchCopiedMordredReferences) {
     struct Case {
         std::string smiles;

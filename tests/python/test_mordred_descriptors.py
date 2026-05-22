@@ -165,6 +165,7 @@ ENABLED_SOURCE_TYPES = {
     "Aromatic",
     "AtomCount",
     "BaryszMatrix",
+    "BCUT",
     "BondCount",
     "CarbonTypes",
     "Constitutional",
@@ -747,7 +748,7 @@ def test_mordred_descriptors_match_enabled_reference_values():
     names = _enabled_descriptor_names(payload)
     row_divergences = _row_divergence_policy()
 
-    assert len(names) == 981
+    assert len(names) == 1005
     assert set(ESTATE_COUNT_NAMES) <= set(names)
     assert set(ESTATE_SUM_NAMES) <= set(names)
     assert set(ESTATE_MAX_NAMES) <= set(names)
@@ -756,6 +757,7 @@ def test_mordred_descriptors_match_enabled_reference_values():
     assert {"SpAbs_Dt", "VR1_Dt", "VR2_Dt", "VR3_Dt", "DetourIndex"} <= set(names)
     assert {"SM1_DzZ", "VR1_DzZ", "VR2_DzZ", "VR3_DzZ"} <= set(names)
     assert {"SpAbs_Dzm", "VR3_Dzm", "SpAbs_Dzi", "VR3_Dzi"} <= set(names)
+    assert {"BCUTc-1h", "BCUTc-1l", "BCUTi-1h", "BCUTi-1l"} <= set(names)
     assert {"MDEC-11", "MDEC-12", "MDEC-44"} <= set(names)
     assert {"MDEO-11", "MDEO-12", "MDEO-22"} <= set(names)
     assert {"MDEN-11", "MDEN-12", "MDEN-33"} <= set(names)

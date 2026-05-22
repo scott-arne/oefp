@@ -7852,6 +7852,198 @@
       "status": "exact",
       "primitive": "Mordred ExtendedTopochemicalAtom.py ETA descriptors using _atomic_property.py core, beta, epsilon, and gamma helpers, AlterMolecule reference and saturated graphs, RDKit topological distances, and RingCount.py SymmSSSR ring counts for ETA_eta_BR",
       "reason": "OEFP matches Mordred ETA_dPsi_B values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "BCUTc-1h",
+      "family": "BCUT",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/BCUT.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom Burden matrix initialized to 0.001, bond-order/10 off-diagonals with Mordred terminal-atom +0.01 adjustment, Mordred _atomic_property.py property values, and symmetric eigenvalue calculation matching Mordred BCUT.py np.linalg.eig real eigenvalues",
+      "reason": "OEFP matches Mordred BCUTc-1h values and missing atomic-property behavior on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "BCUTc-1l",
+      "family": "BCUT",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/BCUT.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom Burden matrix initialized to 0.001, bond-order/10 off-diagonals with Mordred terminal-atom +0.01 adjustment, Mordred _atomic_property.py property values, and symmetric eigenvalue calculation matching Mordred BCUT.py np.linalg.eig real eigenvalues",
+      "reason": "OEFP matches Mordred BCUTc-1l values and missing atomic-property behavior on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "BCUTdv-1h",
+      "family": "BCUT",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/BCUT.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom Burden matrix initialized to 0.001, bond-order/10 off-diagonals with Mordred terminal-atom +0.01 adjustment, Mordred _atomic_property.py property values, and symmetric eigenvalue calculation matching Mordred BCUT.py np.linalg.eig real eigenvalues",
+      "reason": "OEFP matches Mordred BCUTdv-1h values and missing atomic-property behavior on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "BCUTdv-1l",
+      "family": "BCUT",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/BCUT.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom Burden matrix initialized to 0.001, bond-order/10 off-diagonals with Mordred terminal-atom +0.01 adjustment, Mordred _atomic_property.py property values, and symmetric eigenvalue calculation matching Mordred BCUT.py np.linalg.eig real eigenvalues",
+      "reason": "OEFP matches Mordred BCUTdv-1l values and missing atomic-property behavior on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "BCUTd-1h",
+      "family": "BCUT",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/BCUT.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom Burden matrix initialized to 0.001, bond-order/10 off-diagonals with Mordred terminal-atom +0.01 adjustment, Mordred _atomic_property.py property values, and symmetric eigenvalue calculation matching Mordred BCUT.py np.linalg.eig real eigenvalues",
+      "reason": "OEFP matches Mordred BCUTd-1h values and missing atomic-property behavior on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "BCUTd-1l",
+      "family": "BCUT",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/BCUT.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom Burden matrix initialized to 0.001, bond-order/10 off-diagonals with Mordred terminal-atom +0.01 adjustment, Mordred _atomic_property.py property values, and symmetric eigenvalue calculation matching Mordred BCUT.py np.linalg.eig real eigenvalues",
+      "reason": "OEFP matches Mordred BCUTd-1l values and missing atomic-property behavior on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "BCUTs-1h",
+      "family": "BCUT",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/BCUT.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom Burden matrix initialized to 0.001, bond-order/10 off-diagonals with Mordred terminal-atom +0.01 adjustment, Mordred _atomic_property.py property values, and symmetric eigenvalue calculation matching Mordred BCUT.py np.linalg.eig real eigenvalues",
+      "reason": "OEFP matches Mordred BCUTs-1h values and missing atomic-property behavior on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "BCUTs-1l",
+      "family": "BCUT",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/BCUT.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom Burden matrix initialized to 0.001, bond-order/10 off-diagonals with Mordred terminal-atom +0.01 adjustment, Mordred _atomic_property.py property values, and symmetric eigenvalue calculation matching Mordred BCUT.py np.linalg.eig real eigenvalues",
+      "reason": "OEFP matches Mordred BCUTs-1l values and missing atomic-property behavior on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "BCUTZ-1h",
+      "family": "BCUT",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/BCUT.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom Burden matrix initialized to 0.001, bond-order/10 off-diagonals with Mordred terminal-atom +0.01 adjustment, Mordred _atomic_property.py property values, and symmetric eigenvalue calculation matching Mordred BCUT.py np.linalg.eig real eigenvalues",
+      "reason": "OEFP matches Mordred BCUTZ-1h values and missing atomic-property behavior on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "BCUTZ-1l",
+      "family": "BCUT",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/BCUT.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom Burden matrix initialized to 0.001, bond-order/10 off-diagonals with Mordred terminal-atom +0.01 adjustment, Mordred _atomic_property.py property values, and symmetric eigenvalue calculation matching Mordred BCUT.py np.linalg.eig real eigenvalues",
+      "reason": "OEFP matches Mordred BCUTZ-1l values and missing atomic-property behavior on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "BCUTm-1h",
+      "family": "BCUT",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/BCUT.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom Burden matrix initialized to 0.001, bond-order/10 off-diagonals with Mordred terminal-atom +0.01 adjustment, Mordred _atomic_property.py property values, and symmetric eigenvalue calculation matching Mordred BCUT.py np.linalg.eig real eigenvalues",
+      "reason": "OEFP matches Mordred BCUTm-1h values and missing atomic-property behavior on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "BCUTm-1l",
+      "family": "BCUT",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/BCUT.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom Burden matrix initialized to 0.001, bond-order/10 off-diagonals with Mordred terminal-atom +0.01 adjustment, Mordred _atomic_property.py property values, and symmetric eigenvalue calculation matching Mordred BCUT.py np.linalg.eig real eigenvalues",
+      "reason": "OEFP matches Mordred BCUTm-1l values and missing atomic-property behavior on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "BCUTv-1h",
+      "family": "BCUT",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/BCUT.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom Burden matrix initialized to 0.001, bond-order/10 off-diagonals with Mordred terminal-atom +0.01 adjustment, Mordred _atomic_property.py property values, and symmetric eigenvalue calculation matching Mordred BCUT.py np.linalg.eig real eigenvalues",
+      "reason": "OEFP matches Mordred BCUTv-1h values and missing atomic-property behavior on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "BCUTv-1l",
+      "family": "BCUT",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/BCUT.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom Burden matrix initialized to 0.001, bond-order/10 off-diagonals with Mordred terminal-atom +0.01 adjustment, Mordred _atomic_property.py property values, and symmetric eigenvalue calculation matching Mordred BCUT.py np.linalg.eig real eigenvalues",
+      "reason": "OEFP matches Mordred BCUTv-1l values and missing atomic-property behavior on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "BCUTse-1h",
+      "family": "BCUT",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/BCUT.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom Burden matrix initialized to 0.001, bond-order/10 off-diagonals with Mordred terminal-atom +0.01 adjustment, Mordred _atomic_property.py property values, and symmetric eigenvalue calculation matching Mordred BCUT.py np.linalg.eig real eigenvalues",
+      "reason": "OEFP matches Mordred BCUTse-1h values and missing atomic-property behavior on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "BCUTse-1l",
+      "family": "BCUT",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/BCUT.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom Burden matrix initialized to 0.001, bond-order/10 off-diagonals with Mordred terminal-atom +0.01 adjustment, Mordred _atomic_property.py property values, and symmetric eigenvalue calculation matching Mordred BCUT.py np.linalg.eig real eigenvalues",
+      "reason": "OEFP matches Mordred BCUTse-1l values and missing atomic-property behavior on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "BCUTpe-1h",
+      "family": "BCUT",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/BCUT.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom Burden matrix initialized to 0.001, bond-order/10 off-diagonals with Mordred terminal-atom +0.01 adjustment, Mordred _atomic_property.py property values, and symmetric eigenvalue calculation matching Mordred BCUT.py np.linalg.eig real eigenvalues",
+      "reason": "OEFP matches Mordred BCUTpe-1h values and missing atomic-property behavior on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "BCUTpe-1l",
+      "family": "BCUT",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/BCUT.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom Burden matrix initialized to 0.001, bond-order/10 off-diagonals with Mordred terminal-atom +0.01 adjustment, Mordred _atomic_property.py property values, and symmetric eigenvalue calculation matching Mordred BCUT.py np.linalg.eig real eigenvalues",
+      "reason": "OEFP matches Mordred BCUTpe-1l values and missing atomic-property behavior on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "BCUTare-1h",
+      "family": "BCUT",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/BCUT.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom Burden matrix initialized to 0.001, bond-order/10 off-diagonals with Mordred terminal-atom +0.01 adjustment, Mordred _atomic_property.py property values, and symmetric eigenvalue calculation matching Mordred BCUT.py np.linalg.eig real eigenvalues",
+      "reason": "OEFP matches Mordred BCUTare-1h values and missing atomic-property behavior on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "BCUTare-1l",
+      "family": "BCUT",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/BCUT.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom Burden matrix initialized to 0.001, bond-order/10 off-diagonals with Mordred terminal-atom +0.01 adjustment, Mordred _atomic_property.py property values, and symmetric eigenvalue calculation matching Mordred BCUT.py np.linalg.eig real eigenvalues",
+      "reason": "OEFP matches Mordred BCUTare-1l values and missing atomic-property behavior on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "BCUTp-1h",
+      "family": "BCUT",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/BCUT.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom Burden matrix initialized to 0.001, bond-order/10 off-diagonals with Mordred terminal-atom +0.01 adjustment, Mordred _atomic_property.py property values, and symmetric eigenvalue calculation matching Mordred BCUT.py np.linalg.eig real eigenvalues",
+      "reason": "OEFP matches Mordred BCUTp-1h values and missing atomic-property behavior on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "BCUTp-1l",
+      "family": "BCUT",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/BCUT.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom Burden matrix initialized to 0.001, bond-order/10 off-diagonals with Mordred terminal-atom +0.01 adjustment, Mordred _atomic_property.py property values, and symmetric eigenvalue calculation matching Mordred BCUT.py np.linalg.eig real eigenvalues",
+      "reason": "OEFP matches Mordred BCUTp-1l values and missing atomic-property behavior on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "BCUTi-1h",
+      "family": "BCUT",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/BCUT.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom Burden matrix initialized to 0.001, bond-order/10 off-diagonals with Mordred terminal-atom +0.01 adjustment, Mordred _atomic_property.py property values, and symmetric eigenvalue calculation matching Mordred BCUT.py np.linalg.eig real eigenvalues",
+      "reason": "OEFP matches Mordred BCUTi-1h values and missing atomic-property behavior on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "BCUTi-1l",
+      "family": "BCUT",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/BCUT.py",
+      "status": "exact",
+      "primitive": "OpenEye heavy-atom Burden matrix initialized to 0.001, bond-order/10 off-diagonals with Mordred terminal-atom +0.01 adjustment, Mordred _atomic_property.py property values, and symmetric eigenvalue calculation matching Mordred BCUT.py np.linalg.eig real eigenvalues",
+      "reason": "OEFP matches Mordred BCUTi-1l values and missing atomic-property behavior on the committed Mordred parity fixture."
     }
   ],
   "row_divergences": [
