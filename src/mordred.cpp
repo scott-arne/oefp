@@ -21,7 +21,6 @@
 
 #include <oesystem.h>
 #include <oemolprop.h>
-#include <oeomega2.h>
 
 namespace OEFP {
 namespace {
@@ -3758,8 +3757,8 @@ std::optional<MordredSymmetricEigensystem> symmetric_eigensystem_jacobi(
     return std::nullopt;
 }
 
-bool has_mordred_3d_coordinates(const OEChem::OEMolBase& mol) {
-    if (mol.NumAtoms() == 0u || mol.GetDimension() != 3u) {
+bool has_mordred_coordinates(const OEChem::OEMolBase& mol, unsigned int dimension) {
+    if (mol.NumAtoms() == 0u || mol.GetDimension() != dimension) {
         return false;
     }
 
@@ -3772,23 +3771,23 @@ bool has_mordred_3d_coordinates(const OEChem::OEMolBase& mol) {
     return true;
 }
 
-std::optional<OEChem::OEMol> mordred_omega_single_conformer_copy(
-    const OEChem::OEMolBase& mol) {
-    OEChem::OEMol working_mol(mol);
-    if (has_mordred_3d_coordinates(working_mol)) {
-        return working_mol;
-    }
+bool has_mordred_2d_coordinates(const OEChem::OEMolBase& mol) {
+    return has_mordred_coordinates(mol, 2u);
+}
 
-    OEConfGen::OEOmegaOptions options;
-    options.SetMaxConfs(1u);
-    options.SetStrictAtomTypes(false);
-    OEConfGen::OEOmega omega(options);
-    const auto return_code = omega.Build(working_mol);
-    if (return_code == OEConfGen::OEOmegaReturnCode::Success
-            && has_mordred_3d_coordinates(working_mol)) {
-        return working_mol;
+bool has_mordred_3d_coordinates(const OEChem::OEMolBase& mol) {
+    return has_mordred_coordinates(mol, 3u);
+}
+
+DescriptorPrerequisites available_mordred_prerequisites(const OEChem::OEMolBase& mol) {
+    auto prerequisites = kDescriptorPrerequisiteGraph;
+    if (has_mordred_2d_coordinates(mol)) {
+        prerequisites |= kDescriptorPrerequisiteCoordinates2D;
     }
-    return std::nullopt;
+    if (has_mordred_3d_coordinates(mol)) {
+        prerequisites |= kDescriptorPrerequisiteCoordinates3D;
+    }
+    return prerequisites;
 }
 
 double mordred_3d_distance(
@@ -3868,14 +3867,17 @@ std::optional<Mordred3DAtomSet> build_mordred_3d_atom_set(
 }
 
 std::optional<Mordred3DContext> build_mordred_3d_context(const OEChem::OEMolBase& mol) {
-    auto explicit_mol = explicit_hydrogen_copy(mol);
-    auto three_d_mol = mordred_omega_single_conformer_copy(explicit_mol);
-    if (!three_d_mol.has_value()) {
+    if (!has_mordred_3d_coordinates(mol)) {
         return std::nullopt;
     }
 
-    auto all_atom_set = build_mordred_3d_atom_set(*three_d_mol, true);
-    auto heavy_atom_set = build_mordred_3d_atom_set(*three_d_mol, false);
+    auto explicit_mol = explicit_hydrogen_copy(mol);
+    if (!has_mordred_3d_coordinates(explicit_mol)) {
+        return std::nullopt;
+    }
+
+    auto all_atom_set = build_mordred_3d_atom_set(explicit_mol, true);
+    auto heavy_atom_set = build_mordred_3d_atom_set(explicit_mol, false);
     if (!all_atom_set.has_value() || !heavy_atom_set.has_value()) {
         return std::nullopt;
     }
@@ -8135,7 +8137,9 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
     const auto low_count_3d_values = compute_low_count_3d_values(three_d_context);
     const auto morse_values = compute_mordred_morse_values(three_d_context);
     const auto cpsa_surface_values = compute_cpsa_surface_values(mol, three_d_context);
-    DescriptorSetBuilder builder(MordredDescriptorSchema());
+    DescriptorSetBuilder builder(
+        MordredDescriptorSchema(),
+        available_mordred_prerequisites(mol));
 
     const auto all_atoms = values.heavy_atoms + values.hydrogens;
     const auto all_bonds = values.heavy_bonds + values.hydrogens;

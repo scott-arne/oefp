@@ -95,21 +95,6 @@ function(_oefp_find_openeye_library out_var library_name)
     set(${out_var} "${_OEFP_LIBRARY}" PARENT_SCOPE)
 endfunction()
 
-function(_oefp_add_openeye_imported_target target_name library_name link_libraries)
-    if(NOT TARGET ${target_name})
-        _oefp_find_openeye_library(_OEFP_IMPORTED_LIBRARY ${library_name})
-        if(NOT _OEFP_IMPORTED_LIBRARY)
-            message(FATAL_ERROR "OpenEye ${library_name} library is required for OMEGA-backed Mordred 3D descriptors.")
-        endif()
-        add_library(${target_name} UNKNOWN IMPORTED)
-        set_target_properties(${target_name} PROPERTIES
-            IMPORTED_LOCATION "${_OEFP_IMPORTED_LIBRARY}"
-            INTERFACE_INCLUDE_DIRECTORIES "${OPENEYE_INCLUDE_DIR}"
-            INTERFACE_LINK_LIBRARIES "${link_libraries}"
-        )
-    endif()
-endfunction()
-
 if(NOT TARGET OpenEye::OEMolProp)
     if(OPENEYE_USE_SHARED)
         foreach(_OEFP_OEMOLPROP_SEARCH_PATH IN LISTS _OEFP_OPENEYE_SEARCH_PATHS)
@@ -142,25 +127,6 @@ if(NOT TARGET OpenEye::OEMolProp)
         INTERFACE_LINK_LIBRARIES "OpenEye::OEChem"
     )
 endif()
-
-if(NOT TARGET OpenEye::OEOmega2)
-    message(FATAL_ERROR "OpenEye OEOmega2 library is required for OMEGA-backed Mordred 3D descriptors.")
-endif()
-if(NOT TARGET OpenEye::OEMolPotential)
-    message(FATAL_ERROR "OpenEye OEMolPotential library is required for OMEGA-backed Mordred 3D descriptors.")
-endif()
-if(NOT TARGET OpenEye::OEBio)
-    message(FATAL_ERROR "OpenEye OEBio library is required for OMEGA-backed Mordred 3D descriptors.")
-endif()
-_oefp_add_openeye_imported_target(OpenEye::OEAM1 oeam1 "OpenEye::OEChem;OpenEye::OEMolPotential")
-_oefp_add_openeye_imported_target(OpenEye::OEAM1BCC oeam1bcc "OpenEye::OEChem;OpenEye::OEAM1")
-_oefp_add_openeye_imported_target(OpenEye::OEAmber oeamber "OpenEye::OEChem;OpenEye::OEMolPotential;OpenEye::OEBio;OpenEye::OEAM1BCC")
-_oefp_add_openeye_imported_target(OpenEye::OESmirnoff oesmirnoff "OpenEye::OEChem;OpenEye::OEMolPotential;OpenEye::OEAmber")
-foreach(_OEFP_OMEGA_DEP_TARGET IN ITEMS OpenEye::OEFF OpenEye::OESheffield)
-    if(NOT TARGET ${_OEFP_OMEGA_DEP_TARGET})
-        message(FATAL_ERROR "${_OEFP_OMEGA_DEP_TARGET} library is required for OMEGA-backed Mordred 3D descriptors.")
-    endif()
-endforeach()
 
 find_package(Arrow CONFIG QUIET)
 find_package(Parquet CONFIG QUIET)
@@ -214,10 +180,6 @@ target_link_libraries(oefp
         OpenEye::OEChem
         OpenEye::OEGraphSim
         OpenEye::OEMolProp
-        OpenEye::OEOmega2
-        OpenEye::OEFF
-        OpenEye::OESheffield
-        OpenEye::OESmirnoff
         ${OEFP_ARROW_TARGET}
         ${OEFP_PARQUET_TARGET}
 )

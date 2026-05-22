@@ -43,7 +43,9 @@ std::shared_ptr<const DescriptorSchema> scalar_schema() {
     DescriptorSchemaBuilder builder;
     builder.Add(DescriptorDefinition{"MW", DescriptorValueKind::Float, "mordred:constitutional"});
     builder.Add(DescriptorDefinition{"nAtom", DescriptorValueKind::Int, "mordred:atom_count"});
-    builder.Add(DescriptorDefinition{"Lipinski", DescriptorValueKind::Bool, "mordred:filter"});
+    DescriptorDefinition lipinski{"Lipinski", DescriptorValueKind::Bool, "mordred:filter"};
+    lipinski.prerequisites = kDescriptorPrerequisiteCoordinates3D;
+    builder.Add(lipinski);
     builder.Add(DescriptorDefinition{"Class", DescriptorValueKind::String, "manual:category"});
     return builder.Build();
 }
@@ -68,6 +70,9 @@ void expect_scalar_batch_equal(const DescriptorBatch& restored, const Descriptor
     EXPECT_EQ(restored.Size(), batch.Size());
     EXPECT_EQ(restored.RowIds(), batch.RowIds());
     EXPECT_EQ(restored.Schema().SchemaId(), batch.Schema().SchemaId());
+    EXPECT_EQ(
+        restored.Schema().Definition(restored.Schema().IndexOf("Lipinski")).prerequisites,
+        kDescriptorPrerequisiteCoordinates3D);
 
     const auto restored_mw = restored.FloatColumn("MW");
     const auto batch_mw = batch.FloatColumn("MW");

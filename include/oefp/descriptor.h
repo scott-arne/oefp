@@ -131,14 +131,18 @@ bool operator!=(const DescriptorSet& lhs, const DescriptorSet& rhs);
 
 class DescriptorSetBuilder {
 public:
-    explicit DescriptorSetBuilder(std::shared_ptr<const DescriptorSchema> schema);
+    explicit DescriptorSetBuilder(
+        std::shared_ptr<const DescriptorSchema> schema,
+        DescriptorPrerequisites available_prerequisites = kDescriptorPrerequisiteAll);
 
     void Set(const std::string& name, DescriptorValue value);
+    DescriptorPrerequisites AvailablePrerequisites() const;
     DescriptorSet Build(std::string row_id = "") const;
 
 private:
     std::shared_ptr<const DescriptorSchema> schema_;
     std::vector<std::optional<DescriptorValue>> values_;
+    DescriptorPrerequisites available_prerequisites_ = kDescriptorPrerequisiteAll;
 };
 
 } // namespace OEFP

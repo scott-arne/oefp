@@ -2050,12 +2050,7 @@ TEST(MordredDescriptorTest, ChargeOnlyCPSADescriptorsReturnZeroForEmptyMolecules
     EXPECT_EQ(descriptors.Float("RPCG"), 0.0);
 }
 
-TEST(MordredDescriptorTest, CPSASurfaceDescriptorsUseGeneratedExplicitHydrogenContext) {
-    struct Expected {
-        const char* name;
-        double value;
-    };
-
+TEST(MordredDescriptorTest, CPSASurfaceDescriptorsRequireExistingConformer) {
     OEChem::OEGraphMol implicit_mol = mol_from_smiles("CCO");
     OEChem::OEGraphMol explicit_mol(implicit_mol);
     OEChem::OEAddExplicitHydrogens(explicit_mol, false, false);
@@ -2067,34 +2062,11 @@ TEST(MordredDescriptorTest, CPSASurfaceDescriptorsUseGeneratedExplicitHydrogenCo
     const auto implicit_descriptors = MakeMordredDescriptors(implicit_mol);
     const auto explicit_descriptors = MakeMordredDescriptors(explicit_mol);
 
-    const std::vector<Expected> expected_values{
-        {"PNSA1", 54.55261876989968},
-        {"PNSA5", -11.960721698712655},
-        {"PPSA1", 134.05901024880802},
-        {"PPSA5", 8.397881578486917},
-        {"DPSA1", 79.50639147890834},
-        {"FNSA1", 0.28923253064363713},
-        {"FPSA1", 0.710767469356363},
-        {"WNSA1", 10.289258293427308},
-        {"WPSA1", 25.285088307663308},
-        {"RNCS", 41.66042651839686},
-        {"RPCS", 40.83511599677454},
-        {"TASA", 131.3679829453563},
-        {"TPSA", 57.24364607335139},
-        {"RASA", 0.6964999116376138},
-        {"RPSA", 0.30350008836238623},
-    };
-
-    for (const auto& expected : expected_values) {
-        ASSERT_TRUE(implicit_descriptors.Has(expected.name)) << expected.name;
-        EXPECT_NEAR(implicit_descriptors.Float(expected.name), expected.value, 1.0e-8)
-            << expected.name;
-        ASSERT_TRUE(explicit_descriptors.Has(expected.name)) << expected.name;
-        EXPECT_NEAR(
-            explicit_descriptors.Float(expected.name),
-            implicit_descriptors.Float(expected.name),
-            1.0e-12)
-            << expected.name;
+    for (const auto* name :
+         {"PNSA1", "PNSA5", "PPSA1", "PPSA5", "DPSA1", "FNSA1", "FPSA1",
+          "WNSA1", "WPSA1", "RNCS", "RPCS", "TASA", "TPSA", "RASA", "RPSA"}) {
+        EXPECT_FALSE(implicit_descriptors.Has(name)) << name;
+        EXPECT_FALSE(explicit_descriptors.Has(name)) << name;
     }
 
     EXPECT_EQ(implicit_mol.NumAtoms(), 3u);
@@ -2103,7 +2075,28 @@ TEST(MordredDescriptorTest, CPSASurfaceDescriptorsUseGeneratedExplicitHydrogenCo
     EXPECT_EQ(explicit_mol.GetDimension(), 0u);
 }
 
-TEST(MordredDescriptorTest, NoConformer3DDescriptorsUseGeneratedOmegaConformer) {
+TEST(MordredDescriptorTest, MordredSchemaMarks3DDescriptorPrerequisites) {
+    const auto schema = MordredDescriptorSchema();
+
+    EXPECT_EQ(
+        schema->Definition(schema->IndexOf("GeomDiameter")).prerequisites
+            & kDescriptorPrerequisiteCoordinates3D,
+        kDescriptorPrerequisiteCoordinates3D);
+    EXPECT_EQ(
+        schema->Definition(schema->IndexOf("Mor01")).prerequisites
+            & kDescriptorPrerequisiteCoordinates3D,
+        kDescriptorPrerequisiteCoordinates3D);
+    EXPECT_EQ(
+        schema->Definition(schema->IndexOf("PNSA1")).prerequisites
+            & kDescriptorPrerequisiteCoordinates3D,
+        kDescriptorPrerequisiteCoordinates3D);
+    EXPECT_EQ(
+        schema->Definition(schema->IndexOf("nAtom")).prerequisites
+            & kDescriptorPrerequisiteCoordinates3D,
+        0u);
+}
+
+TEST(MordredDescriptorTest, NoConformer3DDescriptorsRequireExistingConformer) {
     OEChem::OEGraphMol mol = mol_from_smiles("CCO");
     ASSERT_EQ(mol.NumAtoms(), 3u);
     ASSERT_EQ(mol.GetDimension(), 0u);
@@ -2138,33 +2131,22 @@ TEST(MordredDescriptorTest, NoConformer3DDescriptorsUseGeneratedOmegaConformer) 
         "RPSA",
     };
     for (const auto& name : expected_3d_names) {
-        EXPECT_TRUE(descriptors.Has(name)) << name;
-        if (descriptors.Has(name)) {
-            EXPECT_TRUE(std::isfinite(descriptors.Float(name))) << name;
-        }
+        EXPECT_FALSE(descriptors.Has(name)) << name;
     }
 
     EXPECT_EQ(mol.NumAtoms(), 3u);
     EXPECT_EQ(mol.GetDimension(), 0u);
 }
 
-TEST(MordredDescriptorTest, NoConformerMoRSEDescriptorsUseGeneratedOmegaConformer) {
+TEST(MordredDescriptorTest, NoConformerMoRSEDescriptorsRequireExistingConformer) {
     OEChem::OEGraphMol mol = mol_from_smiles("CCO");
     ASSERT_EQ(mol.NumAtoms(), 3u);
     ASSERT_EQ(mol.GetDimension(), 0u);
 
     const auto descriptors = MakeMordredDescriptors(mol);
 
-    ASSERT_TRUE(descriptors.Has("Mor01"));
-    EXPECT_NEAR(descriptors.Float("Mor01"), 36.0, 1.0e-12);
-    ASSERT_TRUE(descriptors.Has("Mor01m"));
-    EXPECT_NEAR(descriptors.Float("Mor01m"), 5.447508788411778, 1.0e-12);
-
-    for (const auto* name : {"Mor02", "Mor32", "Mor02v", "Mor02se", "Mor32p"}) {
-        EXPECT_TRUE(descriptors.Has(name)) << name;
-        if (descriptors.Has(name)) {
-            EXPECT_TRUE(std::isfinite(descriptors.Float(name))) << name;
-        }
+    for (const auto* name : {"Mor01", "Mor01m", "Mor02", "Mor32", "Mor02v", "Mor02se", "Mor32p"}) {
+        EXPECT_FALSE(descriptors.Has(name)) << name;
     }
 
     EXPECT_EQ(mol.NumAtoms(), 3u);

@@ -239,6 +239,8 @@ std::string schema_to_json(const DescriptorSchema& schema) {
         append_json_string_field(json, "units", definition.units);
         json += ',';
         append_json_string_field(json, "description", definition.description);
+        json += ",\"prerequisites\":";
+        json += std::to_string(definition.prerequisites);
         json += ",\"shape\":";
         if (definition.shape.has_value()) {
             json += '[';
@@ -319,6 +321,10 @@ private:
         definition.units = ParseNamedString("units");
         Expect(',');
         definition.description = ParseNamedString("description");
+        Expect(',');
+        ExpectString("prerequisites");
+        Expect(':');
+        definition.prerequisites = static_cast<DescriptorPrerequisites>(ParseUnsigned());
         Expect(',');
         ExpectString("shape");
         Expect(':');

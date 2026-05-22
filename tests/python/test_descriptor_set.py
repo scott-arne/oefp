@@ -39,6 +39,33 @@ def test_descriptor_set_preserves_missing_values():
     assert row["Source"] is None
 
 
+def test_descriptor_prerequisite_bitmap_helpers():
+    import pytest
+    import oefp
+
+    required = (
+        oefp.DESCRIPTOR_PREREQUISITE_GRAPH
+        | oefp.DESCRIPTOR_PREREQUISITE_COORDINATES_3D
+    )
+
+    assert oefp.descriptor_prerequisites_satisfied(required, required)
+    assert not oefp.descriptor_prerequisites_satisfied(
+        required,
+        oefp.DESCRIPTOR_PREREQUISITE_GRAPH,
+    )
+    assert (
+        oefp.descriptor_missing_prerequisites(
+            required,
+            oefp.DESCRIPTOR_PREREQUISITE_GRAPH,
+        )
+        == oefp.DESCRIPTOR_PREREQUISITE_COORDINATES_3D
+    )
+    with pytest.raises(ValueError, match="uint32"):
+        oefp.DescriptorDefinition("bad", "float", prerequisites=-1)
+    with pytest.raises(ValueError, match="uint32"):
+        oefp.descriptor_prerequisites_satisfied(2**32, 0)
+
+
 def test_descriptor_set_rejects_bool_coercion_and_bool_int_overlap():
     import pytest
     import oefp

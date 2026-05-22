@@ -18,6 +18,11 @@ from . import _native
 from ._views import readonly_array_from_address
 
 _UINT32_MAX = 2**32 - 1
+DESCRIPTOR_PREREQUISITE_NONE = 0
+DESCRIPTOR_PREREQUISITE_GRAPH = 1 << 0
+DESCRIPTOR_PREREQUISITE_COORDINATES_2D = 1 << 1
+DESCRIPTOR_PREREQUISITE_COORDINATES_3D = 1 << 2
+DESCRIPTOR_PREREQUISITE_ALL = _UINT32_MAX
 _NATIVE_TOKEN = object()
 _DESCRIPTOR_SCHEMA_METADATA_KEY = b"oefp.python_descriptor_schema"
 _ROW_IDS_METADATA_KEY = b"oefp.row_ids_json"
@@ -25,6 +30,35 @@ _MORDRED_REFERENCE_RESOURCE = "mordred_references.json"
 _MORDRED_REFERENCE_FIXTURE = (
     Path(__file__).resolve().parents[2] / "tests" / "python" / "mordred_references.json"
 )
+
+
+def _normalized_descriptor_prerequisites(value: int) -> int:
+    prerequisites = int(value)
+    if prerequisites < 0 or prerequisites > _UINT32_MAX:
+        raise ValueError("Descriptor prerequisites must fit in uint32.")
+    return prerequisites
+
+
+def descriptor_missing_prerequisites(required: int, available: int) -> int:
+    """Return prerequisite bits required by a descriptor but absent from an input.
+
+    :param required: Descriptor prerequisite bitmap.
+    :param available: Input prerequisite bitmap.
+    :returns: Bitmap of missing prerequisite bits.
+    """
+    required_bits = _normalized_descriptor_prerequisites(required)
+    available_bits = _normalized_descriptor_prerequisites(available)
+    return required_bits & (~available_bits & _UINT32_MAX)
+
+
+def descriptor_prerequisites_satisfied(required: int, available: int) -> bool:
+    """Return whether an input satisfies a descriptor prerequisite bitmap.
+
+    :param required: Descriptor prerequisite bitmap.
+    :param available: Input prerequisite bitmap.
+    :returns: ``True`` when all required bits are present.
+    """
+    return descriptor_missing_prerequisites(required, available) == DESCRIPTOR_PREREQUISITE_NONE
 
 
 @dataclass(frozen=True)
@@ -65,6 +99,8 @@ class DescriptorDefinition:
     :param parameters: Optional serialized source parameters.
     :param units: Optional physical units for numeric descriptors.
     :param description: Optional human-readable descriptor description.
+    :param prerequisites: Bitmap of input prerequisites needed to compute
+        this descriptor.
     """
 
     name: str
@@ -76,9 +112,11 @@ class DescriptorDefinition:
     parameters: str = ""
     units: str = ""
     description: str = ""
+    prerequisites: int = 0
 
     def __post_init__(self) -> None:
         normalized = _normalized_descriptor_kind(self.value_type)
+        prerequisites = _normalized_descriptor_prerequisites(self.prerequisites)
         object.__setattr__(self, "name", str(self.name))
         object.__setattr__(self, "value_type", normalized)
         object.__setattr__(self, "group", str(self.group))
@@ -88,8 +126,9 @@ class DescriptorDefinition:
         object.__setattr__(self, "parameters", str(self.parameters))
         object.__setattr__(self, "units", str(self.units))
         object.__setattr__(self, "description", str(self.description))
+        object.__setattr__(self, "prerequisites", prerequisites)
 
-    def _metadata(self) -> dict[str, str]:
+    def _metadata(self) -> dict[str, str | int]:
         return {
             "name": self.name,
             "value_type": self.value_type,
@@ -100,6 +139,7 @@ class DescriptorDefinition:
             "parameters": self.parameters,
             "units": self.units,
             "description": self.description,
+            "prerequisites": self.prerequisites,
         }
 
     @classmethod
@@ -114,6 +154,7 @@ class DescriptorDefinition:
             parameters=str(metadata.get("parameters", "")),
             units=str(metadata.get("units", "")),
             description=str(metadata.get("description", "")),
+            prerequisites=int(metadata.get("prerequisites", 0)),
         )
 
 
@@ -344,6 +385,7 @@ def _mordred_definition_from_fixture(definition: Mapping[str, Any]) -> Descripto
         parameters=str(definition.get("parameters", "")),
         units=str(definition.get("units", "")),
         description=str(definition.get("description", "")),
+        prerequisites=int(definition.get("prerequisites", 0)),
     )
 
 

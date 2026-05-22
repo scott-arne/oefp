@@ -550,8 +550,11 @@ bool operator!=(const DescriptorSet& lhs, const DescriptorSet& rhs) {
     return !(lhs == rhs);
 }
 
-DescriptorSetBuilder::DescriptorSetBuilder(std::shared_ptr<const DescriptorSchema> schema)
-    : schema_(std::move(schema)) {
+DescriptorSetBuilder::DescriptorSetBuilder(
+    std::shared_ptr<const DescriptorSchema> schema,
+    DescriptorPrerequisites available_prerequisites)
+    : schema_(std::move(schema)),
+      available_prerequisites_(available_prerequisites) {
     if (schema_ == nullptr) {
         throw std::invalid_argument("Descriptor set builder schema must not be null.");
     }
@@ -561,9 +564,16 @@ DescriptorSetBuilder::DescriptorSetBuilder(std::shared_ptr<const DescriptorSchem
 void DescriptorSetBuilder::Set(const std::string& name, DescriptorValue value) {
     const auto index = schema_->IndexOf(name);
     const auto& definition = schema_->Definition(index);
+    if (!DescriptorPrerequisitesSatisfied(definition.prerequisites, available_prerequisites_)) {
+        return;
+    }
     validate_descriptor_value_kind(value.Kind(), definition.value_kind, definition.name);
     validate_descriptor_value_shape(value, definition);
     values_[index] = std::move(value);
+}
+
+DescriptorPrerequisites DescriptorSetBuilder::AvailablePrerequisites() const {
+    return available_prerequisites_;
 }
 
 DescriptorSet DescriptorSetBuilder::Build(std::string row_id) const {

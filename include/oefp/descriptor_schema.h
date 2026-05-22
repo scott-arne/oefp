@@ -3,6 +3,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 #include <memory>
 #include <optional>
 #include <string>
@@ -33,6 +34,25 @@ struct DescriptorShape {
     std::vector<std::uint64_t> dimensions;
 };
 
+using DescriptorPrerequisites = std::uint32_t;
+
+inline constexpr DescriptorPrerequisites kDescriptorPrerequisiteNone = 0u;
+inline constexpr DescriptorPrerequisites kDescriptorPrerequisiteGraph = 1u << 0u;
+inline constexpr DescriptorPrerequisites kDescriptorPrerequisiteCoordinates2D = 1u << 1u;
+inline constexpr DescriptorPrerequisites kDescriptorPrerequisiteCoordinates3D = 1u << 2u;
+inline constexpr DescriptorPrerequisites kDescriptorPrerequisiteAll =
+    std::numeric_limits<DescriptorPrerequisites>::max();
+
+/// \brief Return prerequisite bits that are not present in an input.
+DescriptorPrerequisites MissingDescriptorPrerequisites(
+    DescriptorPrerequisites required,
+    DescriptorPrerequisites available);
+
+/// \brief Return whether an input satisfies all required prerequisite bits.
+bool DescriptorPrerequisitesSatisfied(
+    DescriptorPrerequisites required,
+    DescriptorPrerequisites available);
+
 struct DescriptorDefinition {
     std::string name;
     DescriptorValueKind value_kind = DescriptorValueKind::Float;
@@ -43,6 +63,7 @@ struct DescriptorDefinition {
     std::string parameters;
     std::string units;
     std::string description;
+    DescriptorPrerequisites prerequisites = kDescriptorPrerequisiteNone;
     std::optional<DescriptorShape> shape;
 };
 

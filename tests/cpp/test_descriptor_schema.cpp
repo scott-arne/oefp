@@ -42,7 +42,7 @@ TEST(DescriptorSchemaTest, BuildsStableSchemaWithNameAndGroupLookup) {
     EXPECT_EQ(schema->IndexOf("nAtom"), 1u);
     EXPECT_EQ(schema->Definition(0).name, "MW");
     EXPECT_EQ(schema->IndicesForGroup("mordred:constitutional"), std::vector<std::size_t>({0u}));
-    EXPECT_EQ(schema->SchemaId(), "806f12e60900ac40");
+    EXPECT_EQ(schema->SchemaId(), "a181af97c1670d50");
 }
 
 TEST(DescriptorSchemaTest, RejectsDuplicateNames) {

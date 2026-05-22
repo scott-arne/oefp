@@ -268,7 +268,7 @@ MORSE_DESCRIPTOR_NAMES = {
     for suffix in ("", "m", "v", "se", "p")
     for distance in range(1, 33)
 }
-OMEGA_GENERATED_3D_DESCRIPTOR_NAMES = {
+IMPLEMENTED_3D_DESCRIPTOR_NAMES = {
     "GeomDiameter",
     "GeomRadius",
     "GeomShapeIndex",
@@ -282,7 +282,7 @@ OMEGA_GENERATED_3D_DESCRIPTOR_NAMES = {
     "MOMI-Z",
     "PBF",
 } | MORSE_DESCRIPTOR_NAMES | CPSA_SURFACE_DESCRIPTOR_NAMES
-OMEGA_UNSUPPORTED_3D_SMILES = {"C[Na]", "O=[Se]=O"}
+DESCRIPTOR_PREREQUISITE_COORDINATES_3D = 1 << 2
 
 ENABLED_DESCRIPTOR_NAMES = {
     "ABC",
@@ -784,7 +784,7 @@ def _not_applicable_no_conformer_3d_descriptor_names(
     return tuple(
         name
         for name in _no_conformer_3d_descriptor_names(payload)
-        if name not in OMEGA_GENERATED_3D_DESCRIPTOR_NAMES
+        if name not in IMPLEMENTED_3D_DESCRIPTOR_NAMES
     )
 
 
@@ -865,7 +865,7 @@ def test_mordred_descriptors_compare_with_existing_descriptor_surface():
         oefp.compare(query, batch, oefp.Metric.tanimoto())
 
 
-def test_mordred_descriptors_generate_low_count_3d_values_with_omega_copy():
+def test_mordred_descriptors_leave_no_conformer_3d_values_missing():
     import oefp
 
     mol = _openeye_mol("CCO")
@@ -874,16 +874,14 @@ def test_mordred_descriptors_generate_low_count_3d_values_with_omega_copy():
 
     descriptors = oefp.mordred_descriptors(mol)
 
-    for name in OMEGA_GENERATED_3D_DESCRIPTOR_NAMES:
-        value = descriptors[name]
-        assert value is not None, name
-        assert math.isfinite(value), name
+    for name in IMPLEMENTED_3D_DESCRIPTOR_NAMES:
+        assert descriptors[name] is None, name
 
     assert mol.NumAtoms() == 3
     assert mol.GetDimension() == 0
 
 
-def test_mordred_descriptors_generate_morse_values_with_omega_copy():
+def test_mordred_descriptors_leave_no_conformer_morse_values_missing():
     import oefp
 
     mol = _openeye_mol("CCO")
@@ -892,19 +890,25 @@ def test_mordred_descriptors_generate_morse_values_with_omega_copy():
 
     descriptors = oefp.mordred_descriptors(mol)
 
-    assert descriptors["Mor01"] == pytest.approx(36.0, rel=0.0, abs=1e-12)
-    assert descriptors["Mor01m"] == pytest.approx(
-        5.447508788411778,
-        rel=0.0,
-        abs=1e-12,
-    )
-    for name in ("Mor02", "Mor32", "Mor02v", "Mor02se", "Mor32p"):
-        value = descriptors[name]
-        assert value is not None, name
-        assert math.isfinite(value), name
+    for name in ("Mor01", "Mor01m", "Mor02", "Mor32", "Mor02v", "Mor02se", "Mor32p"):
+        assert descriptors[name] is None, name
 
     assert mol.NumAtoms() == 3
     assert mol.GetDimension() == 0
+
+
+def test_mordred_schema_marks_3d_descriptor_prerequisites():
+    import oefp
+
+    definitions = {definition.name: definition for definition in oefp.mordred_schema().definitions}
+
+    for name in ("GeomDiameter", "Mor01", "PNSA1"):
+        assert (
+            definitions[name].prerequisites & DESCRIPTOR_PREREQUISITE_COORDINATES_3D
+        ) == DESCRIPTOR_PREREQUISITE_COORDINATES_3D
+    assert (
+        definitions["nAtom"].prerequisites & DESCRIPTOR_PREREQUISITE_COORDINATES_3D
+    ) == 0
 
 
 def test_mordred_schema_matches_committed_fixture_definitions():
@@ -947,8 +951,8 @@ def test_mordred_descriptors_match_enabled_reference_values():
     assert len(no_conformer_3d_names) == 213
     assert len(not_applicable_no_conformer_3d_names) == 0
     assert set(no_conformer_3d_names) <= set(names)
-    assert OMEGA_GENERATED_3D_DESCRIPTOR_NAMES <= set(no_conformer_3d_names)
-    assert CPSA_SURFACE_DESCRIPTOR_NAMES <= OMEGA_GENERATED_3D_DESCRIPTOR_NAMES
+    assert IMPLEMENTED_3D_DESCRIPTOR_NAMES <= set(no_conformer_3d_names)
+    assert CPSA_SURFACE_DESCRIPTOR_NAMES <= IMPLEMENTED_3D_DESCRIPTOR_NAMES
     assert set(AUTOCORRELATION_ATS_AATS_NAMES) <= set(names)
     assert set(AUTOCORRELATION_ATSC_AATSC_NAMES) <= set(names)
     assert set(AUTOCORRELATION_CHARGE_ATSC_AATSC_NAMES) <= set(names)
@@ -999,7 +1003,6 @@ def test_mordred_descriptors_match_enabled_reference_values():
             ):
                 assert expected["state"] in {"missing", "error", "nonfinite"}
                 if actual is None:
-                    assert smiles in OMEGA_UNSUPPORTED_3D_SMILES
                     assert row_policies[(name, smiles)]["status"] == "not_applicable"
                 else:
                     assert math.isfinite(actual)
@@ -1266,7 +1269,7 @@ def test_parity_harness_rejects_unlisted_openeye_divergent_missing_values(
     ]
 
 
-def test_parity_harness_accepts_explicit_not_applicable_row_for_omega_failure(
+def test_parity_harness_accepts_explicit_not_applicable_row_for_generated_3d_failure(
     monkeypatch: pytest.MonkeyPatch,
 ):
     fake_oefp = SimpleNamespace(
@@ -1314,8 +1317,8 @@ def test_parity_harness_accepts_explicit_not_applicable_row_for_omega_failure(
                 },
                 "observed": None,
                 "source": "local test",
-                "primitive": "OMEGA single-conformer generation",
-                "reason": "OMEGA does not generate a conformer for this molecule.",
+                "primitive": "Explicit generated 3D preparation",
+                "reason": "The explicit preparation layer does not generate a conformer.",
             }
         ],
     }
@@ -1336,7 +1339,7 @@ def test_parity_harness_accepts_explicit_not_applicable_row_for_omega_failure(
     assert unclassified == []
 
 
-def test_parity_harness_accepts_explicit_openeye_divergent_row_for_omega_value(
+def test_parity_harness_accepts_explicit_openeye_divergent_row_for_generated_3d_value(
     monkeypatch: pytest.MonkeyPatch,
 ):
     fake_oefp = SimpleNamespace(
@@ -1384,8 +1387,8 @@ def test_parity_harness_accepts_explicit_openeye_divergent_row_for_omega_value(
                 },
                 "observed": 1.25,
                 "source": "local test",
-                "primitive": "OMEGA single-conformer generation",
-                "reason": "OpenEye-generated 3D value has no local Mordred reference.",
+                "primitive": "Explicit generated 3D preparation",
+                "reason": "Generated 3D value has no local Mordred reference.",
             }
         ],
     }
@@ -1406,7 +1409,7 @@ def test_parity_harness_accepts_explicit_openeye_divergent_row_for_omega_value(
     assert unclassified == []
 
 
-def test_parity_harness_accepts_pinned_generated_observation_for_omega_value(
+def test_parity_harness_accepts_pinned_generated_observation_for_generated_3d_value(
     monkeypatch: pytest.MonkeyPatch,
 ):
     fake_oefp = SimpleNamespace(
@@ -1455,8 +1458,8 @@ def test_parity_harness_accepts_pinned_generated_observation_for_omega_value(
                     }
                 ],
                 "source": "local test",
-                "primitive": "OMEGA single-conformer generation",
-                "reason": "OpenEye-generated 3D value has no local Mordred reference.",
+                "primitive": "Explicit generated 3D preparation",
+                "reason": "Generated 3D value has no local Mordred reference.",
             }
         ],
     }
@@ -1501,7 +1504,7 @@ def test_mordred_reference_fixture_contains_full_schema_and_panel():
     definitions_by_name = {definition["name"]: definition for definition in definitions}
     names = [definition["name"] for definition in definitions]
 
-    assert payload["schema_id"] == "1fa9a8e86a7c8731"
+    assert payload["schema_id"] == "3ad3d49398681f3d"
     assert payload["source"] == {
         "descriptor_source": "local-mordred-1.2.0",
         "ignore_3D": False,
@@ -1559,8 +1562,8 @@ def test_mordred_divergence_policy_manifest_is_valid():
     } == not_applicable_no_conformer_3d_descriptors
     assert {
         policies_by_descriptor[name]["status"]
-        for name in OMEGA_GENERATED_3D_DESCRIPTOR_NAMES
-    } == {"openeye_divergent"}
+        for name in IMPLEMENTED_3D_DESCRIPTOR_NAMES
+    } == {"exact"}
     assert policies_by_descriptor["RNCG"]["status"] == "exact"
     assert policies_by_descriptor["RPCG"]["status"] == "exact"
     for policy in policies:
@@ -1571,17 +1574,13 @@ def test_mordred_divergence_policy_manifest_is_valid():
         (row["descriptor"], row["smiles"])
         for row in row_policies
         if row["status"] == "not_applicable"
-    } == {
-        (descriptor, smiles)
-        for descriptor in OMEGA_GENERATED_3D_DESCRIPTOR_NAMES
-        for smiles in OMEGA_UNSUPPORTED_3D_SMILES
-    }
+    } == set()
     generated_observation_keys = set()
     for block in payload["generated_observations"]:
         assert GENERATED_OBSERVATION_REQUIRED_FIELDS <= set(block)
         assert block["status"] == "openeye_divergent"
         descriptors = tuple(block["descriptors"])
-        assert set(descriptors) <= OMEGA_GENERATED_3D_DESCRIPTOR_NAMES
+        assert set(descriptors) <= IMPLEMENTED_3D_DESCRIPTOR_NAMES
         for row in block["rows"]:
             assert set(row) == {"smiles", "values"}
             assert len(row["values"]) == len(descriptors)
@@ -1589,12 +1588,7 @@ def test_mordred_divergence_policy_manifest_is_valid():
                 assert observed is not None
                 generated_observation_keys.add((descriptor, row["smiles"]))
 
-    assert generated_observation_keys == {
-        (descriptor, row["smiles"])
-        for descriptor in OMEGA_GENERATED_3D_DESCRIPTOR_NAMES
-        for row in reference_payload["reference_rows"]
-        if row["smiles"] not in OMEGA_UNSUPPORTED_3D_SMILES
-    }
+    assert generated_observation_keys == set()
 
 
 def test_mordred_divergence_rows_include_required_context():

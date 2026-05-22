@@ -110,6 +110,8 @@ std::string schema_id_for(const std::vector<DescriptorDefinition>& definitions) 
         serialized.push_back('|');
         append_field(serialized, definition.description);
         serialized.push_back('|');
+        append_uint(serialized, definition.prerequisites);
+        serialized.push_back('|');
         if (definition.shape.has_value()) {
             append_uint(serialized, definition.shape->dimensions.size());
             for (const auto dimension : definition.shape->dimensions) {
@@ -133,6 +135,18 @@ std::string schema_id_for(const std::vector<DescriptorDefinition>& definitions) 
 }
 
 } // namespace
+
+DescriptorPrerequisites MissingDescriptorPrerequisites(
+    DescriptorPrerequisites required,
+    DescriptorPrerequisites available) {
+    return required & ~available;
+}
+
+bool DescriptorPrerequisitesSatisfied(
+    DescriptorPrerequisites required,
+    DescriptorPrerequisites available) {
+    return MissingDescriptorPrerequisites(required, available) == kDescriptorPrerequisiteNone;
+}
 
 DescriptorSchema::DescriptorSchema(std::vector<DescriptorDefinition> definitions)
     : definitions_(std::move(definitions)) {

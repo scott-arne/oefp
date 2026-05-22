@@ -16,7 +16,9 @@ std::shared_ptr<const DescriptorSchema> mixed_schema() {
     DescriptorSchemaBuilder builder;
     builder.Add(DescriptorDefinition{"MW", DescriptorValueKind::Float, "mordred:constitutional"});
     builder.Add(DescriptorDefinition{"nAtom", DescriptorValueKind::Int, "mordred:atom_count"});
-    builder.Add(DescriptorDefinition{"Lipinski", DescriptorValueKind::Bool, "mordred:filter"});
+    DescriptorDefinition lipinski{"Lipinski", DescriptorValueKind::Bool, "mordred:filter"};
+    lipinski.prerequisites = kDescriptorPrerequisiteCoordinates3D;
+    builder.Add(lipinski);
     builder.Add(DescriptorDefinition{"Class", DescriptorValueKind::String, "manual:category"});
     return builder.Build();
 }
@@ -70,6 +72,28 @@ TEST(TypedDescriptorSetTest, PreservesMissingValues) {
     EXPECT_TRUE(row.Has("MW"));
     EXPECT_FALSE(row.Has("nAtom"));
     EXPECT_THROW(static_cast<void>(row.Int("nAtom")), std::invalid_argument);
+}
+
+TEST(TypedDescriptorSetTest, LeavesValuesMissingWhenPrerequisitesAreUnavailable) {
+    DescriptorSetBuilder builder(
+        mixed_schema(),
+        kDescriptorPrerequisiteGraph);
+    builder.Set("MW", DescriptorValue::Float(46.069));
+    builder.Set("Lipinski", DescriptorValue::Bool(true));
+
+    const auto row = builder.Build();
+
+    EXPECT_EQ(builder.AvailablePrerequisites(), kDescriptorPrerequisiteGraph);
+    EXPECT_TRUE(row.Has("MW"));
+    EXPECT_FALSE(row.Has("Lipinski"));
+    EXPECT_EQ(
+        MissingDescriptorPrerequisites(
+            row.Schema().Definition(row.Schema().IndexOf("Lipinski")).prerequisites,
+            builder.AvailablePrerequisites()),
+        kDescriptorPrerequisiteCoordinates3D);
+    EXPECT_FALSE(DescriptorPrerequisitesSatisfied(
+        kDescriptorPrerequisiteCoordinates3D,
+        builder.AvailablePrerequisites()));
 }
 
 TEST(TypedDescriptorSetTest, RejectsWrongValueKind) {

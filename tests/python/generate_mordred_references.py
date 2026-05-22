@@ -18,6 +18,8 @@ from typing import Any
 DEFAULT_MORDRED_SOURCE = Path("/Users/johnss51/Development/python/mordred")
 EXPECTED_MORDRED_VERSION = "1.2.0"
 SOURCE_VERSION = f"Mordred-{EXPECTED_MORDRED_VERSION}"
+DESCRIPTOR_PREREQUISITE_NONE = 0
+DESCRIPTOR_PREREQUISITE_COORDINATES_3D = 1 << 2
 
 SMILES_PANEL = [
     "CCO",
@@ -161,7 +163,7 @@ def _load_mordred(mordred_source: Path) -> Any:
     return Calculator(descriptors, ignore_3D=False)
 
 
-def _schema_id(definitions: list[dict[str, str]]) -> str:
+def _schema_id(definitions: list[dict[str, Any]]) -> str:
     def append_field(text: str, value: str) -> str:
         return f"{text}{len(value.encode('utf-8'))}:{value}"
 
@@ -184,6 +186,8 @@ def _schema_id(definitions: list[dict[str, str]]) -> str:
         serialized = append_field(serialized, definition.get("units", ""))
         serialized += "|"
         serialized = append_field(serialized, definition["description"])
+        serialized += "|"
+        serialized += str(int(definition.get("prerequisites", DESCRIPTOR_PREREQUISITE_NONE)))
         serialized += "|-\n"
 
     value = 14695981039346656037
@@ -208,6 +212,11 @@ def _reference_payload(mordred_source: Path, descriptor_source: str) -> dict[str
             "parameters": _descriptor_parameters(descriptor),
             "units": "",
             "description": _descriptor_description(descriptor),
+            "prerequisites": (
+                DESCRIPTOR_PREREQUISITE_COORDINATES_3D
+                if getattr(descriptor, "require_3D", False)
+                else DESCRIPTOR_PREREQUISITE_NONE
+            ),
         }
         for descriptor in calculator.descriptors
     ]
@@ -268,6 +277,7 @@ def _write_cpp_schema(payload: dict[str, Any], output: Path) -> None:
         "    const char* source_type;",
         "    const char* parameters;",
         "    const char* description;",
+        "    DescriptorPrerequisites prerequisites;",
         "};",
         "",
         f"constexpr std::array<StaticMordredDefinition, {len(definitions)}> kMordredDefinitions{{{{",
@@ -280,7 +290,8 @@ def _write_cpp_schema(payload: dict[str, Any], output: Path) -> None:
             f"{_cpp_string(definition['group'])}, "
             f"{_cpp_string(definition['source_type'])}, "
             f"{_cpp_string(definition['parameters'])}, "
-            f"{_cpp_string(definition['description'])}"
+            f"{_cpp_string(definition['description'])}, "
+            f"{int(definition.get('prerequisites', DESCRIPTOR_PREREQUISITE_NONE))}u"
             "},"
         )
     lines.extend(
@@ -303,6 +314,7 @@ def _write_cpp_schema(payload: dict[str, Any], output: Path) -> None:
             f"            definition.source_version = \"{SOURCE_VERSION}\";",
             "            definition.parameters = item.parameters;",
             "            definition.description = item.description;",
+            "            definition.prerequisites = item.prerequisites;",
             "            definitions.push_back(std::move(definition));",
             "        }",
             "        return std::make_shared<const DescriptorSchema>(std::move(definitions));",
