@@ -159,7 +159,19 @@ ESTATE_COUNT_NAMES = (
 ESTATE_SUM_NAMES = tuple("S" + name[1:] for name in ESTATE_COUNT_NAMES)
 ESTATE_MAX_NAMES = tuple("MAX" + name[1:] for name in ESTATE_COUNT_NAMES)
 ESTATE_MIN_NAMES = tuple("MIN" + name[1:] for name in ESTATE_COUNT_NAMES)
-AUTOCORRELATION_ATS_AATS_PROPERTIES = ("Z", "m", "v", "se", "pe", "are", "p", "i")
+AUTOCORRELATION_ATS_AATS_PROPERTIES = (
+    "Z",
+    "m",
+    "v",
+    "se",
+    "pe",
+    "are",
+    "p",
+    "i",
+    "dv",
+    "d",
+    "s",
+)
 AUTOCORRELATION_ATS_AATS_NAMES = tuple(
     f"{kind}{index}{prop}"
     for prop in AUTOCORRELATION_ATS_AATS_PROPERTIES
@@ -756,7 +768,7 @@ def test_mordred_descriptors_match_enabled_reference_values():
     names = _enabled_descriptor_names(payload)
     row_divergences = _row_divergence_policy()
 
-    assert len(names) == 1149
+    assert len(names) == 1203
     assert set(AUTOCORRELATION_ATS_AATS_NAMES) <= set(names)
     assert set(ESTATE_COUNT_NAMES) <= set(names)
     assert set(ESTATE_SUM_NAMES) <= set(names)

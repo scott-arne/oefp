@@ -95,7 +95,8 @@ const std::vector<std::string>& estate_min_names() {
 const std::vector<std::string>& autocorrelation_ats_aats_names() {
     static const std::vector<std::string> names = [] {
         std::vector<std::string> generated;
-        for (const auto* suffix : {"Z", "m", "v", "se", "pe", "are", "p", "i"}) {
+        for (const auto* suffix :
+             {"Z", "m", "v", "se", "pe", "are", "p", "i", "dv", "d", "s"}) {
             for (const auto* prefix : {"ATS", "AATS"}) {
                 for (std::size_t lag = 0u; lag <= 8u; ++lag) {
                     generated.push_back(prefix + std::to_string(lag) + suffix);
@@ -1842,19 +1843,56 @@ TEST(MordredDescriptorTest, AutocorrelationDescriptorsUseExplicitHydrogenShortes
         {"AATS3p", 0.5228959588993333},
         {"ATS0i", 1548.545910127994},
         {"AATS4i", 184.917652024249},
+        {"ATS0dv", 30.0},
+        {"ATS1dv", 12.0},
+        {"ATS2dv", 5.0},
+        {"AATS0dv", 3.3333333333333335},
+        {"AATS1dv", 1.5},
+        {"AATS2dv", 0.38461538461538464},
+        {"ATS0d", 12.0},
+        {"ATS1d", 12.0},
+        {"ATS2d", 17.0},
+        {"ATS3d", 12.0},
+        {"ATS4d", 3.0},
+        {"AATS0d", 1.3333333333333333},
+        {"AATS1d", 1.5},
+        {"AATS2d", 1.3076923076923077},
+        {"AATS3d", 1.0},
+        {"AATS4d", 1.0},
+        {"ATS0s", 48.25},
+        {"ATS1s", 27.0},
+        {"ATS2s", 38.0},
+        {"ATS3s", 28.0},
+        {"ATS4s", 3.0},
+        {"AATS0s", 5.361111111111111},
+        {"AATS1s", 3.375},
+        {"AATS2s", 2.923076923076923},
+        {"AATS3s", 2.3333333333333335},
+        {"AATS4s", 1.0},
     };
 
     for (const auto& [name, expected_value] : expected_values) {
         ASSERT_TRUE(descriptors.Has(name)) << name;
         EXPECT_NEAR(descriptors.Float(name), expected_value, 1.0e-12) << name;
     }
-    for (const auto* suffix : {"Z", "m", "v", "se", "pe", "are", "p", "i"}) {
+    for (const auto* suffix :
+         {"Z", "m", "v", "se", "pe", "are", "p", "i", "dv", "d", "s"}) {
         for (std::size_t lag = 5u; lag <= 8u; ++lag) {
             const auto lag_text = std::to_string(lag);
             EXPECT_TRUE(descriptors.Has("ATS" + lag_text + suffix)) << suffix << lag;
             EXPECT_EQ(descriptors.Float("ATS" + lag_text + suffix), 0.0) << suffix << lag;
             EXPECT_FALSE(descriptors.Has("AATS" + lag_text + suffix)) << suffix << lag;
         }
+    }
+}
+
+TEST(MordredDescriptorTest, AutocorrelationIntrinsicStateDescriptorsAreMissingForMethane) {
+    const auto descriptors = MakeMordredDescriptors(mol_from_smiles("C"));
+
+    for (std::size_t lag = 0u; lag <= 8u; ++lag) {
+        const auto lag_text = std::to_string(lag);
+        EXPECT_FALSE(descriptors.Has("ATS" + lag_text + "s")) << lag;
+        EXPECT_FALSE(descriptors.Has("AATS" + lag_text + "s")) << lag;
     }
 }
 

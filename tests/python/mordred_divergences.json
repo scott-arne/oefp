@@ -1174,6 +1174,438 @@
       "reason": "OEFP matches Mordred AATS8i missing/concrete behavior on the committed Mordred parity fixture."
     },
     {
+      "descriptor": "ATS0dv",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred DistanceMatrix(True, useBO=False, useAtomWts=False) with valence-electron weights",
+      "reason": "OEFP matches Mordred ATS0dv values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "ATS1dv",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred DistanceMatrix(True, useBO=False, useAtomWts=False) with valence-electron weights",
+      "reason": "OEFP matches Mordred ATS1dv values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "ATS2dv",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred DistanceMatrix(True, useBO=False, useAtomWts=False) with valence-electron weights",
+      "reason": "OEFP matches Mordred ATS2dv values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "ATS3dv",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred DistanceMatrix(True, useBO=False, useAtomWts=False) with valence-electron weights",
+      "reason": "OEFP matches Mordred ATS3dv values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "ATS4dv",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred DistanceMatrix(True, useBO=False, useAtomWts=False) with valence-electron weights",
+      "reason": "OEFP matches Mordred ATS4dv values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "ATS5dv",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred DistanceMatrix(True, useBO=False, useAtomWts=False) with valence-electron weights",
+      "reason": "OEFP matches Mordred ATS5dv values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "ATS6dv",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred DistanceMatrix(True, useBO=False, useAtomWts=False) with valence-electron weights",
+      "reason": "OEFP matches Mordred ATS6dv values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "ATS7dv",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred DistanceMatrix(True, useBO=False, useAtomWts=False) with valence-electron weights",
+      "reason": "OEFP matches Mordred ATS7dv values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "ATS8dv",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred DistanceMatrix(True, useBO=False, useAtomWts=False) with valence-electron weights",
+      "reason": "OEFP matches Mordred ATS8dv values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "AATS0dv",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred DistanceMatrix(True, useBO=False, useAtomWts=False) with valence-electron weights",
+      "reason": "OEFP matches Mordred AATS0dv values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "AATS1dv",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred DistanceMatrix(True, useBO=False, useAtomWts=False) with valence-electron weights",
+      "reason": "OEFP matches Mordred AATS1dv values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "AATS2dv",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred DistanceMatrix(True, useBO=False, useAtomWts=False) with valence-electron weights",
+      "reason": "OEFP matches Mordred AATS2dv values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "AATS3dv",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred DistanceMatrix(True, useBO=False, useAtomWts=False) with valence-electron weights",
+      "reason": "OEFP matches Mordred AATS3dv values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "AATS4dv",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred DistanceMatrix(True, useBO=False, useAtomWts=False) with valence-electron weights",
+      "reason": "OEFP matches Mordred AATS4dv values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "AATS5dv",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred DistanceMatrix(True, useBO=False, useAtomWts=False) with valence-electron weights",
+      "reason": "OEFP matches Mordred AATS5dv missing/concrete behavior on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "AATS6dv",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred DistanceMatrix(True, useBO=False, useAtomWts=False) with valence-electron weights",
+      "reason": "OEFP matches Mordred AATS6dv missing/concrete behavior on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "AATS7dv",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred DistanceMatrix(True, useBO=False, useAtomWts=False) with valence-electron weights",
+      "reason": "OEFP matches Mordred AATS7dv missing/concrete behavior on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "AATS8dv",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred DistanceMatrix(True, useBO=False, useAtomWts=False) with valence-electron weights",
+      "reason": "OEFP matches Mordred AATS8dv missing/concrete behavior on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "ATS0d",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred DistanceMatrix(True, useBO=False, useAtomWts=False) with sigma-electron weights",
+      "reason": "OEFP matches Mordred ATS0d values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "ATS1d",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred DistanceMatrix(True, useBO=False, useAtomWts=False) with sigma-electron weights",
+      "reason": "OEFP matches Mordred ATS1d values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "ATS2d",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred DistanceMatrix(True, useBO=False, useAtomWts=False) with sigma-electron weights",
+      "reason": "OEFP matches Mordred ATS2d values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "ATS3d",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred DistanceMatrix(True, useBO=False, useAtomWts=False) with sigma-electron weights",
+      "reason": "OEFP matches Mordred ATS3d values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "ATS4d",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred DistanceMatrix(True, useBO=False, useAtomWts=False) with sigma-electron weights",
+      "reason": "OEFP matches Mordred ATS4d values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "ATS5d",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred DistanceMatrix(True, useBO=False, useAtomWts=False) with sigma-electron weights",
+      "reason": "OEFP matches Mordred ATS5d values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "ATS6d",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred DistanceMatrix(True, useBO=False, useAtomWts=False) with sigma-electron weights",
+      "reason": "OEFP matches Mordred ATS6d values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "ATS7d",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred DistanceMatrix(True, useBO=False, useAtomWts=False) with sigma-electron weights",
+      "reason": "OEFP matches Mordred ATS7d values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "ATS8d",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred DistanceMatrix(True, useBO=False, useAtomWts=False) with sigma-electron weights",
+      "reason": "OEFP matches Mordred ATS8d values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "AATS0d",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred DistanceMatrix(True, useBO=False, useAtomWts=False) with sigma-electron weights",
+      "reason": "OEFP matches Mordred AATS0d values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "AATS1d",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred DistanceMatrix(True, useBO=False, useAtomWts=False) with sigma-electron weights",
+      "reason": "OEFP matches Mordred AATS1d values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "AATS2d",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred DistanceMatrix(True, useBO=False, useAtomWts=False) with sigma-electron weights",
+      "reason": "OEFP matches Mordred AATS2d values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "AATS3d",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred DistanceMatrix(True, useBO=False, useAtomWts=False) with sigma-electron weights",
+      "reason": "OEFP matches Mordred AATS3d values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "AATS4d",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred DistanceMatrix(True, useBO=False, useAtomWts=False) with sigma-electron weights",
+      "reason": "OEFP matches Mordred AATS4d values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "AATS5d",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred DistanceMatrix(True, useBO=False, useAtomWts=False) with sigma-electron weights",
+      "reason": "OEFP matches Mordred AATS5d missing/concrete behavior on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "AATS6d",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred DistanceMatrix(True, useBO=False, useAtomWts=False) with sigma-electron weights",
+      "reason": "OEFP matches Mordred AATS6d missing/concrete behavior on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "AATS7d",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred DistanceMatrix(True, useBO=False, useAtomWts=False) with sigma-electron weights",
+      "reason": "OEFP matches Mordred AATS7d missing/concrete behavior on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "AATS8d",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred DistanceMatrix(True, useBO=False, useAtomWts=False) with sigma-electron weights",
+      "reason": "OEFP matches Mordred AATS8d missing/concrete behavior on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "ATS0s",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred DistanceMatrix(True, useBO=False, useAtomWts=False) with intrinsic-state weights",
+      "reason": "OEFP matches Mordred ATS0s values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "ATS1s",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred DistanceMatrix(True, useBO=False, useAtomWts=False) with intrinsic-state weights",
+      "reason": "OEFP matches Mordred ATS1s values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "ATS2s",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred DistanceMatrix(True, useBO=False, useAtomWts=False) with intrinsic-state weights",
+      "reason": "OEFP matches Mordred ATS2s values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "ATS3s",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred DistanceMatrix(True, useBO=False, useAtomWts=False) with intrinsic-state weights",
+      "reason": "OEFP matches Mordred ATS3s values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "ATS4s",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred DistanceMatrix(True, useBO=False, useAtomWts=False) with intrinsic-state weights",
+      "reason": "OEFP matches Mordred ATS4s values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "ATS5s",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred DistanceMatrix(True, useBO=False, useAtomWts=False) with intrinsic-state weights",
+      "reason": "OEFP matches Mordred ATS5s values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "ATS6s",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred DistanceMatrix(True, useBO=False, useAtomWts=False) with intrinsic-state weights",
+      "reason": "OEFP matches Mordred ATS6s values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "ATS7s",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred DistanceMatrix(True, useBO=False, useAtomWts=False) with intrinsic-state weights",
+      "reason": "OEFP matches Mordred ATS7s values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "ATS8s",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred DistanceMatrix(True, useBO=False, useAtomWts=False) with intrinsic-state weights",
+      "reason": "OEFP matches Mordred ATS8s values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "AATS0s",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred DistanceMatrix(True, useBO=False, useAtomWts=False) with intrinsic-state weights",
+      "reason": "OEFP matches Mordred AATS0s values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "AATS1s",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred DistanceMatrix(True, useBO=False, useAtomWts=False) with intrinsic-state weights",
+      "reason": "OEFP matches Mordred AATS1s values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "AATS2s",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred DistanceMatrix(True, useBO=False, useAtomWts=False) with intrinsic-state weights",
+      "reason": "OEFP matches Mordred AATS2s values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "AATS3s",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred DistanceMatrix(True, useBO=False, useAtomWts=False) with intrinsic-state weights",
+      "reason": "OEFP matches Mordred AATS3s values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "AATS4s",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred DistanceMatrix(True, useBO=False, useAtomWts=False) with intrinsic-state weights",
+      "reason": "OEFP matches Mordred AATS4s values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "AATS5s",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred DistanceMatrix(True, useBO=False, useAtomWts=False) with intrinsic-state weights",
+      "reason": "OEFP matches Mordred AATS5s missing/concrete behavior on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "AATS6s",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred DistanceMatrix(True, useBO=False, useAtomWts=False) with intrinsic-state weights",
+      "reason": "OEFP matches Mordred AATS6s missing/concrete behavior on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "AATS7s",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred DistanceMatrix(True, useBO=False, useAtomWts=False) with intrinsic-state weights",
+      "reason": "OEFP matches Mordred AATS7s missing/concrete behavior on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "AATS8s",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred DistanceMatrix(True, useBO=False, useAtomWts=False) with intrinsic-state weights",
+      "reason": "OEFP matches Mordred AATS8s missing/concrete behavior on the committed Mordred parity fixture."
+    },
+    {
       "descriptor": "BalabanJ",
       "family": "BalabanJ",
       "source": "/Users/johnss51/Development/python/mordred/mordred/BalabanJ.py",

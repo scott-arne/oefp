@@ -170,7 +170,15 @@ struct MordredMolecularDistanceEdgeValues {
     std::array<std::array<std::optional<double>, 5>, 5> nitrogen{};
 };
 
+struct MordredAutocorrelationAtomSnapshot {
+    std::uint32_t atomic_number = 0u;
+    int formal_charge = 0;
+    std::uint32_t total_hydrogens = 0u;
+    std::uint32_t non_hydrogen_neighbors = 0u;
+};
+
 struct MordredExplicitAtomDistanceValues {
+    std::vector<MordredAutocorrelationAtomSnapshot> atoms;
     std::vector<std::uint32_t> atomic_numbers;
     std::vector<std::vector<std::int64_t>> distances;
 };
@@ -259,6 +267,8 @@ struct MordredDetourSearchContext {
 };
 
 using MordredAtomicPropertyLookup = std::optional<double> (*)(std::uint32_t);
+using MordredAutocorrelationAtomPropertyLookup =
+    std::optional<double> (*)(const MordredAutocorrelationAtomSnapshot&);
 
 struct MordredBaryszMatrixProperty {
     const char* suffix;
@@ -268,7 +278,8 @@ struct MordredBaryszMatrixProperty {
 
 struct MordredAutocorrelationProperty {
     const char* suffix;
-    MordredAtomicPropertyLookup lookup;
+    MordredAtomicPropertyLookup atomic_number_lookup;
+    MordredAutocorrelationAtomPropertyLookup atom_lookup;
 };
 
 enum class MordredBCUTPropertyKind {
@@ -4114,16 +4125,61 @@ std::optional<double> mordred_atomic_number_property(std::uint32_t atomic_number
     return static_cast<double>(atomic_number);
 }
 
-const std::array<MordredAutocorrelationProperty, 8>& mordred_autocorrelation_properties() {
-    static const std::array<MordredAutocorrelationProperty, 8> properties{{
-        {"Z", mordred_atomic_number_property},
-        {"m", mordred_mass},
-        {"v", mordred_vdw_volume},
-        {"se", mordred_sanderson},
-        {"pe", mordred_pauling},
-        {"are", mordred_allred_rocow},
-        {"p", mordred_polarizability94},
-        {"i", mordred_ionization_potential},
+std::optional<double> mordred_autocorrelation_valence_electrons(
+    const MordredAutocorrelationAtomSnapshot& atom) {
+    if (atom.atomic_number == 1u) {
+        return 0.0;
+    }
+
+    const auto outer_electrons = mordred_outer_electrons(atom.atomic_number);
+    if (!outer_electrons.has_value()) {
+        return std::nullopt;
+    }
+
+    const auto zv = static_cast<double>(*outer_electrons - atom.formal_charge);
+    const auto z = static_cast<double>(static_cast<int>(atom.atomic_number) - atom.formal_charge);
+    const auto denominator = z - zv - 1.0;
+    if (denominator == 0.0) {
+        return std::nullopt;
+    }
+    // OpenEye includes explicit H neighbors in GetTotalHCount() after hydrogen expansion.
+    return (zv - static_cast<double>(atom.total_hydrogens)) / denominator;
+}
+
+std::optional<double> mordred_autocorrelation_sigma_electrons(
+    const MordredAutocorrelationAtomSnapshot& atom) {
+    return static_cast<double>(atom.non_hydrogen_neighbors);
+}
+
+std::optional<double> mordred_autocorrelation_intrinsic_state(
+    const MordredAutocorrelationAtomSnapshot& atom) {
+    const auto sigma_electrons = mordred_autocorrelation_sigma_electrons(atom);
+    if (!sigma_electrons.has_value() || *sigma_electrons == 0.0) {
+        return std::nullopt;
+    }
+
+    const auto valence_electrons = mordred_autocorrelation_valence_electrons(atom);
+    if (!valence_electrons.has_value()) {
+        return std::nullopt;
+    }
+
+    const auto period = static_cast<double>(mordred_principal_quantum_number(atom.atomic_number));
+    return (std::pow(2.0 / period, 2.0) * *valence_electrons + 1.0) / *sigma_electrons;
+}
+
+const std::array<MordredAutocorrelationProperty, 11>& mordred_autocorrelation_properties() {
+    static const std::array<MordredAutocorrelationProperty, 11> properties{{
+        {"Z", mordred_atomic_number_property, nullptr},
+        {"m", mordred_mass, nullptr},
+        {"v", mordred_vdw_volume, nullptr},
+        {"se", mordred_sanderson, nullptr},
+        {"pe", mordred_pauling, nullptr},
+        {"are", mordred_allred_rocow, nullptr},
+        {"p", mordred_polarizability94, nullptr},
+        {"i", mordred_ionization_potential, nullptr},
+        {"dv", nullptr, mordred_autocorrelation_valence_electrons},
+        {"d", nullptr, mordred_autocorrelation_sigma_electrons},
+        {"s", nullptr, mordred_autocorrelation_intrinsic_state},
     }};
     return properties;
 }
@@ -4673,7 +4729,18 @@ MordredExplicitAtomDistanceValues compute_mordred_explicit_atom_distances(
     std::unordered_map<unsigned int, std::size_t> atom_indices;
     for (OESystem::OEIter<OEChem::OEAtomBase> atom = explicit_mol.GetAtoms(); atom; ++atom) {
         atom_indices.emplace(atom->GetIdx(), atoms.size());
-        values.atomic_numbers.push_back(static_cast<std::uint32_t>(atom->GetAtomicNum()));
+        MordredAutocorrelationAtomSnapshot snapshot;
+        snapshot.atomic_number = static_cast<std::uint32_t>(atom->GetAtomicNum());
+        snapshot.formal_charge = atom->GetFormalCharge();
+        snapshot.total_hydrogens = atom->GetTotalHCount();
+        for (OESystem::OEIter<OEChem::OEAtomBase> neighbor = atom->GetAtoms(); neighbor;
+             ++neighbor) {
+            if (!is_hydrogen(*neighbor)) {
+                ++snapshot.non_hydrogen_neighbors;
+            }
+        }
+        values.atoms.push_back(snapshot);
+        values.atomic_numbers.push_back(snapshot.atomic_number);
         atoms.push_back(&*atom);
     }
 
@@ -4720,7 +4787,10 @@ MordredAutocorrelationValues compute_autocorrelation_values(
     std::vector<double> atom_properties;
     atom_properties.reserve(atom_count);
     for (std::size_t atom_index = 0u; atom_index < atom_count; ++atom_index) {
-        const auto atom_property = property.lookup(distance_values.atomic_numbers[atom_index]);
+        const auto atom_property =
+            property.atom_lookup != nullptr
+                ? property.atom_lookup(distance_values.atoms[atom_index])
+                : property.atomic_number_lookup(distance_values.atomic_numbers[atom_index]);
         if (!atom_property.has_value() || !std::isfinite(*atom_property)) {
             return values;
         }
