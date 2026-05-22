@@ -92,6 +92,15 @@ const std::vector<std::string>& estate_min_names() {
     return names;
 }
 
+const std::vector<std::string>& autocorrelation_z_names() {
+    static const std::vector<std::string> names{
+        "ATS0Z",  "ATS1Z",  "ATS2Z",  "ATS3Z",  "ATS4Z",  "ATS5Z",
+        "ATS6Z",  "ATS7Z",  "ATS8Z",  "AATS0Z", "AATS1Z", "AATS2Z",
+        "AATS3Z", "AATS4Z", "AATS5Z", "AATS6Z", "AATS7Z", "AATS8Z",
+    };
+    return names;
+}
+
 const std::vector<std::string>& vsa_estate_names() {
     static const std::vector<std::string> names{
         "VSA_EState1",
@@ -1792,6 +1801,53 @@ TEST(MordredDescriptorTest, FrameworkDescriptorDoesNotDoubleCountExplicitHydroge
 
     ASSERT_TRUE(descriptors.Has("fMF"));
     EXPECT_NEAR(descriptors.Float("fMF"), 0.3333333333333333, 1.0e-12);
+}
+
+TEST(MordredDescriptorTest, AutocorrelationZDescriptorsUseExplicitHydrogenShortestPaths) {
+    const auto descriptors = MakeMordredDescriptors(mol_from_smiles("CCO"));
+    const std::vector<std::pair<std::string, double>> expected_values{
+        {"ATS0Z", 142.0},
+        {"ATS1Z", 122.0},
+        {"ATS2Z", 104.0},
+        {"ATS3Z", 38.0},
+        {"ATS4Z", 3.0},
+        {"ATS5Z", 0.0},
+        {"ATS6Z", 0.0},
+        {"ATS7Z", 0.0},
+        {"ATS8Z", 0.0},
+        {"AATS0Z", 15.777777777777779},
+        {"AATS1Z", 15.25},
+        {"AATS2Z", 8.0},
+        {"AATS3Z", 3.1666666666666665},
+        {"AATS4Z", 1.0},
+    };
+
+    for (const auto& [name, expected_value] : expected_values) {
+        ASSERT_TRUE(descriptors.Has(name)) << name;
+        EXPECT_NEAR(descriptors.Float(name), expected_value, 1.0e-12) << name;
+    }
+    for (const auto* name : {"AATS5Z", "AATS6Z", "AATS7Z", "AATS8Z"}) {
+        EXPECT_FALSE(descriptors.Has(name)) << name;
+    }
+}
+
+TEST(MordredDescriptorTest, AutocorrelationZDescriptorsDoNotDoubleCountExplicitHydrogens) {
+    OEChem::OEGraphMol explicit_mol = mol_from_smiles("CCO");
+    OEChem::OEAddExplicitHydrogens(explicit_mol);
+
+    const auto implicit_descriptors = MakeMordredDescriptors(mol_from_smiles("CCO"));
+    const auto explicit_descriptors = MakeMordredDescriptors(explicit_mol);
+
+    for (const auto& name : autocorrelation_z_names()) {
+        EXPECT_EQ(explicit_descriptors.Has(name), implicit_descriptors.Has(name)) << name;
+        if (implicit_descriptors.Has(name)) {
+            EXPECT_NEAR(
+                explicit_descriptors.Float(name),
+                implicit_descriptors.Float(name),
+                1.0e-12)
+                << name;
+        }
+    }
 }
 
 TEST(MordredDescriptorTest, ZagrebDescriptorsUseHeavyAtomGraphDegrees) {

@@ -22,6 +22,150 @@
       "reason": "OEFP matches Mordred ABCGG values on the committed Mordred parity fixture."
     },
     {
+      "descriptor": "ATS0Z",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred DistanceMatrix(True, useBO=False, useAtomWts=False) with atomic-number weights",
+      "reason": "OEFP matches Mordred ATS0Z values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "ATS1Z",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred DistanceMatrix(True, useBO=False, useAtomWts=False) with atomic-number weights",
+      "reason": "OEFP matches Mordred ATS1Z values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "ATS2Z",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred DistanceMatrix(True, useBO=False, useAtomWts=False) with atomic-number weights",
+      "reason": "OEFP matches Mordred ATS2Z values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "ATS3Z",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred DistanceMatrix(True, useBO=False, useAtomWts=False) with atomic-number weights",
+      "reason": "OEFP matches Mordred ATS3Z values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "ATS4Z",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred DistanceMatrix(True, useBO=False, useAtomWts=False) with atomic-number weights",
+      "reason": "OEFP matches Mordred ATS4Z values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "ATS5Z",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred DistanceMatrix(True, useBO=False, useAtomWts=False) with atomic-number weights",
+      "reason": "OEFP matches Mordred ATS5Z values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "ATS6Z",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred DistanceMatrix(True, useBO=False, useAtomWts=False) with atomic-number weights",
+      "reason": "OEFP matches Mordred ATS6Z values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "ATS7Z",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred DistanceMatrix(True, useBO=False, useAtomWts=False) with atomic-number weights",
+      "reason": "OEFP matches Mordred ATS7Z values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "ATS8Z",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred DistanceMatrix(True, useBO=False, useAtomWts=False) with atomic-number weights",
+      "reason": "OEFP matches Mordred ATS8Z values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "AATS0Z",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GSum lag divisors with atomic-number weighted ATS values",
+      "reason": "OEFP matches Mordred AATS0Z values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "AATS1Z",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GSum lag divisors with atomic-number weighted ATS values",
+      "reason": "OEFP matches Mordred AATS1Z values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "AATS2Z",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GSum lag divisors with atomic-number weighted ATS values",
+      "reason": "OEFP matches Mordred AATS2Z values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "AATS3Z",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GSum lag divisors with atomic-number weighted ATS values",
+      "reason": "OEFP matches Mordred AATS3Z values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "AATS4Z",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GSum lag divisors with atomic-number weighted ATS values",
+      "reason": "OEFP matches Mordred AATS4Z values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "AATS5Z",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GSum lag divisors with atomic-number weighted ATS values",
+      "reason": "OEFP matches Mordred AATS5Z missing/concrete behavior on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "AATS6Z",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GSum lag divisors with atomic-number weighted ATS values",
+      "reason": "OEFP matches Mordred AATS6Z missing/concrete behavior on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "AATS7Z",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GSum lag divisors with atomic-number weighted ATS values",
+      "reason": "OEFP matches Mordred AATS7Z missing/concrete behavior on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "AATS8Z",
+      "family": "Autocorrelation",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/Autocorrelation.py",
+      "status": "exact",
+      "primitive": "OpenEye all-atom explicit-hydrogen unweighted shortest path matrix matching Mordred GSum lag divisors with atomic-number weighted ATS values",
+      "reason": "OEFP matches Mordred AATS8Z missing/concrete behavior on the committed Mordred parity fixture."
+    },
+    {
       "descriptor": "BalabanJ",
       "family": "BalabanJ",
       "source": "/Users/johnss51/Development/python/mordred/mordred/BalabanJ.py",
