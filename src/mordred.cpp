@@ -5,6 +5,7 @@
 #include <cmath>
 #include <cstdint>
 #include <cstddef>
+#include <functional>
 #include <iomanip>
 #include <limits>
 #include <map>
@@ -20,6 +21,7 @@
 
 #include <oesystem.h>
 #include <oemolprop.h>
+#include <oeomega2.h>
 
 namespace OEFP {
 namespace {
@@ -360,6 +362,44 @@ struct MordredEStateValues {
     std::vector<double> sums;
     std::vector<std::optional<double>> maxima;
     std::vector<std::optional<double>> minima;
+};
+
+struct Mordred3DAtom {
+    unsigned int atom_index = 0u;
+    std::uint32_t atomic_number = 0u;
+    double mass = 0.0;
+    std::array<double, 3> coord{};
+};
+
+struct Mordred3DAtomSet {
+    std::vector<Mordred3DAtom> atoms;
+    std::vector<double> distances;
+    std::vector<unsigned char> adjacency;
+};
+
+struct MordredGeometricalIndexValues {
+    double diameter = 0.0;
+    double radius = 0.0;
+    std::optional<double> shape_index;
+    std::optional<double> petitjean_index;
+};
+
+struct MordredGravitationalIndexValues {
+    std::optional<double> heavy;
+    std::optional<double> all;
+    std::optional<double> heavy_pair;
+    std::optional<double> all_pair;
+};
+
+struct MordredMomentOfInertiaValues {
+    std::array<double, 3> axes{};
+};
+
+struct MordredLowCount3DValues {
+    std::optional<MordredGeometricalIndexValues> geometrical;
+    MordredGravitationalIndexValues gravitational;
+    std::optional<MordredMomentOfInertiaValues> moment_of_inertia;
+    std::optional<double> pbf;
 };
 
 struct AtomicPropertyValue {
@@ -3684,6 +3724,325 @@ std::optional<MordredSymmetricEigensystem> symmetric_eigensystem_jacobi(
     return std::nullopt;
 }
 
+bool has_mordred_3d_coordinates(const OEChem::OEMolBase& mol) {
+    if (mol.NumAtoms() == 0u || mol.GetDimension() != 3u) {
+        return false;
+    }
+
+    double coords[3] = {0.0, 0.0, 0.0};
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        if (!mol.GetCoords(atom, coords)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+std::optional<OEChem::OEMol> mordred_omega_single_conformer_copy(
+    const OEChem::OEMolBase& mol) {
+    OEChem::OEMol working_mol(mol);
+    if (has_mordred_3d_coordinates(working_mol)) {
+        return working_mol;
+    }
+
+    OEConfGen::OEOmegaOptions options;
+    options.SetMaxConfs(1u);
+    options.SetStrictAtomTypes(false);
+    OEConfGen::OEOmega omega(options);
+    const auto return_code = omega.Build(working_mol);
+    if (return_code == OEConfGen::OEOmegaReturnCode::Success
+            && has_mordred_3d_coordinates(working_mol)) {
+        return working_mol;
+    }
+    return std::nullopt;
+}
+
+double mordred_3d_distance(
+    const std::array<double, 3>& left,
+    const std::array<double, 3>& right) {
+    const auto dx = left[0] - right[0];
+    const auto dy = left[1] - right[1];
+    const auto dz = left[2] - right[2];
+    return std::sqrt(dx * dx + dy * dy + dz * dz);
+}
+
+std::optional<Mordred3DAtomSet> build_mordred_3d_atom_set(
+    const OEChem::OEMolBase& mol,
+    bool include_hydrogens) {
+    Mordred3DAtomSet atom_set;
+    std::vector<std::optional<std::size_t>> selected_by_atom_index(mol.GetMaxAtomIdx());
+
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        const auto atomic_number = static_cast<std::uint32_t>(atom->GetAtomicNum());
+        if (!include_hydrogens && atomic_number <= OEChem::OEElemNo::H) {
+            continue;
+        }
+
+        double coords[3] = {0.0, 0.0, 0.0};
+        if (!mol.GetCoords(atom, coords)) {
+            return std::nullopt;
+        }
+
+        const auto mass = mordred_mass(atomic_number);
+        if (!mass.has_value()) {
+            return std::nullopt;
+        }
+
+        const auto selected_index = atom_set.atoms.size();
+        if (atom->GetIdx() >= selected_by_atom_index.size()) {
+            selected_by_atom_index.resize(atom->GetIdx() + 1u);
+        }
+        selected_by_atom_index[atom->GetIdx()] = selected_index;
+        atom_set.atoms.push_back(Mordred3DAtom{
+            atom->GetIdx(),
+            atomic_number,
+            *mass,
+            {coords[0], coords[1], coords[2]},
+        });
+    }
+
+    const auto atom_count = atom_set.atoms.size();
+    atom_set.distances.assign(atom_count * atom_count, 0.0);
+    atom_set.adjacency.assign(atom_count * atom_count, 0u);
+    for (std::size_t row = 0u; row < atom_count; ++row) {
+        for (std::size_t column = row + 1u; column < atom_count; ++column) {
+            const auto distance = mordred_3d_distance(
+                atom_set.atoms[row].coord,
+                atom_set.atoms[column].coord);
+            atom_set.distances[row * atom_count + column] = distance;
+            atom_set.distances[column * atom_count + row] = distance;
+        }
+    }
+
+    for (OESystem::OEIter<OEChem::OEBondBase> bond = mol.GetBonds(); bond; ++bond) {
+        const auto begin_index = bond->GetBgnIdx();
+        const auto end_index = bond->GetEndIdx();
+        if (begin_index >= selected_by_atom_index.size()
+                || end_index >= selected_by_atom_index.size()) {
+            continue;
+        }
+        const auto begin = selected_by_atom_index[begin_index];
+        const auto end = selected_by_atom_index[end_index];
+        if (!begin.has_value() || !end.has_value()) {
+            continue;
+        }
+        atom_set.adjacency[*begin * atom_count + *end] = 1u;
+        atom_set.adjacency[*end * atom_count + *begin] = 1u;
+    }
+
+    return atom_set;
+}
+
+std::optional<MordredGeometricalIndexValues> compute_geometrical_index_values(
+    const Mordred3DAtomSet& atom_set) {
+    const auto atom_count = atom_set.atoms.size();
+    if (atom_count == 0u) {
+        return std::nullopt;
+    }
+
+    MordredGeometricalIndexValues values;
+    values.radius = std::numeric_limits<double>::infinity();
+    for (std::size_t column = 0u; column < atom_count; ++column) {
+        double eccentricity = 0.0;
+        for (std::size_t row = 0u; row < atom_count; ++row) {
+            const auto distance = atom_set.distances[row * atom_count + column];
+            eccentricity = std::max(eccentricity, distance);
+            values.diameter = std::max(values.diameter, distance);
+        }
+        values.radius = std::min(values.radius, eccentricity);
+    }
+
+    if (values.radius != 0.0) {
+        values.shape_index = (values.diameter - values.radius) / values.radius;
+    }
+    if (values.diameter != 0.0) {
+        values.petitjean_index = (values.diameter - values.radius) / values.diameter;
+    }
+    return values;
+}
+
+std::optional<double> compute_gravitational_index_value(
+    const Mordred3DAtomSet& atom_set,
+    bool pair_only) {
+    const auto atom_count = atom_set.atoms.size();
+    double total = 0.0;
+
+    for (std::size_t row = 0u; row < atom_count; ++row) {
+        for (std::size_t column = 0u; column < atom_count; ++column) {
+            if (row == column) {
+                continue;
+            }
+            if (pair_only && atom_set.adjacency[row * atom_count + column] == 0u) {
+                continue;
+            }
+
+            const auto distance = atom_set.distances[row * atom_count + column];
+            if (distance == 0.0) {
+                return std::nullopt;
+            }
+            total += atom_set.atoms[row].mass * atom_set.atoms[column].mass
+                / (distance * distance);
+        }
+    }
+
+    return 0.5 * total;
+}
+
+MordredGravitationalIndexValues compute_gravitational_index_values(
+    const Mordred3DAtomSet& heavy_atom_set,
+    const Mordred3DAtomSet& all_atom_set) {
+    MordredGravitationalIndexValues values;
+    values.heavy = compute_gravitational_index_value(heavy_atom_set, false);
+    values.all = compute_gravitational_index_value(all_atom_set, false);
+    values.heavy_pair = compute_gravitational_index_value(heavy_atom_set, true);
+    values.all_pair = compute_gravitational_index_value(all_atom_set, true);
+    return values;
+}
+
+std::array<double, 3> mordred_centroid(const Mordred3DAtomSet& atom_set) {
+    std::array<double, 3> centroid{};
+    if (atom_set.atoms.empty()) {
+        return centroid;
+    }
+    for (const auto& atom : atom_set.atoms) {
+        for (std::size_t axis = 0u; axis < 3u; ++axis) {
+            centroid[axis] += atom.coord[axis];
+        }
+    }
+    for (auto& value : centroid) {
+        value /= static_cast<double>(atom_set.atoms.size());
+    }
+    return centroid;
+}
+
+std::optional<MordredMomentOfInertiaValues> compute_moment_of_inertia_values(
+    const Mordred3DAtomSet& atom_set) {
+    if (atom_set.atoms.empty()) {
+        return std::nullopt;
+    }
+
+    double mass_sum = 0.0;
+    std::array<double, 3> center_of_mass{};
+    for (const auto& atom : atom_set.atoms) {
+        mass_sum += atom.mass;
+        for (std::size_t axis = 0u; axis < 3u; ++axis) {
+            center_of_mass[axis] += atom.mass * atom.coord[axis];
+        }
+    }
+    if (mass_sum == 0.0) {
+        return std::nullopt;
+    }
+    for (auto& value : center_of_mass) {
+        value /= mass_sum;
+    }
+
+    std::vector<double> inertia(9u, 0.0);
+    const auto at = [](std::size_t row, std::size_t column) {
+        return row * 3u + column;
+    };
+    for (const auto& atom : atom_set.atoms) {
+        std::array<double, 3> shifted{};
+        double radius2 = 0.0;
+        for (std::size_t axis = 0u; axis < 3u; ++axis) {
+            shifted[axis] = atom.coord[axis] - center_of_mass[axis];
+            radius2 += shifted[axis] * shifted[axis];
+        }
+        for (std::size_t row = 0u; row < 3u; ++row) {
+            for (std::size_t column = 0u; column < 3u; ++column) {
+                if (row == column) {
+                    inertia[at(row, column)] +=
+                        atom.mass * (radius2 - shifted[row] * shifted[column]);
+                } else {
+                    inertia[at(row, column)] -= atom.mass * shifted[row] * shifted[column];
+                }
+            }
+        }
+    }
+
+    auto eigensystem = symmetric_eigensystem_jacobi(std::move(inertia), 3u);
+    if (!eigensystem.has_value() || eigensystem->eigenvalues.size() != 3u) {
+        return std::nullopt;
+    }
+
+    MordredMomentOfInertiaValues values;
+    std::copy_n(eigensystem->eigenvalues.begin(), 3u, values.axes.begin());
+    std::sort(values.axes.begin(), values.axes.end(), std::greater<double>{});
+    return values;
+}
+
+std::optional<double> compute_pbf_value(const Mordred3DAtomSet& atom_set) {
+    const auto atom_count = atom_set.atoms.size();
+    if (atom_count < 4u) {
+        return 0.0;
+    }
+
+    const auto centroid = mordred_centroid(atom_set);
+    std::vector<double> covariance(9u, 0.0);
+    const auto at = [](std::size_t row, std::size_t column) {
+        return row * 3u + column;
+    };
+    for (const auto& atom : atom_set.atoms) {
+        std::array<double, 3> shifted{};
+        for (std::size_t axis = 0u; axis < 3u; ++axis) {
+            shifted[axis] = atom.coord[axis] - centroid[axis];
+        }
+        for (std::size_t row = 0u; row < 3u; ++row) {
+            for (std::size_t column = 0u; column < 3u; ++column) {
+                covariance[at(row, column)] += shifted[row] * shifted[column];
+            }
+        }
+    }
+
+    auto eigensystem = symmetric_eigensystem_jacobi(std::move(covariance), 3u);
+    if (!eigensystem.has_value() || eigensystem->eigenvalues.size() != 3u) {
+        return std::nullopt;
+    }
+    const auto normal_index = static_cast<std::size_t>(std::distance(
+        eigensystem->eigenvalues.begin(),
+        std::min_element(eigensystem->eigenvalues.begin(), eigensystem->eigenvalues.end())));
+    std::array<double, 3> normal{
+        eigensystem->eigenvectors[at(0u, normal_index)],
+        eigensystem->eigenvectors[at(1u, normal_index)],
+        eigensystem->eigenvectors[at(2u, normal_index)],
+    };
+    const auto normal_norm = std::sqrt(
+        normal[0] * normal[0] + normal[1] * normal[1] + normal[2] * normal[2]);
+    if (normal_norm == 0.0) {
+        return 0.0;
+    }
+
+    double total_distance = 0.0;
+    for (const auto& atom : atom_set.atoms) {
+        double projection = 0.0;
+        for (std::size_t axis = 0u; axis < 3u; ++axis) {
+            projection += (atom.coord[axis] - centroid[axis]) * normal[axis];
+        }
+        total_distance += std::abs(projection) / normal_norm;
+    }
+    return total_distance / static_cast<double>(atom_count);
+}
+
+std::optional<MordredLowCount3DValues> compute_low_count_3d_values(
+    const OEChem::OEMolBase& mol) {
+    auto three_d_mol = mordred_omega_single_conformer_copy(mol);
+    if (!three_d_mol.has_value()) {
+        return std::nullopt;
+    }
+
+    auto all_atom_set = build_mordred_3d_atom_set(*three_d_mol, true);
+    auto heavy_atom_set = build_mordred_3d_atom_set(*three_d_mol, false);
+    if (!all_atom_set.has_value() || !heavy_atom_set.has_value()) {
+        return std::nullopt;
+    }
+
+    MordredLowCount3DValues values;
+    values.geometrical = compute_geometrical_index_values(*all_atom_set);
+    values.gravitational = compute_gravitational_index_values(*heavy_atom_set, *all_atom_set);
+    values.moment_of_inertia = compute_moment_of_inertia_values(*all_atom_set);
+    values.pbf = compute_pbf_value(*all_atom_set);
+    return values;
+}
+
 std::optional<MordredMatrixEigenvalueValues> compute_matrix_eigenvalue_values(
     std::vector<double> matrix,
     std::size_t atom_count,
@@ -6847,6 +7206,45 @@ void set_bool(DescriptorSetBuilder& builder, const std::string& name, bool value
     builder.Set(name, DescriptorValue::Bool(value));
 }
 
+void set_geometrical_index_values(
+    DescriptorSetBuilder& builder,
+    const MordredGeometricalIndexValues& values) {
+    set_float(builder, "GeomDiameter", values.diameter);
+    set_float(builder, "GeomRadius", values.radius);
+    set_optional_float(builder, "GeomShapeIndex", values.shape_index);
+    set_optional_float(builder, "GeomPetitjeanIndex", values.petitjean_index);
+}
+
+void set_gravitational_index_values(
+    DescriptorSetBuilder& builder,
+    const MordredGravitationalIndexValues& values) {
+    set_optional_float(builder, "GRAV", values.heavy);
+    set_optional_float(builder, "GRAVH", values.all);
+    set_optional_float(builder, "GRAVp", values.heavy_pair);
+    set_optional_float(builder, "GRAVHp", values.all_pair);
+}
+
+void set_moment_of_inertia_values(
+    DescriptorSetBuilder& builder,
+    const MordredMomentOfInertiaValues& values) {
+    set_float(builder, "MOMI-X", values.axes[0]);
+    set_float(builder, "MOMI-Y", values.axes[1]);
+    set_float(builder, "MOMI-Z", values.axes[2]);
+}
+
+void set_low_count_3d_values(
+    DescriptorSetBuilder& builder,
+    const MordredLowCount3DValues& values) {
+    if (values.geometrical.has_value()) {
+        set_geometrical_index_values(builder, *values.geometrical);
+    }
+    set_gravitational_index_values(builder, values.gravitational);
+    if (values.moment_of_inertia.has_value()) {
+        set_moment_of_inertia_values(builder, *values.moment_of_inertia);
+    }
+    set_optional_float(builder, "PBF", values.pbf);
+}
+
 void set_chi_path_values(DescriptorSetBuilder& builder, const MordredChiPathValues& values) {
     for (std::size_t order = 0u; order < 8u; ++order) {
         const auto order_text = std::to_string(order);
@@ -7222,6 +7620,7 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
         labute_asa_values.has_value()
             ? compute_estate_vsa_values(mol, *labute_asa_values)
             : std::optional<std::array<double, 10>>{};
+    const auto low_count_3d_values = compute_low_count_3d_values(mol);
     DescriptorSetBuilder builder(MordredDescriptorSchema());
 
     const auto all_atoms = values.heavy_atoms + values.hydrogens;
@@ -7372,6 +7771,9 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
                 "VSA_EState" + std::to_string(index + 1u),
                 (*vsa_estate_values)[index]);
         }
+    }
+    if (low_count_3d_values.has_value()) {
+        set_low_count_3d_values(builder, *low_count_3d_values);
     }
     set_optional_float(builder, "SZ", additive_values.sz);
     set_optional_float(builder, "Sm", additive_values.sm);

@@ -4,6 +4,7 @@
 
 #include <oechem.h>
 
+#include <cmath>
 #include <cstdint>
 #include <map>
 #include <optional>
@@ -2047,6 +2048,38 @@ TEST(MordredDescriptorTest, ChargeOnlyCPSADescriptorsReturnZeroForEmptyMolecules
     EXPECT_EQ(descriptors.Float("RNCG"), 0.0);
     ASSERT_TRUE(descriptors.Has("RPCG"));
     EXPECT_EQ(descriptors.Float("RPCG"), 0.0);
+}
+
+TEST(MordredDescriptorTest, NoConformer3DDescriptorsUseGeneratedOmegaConformer) {
+    OEChem::OEGraphMol mol = mol_from_smiles("CCO");
+    ASSERT_EQ(mol.NumAtoms(), 3u);
+    ASSERT_EQ(mol.GetDimension(), 0u);
+
+    const auto descriptors = MakeMordredDescriptors(mol);
+
+    const std::vector<std::string> expected_3d_names{
+        "GeomDiameter",
+        "GeomRadius",
+        "GeomShapeIndex",
+        "GeomPetitjeanIndex",
+        "GRAV",
+        "GRAVH",
+        "GRAVp",
+        "GRAVHp",
+        "MOMI-X",
+        "MOMI-Y",
+        "MOMI-Z",
+        "PBF",
+    };
+    for (const auto& name : expected_3d_names) {
+        EXPECT_TRUE(descriptors.Has(name)) << name;
+        if (descriptors.Has(name)) {
+            EXPECT_TRUE(std::isfinite(descriptors.Float(name))) << name;
+        }
+    }
+
+    EXPECT_EQ(mol.NumAtoms(), 3u);
+    EXPECT_EQ(mol.GetDimension(), 0u);
 }
 
 TEST(MordredDescriptorTest, AutocorrelationIntrinsicStateDescriptorsAreMissingForMethane) {

@@ -13241,65 +13241,65 @@
       "descriptor": "GeomDiameter",
       "family": "GeometricalIndex",
       "source": "/Users/johnss51/Development/python/mordred/mordred/GeometricalIndex.py",
-      "status": "not_applicable",
-      "primitive": "Mordred 3D geometrical index descriptor requiring conformer coordinates",
-      "reason": "Current Task 11 coordinate policy classifies this descriptor as not applicable for the committed no-conformer Mordred reference fixture; all 26 reference rows contain Mordred Missing values and OEFP returns None."
+      "status": "openeye_divergent",
+      "primitive": "OpenEye OMEGA single-conformer 3D geometrical index descriptor",
+      "reason": "OEFP intentionally attempts one OMEGA conformer on a local molecule copy for no-conformer inputs; rows where OMEGA succeeds are accepted divergences from the committed Missing3DCoordinate Mordred fixture."
     },
     {
       "descriptor": "GeomRadius",
       "family": "GeometricalIndex",
       "source": "/Users/johnss51/Development/python/mordred/mordred/GeometricalIndex.py",
-      "status": "not_applicable",
-      "primitive": "Mordred 3D geometrical index descriptor requiring conformer coordinates",
-      "reason": "Current Task 11 coordinate policy classifies this descriptor as not applicable for the committed no-conformer Mordred reference fixture; all 26 reference rows contain Mordred Missing values and OEFP returns None."
+      "status": "openeye_divergent",
+      "primitive": "OpenEye OMEGA single-conformer 3D geometrical index descriptor",
+      "reason": "OEFP intentionally attempts one OMEGA conformer on a local molecule copy for no-conformer inputs; rows where OMEGA succeeds are accepted divergences from the committed Missing3DCoordinate Mordred fixture."
     },
     {
       "descriptor": "GeomShapeIndex",
       "family": "GeometricalIndex",
       "source": "/Users/johnss51/Development/python/mordred/mordred/GeometricalIndex.py",
-      "status": "not_applicable",
-      "primitive": "Mordred 3D geometrical index descriptor requiring conformer coordinates",
-      "reason": "Current Task 11 coordinate policy classifies this descriptor as not applicable for the committed no-conformer Mordred reference fixture; all 26 reference rows contain Mordred Missing values and OEFP returns None."
+      "status": "openeye_divergent",
+      "primitive": "OpenEye OMEGA single-conformer 3D geometrical index descriptor",
+      "reason": "OEFP intentionally attempts one OMEGA conformer on a local molecule copy for no-conformer inputs; rows where OMEGA succeeds are accepted divergences from the committed Missing3DCoordinate Mordred fixture."
     },
     {
       "descriptor": "GeomPetitjeanIndex",
       "family": "GeometricalIndex",
       "source": "/Users/johnss51/Development/python/mordred/mordred/GeometricalIndex.py",
-      "status": "not_applicable",
-      "primitive": "Mordred 3D geometrical index descriptor requiring conformer coordinates",
-      "reason": "Current Task 11 coordinate policy classifies this descriptor as not applicable for the committed no-conformer Mordred reference fixture; all 26 reference rows contain Mordred Missing values and OEFP returns None."
+      "status": "openeye_divergent",
+      "primitive": "OpenEye OMEGA single-conformer 3D geometrical index descriptor",
+      "reason": "OEFP intentionally attempts one OMEGA conformer on a local molecule copy for no-conformer inputs; rows where OMEGA succeeds are accepted divergences from the committed Missing3DCoordinate Mordred fixture."
     },
     {
       "descriptor": "GRAV",
       "family": "GravitationalIndex",
       "source": "/Users/johnss51/Development/python/mordred/mordred/GravitationalIndex.py",
-      "status": "not_applicable",
-      "primitive": "Mordred 3D gravitational index descriptor requiring conformer coordinates",
-      "reason": "Current Task 11 coordinate policy classifies this descriptor as not applicable for the committed no-conformer Mordred reference fixture; all 26 reference rows contain Mordred Missing values and OEFP returns None."
+      "status": "openeye_divergent",
+      "primitive": "OpenEye OMEGA single-conformer 3D gravitational index descriptor",
+      "reason": "OEFP intentionally attempts one OMEGA conformer on a local molecule copy for no-conformer inputs; rows where OMEGA succeeds are accepted divergences from the committed Missing3DCoordinate Mordred fixture."
     },
     {
       "descriptor": "GRAVH",
       "family": "GravitationalIndex",
       "source": "/Users/johnss51/Development/python/mordred/mordred/GravitationalIndex.py",
-      "status": "not_applicable",
-      "primitive": "Mordred 3D gravitational index descriptor requiring conformer coordinates",
-      "reason": "Current Task 11 coordinate policy classifies this descriptor as not applicable for the committed no-conformer Mordred reference fixture; all 26 reference rows contain Mordred Missing values and OEFP returns None."
+      "status": "openeye_divergent",
+      "primitive": "OpenEye OMEGA single-conformer 3D gravitational index descriptor",
+      "reason": "OEFP intentionally attempts one OMEGA conformer on a local molecule copy for no-conformer inputs; rows where OMEGA succeeds are accepted divergences from the committed Missing3DCoordinate Mordred fixture."
     },
     {
       "descriptor": "GRAVp",
       "family": "GravitationalIndex",
       "source": "/Users/johnss51/Development/python/mordred/mordred/GravitationalIndex.py",
-      "status": "not_applicable",
-      "primitive": "Mordred 3D gravitational index descriptor requiring conformer coordinates",
-      "reason": "Current Task 11 coordinate policy classifies this descriptor as not applicable for the committed no-conformer Mordred reference fixture; all 26 reference rows contain Mordred Missing values and OEFP returns None."
+      "status": "openeye_divergent",
+      "primitive": "OpenEye OMEGA single-conformer 3D gravitational index descriptor",
+      "reason": "OEFP intentionally attempts one OMEGA conformer on a local molecule copy for no-conformer inputs; rows where OMEGA succeeds are accepted divergences from the committed Missing3DCoordinate Mordred fixture."
     },
     {
       "descriptor": "GRAVHp",
       "family": "GravitationalIndex",
       "source": "/Users/johnss51/Development/python/mordred/mordred/GravitationalIndex.py",
-      "status": "not_applicable",
-      "primitive": "Mordred 3D gravitational index descriptor requiring conformer coordinates",
-      "reason": "Current Task 11 coordinate policy classifies this descriptor as not applicable for the committed no-conformer Mordred reference fixture; all 26 reference rows contain Mordred Missing values and OEFP returns None."
+      "status": "openeye_divergent",
+      "primitive": "OpenEye OMEGA single-conformer 3D gravitational index descriptor",
+      "reason": "OEFP intentionally attempts one OMEGA conformer on a local molecule copy for no-conformer inputs; rows where OMEGA succeeds are accepted divergences from the committed Missing3DCoordinate Mordred fixture."
     },
     {
       "descriptor": "Mor01",
@@ -14585,36 +14585,276 @@
       "descriptor": "MOMI-X",
       "family": "MomentOfInertia",
       "source": "/Users/johnss51/Development/python/mordred/mordred/MomentOfInertia.py",
-      "status": "not_applicable",
-      "primitive": "Mordred 3D moment of inertia descriptor requiring conformer coordinates",
-      "reason": "Current Task 11 coordinate policy classifies this descriptor as not applicable for the committed no-conformer Mordred reference fixture; all 26 reference rows contain Mordred Missing values and OEFP returns None."
+      "status": "openeye_divergent",
+      "primitive": "OpenEye OMEGA single-conformer 3D moment of inertia descriptor",
+      "reason": "OEFP intentionally attempts one OMEGA conformer on a local molecule copy for no-conformer inputs; rows where OMEGA succeeds are accepted divergences from the committed Missing3DCoordinate Mordred fixture."
     },
     {
       "descriptor": "MOMI-Y",
       "family": "MomentOfInertia",
       "source": "/Users/johnss51/Development/python/mordred/mordred/MomentOfInertia.py",
-      "status": "not_applicable",
-      "primitive": "Mordred 3D moment of inertia descriptor requiring conformer coordinates",
-      "reason": "Current Task 11 coordinate policy classifies this descriptor as not applicable for the committed no-conformer Mordred reference fixture; all 26 reference rows contain Mordred Missing values and OEFP returns None."
+      "status": "openeye_divergent",
+      "primitive": "OpenEye OMEGA single-conformer 3D moment of inertia descriptor",
+      "reason": "OEFP intentionally attempts one OMEGA conformer on a local molecule copy for no-conformer inputs; rows where OMEGA succeeds are accepted divergences from the committed Missing3DCoordinate Mordred fixture."
     },
     {
       "descriptor": "MOMI-Z",
       "family": "MomentOfInertia",
       "source": "/Users/johnss51/Development/python/mordred/mordred/MomentOfInertia.py",
-      "status": "not_applicable",
-      "primitive": "Mordred 3D moment of inertia descriptor requiring conformer coordinates",
-      "reason": "Current Task 11 coordinate policy classifies this descriptor as not applicable for the committed no-conformer Mordred reference fixture; all 26 reference rows contain Mordred Missing values and OEFP returns None."
+      "status": "openeye_divergent",
+      "primitive": "OpenEye OMEGA single-conformer 3D moment of inertia descriptor",
+      "reason": "OEFP intentionally attempts one OMEGA conformer on a local molecule copy for no-conformer inputs; rows where OMEGA succeeds are accepted divergences from the committed Missing3DCoordinate Mordred fixture."
     },
     {
       "descriptor": "PBF",
       "family": "PBF",
       "source": "/Users/johnss51/Development/python/mordred/mordred/PBF.py",
-      "status": "not_applicable",
-      "primitive": "Mordred 3D plane of best fit descriptor requiring conformer coordinates",
-      "reason": "Current Task 11 coordinate policy classifies this descriptor as not applicable for the committed no-conformer Mordred reference fixture; all 26 reference rows contain Mordred Missing values and OEFP returns None."
+      "status": "openeye_divergent",
+      "primitive": "OpenEye OMEGA single-conformer 3D plane of best fit descriptor",
+      "reason": "OEFP intentionally attempts one OMEGA conformer on a local molecule copy for no-conformer inputs; rows where OMEGA succeeds are accepted divergences from the committed Missing3DCoordinate Mordred fixture."
     }
   ],
   "row_divergences": [
+    {
+      "status": "not_applicable",
+      "descriptor": "GeomDiameter",
+      "smiles": "C[Na]",
+      "reference": {"state": "missing", "error_type": "Missing"},
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/GeometricalIndex.py",
+      "primitive": "OpenEye OMEGA single-conformer 3D geometrical index descriptor",
+      "reason": "OMEGA does not generate a conformer for this fixture molecule because MMFF stretch parameters are unavailable."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "GeomRadius",
+      "smiles": "C[Na]",
+      "reference": {"state": "missing", "error_type": "Missing"},
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/GeometricalIndex.py",
+      "primitive": "OpenEye OMEGA single-conformer 3D geometrical index descriptor",
+      "reason": "OMEGA does not generate a conformer for this fixture molecule because MMFF stretch parameters are unavailable."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "GeomShapeIndex",
+      "smiles": "C[Na]",
+      "reference": {"state": "missing", "error_type": "Missing"},
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/GeometricalIndex.py",
+      "primitive": "OpenEye OMEGA single-conformer 3D geometrical index descriptor",
+      "reason": "OMEGA does not generate a conformer for this fixture molecule because MMFF stretch parameters are unavailable."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "GeomPetitjeanIndex",
+      "smiles": "C[Na]",
+      "reference": {"state": "missing", "error_type": "Missing"},
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/GeometricalIndex.py",
+      "primitive": "OpenEye OMEGA single-conformer 3D geometrical index descriptor",
+      "reason": "OMEGA does not generate a conformer for this fixture molecule because MMFF stretch parameters are unavailable."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "GRAV",
+      "smiles": "C[Na]",
+      "reference": {"state": "missing", "error_type": "Missing"},
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/GravitationalIndex.py",
+      "primitive": "OpenEye OMEGA single-conformer 3D gravitational index descriptor",
+      "reason": "OMEGA does not generate a conformer for this fixture molecule because MMFF stretch parameters are unavailable."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "GRAVH",
+      "smiles": "C[Na]",
+      "reference": {"state": "missing", "error_type": "Missing"},
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/GravitationalIndex.py",
+      "primitive": "OpenEye OMEGA single-conformer 3D gravitational index descriptor",
+      "reason": "OMEGA does not generate a conformer for this fixture molecule because MMFF stretch parameters are unavailable."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "GRAVp",
+      "smiles": "C[Na]",
+      "reference": {"state": "missing", "error_type": "Missing"},
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/GravitationalIndex.py",
+      "primitive": "OpenEye OMEGA single-conformer 3D gravitational index descriptor",
+      "reason": "OMEGA does not generate a conformer for this fixture molecule because MMFF stretch parameters are unavailable."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "GRAVHp",
+      "smiles": "C[Na]",
+      "reference": {"state": "missing", "error_type": "Missing"},
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/GravitationalIndex.py",
+      "primitive": "OpenEye OMEGA single-conformer 3D gravitational index descriptor",
+      "reason": "OMEGA does not generate a conformer for this fixture molecule because MMFF stretch parameters are unavailable."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "MOMI-X",
+      "smiles": "C[Na]",
+      "reference": {"state": "missing", "error_type": "Missing"},
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/MomentOfInertia.py",
+      "primitive": "OpenEye OMEGA single-conformer 3D moment of inertia descriptor",
+      "reason": "OMEGA does not generate a conformer for this fixture molecule because MMFF stretch parameters are unavailable."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "MOMI-Y",
+      "smiles": "C[Na]",
+      "reference": {"state": "missing", "error_type": "Missing"},
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/MomentOfInertia.py",
+      "primitive": "OpenEye OMEGA single-conformer 3D moment of inertia descriptor",
+      "reason": "OMEGA does not generate a conformer for this fixture molecule because MMFF stretch parameters are unavailable."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "MOMI-Z",
+      "smiles": "C[Na]",
+      "reference": {"state": "missing", "error_type": "Missing"},
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/MomentOfInertia.py",
+      "primitive": "OpenEye OMEGA single-conformer 3D moment of inertia descriptor",
+      "reason": "OMEGA does not generate a conformer for this fixture molecule because MMFF stretch parameters are unavailable."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "PBF",
+      "smiles": "C[Na]",
+      "reference": {"state": "missing", "error_type": "Missing"},
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/PBF.py",
+      "primitive": "OpenEye OMEGA single-conformer 3D plane of best fit descriptor",
+      "reason": "OMEGA does not generate a conformer for this fixture molecule because MMFF stretch parameters are unavailable."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "GeomDiameter",
+      "smiles": "O=[Se]=O",
+      "reference": {"state": "missing", "error_type": "Missing"},
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/GeometricalIndex.py",
+      "primitive": "OpenEye OMEGA single-conformer 3D geometrical index descriptor",
+      "reason": "OMEGA does not generate a conformer for this fixture molecule because MMFF stretch parameters are unavailable."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "GeomRadius",
+      "smiles": "O=[Se]=O",
+      "reference": {"state": "missing", "error_type": "Missing"},
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/GeometricalIndex.py",
+      "primitive": "OpenEye OMEGA single-conformer 3D geometrical index descriptor",
+      "reason": "OMEGA does not generate a conformer for this fixture molecule because MMFF stretch parameters are unavailable."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "GeomShapeIndex",
+      "smiles": "O=[Se]=O",
+      "reference": {"state": "missing", "error_type": "Missing"},
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/GeometricalIndex.py",
+      "primitive": "OpenEye OMEGA single-conformer 3D geometrical index descriptor",
+      "reason": "OMEGA does not generate a conformer for this fixture molecule because MMFF stretch parameters are unavailable."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "GeomPetitjeanIndex",
+      "smiles": "O=[Se]=O",
+      "reference": {"state": "missing", "error_type": "Missing"},
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/GeometricalIndex.py",
+      "primitive": "OpenEye OMEGA single-conformer 3D geometrical index descriptor",
+      "reason": "OMEGA does not generate a conformer for this fixture molecule because MMFF stretch parameters are unavailable."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "GRAV",
+      "smiles": "O=[Se]=O",
+      "reference": {"state": "missing", "error_type": "Missing"},
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/GravitationalIndex.py",
+      "primitive": "OpenEye OMEGA single-conformer 3D gravitational index descriptor",
+      "reason": "OMEGA does not generate a conformer for this fixture molecule because MMFF stretch parameters are unavailable."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "GRAVH",
+      "smiles": "O=[Se]=O",
+      "reference": {"state": "missing", "error_type": "Missing"},
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/GravitationalIndex.py",
+      "primitive": "OpenEye OMEGA single-conformer 3D gravitational index descriptor",
+      "reason": "OMEGA does not generate a conformer for this fixture molecule because MMFF stretch parameters are unavailable."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "GRAVp",
+      "smiles": "O=[Se]=O",
+      "reference": {"state": "missing", "error_type": "Missing"},
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/GravitationalIndex.py",
+      "primitive": "OpenEye OMEGA single-conformer 3D gravitational index descriptor",
+      "reason": "OMEGA does not generate a conformer for this fixture molecule because MMFF stretch parameters are unavailable."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "GRAVHp",
+      "smiles": "O=[Se]=O",
+      "reference": {"state": "missing", "error_type": "Missing"},
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/GravitationalIndex.py",
+      "primitive": "OpenEye OMEGA single-conformer 3D gravitational index descriptor",
+      "reason": "OMEGA does not generate a conformer for this fixture molecule because MMFF stretch parameters are unavailable."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "MOMI-X",
+      "smiles": "O=[Se]=O",
+      "reference": {"state": "missing", "error_type": "Missing"},
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/MomentOfInertia.py",
+      "primitive": "OpenEye OMEGA single-conformer 3D moment of inertia descriptor",
+      "reason": "OMEGA does not generate a conformer for this fixture molecule because MMFF stretch parameters are unavailable."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "MOMI-Y",
+      "smiles": "O=[Se]=O",
+      "reference": {"state": "missing", "error_type": "Missing"},
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/MomentOfInertia.py",
+      "primitive": "OpenEye OMEGA single-conformer 3D moment of inertia descriptor",
+      "reason": "OMEGA does not generate a conformer for this fixture molecule because MMFF stretch parameters are unavailable."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "MOMI-Z",
+      "smiles": "O=[Se]=O",
+      "reference": {"state": "missing", "error_type": "Missing"},
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/MomentOfInertia.py",
+      "primitive": "OpenEye OMEGA single-conformer 3D moment of inertia descriptor",
+      "reason": "OMEGA does not generate a conformer for this fixture molecule because MMFF stretch parameters are unavailable."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "PBF",
+      "smiles": "O=[Se]=O",
+      "reference": {"state": "missing", "error_type": "Missing"},
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/PBF.py",
+      "primitive": "OpenEye OMEGA single-conformer 3D plane of best fit descriptor",
+      "reason": "OMEGA does not generate a conformer for this fixture molecule because MMFF stretch parameters are unavailable."
+    },
     {
       "status": "openeye_divergent",
       "descriptor": "nHBAcc",

@@ -89,7 +89,6 @@ def _row_divergence_policy(
     return {
         (str(row["descriptor"]), str(row["smiles"])): row
         for row in payload.get("row_divergences", [])
-        if row.get("status") == "openeye_divergent"
     }
 
 
@@ -113,6 +112,14 @@ def _is_absent_reference_value(value: Any) -> bool:
     )
 
 
+def _is_concrete_observed_value(value: Any) -> bool:
+    if value is None:
+        return False
+    if isinstance(value, float):
+        return math.isfinite(value)
+    return True
+
+
 def _values_match(reference: Any, observed: Any) -> bool:
     expected = _reference_value(reference)
     if expected is None or observed is None:
@@ -125,6 +132,19 @@ def _values_match(reference: Any, observed: Any) -> bool:
             abs_tol=EXACT_ABS_TOLERANCE,
         )
     return observed == expected
+
+
+def _policy_value_matches(policy_value: Any, actual: Any) -> bool:
+    if policy_value is None or actual is None:
+        return policy_value is None and actual is None
+    if isinstance(policy_value, float) or isinstance(actual, float):
+        return math.isclose(
+            float(actual),
+            float(policy_value),
+            rel_tol=EXACT_REL_TOLERANCE,
+            abs_tol=EXACT_ABS_TOLERANCE,
+        )
+    return policy_value == actual
 
 
 def _openeye_mol(smiles: str) -> Any:
@@ -192,6 +212,7 @@ def _compare(
             expected = expected_by_name[name]
             observed = descriptors[name]
             descriptor_policy = descriptor_policies.get(name, {})
+            row_policy = row_policies.get((name, smiles), {})
             status = descriptor_policy.get("status")
             if status == "deferred":
                 if observed is None:
@@ -220,10 +241,46 @@ def _compare(
                             definitions[name],
                         )
                     )
+            elif status == "openeye_divergent":
+                if _is_absent_reference_value(expected) and _is_concrete_observed_value(observed):
+                    counts["accepted_divergences"] += 1
+                elif (
+                    row_policy.get("status") == "not_applicable"
+                    and _is_absent_reference_value(expected)
+                    and observed is None
+                    and row_policy.get("reference") == expected
+                    and row_policy.get("observed") is None
+                ):
+                    counts["not_applicable"] += 1
+                else:
+                    counts["unclassified"] += 1
+                    unclassified.append(
+                        _format_difference(
+                            name,
+                            smiles,
+                            expected,
+                            observed,
+                            definitions[name],
+                        )
+                    )
             elif _values_match(expected, observed):
                 counts["exact"] += 1
-            elif (name, smiles) in row_policies:
-                counts["accepted_divergences"] += 1
+            elif row_policy.get("status") == "openeye_divergent":
+                if _policy_value_matches(row_policy.get("reference"), expected) and (
+                    _policy_value_matches(row_policy.get("observed"), observed)
+                ):
+                    counts["accepted_divergences"] += 1
+                else:
+                    counts["unclassified"] += 1
+                    unclassified.append(
+                        _format_difference(
+                            name,
+                            smiles,
+                            expected,
+                            observed,
+                            definitions[name],
+                        )
+                    )
             else:
                 counts["unclassified"] += 1
                 unclassified.append(
