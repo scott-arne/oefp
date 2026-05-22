@@ -171,6 +171,22 @@ struct MordredCPSAChargeValues {
     double rpcg = 0.0;
 };
 
+struct MordredCPSASurfaceValues {
+    std::array<std::optional<double>, 6> pnsa{};
+    std::array<std::optional<double>, 6> ppsa{};
+    std::array<std::optional<double>, 6> dpsa{};
+    std::array<std::optional<double>, 6> fnsa{};
+    std::array<std::optional<double>, 6> fpsa{};
+    std::array<std::optional<double>, 6> wnsa{};
+    std::array<std::optional<double>, 6> wpsa{};
+    std::optional<double> rncs;
+    std::optional<double> rpcs;
+    std::optional<double> tasa;
+    std::optional<double> tpsa;
+    std::optional<double> rasa;
+    std::optional<double> rpsa;
+};
+
 struct MordredMolecularDistanceEdgeValues {
     std::array<std::array<std::optional<double>, 5>, 5> carbon{};
     std::array<std::array<std::optional<double>, 5>, 5> oxygen{};
@@ -5313,6 +5329,339 @@ std::optional<MordredCPSAChargeValues> compute_cpsa_charge_values(
     return MordredCPSAChargeValues{*rncg, *rpcg};
 }
 
+void normalize_sphere_vertices(
+    std::vector<std::array<double, 3>>& vertices,
+    std::size_t begin) {
+    for (std::size_t index = begin; index < vertices.size(); ++index) {
+        const auto norm = std::sqrt(
+            vertices[index][0] * vertices[index][0]
+            + vertices[index][1] * vertices[index][1]
+            + vertices[index][2] * vertices[index][2]);
+        if (norm == 0.0) {
+            continue;
+        }
+        for (auto& value : vertices[index]) {
+            value /= norm;
+        }
+    }
+}
+
+std::vector<std::array<double, 3>> build_mordred_cpsa_sphere_vertices() {
+    const auto t = (1.0 + std::sqrt(5.0)) / 2.0;
+    std::vector<std::array<double, 3>> vertices{
+        {{-1.0, t, 0.0}},
+        {{1.0, t, 0.0}},
+        {{-1.0, -t, 0.0}},
+        {{1.0, -t, 0.0}},
+        {{0.0, -1.0, t}},
+        {{0.0, 1.0, t}},
+        {{0.0, -1.0, -t}},
+        {{0.0, 1.0, -t}},
+        {{t, 0.0, -1.0}},
+        {{t, 0.0, 1.0}},
+        {{-t, 0.0, -1.0}},
+        {{-t, 0.0, 1.0}},
+    };
+    std::vector<std::array<std::size_t, 3>> faces{
+        {{0u, 11u, 5u}},
+        {{0u, 5u, 1u}},
+        {{0u, 1u, 7u}},
+        {{0u, 7u, 10u}},
+        {{0u, 10u, 11u}},
+        {{1u, 5u, 9u}},
+        {{5u, 11u, 4u}},
+        {{11u, 10u, 2u}},
+        {{10u, 7u, 6u}},
+        {{7u, 1u, 8u}},
+        {{3u, 9u, 4u}},
+        {{3u, 4u, 2u}},
+        {{3u, 2u, 6u}},
+        {{3u, 6u, 8u}},
+        {{3u, 8u, 9u}},
+        {{4u, 9u, 5u}},
+        {{2u, 4u, 11u}},
+        {{6u, 2u, 10u}},
+        {{8u, 6u, 7u}},
+        {{9u, 8u, 1u}},
+    };
+
+    normalize_sphere_vertices(vertices, 0u);
+    for (std::size_t level = 1u; level < 5u; ++level) {
+        const auto vertex_begin = vertices.size();
+        const auto face_count = faces.size();
+        vertices.reserve(vertex_begin + 3u * face_count);
+
+        for (const auto& face : faces) {
+            vertices.push_back({
+                vertices[face[0]][0] + vertices[face[1]][0],
+                vertices[face[0]][1] + vertices[face[1]][1],
+                vertices[face[0]][2] + vertices[face[1]][2],
+            });
+        }
+        for (const auto& face : faces) {
+            vertices.push_back({
+                vertices[face[1]][0] + vertices[face[2]][0],
+                vertices[face[1]][1] + vertices[face[2]][1],
+                vertices[face[1]][2] + vertices[face[2]][2],
+            });
+        }
+        for (const auto& face : faces) {
+            vertices.push_back({
+                vertices[face[0]][0] + vertices[face[2]][0],
+                vertices[face[0]][1] + vertices[face[2]][1],
+                vertices[face[0]][2] + vertices[face[2]][2],
+            });
+        }
+        normalize_sphere_vertices(vertices, vertex_begin);
+
+        std::vector<std::array<std::size_t, 3>> next_faces;
+        next_faces.reserve(4u * face_count);
+        for (std::size_t index = 0u; index < face_count; ++index) {
+            const auto a = faces[index][0];
+            const auto b = faces[index][1];
+            const auto c = faces[index][2];
+            const auto ab = vertex_begin + index;
+            const auto bc = vertex_begin + face_count + index;
+            const auto ac = vertex_begin + 2u * face_count + index;
+            next_faces.push_back({{a, ab, ac}});
+            next_faces.push_back({{b, ab, bc}});
+            next_faces.push_back({{c, ac, bc}});
+            next_faces.push_back({{ab, ac, bc}});
+        }
+        faces = std::move(next_faces);
+    }
+    return vertices;
+}
+
+const std::vector<std::array<double, 3>>& mordred_cpsa_sphere_vertices() {
+    static const std::vector<std::array<double, 3>> vertices =
+        build_mordred_cpsa_sphere_vertices();
+    return vertices;
+}
+
+std::optional<std::vector<double>> compute_mordred_atomic_surface_areas(
+    const Mordred3DAtomSet& atom_set) {
+    static constexpr double solvent_radius = 1.4;
+    const auto atom_count = atom_set.atoms.size();
+    std::vector<double> radii;
+    radii.reserve(atom_count);
+    for (const auto& atom : atom_set.atoms) {
+        const auto vdw_radius = lookup_atomic_property(kMordredVdwRadii, atom.atomic_number);
+        if (!vdw_radius.has_value()) {
+            return std::nullopt;
+        }
+        radii.push_back(*vdw_radius + solvent_radius);
+    }
+
+    std::vector<std::vector<std::pair<std::size_t, double>>> neighbors(atom_count);
+    for (std::size_t row = 0u; row < atom_count; ++row) {
+        for (std::size_t column = 0u; column < atom_count; ++column) {
+            if (row == column) {
+                continue;
+            }
+            const auto distance = atom_set.distances[row * atom_count + column];
+            if (distance <= radii[row] + radii[column]) {
+                neighbors[row].emplace_back(column, distance);
+            }
+        }
+    }
+    for (auto& atom_neighbors : neighbors) {
+        std::sort(
+            atom_neighbors.begin(),
+            atom_neighbors.end(),
+            [](const auto& left, const auto& right) {
+                return left.second < right.second;
+            });
+    }
+
+    const auto& vertices = mordred_cpsa_sphere_vertices();
+    const auto point_count = vertices.size();
+    std::vector<double> surface_areas;
+    surface_areas.reserve(atom_count);
+    for (std::size_t atom_index = 0u; atom_index < atom_count; ++atom_index) {
+        const auto radius = radii[atom_index];
+        const auto full_area = 4.0 * kPi * radius * radius;
+        if (neighbors[atom_index].empty()) {
+            surface_areas.push_back(full_area);
+            continue;
+        }
+
+        std::vector<unsigned char> remaining(point_count, 1u);
+        std::size_t remaining_count = point_count;
+        const auto& atom = atom_set.atoms[atom_index];
+        for (const auto& neighbor : neighbors[atom_index]) {
+            const auto neighbor_index = neighbor.first;
+            const auto& neighbor_atom = atom_set.atoms[neighbor_index];
+            const auto neighbor_radius2 = radii[neighbor_index] * radii[neighbor_index];
+            for (std::size_t point_index = 0u; point_index < point_count; ++point_index) {
+                if (remaining[point_index] == 0u) {
+                    continue;
+                }
+                const auto point_x = vertices[point_index][0] * radius + atom.coord[0];
+                const auto point_y = vertices[point_index][1] * radius + atom.coord[1];
+                const auto point_z = vertices[point_index][2] * radius + atom.coord[2];
+                const auto dx = point_x - neighbor_atom.coord[0];
+                const auto dy = point_y - neighbor_atom.coord[1];
+                const auto dz = point_z - neighbor_atom.coord[2];
+                const auto distance2 = dx * dx + dy * dy + dz * dz;
+                if (distance2 <= neighbor_radius2) {
+                    remaining[point_index] = 0u;
+                    --remaining_count;
+                }
+            }
+        }
+        surface_areas.push_back(
+            full_area * static_cast<double>(remaining_count) / static_cast<double>(point_count));
+    }
+    return surface_areas;
+}
+
+std::optional<double> compute_cpsa_partial_surface_area(
+    const std::vector<double>& surface_areas,
+    const std::vector<double>& charges,
+    std::size_t version,
+    bool positive) {
+    double charge_sum = 0.0;
+    double surface_sum = 0.0;
+    double charge_surface_sum = 0.0;
+    std::size_t selected_count = 0u;
+
+    for (std::size_t index = 0u; index < charges.size(); ++index) {
+        const auto charge = charges[index];
+        if (positive ? charge <= 0.0 : charge >= 0.0) {
+            continue;
+        }
+        charge_sum += charge;
+        surface_sum += surface_areas[index];
+        charge_surface_sum += charge * surface_areas[index];
+        ++selected_count;
+    }
+
+    switch (version) {
+    case 1u:
+        return surface_sum;
+    case 2u:
+        return charge_sum * surface_sum;
+    case 3u:
+        return charge_surface_sum;
+    case 4u:
+        if (charges.empty()) {
+            return std::nullopt;
+        }
+        return charge_sum * surface_sum / static_cast<double>(charges.size());
+    case 5u:
+        if (selected_count == 0u) {
+            return std::nullopt;
+        }
+        return charge_sum * surface_sum / static_cast<double>(selected_count);
+    default:
+        return std::nullopt;
+    }
+}
+
+std::optional<double> compute_cpsa_relative_charge_surface_area(
+    const std::vector<double>& surface_areas,
+    const std::vector<double>& charges,
+    bool positive) {
+    std::optional<std::size_t> selected_index;
+    double selected_abs_charge = 0.0;
+    std::vector<double> same_sign_charges;
+    same_sign_charges.reserve(charges.size());
+
+    for (std::size_t index = 0u; index < charges.size(); ++index) {
+        const auto charge = charges[index];
+        if (positive ? charge <= 0.0 : charge >= 0.0) {
+            continue;
+        }
+        same_sign_charges.push_back(charge);
+        const auto abs_charge = std::abs(charge);
+        if (!selected_index.has_value() || abs_charge > selected_abs_charge) {
+            selected_index = index;
+            selected_abs_charge = abs_charge;
+        }
+    }
+
+    if (!selected_index.has_value()) {
+        return 0.0;
+    }
+
+    const auto relative_charge = compute_cpsa_relative_charge(same_sign_charges, positive);
+    if (!relative_charge.has_value() || *relative_charge == 0.0) {
+        return std::nullopt;
+    }
+    return surface_areas[*selected_index] / *relative_charge;
+}
+
+std::optional<MordredCPSASurfaceValues> compute_cpsa_surface_values(
+    const OEChem::OEMolBase& mol,
+    const std::optional<Mordred3DContext>& context) {
+    if (!context.has_value()) {
+        return std::nullopt;
+    }
+
+    const auto surface_areas = compute_mordred_atomic_surface_areas(context->all_atom_set);
+    if (!surface_areas.has_value()) {
+        return std::nullopt;
+    }
+
+    auto explicit_mol = explicit_hydrogen_copy(mol);
+    std::vector<unsigned int> atom_ids;
+    atom_ids.reserve(context->all_atom_set.atoms.size());
+    for (const auto& atom : context->all_atom_set.atoms) {
+        atom_ids.push_back(atom.atom_index);
+    }
+    const auto charges = compute_explicit_gasteiger_charge_values(explicit_mol, atom_ids);
+    if (!charges.has_value() || charges->size() != surface_areas->size()) {
+        return std::nullopt;
+    }
+
+    MordredCPSASurfaceValues values;
+    for (std::size_t version = 1u; version <= 5u; ++version) {
+        values.pnsa[version] =
+            compute_cpsa_partial_surface_area(*surface_areas, *charges, version, false);
+        values.ppsa[version] =
+            compute_cpsa_partial_surface_area(*surface_areas, *charges, version, true);
+        if (values.pnsa[version].has_value() && values.ppsa[version].has_value()) {
+            values.dpsa[version] = *values.ppsa[version] - *values.pnsa[version];
+        }
+    }
+
+    const auto total_surface_area =
+        std::accumulate(surface_areas->begin(), surface_areas->end(), 0.0);
+    if (std::isfinite(total_surface_area) && total_surface_area != 0.0) {
+        for (std::size_t version = 1u; version <= 5u; ++version) {
+            if (values.pnsa[version].has_value()) {
+                values.fnsa[version] = *values.pnsa[version] / total_surface_area;
+                values.wnsa[version] = *values.pnsa[version] * total_surface_area / 1000.0;
+            }
+            if (values.ppsa[version].has_value()) {
+                values.fpsa[version] = *values.ppsa[version] / total_surface_area;
+                values.wpsa[version] = *values.ppsa[version] * total_surface_area / 1000.0;
+            }
+        }
+    }
+
+    values.rncs = compute_cpsa_relative_charge_surface_area(*surface_areas, *charges, false);
+    values.rpcs = compute_cpsa_relative_charge_surface_area(*surface_areas, *charges, true);
+
+    double hydrophobic_surface_area = 0.0;
+    double polar_surface_area = 0.0;
+    for (std::size_t index = 0u; index < charges->size(); ++index) {
+        if (std::abs((*charges)[index]) < 0.2) {
+            hydrophobic_surface_area += (*surface_areas)[index];
+        } else {
+            polar_surface_area += (*surface_areas)[index];
+        }
+    }
+    values.tasa = hydrophobic_surface_area;
+    values.tpsa = polar_surface_area;
+    if (std::isfinite(total_surface_area) && total_surface_area != 0.0) {
+        values.rasa = hydrophobic_surface_area / total_surface_area;
+        values.rpsa = polar_surface_area / total_surface_area;
+    }
+    return values;
+}
+
 MordredExplicitAtomDistanceValues compute_mordred_explicit_atom_distances(
     const OEChem::OEMolBase& mol) {
     MordredExplicitAtomDistanceValues values;
@@ -7450,6 +7799,27 @@ void set_cpsa_charge_values(
     set_float(builder, "RPCG", values.rpcg);
 }
 
+void set_cpsa_surface_values(
+    DescriptorSetBuilder& builder,
+    const MordredCPSASurfaceValues& values) {
+    for (std::size_t version = 1u; version <= 5u; ++version) {
+        const auto version_text = std::to_string(version);
+        set_optional_float(builder, "PNSA" + version_text, values.pnsa[version]);
+        set_optional_float(builder, "PPSA" + version_text, values.ppsa[version]);
+        set_optional_float(builder, "DPSA" + version_text, values.dpsa[version]);
+        set_optional_float(builder, "FNSA" + version_text, values.fnsa[version]);
+        set_optional_float(builder, "FPSA" + version_text, values.fpsa[version]);
+        set_optional_float(builder, "WNSA" + version_text, values.wnsa[version]);
+        set_optional_float(builder, "WPSA" + version_text, values.wpsa[version]);
+    }
+    set_optional_float(builder, "RNCS", values.rncs);
+    set_optional_float(builder, "RPCS", values.rpcs);
+    set_optional_float(builder, "TASA", values.tasa);
+    set_optional_float(builder, "TPSA", values.tpsa);
+    set_optional_float(builder, "RASA", values.rasa);
+    set_optional_float(builder, "RPSA", values.rpsa);
+}
+
 void set_autocorrelation_values(
     DescriptorSetBuilder& builder,
     const std::vector<MordredAutocorrelationValues>& value_sets) {
@@ -7764,6 +8134,7 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
     const auto three_d_context = build_mordred_3d_context(mol);
     const auto low_count_3d_values = compute_low_count_3d_values(three_d_context);
     const auto morse_values = compute_mordred_morse_values(three_d_context);
+    const auto cpsa_surface_values = compute_cpsa_surface_values(mol, three_d_context);
     DescriptorSetBuilder builder(MordredDescriptorSchema());
 
     const auto all_atoms = values.heavy_atoms + values.hydrogens;
@@ -8001,6 +8372,9 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
     set_abc_index_values(builder, abc_index_values);
     if (cpsa_charge_values.has_value()) {
         set_cpsa_charge_values(builder, *cpsa_charge_values);
+    }
+    if (cpsa_surface_values.has_value()) {
+        set_cpsa_surface_values(builder, *cpsa_surface_values);
     }
     set_autocorrelation_values(builder, autocorrelation_values);
     set_optional_float(builder, "BalabanJ", balaban_j);

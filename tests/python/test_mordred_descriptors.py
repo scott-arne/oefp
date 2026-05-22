@@ -253,6 +253,16 @@ NO_CONFORMER_3D_SOURCE_TYPES = {
     "PBF",
 }
 CHARGE_ONLY_CPSA_DESCRIPTOR_NAMES = {"RNCG", "RPCG"}
+CPSA_SURFACE_DESCRIPTOR_NAMES = (
+    {f"PNSA{version}" for version in range(1, 6)}
+    | {f"PPSA{version}" for version in range(1, 6)}
+    | {f"DPSA{version}" for version in range(1, 6)}
+    | {f"FNSA{version}" for version in range(1, 6)}
+    | {f"FPSA{version}" for version in range(1, 6)}
+    | {f"WNSA{version}" for version in range(1, 6)}
+    | {f"WPSA{version}" for version in range(1, 6)}
+    | {"RNCS", "RPCS", "TASA", "TPSA", "RASA", "RPSA"}
+)
 MORSE_DESCRIPTOR_NAMES = {
     f"Mor{distance:02d}{suffix}"
     for suffix in ("", "m", "v", "se", "p")
@@ -271,7 +281,7 @@ OMEGA_GENERATED_3D_DESCRIPTOR_NAMES = {
     "MOMI-Y",
     "MOMI-Z",
     "PBF",
-} | MORSE_DESCRIPTOR_NAMES
+} | MORSE_DESCRIPTOR_NAMES | CPSA_SURFACE_DESCRIPTOR_NAMES
 OMEGA_UNSUPPORTED_3D_SMILES = {"C[Na]", "O=[Se]=O"}
 
 ENABLED_DESCRIPTOR_NAMES = {
@@ -935,9 +945,10 @@ def test_mordred_descriptors_match_enabled_reference_values():
     assert set(names) == set(all_names)
     assert len(set(all_names) - set(names)) == 0
     assert len(no_conformer_3d_names) == 213
-    assert len(not_applicable_no_conformer_3d_names) == 41
+    assert len(not_applicable_no_conformer_3d_names) == 0
     assert set(no_conformer_3d_names) <= set(names)
     assert OMEGA_GENERATED_3D_DESCRIPTOR_NAMES <= set(no_conformer_3d_names)
+    assert CPSA_SURFACE_DESCRIPTOR_NAMES <= OMEGA_GENERATED_3D_DESCRIPTOR_NAMES
     assert set(AUTOCORRELATION_ATS_AATS_NAMES) <= set(names)
     assert set(AUTOCORRELATION_ATSC_AATSC_NAMES) <= set(names)
     assert set(AUTOCORRELATION_CHARGE_ATSC_AATSC_NAMES) <= set(names)

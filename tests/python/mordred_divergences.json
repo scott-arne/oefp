@@ -12913,329 +12913,329 @@
       "descriptor": "PNSA1",
       "family": "CPSA",
       "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
-      "status": "not_applicable",
-      "primitive": "Mordred CPSABase 3D charged partial surface area descriptor requiring conformer coordinates",
-      "reason": "Current Task 11 coordinate policy classifies this descriptor as not applicable for the committed no-conformer Mordred reference fixture; all 26 reference rows contain Mordred Missing values and OEFP returns None."
+      "status": "openeye_divergent",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OEFP intentionally attempts one OMEGA conformer on a local explicit-hydrogen molecule copy for no-conformer inputs; rows where OMEGA and Mordred Gasteiger charge generation succeed are accepted divergences from the committed Missing3DCoordinate Mordred fixture."
     },
     {
       "descriptor": "PNSA2",
       "family": "CPSA",
       "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
-      "status": "not_applicable",
-      "primitive": "Mordred CPSABase 3D charged partial surface area descriptor requiring conformer coordinates",
-      "reason": "Current Task 11 coordinate policy classifies this descriptor as not applicable for the committed no-conformer Mordred reference fixture; all 26 reference rows contain Mordred Missing values and OEFP returns None."
+      "status": "openeye_divergent",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OEFP intentionally attempts one OMEGA conformer on a local explicit-hydrogen molecule copy for no-conformer inputs; rows where OMEGA and Mordred Gasteiger charge generation succeed are accepted divergences from the committed Missing3DCoordinate Mordred fixture."
     },
     {
       "descriptor": "PNSA3",
       "family": "CPSA",
       "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
-      "status": "not_applicable",
-      "primitive": "Mordred CPSABase 3D charged partial surface area descriptor requiring conformer coordinates",
-      "reason": "Current Task 11 coordinate policy classifies this descriptor as not applicable for the committed no-conformer Mordred reference fixture; all 26 reference rows contain Mordred Missing values and OEFP returns None."
+      "status": "openeye_divergent",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OEFP intentionally attempts one OMEGA conformer on a local explicit-hydrogen molecule copy for no-conformer inputs; rows where OMEGA and Mordred Gasteiger charge generation succeed are accepted divergences from the committed Missing3DCoordinate Mordred fixture."
     },
     {
       "descriptor": "PNSA4",
       "family": "CPSA",
       "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
-      "status": "not_applicable",
-      "primitive": "Mordred CPSABase 3D charged partial surface area descriptor requiring conformer coordinates",
-      "reason": "Current Task 11 coordinate policy classifies this descriptor as not applicable for the committed no-conformer Mordred reference fixture; all 26 reference rows contain Mordred Missing values and OEFP returns None."
+      "status": "openeye_divergent",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OEFP intentionally attempts one OMEGA conformer on a local explicit-hydrogen molecule copy for no-conformer inputs; rows where OMEGA and Mordred Gasteiger charge generation succeed are accepted divergences from the committed Missing3DCoordinate Mordred fixture."
     },
     {
       "descriptor": "PNSA5",
       "family": "CPSA",
       "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
-      "status": "not_applicable",
-      "primitive": "Mordred CPSABase 3D charged partial surface area descriptor requiring conformer coordinates",
-      "reason": "Current Task 11 coordinate policy classifies this descriptor as not applicable for the committed no-conformer Mordred reference fixture; all 26 reference rows contain Mordred Missing values and OEFP returns None."
+      "status": "openeye_divergent",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OEFP intentionally attempts one OMEGA conformer on a local explicit-hydrogen molecule copy for no-conformer inputs; rows where OMEGA and Mordred Gasteiger charge generation succeed are accepted divergences from the committed Missing3DCoordinate Mordred fixture."
     },
     {
       "descriptor": "PPSA1",
       "family": "CPSA",
       "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
-      "status": "not_applicable",
-      "primitive": "Mordred CPSABase 3D charged partial surface area descriptor requiring conformer coordinates",
-      "reason": "Current Task 11 coordinate policy classifies this descriptor as not applicable for the committed no-conformer Mordred reference fixture; all 26 reference rows contain Mordred Missing values and OEFP returns None."
+      "status": "openeye_divergent",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OEFP intentionally attempts one OMEGA conformer on a local explicit-hydrogen molecule copy for no-conformer inputs; rows where OMEGA and Mordred Gasteiger charge generation succeed are accepted divergences from the committed Missing3DCoordinate Mordred fixture."
     },
     {
       "descriptor": "PPSA2",
       "family": "CPSA",
       "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
-      "status": "not_applicable",
-      "primitive": "Mordred CPSABase 3D charged partial surface area descriptor requiring conformer coordinates",
-      "reason": "Current Task 11 coordinate policy classifies this descriptor as not applicable for the committed no-conformer Mordred reference fixture; all 26 reference rows contain Mordred Missing values and OEFP returns None."
+      "status": "openeye_divergent",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OEFP intentionally attempts one OMEGA conformer on a local explicit-hydrogen molecule copy for no-conformer inputs; rows where OMEGA and Mordred Gasteiger charge generation succeed are accepted divergences from the committed Missing3DCoordinate Mordred fixture."
     },
     {
       "descriptor": "PPSA3",
       "family": "CPSA",
       "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
-      "status": "not_applicable",
-      "primitive": "Mordred CPSABase 3D charged partial surface area descriptor requiring conformer coordinates",
-      "reason": "Current Task 11 coordinate policy classifies this descriptor as not applicable for the committed no-conformer Mordred reference fixture; all 26 reference rows contain Mordred Missing values and OEFP returns None."
+      "status": "openeye_divergent",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OEFP intentionally attempts one OMEGA conformer on a local explicit-hydrogen molecule copy for no-conformer inputs; rows where OMEGA and Mordred Gasteiger charge generation succeed are accepted divergences from the committed Missing3DCoordinate Mordred fixture."
     },
     {
       "descriptor": "PPSA4",
       "family": "CPSA",
       "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
-      "status": "not_applicable",
-      "primitive": "Mordred CPSABase 3D charged partial surface area descriptor requiring conformer coordinates",
-      "reason": "Current Task 11 coordinate policy classifies this descriptor as not applicable for the committed no-conformer Mordred reference fixture; all 26 reference rows contain Mordred Missing values and OEFP returns None."
+      "status": "openeye_divergent",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OEFP intentionally attempts one OMEGA conformer on a local explicit-hydrogen molecule copy for no-conformer inputs; rows where OMEGA and Mordred Gasteiger charge generation succeed are accepted divergences from the committed Missing3DCoordinate Mordred fixture."
     },
     {
       "descriptor": "PPSA5",
       "family": "CPSA",
       "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
-      "status": "not_applicable",
-      "primitive": "Mordred CPSABase 3D charged partial surface area descriptor requiring conformer coordinates",
-      "reason": "Current Task 11 coordinate policy classifies this descriptor as not applicable for the committed no-conformer Mordred reference fixture; all 26 reference rows contain Mordred Missing values and OEFP returns None."
+      "status": "openeye_divergent",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OEFP intentionally attempts one OMEGA conformer on a local explicit-hydrogen molecule copy for no-conformer inputs; rows where OMEGA and Mordred Gasteiger charge generation succeed are accepted divergences from the committed Missing3DCoordinate Mordred fixture."
     },
     {
       "descriptor": "DPSA1",
       "family": "CPSA",
       "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
-      "status": "not_applicable",
-      "primitive": "Mordred CPSABase 3D charged partial surface area descriptor requiring conformer coordinates",
-      "reason": "Current Task 11 coordinate policy classifies this descriptor as not applicable for the committed no-conformer Mordred reference fixture; all 26 reference rows contain Mordred Missing values and OEFP returns None."
+      "status": "openeye_divergent",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OEFP intentionally attempts one OMEGA conformer on a local explicit-hydrogen molecule copy for no-conformer inputs; rows where OMEGA and Mordred Gasteiger charge generation succeed are accepted divergences from the committed Missing3DCoordinate Mordred fixture."
     },
     {
       "descriptor": "DPSA2",
       "family": "CPSA",
       "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
-      "status": "not_applicable",
-      "primitive": "Mordred CPSABase 3D charged partial surface area descriptor requiring conformer coordinates",
-      "reason": "Current Task 11 coordinate policy classifies this descriptor as not applicable for the committed no-conformer Mordred reference fixture; all 26 reference rows contain Mordred Missing values and OEFP returns None."
+      "status": "openeye_divergent",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OEFP intentionally attempts one OMEGA conformer on a local explicit-hydrogen molecule copy for no-conformer inputs; rows where OMEGA and Mordred Gasteiger charge generation succeed are accepted divergences from the committed Missing3DCoordinate Mordred fixture."
     },
     {
       "descriptor": "DPSA3",
       "family": "CPSA",
       "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
-      "status": "not_applicable",
-      "primitive": "Mordred CPSABase 3D charged partial surface area descriptor requiring conformer coordinates",
-      "reason": "Current Task 11 coordinate policy classifies this descriptor as not applicable for the committed no-conformer Mordred reference fixture; all 26 reference rows contain Mordred Missing values and OEFP returns None."
+      "status": "openeye_divergent",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OEFP intentionally attempts one OMEGA conformer on a local explicit-hydrogen molecule copy for no-conformer inputs; rows where OMEGA and Mordred Gasteiger charge generation succeed are accepted divergences from the committed Missing3DCoordinate Mordred fixture."
     },
     {
       "descriptor": "DPSA4",
       "family": "CPSA",
       "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
-      "status": "not_applicable",
-      "primitive": "Mordred CPSABase 3D charged partial surface area descriptor requiring conformer coordinates",
-      "reason": "Current Task 11 coordinate policy classifies this descriptor as not applicable for the committed no-conformer Mordred reference fixture; all 26 reference rows contain Mordred Missing values and OEFP returns None."
+      "status": "openeye_divergent",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OEFP intentionally attempts one OMEGA conformer on a local explicit-hydrogen molecule copy for no-conformer inputs; rows where OMEGA and Mordred Gasteiger charge generation succeed are accepted divergences from the committed Missing3DCoordinate Mordred fixture."
     },
     {
       "descriptor": "DPSA5",
       "family": "CPSA",
       "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
-      "status": "not_applicable",
-      "primitive": "Mordred CPSABase 3D charged partial surface area descriptor requiring conformer coordinates",
-      "reason": "Current Task 11 coordinate policy classifies this descriptor as not applicable for the committed no-conformer Mordred reference fixture; all 26 reference rows contain Mordred Missing values and OEFP returns None."
+      "status": "openeye_divergent",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OEFP intentionally attempts one OMEGA conformer on a local explicit-hydrogen molecule copy for no-conformer inputs; rows where OMEGA and Mordred Gasteiger charge generation succeed are accepted divergences from the committed Missing3DCoordinate Mordred fixture."
     },
     {
       "descriptor": "FNSA1",
       "family": "CPSA",
       "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
-      "status": "not_applicable",
-      "primitive": "Mordred CPSABase 3D charged partial surface area descriptor requiring conformer coordinates",
-      "reason": "Current Task 11 coordinate policy classifies this descriptor as not applicable for the committed no-conformer Mordred reference fixture; all 26 reference rows contain Mordred Missing values and OEFP returns None."
+      "status": "openeye_divergent",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OEFP intentionally attempts one OMEGA conformer on a local explicit-hydrogen molecule copy for no-conformer inputs; rows where OMEGA and Mordred Gasteiger charge generation succeed are accepted divergences from the committed Missing3DCoordinate Mordred fixture."
     },
     {
       "descriptor": "FNSA2",
       "family": "CPSA",
       "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
-      "status": "not_applicable",
-      "primitive": "Mordred CPSABase 3D charged partial surface area descriptor requiring conformer coordinates",
-      "reason": "Current Task 11 coordinate policy classifies this descriptor as not applicable for the committed no-conformer Mordred reference fixture; all 26 reference rows contain Mordred Missing values and OEFP returns None."
+      "status": "openeye_divergent",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OEFP intentionally attempts one OMEGA conformer on a local explicit-hydrogen molecule copy for no-conformer inputs; rows where OMEGA and Mordred Gasteiger charge generation succeed are accepted divergences from the committed Missing3DCoordinate Mordred fixture."
     },
     {
       "descriptor": "FNSA3",
       "family": "CPSA",
       "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
-      "status": "not_applicable",
-      "primitive": "Mordred CPSABase 3D charged partial surface area descriptor requiring conformer coordinates",
-      "reason": "Current Task 11 coordinate policy classifies this descriptor as not applicable for the committed no-conformer Mordred reference fixture; all 26 reference rows contain Mordred Missing values and OEFP returns None."
+      "status": "openeye_divergent",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OEFP intentionally attempts one OMEGA conformer on a local explicit-hydrogen molecule copy for no-conformer inputs; rows where OMEGA and Mordred Gasteiger charge generation succeed are accepted divergences from the committed Missing3DCoordinate Mordred fixture."
     },
     {
       "descriptor": "FNSA4",
       "family": "CPSA",
       "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
-      "status": "not_applicable",
-      "primitive": "Mordred CPSABase 3D charged partial surface area descriptor requiring conformer coordinates",
-      "reason": "Current Task 11 coordinate policy classifies this descriptor as not applicable for the committed no-conformer Mordred reference fixture; all 26 reference rows contain Mordred Missing values and OEFP returns None."
+      "status": "openeye_divergent",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OEFP intentionally attempts one OMEGA conformer on a local explicit-hydrogen molecule copy for no-conformer inputs; rows where OMEGA and Mordred Gasteiger charge generation succeed are accepted divergences from the committed Missing3DCoordinate Mordred fixture."
     },
     {
       "descriptor": "FNSA5",
       "family": "CPSA",
       "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
-      "status": "not_applicable",
-      "primitive": "Mordred CPSABase 3D charged partial surface area descriptor requiring conformer coordinates",
-      "reason": "Current Task 11 coordinate policy classifies this descriptor as not applicable for the committed no-conformer Mordred reference fixture; all 26 reference rows contain Mordred Missing values and OEFP returns None."
+      "status": "openeye_divergent",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OEFP intentionally attempts one OMEGA conformer on a local explicit-hydrogen molecule copy for no-conformer inputs; rows where OMEGA and Mordred Gasteiger charge generation succeed are accepted divergences from the committed Missing3DCoordinate Mordred fixture."
     },
     {
       "descriptor": "FPSA1",
       "family": "CPSA",
       "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
-      "status": "not_applicable",
-      "primitive": "Mordred CPSABase 3D charged partial surface area descriptor requiring conformer coordinates",
-      "reason": "Current Task 11 coordinate policy classifies this descriptor as not applicable for the committed no-conformer Mordred reference fixture; all 26 reference rows contain Mordred Missing values and OEFP returns None."
+      "status": "openeye_divergent",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OEFP intentionally attempts one OMEGA conformer on a local explicit-hydrogen molecule copy for no-conformer inputs; rows where OMEGA and Mordred Gasteiger charge generation succeed are accepted divergences from the committed Missing3DCoordinate Mordred fixture."
     },
     {
       "descriptor": "FPSA2",
       "family": "CPSA",
       "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
-      "status": "not_applicable",
-      "primitive": "Mordred CPSABase 3D charged partial surface area descriptor requiring conformer coordinates",
-      "reason": "Current Task 11 coordinate policy classifies this descriptor as not applicable for the committed no-conformer Mordred reference fixture; all 26 reference rows contain Mordred Missing values and OEFP returns None."
+      "status": "openeye_divergent",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OEFP intentionally attempts one OMEGA conformer on a local explicit-hydrogen molecule copy for no-conformer inputs; rows where OMEGA and Mordred Gasteiger charge generation succeed are accepted divergences from the committed Missing3DCoordinate Mordred fixture."
     },
     {
       "descriptor": "FPSA3",
       "family": "CPSA",
       "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
-      "status": "not_applicable",
-      "primitive": "Mordred CPSABase 3D charged partial surface area descriptor requiring conformer coordinates",
-      "reason": "Current Task 11 coordinate policy classifies this descriptor as not applicable for the committed no-conformer Mordred reference fixture; all 26 reference rows contain Mordred Missing values and OEFP returns None."
+      "status": "openeye_divergent",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OEFP intentionally attempts one OMEGA conformer on a local explicit-hydrogen molecule copy for no-conformer inputs; rows where OMEGA and Mordred Gasteiger charge generation succeed are accepted divergences from the committed Missing3DCoordinate Mordred fixture."
     },
     {
       "descriptor": "FPSA4",
       "family": "CPSA",
       "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
-      "status": "not_applicable",
-      "primitive": "Mordred CPSABase 3D charged partial surface area descriptor requiring conformer coordinates",
-      "reason": "Current Task 11 coordinate policy classifies this descriptor as not applicable for the committed no-conformer Mordred reference fixture; all 26 reference rows contain Mordred Missing values and OEFP returns None."
+      "status": "openeye_divergent",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OEFP intentionally attempts one OMEGA conformer on a local explicit-hydrogen molecule copy for no-conformer inputs; rows where OMEGA and Mordred Gasteiger charge generation succeed are accepted divergences from the committed Missing3DCoordinate Mordred fixture."
     },
     {
       "descriptor": "FPSA5",
       "family": "CPSA",
       "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
-      "status": "not_applicable",
-      "primitive": "Mordred CPSABase 3D charged partial surface area descriptor requiring conformer coordinates",
-      "reason": "Current Task 11 coordinate policy classifies this descriptor as not applicable for the committed no-conformer Mordred reference fixture; all 26 reference rows contain Mordred Missing values and OEFP returns None."
+      "status": "openeye_divergent",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OEFP intentionally attempts one OMEGA conformer on a local explicit-hydrogen molecule copy for no-conformer inputs; rows where OMEGA and Mordred Gasteiger charge generation succeed are accepted divergences from the committed Missing3DCoordinate Mordred fixture."
     },
     {
       "descriptor": "WNSA1",
       "family": "CPSA",
       "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
-      "status": "not_applicable",
-      "primitive": "Mordred CPSABase 3D charged partial surface area descriptor requiring conformer coordinates",
-      "reason": "Current Task 11 coordinate policy classifies this descriptor as not applicable for the committed no-conformer Mordred reference fixture; all 26 reference rows contain Mordred Missing values and OEFP returns None."
+      "status": "openeye_divergent",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OEFP intentionally attempts one OMEGA conformer on a local explicit-hydrogen molecule copy for no-conformer inputs; rows where OMEGA and Mordred Gasteiger charge generation succeed are accepted divergences from the committed Missing3DCoordinate Mordred fixture."
     },
     {
       "descriptor": "WNSA2",
       "family": "CPSA",
       "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
-      "status": "not_applicable",
-      "primitive": "Mordred CPSABase 3D charged partial surface area descriptor requiring conformer coordinates",
-      "reason": "Current Task 11 coordinate policy classifies this descriptor as not applicable for the committed no-conformer Mordred reference fixture; all 26 reference rows contain Mordred Missing values and OEFP returns None."
+      "status": "openeye_divergent",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OEFP intentionally attempts one OMEGA conformer on a local explicit-hydrogen molecule copy for no-conformer inputs; rows where OMEGA and Mordred Gasteiger charge generation succeed are accepted divergences from the committed Missing3DCoordinate Mordred fixture."
     },
     {
       "descriptor": "WNSA3",
       "family": "CPSA",
       "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
-      "status": "not_applicable",
-      "primitive": "Mordred CPSABase 3D charged partial surface area descriptor requiring conformer coordinates",
-      "reason": "Current Task 11 coordinate policy classifies this descriptor as not applicable for the committed no-conformer Mordred reference fixture; all 26 reference rows contain Mordred Missing values and OEFP returns None."
+      "status": "openeye_divergent",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OEFP intentionally attempts one OMEGA conformer on a local explicit-hydrogen molecule copy for no-conformer inputs; rows where OMEGA and Mordred Gasteiger charge generation succeed are accepted divergences from the committed Missing3DCoordinate Mordred fixture."
     },
     {
       "descriptor": "WNSA4",
       "family": "CPSA",
       "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
-      "status": "not_applicable",
-      "primitive": "Mordred CPSABase 3D charged partial surface area descriptor requiring conformer coordinates",
-      "reason": "Current Task 11 coordinate policy classifies this descriptor as not applicable for the committed no-conformer Mordred reference fixture; all 26 reference rows contain Mordred Missing values and OEFP returns None."
+      "status": "openeye_divergent",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OEFP intentionally attempts one OMEGA conformer on a local explicit-hydrogen molecule copy for no-conformer inputs; rows where OMEGA and Mordred Gasteiger charge generation succeed are accepted divergences from the committed Missing3DCoordinate Mordred fixture."
     },
     {
       "descriptor": "WNSA5",
       "family": "CPSA",
       "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
-      "status": "not_applicable",
-      "primitive": "Mordred CPSABase 3D charged partial surface area descriptor requiring conformer coordinates",
-      "reason": "Current Task 11 coordinate policy classifies this descriptor as not applicable for the committed no-conformer Mordred reference fixture; all 26 reference rows contain Mordred Missing values and OEFP returns None."
+      "status": "openeye_divergent",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OEFP intentionally attempts one OMEGA conformer on a local explicit-hydrogen molecule copy for no-conformer inputs; rows where OMEGA and Mordred Gasteiger charge generation succeed are accepted divergences from the committed Missing3DCoordinate Mordred fixture."
     },
     {
       "descriptor": "WPSA1",
       "family": "CPSA",
       "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
-      "status": "not_applicable",
-      "primitive": "Mordred CPSABase 3D charged partial surface area descriptor requiring conformer coordinates",
-      "reason": "Current Task 11 coordinate policy classifies this descriptor as not applicable for the committed no-conformer Mordred reference fixture; all 26 reference rows contain Mordred Missing values and OEFP returns None."
+      "status": "openeye_divergent",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OEFP intentionally attempts one OMEGA conformer on a local explicit-hydrogen molecule copy for no-conformer inputs; rows where OMEGA and Mordred Gasteiger charge generation succeed are accepted divergences from the committed Missing3DCoordinate Mordred fixture."
     },
     {
       "descriptor": "WPSA2",
       "family": "CPSA",
       "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
-      "status": "not_applicable",
-      "primitive": "Mordred CPSABase 3D charged partial surface area descriptor requiring conformer coordinates",
-      "reason": "Current Task 11 coordinate policy classifies this descriptor as not applicable for the committed no-conformer Mordred reference fixture; all 26 reference rows contain Mordred Missing values and OEFP returns None."
+      "status": "openeye_divergent",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OEFP intentionally attempts one OMEGA conformer on a local explicit-hydrogen molecule copy for no-conformer inputs; rows where OMEGA and Mordred Gasteiger charge generation succeed are accepted divergences from the committed Missing3DCoordinate Mordred fixture."
     },
     {
       "descriptor": "WPSA3",
       "family": "CPSA",
       "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
-      "status": "not_applicable",
-      "primitive": "Mordred CPSABase 3D charged partial surface area descriptor requiring conformer coordinates",
-      "reason": "Current Task 11 coordinate policy classifies this descriptor as not applicable for the committed no-conformer Mordred reference fixture; all 26 reference rows contain Mordred Missing values and OEFP returns None."
+      "status": "openeye_divergent",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OEFP intentionally attempts one OMEGA conformer on a local explicit-hydrogen molecule copy for no-conformer inputs; rows where OMEGA and Mordred Gasteiger charge generation succeed are accepted divergences from the committed Missing3DCoordinate Mordred fixture."
     },
     {
       "descriptor": "WPSA4",
       "family": "CPSA",
       "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
-      "status": "not_applicable",
-      "primitive": "Mordred CPSABase 3D charged partial surface area descriptor requiring conformer coordinates",
-      "reason": "Current Task 11 coordinate policy classifies this descriptor as not applicable for the committed no-conformer Mordred reference fixture; all 26 reference rows contain Mordred Missing values and OEFP returns None."
+      "status": "openeye_divergent",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OEFP intentionally attempts one OMEGA conformer on a local explicit-hydrogen molecule copy for no-conformer inputs; rows where OMEGA and Mordred Gasteiger charge generation succeed are accepted divergences from the committed Missing3DCoordinate Mordred fixture."
     },
     {
       "descriptor": "WPSA5",
       "family": "CPSA",
       "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
-      "status": "not_applicable",
-      "primitive": "Mordred CPSABase 3D charged partial surface area descriptor requiring conformer coordinates",
-      "reason": "Current Task 11 coordinate policy classifies this descriptor as not applicable for the committed no-conformer Mordred reference fixture; all 26 reference rows contain Mordred Missing values and OEFP returns None."
+      "status": "openeye_divergent",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OEFP intentionally attempts one OMEGA conformer on a local explicit-hydrogen molecule copy for no-conformer inputs; rows where OMEGA and Mordred Gasteiger charge generation succeed are accepted divergences from the committed Missing3DCoordinate Mordred fixture."
     },
     {
       "descriptor": "RNCS",
       "family": "CPSA",
       "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
-      "status": "not_applicable",
-      "primitive": "Mordred CPSABase 3D charged partial surface area descriptor requiring conformer coordinates",
-      "reason": "Current Task 11 coordinate policy classifies this descriptor as not applicable for the committed no-conformer Mordred reference fixture; all 26 reference rows contain Mordred Missing values and OEFP returns None."
+      "status": "openeye_divergent",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OEFP intentionally attempts one OMEGA conformer on a local explicit-hydrogen molecule copy for no-conformer inputs; rows where OMEGA and Mordred Gasteiger charge generation succeed are accepted divergences from the committed Missing3DCoordinate Mordred fixture."
     },
     {
       "descriptor": "RPCS",
       "family": "CPSA",
       "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
-      "status": "not_applicable",
-      "primitive": "Mordred CPSABase 3D charged partial surface area descriptor requiring conformer coordinates",
-      "reason": "Current Task 11 coordinate policy classifies this descriptor as not applicable for the committed no-conformer Mordred reference fixture; all 26 reference rows contain Mordred Missing values and OEFP returns None."
+      "status": "openeye_divergent",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OEFP intentionally attempts one OMEGA conformer on a local explicit-hydrogen molecule copy for no-conformer inputs; rows where OMEGA and Mordred Gasteiger charge generation succeed are accepted divergences from the committed Missing3DCoordinate Mordred fixture."
     },
     {
       "descriptor": "TASA",
       "family": "CPSA",
       "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
-      "status": "not_applicable",
-      "primitive": "Mordred CPSABase 3D charged partial surface area descriptor requiring conformer coordinates",
-      "reason": "Current Task 11 coordinate policy classifies this descriptor as not applicable for the committed no-conformer Mordred reference fixture; all 26 reference rows contain Mordred Missing values and OEFP returns None."
+      "status": "openeye_divergent",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OEFP intentionally attempts one OMEGA conformer on a local explicit-hydrogen molecule copy for no-conformer inputs; rows where OMEGA and Mordred Gasteiger charge generation succeed are accepted divergences from the committed Missing3DCoordinate Mordred fixture."
     },
     {
       "descriptor": "TPSA",
       "family": "CPSA",
       "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
-      "status": "not_applicable",
-      "primitive": "Mordred CPSABase 3D charged partial surface area descriptor requiring conformer coordinates",
-      "reason": "Current Task 11 coordinate policy classifies this descriptor as not applicable for the committed no-conformer Mordred reference fixture; all 26 reference rows contain Mordred Missing values and OEFP returns None."
+      "status": "openeye_divergent",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OEFP intentionally attempts one OMEGA conformer on a local explicit-hydrogen molecule copy for no-conformer inputs; rows where OMEGA and Mordred Gasteiger charge generation succeed are accepted divergences from the committed Missing3DCoordinate Mordred fixture."
     },
     {
       "descriptor": "RASA",
       "family": "CPSA",
       "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
-      "status": "not_applicable",
-      "primitive": "Mordred CPSABase 3D charged partial surface area descriptor requiring conformer coordinates",
-      "reason": "Current Task 11 coordinate policy classifies this descriptor as not applicable for the committed no-conformer Mordred reference fixture; all 26 reference rows contain Mordred Missing values and OEFP returns None."
+      "status": "openeye_divergent",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OEFP intentionally attempts one OMEGA conformer on a local explicit-hydrogen molecule copy for no-conformer inputs; rows where OMEGA and Mordred Gasteiger charge generation succeed are accepted divergences from the committed Missing3DCoordinate Mordred fixture."
     },
     {
       "descriptor": "RPSA",
       "family": "CPSA",
       "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
-      "status": "not_applicable",
-      "primitive": "Mordred CPSABase 3D charged partial surface area descriptor requiring conformer coordinates",
-      "reason": "Current Task 11 coordinate policy classifies this descriptor as not applicable for the committed no-conformer Mordred reference fixture; all 26 reference rows contain Mordred Missing values and OEFP returns None."
+      "status": "openeye_divergent",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OEFP intentionally attempts one OMEGA conformer on a local explicit-hydrogen molecule copy for no-conformer inputs; rows where OMEGA and Mordred Gasteiger charge generation succeed are accepted divergences from the committed Missing3DCoordinate Mordred fixture."
     },
     {
       "descriptor": "GeomDiameter",
@@ -19456,6 +19456,1072 @@
       "source": "/Users/johnss51/Development/python/mordred/mordred/MoRSE.py",
       "primitive": "OpenEye OMEGA single-conformer 3D MoRSE descriptor",
       "reason": "OMEGA does not generate a conformer for this fixture molecule because MMFF stretch parameters are unavailable."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "PNSA1",
+      "smiles": "C[Na]",
+      "reference": {
+        "error_type": "Missing",
+        "state": "missing"
+      },
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OMEGA or Mordred Gasteiger charge generation does not produce the explicit-hydrogen CPSA surface-area inputs for this fixture row."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "PNSA1",
+      "smiles": "O=[Se]=O",
+      "reference": {
+        "error_type": "Missing",
+        "state": "missing"
+      },
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OMEGA or Mordred Gasteiger charge generation does not produce the explicit-hydrogen CPSA surface-area inputs for this fixture row."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "PNSA2",
+      "smiles": "C[Na]",
+      "reference": {
+        "error_type": "Missing",
+        "state": "missing"
+      },
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OMEGA or Mordred Gasteiger charge generation does not produce the explicit-hydrogen CPSA surface-area inputs for this fixture row."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "PNSA2",
+      "smiles": "O=[Se]=O",
+      "reference": {
+        "error_type": "Missing",
+        "state": "missing"
+      },
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OMEGA or Mordred Gasteiger charge generation does not produce the explicit-hydrogen CPSA surface-area inputs for this fixture row."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "PNSA3",
+      "smiles": "C[Na]",
+      "reference": {
+        "error_type": "Missing",
+        "state": "missing"
+      },
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OMEGA or Mordred Gasteiger charge generation does not produce the explicit-hydrogen CPSA surface-area inputs for this fixture row."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "PNSA3",
+      "smiles": "O=[Se]=O",
+      "reference": {
+        "error_type": "Missing",
+        "state": "missing"
+      },
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OMEGA or Mordred Gasteiger charge generation does not produce the explicit-hydrogen CPSA surface-area inputs for this fixture row."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "PNSA4",
+      "smiles": "C[Na]",
+      "reference": {
+        "error_type": "Missing",
+        "state": "missing"
+      },
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OMEGA or Mordred Gasteiger charge generation does not produce the explicit-hydrogen CPSA surface-area inputs for this fixture row."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "PNSA4",
+      "smiles": "O=[Se]=O",
+      "reference": {
+        "error_type": "Missing",
+        "state": "missing"
+      },
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OMEGA or Mordred Gasteiger charge generation does not produce the explicit-hydrogen CPSA surface-area inputs for this fixture row."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "PNSA5",
+      "smiles": "C[Na]",
+      "reference": {
+        "error_type": "Missing",
+        "state": "missing"
+      },
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OMEGA or Mordred Gasteiger charge generation does not produce the explicit-hydrogen CPSA surface-area inputs for this fixture row."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "PNSA5",
+      "smiles": "O=[Se]=O",
+      "reference": {
+        "error_type": "Missing",
+        "state": "missing"
+      },
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OMEGA or Mordred Gasteiger charge generation does not produce the explicit-hydrogen CPSA surface-area inputs for this fixture row."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "PPSA1",
+      "smiles": "C[Na]",
+      "reference": {
+        "error_type": "Missing",
+        "state": "missing"
+      },
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OMEGA or Mordred Gasteiger charge generation does not produce the explicit-hydrogen CPSA surface-area inputs for this fixture row."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "PPSA1",
+      "smiles": "O=[Se]=O",
+      "reference": {
+        "error_type": "Missing",
+        "state": "missing"
+      },
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OMEGA or Mordred Gasteiger charge generation does not produce the explicit-hydrogen CPSA surface-area inputs for this fixture row."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "PPSA2",
+      "smiles": "C[Na]",
+      "reference": {
+        "error_type": "Missing",
+        "state": "missing"
+      },
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OMEGA or Mordred Gasteiger charge generation does not produce the explicit-hydrogen CPSA surface-area inputs for this fixture row."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "PPSA2",
+      "smiles": "O=[Se]=O",
+      "reference": {
+        "error_type": "Missing",
+        "state": "missing"
+      },
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OMEGA or Mordred Gasteiger charge generation does not produce the explicit-hydrogen CPSA surface-area inputs for this fixture row."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "PPSA3",
+      "smiles": "C[Na]",
+      "reference": {
+        "error_type": "Missing",
+        "state": "missing"
+      },
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OMEGA or Mordred Gasteiger charge generation does not produce the explicit-hydrogen CPSA surface-area inputs for this fixture row."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "PPSA3",
+      "smiles": "O=[Se]=O",
+      "reference": {
+        "error_type": "Missing",
+        "state": "missing"
+      },
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OMEGA or Mordred Gasteiger charge generation does not produce the explicit-hydrogen CPSA surface-area inputs for this fixture row."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "PPSA4",
+      "smiles": "C[Na]",
+      "reference": {
+        "error_type": "Missing",
+        "state": "missing"
+      },
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OMEGA or Mordred Gasteiger charge generation does not produce the explicit-hydrogen CPSA surface-area inputs for this fixture row."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "PPSA4",
+      "smiles": "O=[Se]=O",
+      "reference": {
+        "error_type": "Missing",
+        "state": "missing"
+      },
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OMEGA or Mordred Gasteiger charge generation does not produce the explicit-hydrogen CPSA surface-area inputs for this fixture row."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "PPSA5",
+      "smiles": "C[Na]",
+      "reference": {
+        "error_type": "Missing",
+        "state": "missing"
+      },
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OMEGA or Mordred Gasteiger charge generation does not produce the explicit-hydrogen CPSA surface-area inputs for this fixture row."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "PPSA5",
+      "smiles": "O=[Se]=O",
+      "reference": {
+        "error_type": "Missing",
+        "state": "missing"
+      },
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OMEGA or Mordred Gasteiger charge generation does not produce the explicit-hydrogen CPSA surface-area inputs for this fixture row."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "DPSA1",
+      "smiles": "C[Na]",
+      "reference": {
+        "error_type": "Missing",
+        "state": "missing"
+      },
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OMEGA or Mordred Gasteiger charge generation does not produce the explicit-hydrogen CPSA surface-area inputs for this fixture row."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "DPSA1",
+      "smiles": "O=[Se]=O",
+      "reference": {
+        "error_type": "Missing",
+        "state": "missing"
+      },
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OMEGA or Mordred Gasteiger charge generation does not produce the explicit-hydrogen CPSA surface-area inputs for this fixture row."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "DPSA2",
+      "smiles": "C[Na]",
+      "reference": {
+        "error_type": "Missing",
+        "state": "missing"
+      },
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OMEGA or Mordred Gasteiger charge generation does not produce the explicit-hydrogen CPSA surface-area inputs for this fixture row."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "DPSA2",
+      "smiles": "O=[Se]=O",
+      "reference": {
+        "error_type": "Missing",
+        "state": "missing"
+      },
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OMEGA or Mordred Gasteiger charge generation does not produce the explicit-hydrogen CPSA surface-area inputs for this fixture row."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "DPSA3",
+      "smiles": "C[Na]",
+      "reference": {
+        "error_type": "Missing",
+        "state": "missing"
+      },
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OMEGA or Mordred Gasteiger charge generation does not produce the explicit-hydrogen CPSA surface-area inputs for this fixture row."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "DPSA3",
+      "smiles": "O=[Se]=O",
+      "reference": {
+        "error_type": "Missing",
+        "state": "missing"
+      },
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OMEGA or Mordred Gasteiger charge generation does not produce the explicit-hydrogen CPSA surface-area inputs for this fixture row."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "DPSA4",
+      "smiles": "C[Na]",
+      "reference": {
+        "error_type": "Missing",
+        "state": "missing"
+      },
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OMEGA or Mordred Gasteiger charge generation does not produce the explicit-hydrogen CPSA surface-area inputs for this fixture row."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "DPSA4",
+      "smiles": "O=[Se]=O",
+      "reference": {
+        "error_type": "Missing",
+        "state": "missing"
+      },
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OMEGA or Mordred Gasteiger charge generation does not produce the explicit-hydrogen CPSA surface-area inputs for this fixture row."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "DPSA5",
+      "smiles": "C[Na]",
+      "reference": {
+        "error_type": "Missing",
+        "state": "missing"
+      },
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OMEGA or Mordred Gasteiger charge generation does not produce the explicit-hydrogen CPSA surface-area inputs for this fixture row."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "DPSA5",
+      "smiles": "O=[Se]=O",
+      "reference": {
+        "error_type": "Missing",
+        "state": "missing"
+      },
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OMEGA or Mordred Gasteiger charge generation does not produce the explicit-hydrogen CPSA surface-area inputs for this fixture row."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "FNSA1",
+      "smiles": "C[Na]",
+      "reference": {
+        "error_type": "Missing",
+        "state": "missing"
+      },
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OMEGA or Mordred Gasteiger charge generation does not produce the explicit-hydrogen CPSA surface-area inputs for this fixture row."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "FNSA1",
+      "smiles": "O=[Se]=O",
+      "reference": {
+        "error_type": "Missing",
+        "state": "missing"
+      },
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OMEGA or Mordred Gasteiger charge generation does not produce the explicit-hydrogen CPSA surface-area inputs for this fixture row."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "FNSA2",
+      "smiles": "C[Na]",
+      "reference": {
+        "error_type": "Missing",
+        "state": "missing"
+      },
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OMEGA or Mordred Gasteiger charge generation does not produce the explicit-hydrogen CPSA surface-area inputs for this fixture row."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "FNSA2",
+      "smiles": "O=[Se]=O",
+      "reference": {
+        "error_type": "Missing",
+        "state": "missing"
+      },
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OMEGA or Mordred Gasteiger charge generation does not produce the explicit-hydrogen CPSA surface-area inputs for this fixture row."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "FNSA3",
+      "smiles": "C[Na]",
+      "reference": {
+        "error_type": "Missing",
+        "state": "missing"
+      },
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OMEGA or Mordred Gasteiger charge generation does not produce the explicit-hydrogen CPSA surface-area inputs for this fixture row."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "FNSA3",
+      "smiles": "O=[Se]=O",
+      "reference": {
+        "error_type": "Missing",
+        "state": "missing"
+      },
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OMEGA or Mordred Gasteiger charge generation does not produce the explicit-hydrogen CPSA surface-area inputs for this fixture row."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "FNSA4",
+      "smiles": "C[Na]",
+      "reference": {
+        "error_type": "Missing",
+        "state": "missing"
+      },
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OMEGA or Mordred Gasteiger charge generation does not produce the explicit-hydrogen CPSA surface-area inputs for this fixture row."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "FNSA4",
+      "smiles": "O=[Se]=O",
+      "reference": {
+        "error_type": "Missing",
+        "state": "missing"
+      },
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OMEGA or Mordred Gasteiger charge generation does not produce the explicit-hydrogen CPSA surface-area inputs for this fixture row."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "FNSA5",
+      "smiles": "C[Na]",
+      "reference": {
+        "error_type": "Missing",
+        "state": "missing"
+      },
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OMEGA or Mordred Gasteiger charge generation does not produce the explicit-hydrogen CPSA surface-area inputs for this fixture row."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "FNSA5",
+      "smiles": "O=[Se]=O",
+      "reference": {
+        "error_type": "Missing",
+        "state": "missing"
+      },
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OMEGA or Mordred Gasteiger charge generation does not produce the explicit-hydrogen CPSA surface-area inputs for this fixture row."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "FPSA1",
+      "smiles": "C[Na]",
+      "reference": {
+        "error_type": "Missing",
+        "state": "missing"
+      },
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OMEGA or Mordred Gasteiger charge generation does not produce the explicit-hydrogen CPSA surface-area inputs for this fixture row."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "FPSA1",
+      "smiles": "O=[Se]=O",
+      "reference": {
+        "error_type": "Missing",
+        "state": "missing"
+      },
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OMEGA or Mordred Gasteiger charge generation does not produce the explicit-hydrogen CPSA surface-area inputs for this fixture row."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "FPSA2",
+      "smiles": "C[Na]",
+      "reference": {
+        "error_type": "Missing",
+        "state": "missing"
+      },
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OMEGA or Mordred Gasteiger charge generation does not produce the explicit-hydrogen CPSA surface-area inputs for this fixture row."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "FPSA2",
+      "smiles": "O=[Se]=O",
+      "reference": {
+        "error_type": "Missing",
+        "state": "missing"
+      },
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OMEGA or Mordred Gasteiger charge generation does not produce the explicit-hydrogen CPSA surface-area inputs for this fixture row."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "FPSA3",
+      "smiles": "C[Na]",
+      "reference": {
+        "error_type": "Missing",
+        "state": "missing"
+      },
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OMEGA or Mordred Gasteiger charge generation does not produce the explicit-hydrogen CPSA surface-area inputs for this fixture row."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "FPSA3",
+      "smiles": "O=[Se]=O",
+      "reference": {
+        "error_type": "Missing",
+        "state": "missing"
+      },
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OMEGA or Mordred Gasteiger charge generation does not produce the explicit-hydrogen CPSA surface-area inputs for this fixture row."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "FPSA4",
+      "smiles": "C[Na]",
+      "reference": {
+        "error_type": "Missing",
+        "state": "missing"
+      },
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OMEGA or Mordred Gasteiger charge generation does not produce the explicit-hydrogen CPSA surface-area inputs for this fixture row."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "FPSA4",
+      "smiles": "O=[Se]=O",
+      "reference": {
+        "error_type": "Missing",
+        "state": "missing"
+      },
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OMEGA or Mordred Gasteiger charge generation does not produce the explicit-hydrogen CPSA surface-area inputs for this fixture row."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "FPSA5",
+      "smiles": "C[Na]",
+      "reference": {
+        "error_type": "Missing",
+        "state": "missing"
+      },
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OMEGA or Mordred Gasteiger charge generation does not produce the explicit-hydrogen CPSA surface-area inputs for this fixture row."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "FPSA5",
+      "smiles": "O=[Se]=O",
+      "reference": {
+        "error_type": "Missing",
+        "state": "missing"
+      },
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OMEGA or Mordred Gasteiger charge generation does not produce the explicit-hydrogen CPSA surface-area inputs for this fixture row."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "WNSA1",
+      "smiles": "C[Na]",
+      "reference": {
+        "error_type": "Missing",
+        "state": "missing"
+      },
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OMEGA or Mordred Gasteiger charge generation does not produce the explicit-hydrogen CPSA surface-area inputs for this fixture row."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "WNSA1",
+      "smiles": "O=[Se]=O",
+      "reference": {
+        "error_type": "Missing",
+        "state": "missing"
+      },
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OMEGA or Mordred Gasteiger charge generation does not produce the explicit-hydrogen CPSA surface-area inputs for this fixture row."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "WNSA2",
+      "smiles": "C[Na]",
+      "reference": {
+        "error_type": "Missing",
+        "state": "missing"
+      },
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OMEGA or Mordred Gasteiger charge generation does not produce the explicit-hydrogen CPSA surface-area inputs for this fixture row."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "WNSA2",
+      "smiles": "O=[Se]=O",
+      "reference": {
+        "error_type": "Missing",
+        "state": "missing"
+      },
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OMEGA or Mordred Gasteiger charge generation does not produce the explicit-hydrogen CPSA surface-area inputs for this fixture row."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "WNSA3",
+      "smiles": "C[Na]",
+      "reference": {
+        "error_type": "Missing",
+        "state": "missing"
+      },
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OMEGA or Mordred Gasteiger charge generation does not produce the explicit-hydrogen CPSA surface-area inputs for this fixture row."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "WNSA3",
+      "smiles": "O=[Se]=O",
+      "reference": {
+        "error_type": "Missing",
+        "state": "missing"
+      },
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OMEGA or Mordred Gasteiger charge generation does not produce the explicit-hydrogen CPSA surface-area inputs for this fixture row."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "WNSA4",
+      "smiles": "C[Na]",
+      "reference": {
+        "error_type": "Missing",
+        "state": "missing"
+      },
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OMEGA or Mordred Gasteiger charge generation does not produce the explicit-hydrogen CPSA surface-area inputs for this fixture row."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "WNSA4",
+      "smiles": "O=[Se]=O",
+      "reference": {
+        "error_type": "Missing",
+        "state": "missing"
+      },
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OMEGA or Mordred Gasteiger charge generation does not produce the explicit-hydrogen CPSA surface-area inputs for this fixture row."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "WNSA5",
+      "smiles": "C[Na]",
+      "reference": {
+        "error_type": "Missing",
+        "state": "missing"
+      },
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OMEGA or Mordred Gasteiger charge generation does not produce the explicit-hydrogen CPSA surface-area inputs for this fixture row."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "WNSA5",
+      "smiles": "O=[Se]=O",
+      "reference": {
+        "error_type": "Missing",
+        "state": "missing"
+      },
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OMEGA or Mordred Gasteiger charge generation does not produce the explicit-hydrogen CPSA surface-area inputs for this fixture row."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "WPSA1",
+      "smiles": "C[Na]",
+      "reference": {
+        "error_type": "Missing",
+        "state": "missing"
+      },
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OMEGA or Mordred Gasteiger charge generation does not produce the explicit-hydrogen CPSA surface-area inputs for this fixture row."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "WPSA1",
+      "smiles": "O=[Se]=O",
+      "reference": {
+        "error_type": "Missing",
+        "state": "missing"
+      },
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OMEGA or Mordred Gasteiger charge generation does not produce the explicit-hydrogen CPSA surface-area inputs for this fixture row."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "WPSA2",
+      "smiles": "C[Na]",
+      "reference": {
+        "error_type": "Missing",
+        "state": "missing"
+      },
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OMEGA or Mordred Gasteiger charge generation does not produce the explicit-hydrogen CPSA surface-area inputs for this fixture row."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "WPSA2",
+      "smiles": "O=[Se]=O",
+      "reference": {
+        "error_type": "Missing",
+        "state": "missing"
+      },
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OMEGA or Mordred Gasteiger charge generation does not produce the explicit-hydrogen CPSA surface-area inputs for this fixture row."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "WPSA3",
+      "smiles": "C[Na]",
+      "reference": {
+        "error_type": "Missing",
+        "state": "missing"
+      },
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OMEGA or Mordred Gasteiger charge generation does not produce the explicit-hydrogen CPSA surface-area inputs for this fixture row."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "WPSA3",
+      "smiles": "O=[Se]=O",
+      "reference": {
+        "error_type": "Missing",
+        "state": "missing"
+      },
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OMEGA or Mordred Gasteiger charge generation does not produce the explicit-hydrogen CPSA surface-area inputs for this fixture row."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "WPSA4",
+      "smiles": "C[Na]",
+      "reference": {
+        "error_type": "Missing",
+        "state": "missing"
+      },
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OMEGA or Mordred Gasteiger charge generation does not produce the explicit-hydrogen CPSA surface-area inputs for this fixture row."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "WPSA4",
+      "smiles": "O=[Se]=O",
+      "reference": {
+        "error_type": "Missing",
+        "state": "missing"
+      },
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OMEGA or Mordred Gasteiger charge generation does not produce the explicit-hydrogen CPSA surface-area inputs for this fixture row."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "WPSA5",
+      "smiles": "C[Na]",
+      "reference": {
+        "error_type": "Missing",
+        "state": "missing"
+      },
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OMEGA or Mordred Gasteiger charge generation does not produce the explicit-hydrogen CPSA surface-area inputs for this fixture row."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "WPSA5",
+      "smiles": "O=[Se]=O",
+      "reference": {
+        "error_type": "Missing",
+        "state": "missing"
+      },
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OMEGA or Mordred Gasteiger charge generation does not produce the explicit-hydrogen CPSA surface-area inputs for this fixture row."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "RNCS",
+      "smiles": "C[Na]",
+      "reference": {
+        "error_type": "Missing",
+        "state": "missing"
+      },
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OMEGA or Mordred Gasteiger charge generation does not produce the explicit-hydrogen CPSA surface-area inputs for this fixture row."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "RNCS",
+      "smiles": "O=[Se]=O",
+      "reference": {
+        "error_type": "Missing",
+        "state": "missing"
+      },
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OMEGA or Mordred Gasteiger charge generation does not produce the explicit-hydrogen CPSA surface-area inputs for this fixture row."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "RPCS",
+      "smiles": "C[Na]",
+      "reference": {
+        "error_type": "Missing",
+        "state": "missing"
+      },
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OMEGA or Mordred Gasteiger charge generation does not produce the explicit-hydrogen CPSA surface-area inputs for this fixture row."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "RPCS",
+      "smiles": "O=[Se]=O",
+      "reference": {
+        "error_type": "Missing",
+        "state": "missing"
+      },
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OMEGA or Mordred Gasteiger charge generation does not produce the explicit-hydrogen CPSA surface-area inputs for this fixture row."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "TASA",
+      "smiles": "C[Na]",
+      "reference": {
+        "error_type": "Missing",
+        "state": "missing"
+      },
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OMEGA or Mordred Gasteiger charge generation does not produce the explicit-hydrogen CPSA surface-area inputs for this fixture row."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "TASA",
+      "smiles": "O=[Se]=O",
+      "reference": {
+        "error_type": "Missing",
+        "state": "missing"
+      },
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OMEGA or Mordred Gasteiger charge generation does not produce the explicit-hydrogen CPSA surface-area inputs for this fixture row."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "TPSA",
+      "smiles": "C[Na]",
+      "reference": {
+        "error_type": "Missing",
+        "state": "missing"
+      },
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OMEGA or Mordred Gasteiger charge generation does not produce the explicit-hydrogen CPSA surface-area inputs for this fixture row."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "TPSA",
+      "smiles": "O=[Se]=O",
+      "reference": {
+        "error_type": "Missing",
+        "state": "missing"
+      },
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OMEGA or Mordred Gasteiger charge generation does not produce the explicit-hydrogen CPSA surface-area inputs for this fixture row."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "RASA",
+      "smiles": "C[Na]",
+      "reference": {
+        "error_type": "Missing",
+        "state": "missing"
+      },
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OMEGA or Mordred Gasteiger charge generation does not produce the explicit-hydrogen CPSA surface-area inputs for this fixture row."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "RASA",
+      "smiles": "O=[Se]=O",
+      "reference": {
+        "error_type": "Missing",
+        "state": "missing"
+      },
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OMEGA or Mordred Gasteiger charge generation does not produce the explicit-hydrogen CPSA surface-area inputs for this fixture row."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "RPSA",
+      "smiles": "C[Na]",
+      "reference": {
+        "error_type": "Missing",
+        "state": "missing"
+      },
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OMEGA or Mordred Gasteiger charge generation does not produce the explicit-hydrogen CPSA surface-area inputs for this fixture row."
+    },
+    {
+      "status": "not_applicable",
+      "descriptor": "RPSA",
+      "smiles": "O=[Se]=O",
+      "reference": {
+        "error_type": "Missing",
+        "state": "missing"
+      },
+      "observed": null,
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "OMEGA or Mordred Gasteiger charge generation does not produce the explicit-hydrogen CPSA surface-area inputs for this fixture row."
     }
   ],
   "generated_observations": [
@@ -23888,6 +24954,1161 @@
       "source": "Descriptor-specific source files listed in policies.",
       "primitive": "OpenEye OMEGA single-conformer generated 3D descriptor values",
       "reason": "OEFP intentionally generates one OMEGA conformer on a local explicit-hydrogen molecule copy for no-conformer fixture rows; these pinned observations make generated 3D formula regressions unclassified differences."
+    },
+    {
+      "status": "openeye_divergent",
+      "descriptors": [
+        "PNSA1",
+        "PNSA2",
+        "PNSA3",
+        "PNSA4",
+        "PNSA5",
+        "PPSA1",
+        "PPSA2",
+        "PPSA3",
+        "PPSA4",
+        "PPSA5",
+        "DPSA1",
+        "DPSA2",
+        "DPSA3",
+        "DPSA4",
+        "DPSA5",
+        "FNSA1",
+        "FNSA2",
+        "FNSA3",
+        "FNSA4",
+        "FNSA5",
+        "FPSA1",
+        "FPSA2",
+        "FPSA3",
+        "FPSA4",
+        "FPSA5",
+        "WNSA1",
+        "WNSA2",
+        "WNSA3",
+        "WNSA4",
+        "WNSA5",
+        "WPSA1",
+        "WPSA2",
+        "WPSA3",
+        "WPSA4",
+        "WPSA5",
+        "RNCS",
+        "RPCS",
+        "TASA",
+        "TPSA",
+        "RASA",
+        "RPSA"
+      ],
+      "rows": [
+        {
+          "smiles": "CCO",
+          "values": [
+            54.55261876989968,
+            -23.92144339742531,
+            -15.654169062031764,
+            -2.6579381552694787,
+            -11.960721698712655,
+            134.05901024880802,
+            58.78517104940842,
+            8.470142844897047,
+            6.531685672156491,
+            8.397881578486917,
+            79.50639147890834,
+            82.70661444683373,
+            24.12431190692881,
+            9.189623827425969,
+            20.35860327719957,
+            0.28923253064363713,
+            -0.12682910126953323,
+            -0.08299683929074747,
+            -0.014092122363281471,
+            -0.06341455063476661,
+            0.710767469356363,
+            0.31167309966649903,
+            0.044907850533738435,
+            0.03463034440738878,
+            0.04452472852378558,
+            10.289258293427308,
+            -4.511862407667197,
+            -2.9525583277240663,
+            -0.5013180452963552,
+            -2.2559312038335984,
+            25.285088307663308,
+            11.087566873772296,
+            1.597567439997183,
+            1.2319518748635883,
+            1.5839381248246136,
+            41.66042651839686,
+            40.83511599677454,
+            131.3679829453563,
+            57.24364607335139,
+            0.6964999116376138,
+            0.30350008836238623
+          ]
+        },
+        {
+          "smiles": "c1ccncc1",
+          "values": [
+            77.18125573730775,
+            -31.7667629923341,
+            -7.745357222418582,
+            -2.8878875447576458,
+            -7.941690748083525,
+            150.1659410345016,
+            61.80627424098745,
+            9.146950683516971,
+            5.618752203726132,
+            8.829467748712492,
+            72.98468529719385,
+            93.57303723332154,
+            16.892307905935553,
+            8.506639748483778,
+            16.77115849679602,
+            0.3394862871996409,
+            -0.13972797308874987,
+            -0.0340684087263793,
+            -0.012702543008068171,
+            -0.03493199327218747,
+            0.660513712800359,
+            0.27185852791940524,
+            0.040233399898472716,
+            0.02471441162903684,
+            0.03883693255991503,
+            17.546942135205043,
+            -7.222084516821613,
+            -1.7608852525131522,
+            -0.656553137892874,
+            -1.8055211292054032,
+            34.13980574479476,
+            14.051483191598187,
+            2.0795335969075692,
+            1.2774075628725623,
+            2.0073547416568838,
+            28.94110782124119,
+            111.44422059725218,
+            208.7319574478764,
+            18.61523932393298,
+            0.9181197763233594,
+            0.08188022367664062
+          ]
+        },
+        {
+          "smiles": "CC(C)(C)Cl",
+          "values": [
+            82.49759623966335,
+            -21.403484426850415,
+            -8.102345431791061,
+            -1.5288203162036011,
+            -5.350871106712604,
+            166.44352077325638,
+            43.18272855455361,
+            4.267992574322453,
+            3.084480611039544,
+            4.318272855455361,
+            83.94592453359303,
+            64.58621298140403,
+            12.370338006113514,
+            4.613300927243145,
+            9.669143962167965,
+            0.3313940148962287,
+            -0.08597810069977149,
+            -0.03254723658756042,
+            -0.006141292907126536,
+            -0.021494525174942873,
+            0.6686059851037711,
+            0.17346563345063032,
+            0.017144586742177063,
+            0.012390402389330738,
+            0.017346563345063033,
+            20.537043758782644,
+            -5.328207321188776,
+            -2.0170069222145943,
+            -0.3805862372277697,
+            -1.332051830297194,
+            41.43463598085756,
+            10.74995668203628,
+            1.0624788388546786,
+            0.7678540487168773,
+            1.0749956682036281,
+            124.97162292407796,
+            87.67326828036612,
+            248.94111701291976,
+            0.0,
+            1.0,
+            0.0
+          ]
+        },
+        {
+          "smiles": "O=S(=O)(N)C1=CC=CC=C1",
+          "values": [
+            141.88476572982034,
+            -128.77290493608496,
+            -15.357129798082392,
+            -7.574876760946174,
+            -16.09661311701062,
+            170.62080655424086,
+            154.85338957647954,
+            17.16206137858189,
+            9.109022916263502,
+            17.205932175164392,
+            28.736040824420513,
+            283.6262945125645,
+            32.51919117666428,
+            16.683899677209677,
+            33.30254529217501,
+            0.4540231545082658,
+            -0.41206594812022423,
+            -0.049141939088763104,
+            -0.02423917341883672,
+            -0.05150824351502803,
+            0.5459768454917342,
+            0.49552201083864506,
+            0.05491761715846118,
+            0.029148353578743822,
+            0.05505800120429389,
+            44.33977991278746,
+            -40.24225035173224,
+            -4.7991886361903475,
+            -2.3671911971607202,
+            -5.03028129396653,
+            53.319952795801136,
+            48.39254712972441,
+            5.363239812687918,
+            2.8466204193955535,
+            5.37694968108049,
+            47.914853759008196,
+            62.277927229009094,
+            251.486329677819,
+            61.01924260624223,
+            0.8047419053674443,
+            0.1952580946325558
+          ]
+        },
+        {
+          "smiles": "CI",
+          "values": [
+            120.91198874963406,
+            -12.361037356486722,
+            -9.34794116916774,
+            -2.4722074712973443,
+            -6.180518678243361,
+            66.60213298763573,
+            6.808848836210654,
+            2.2696162787368848,
+            1.3617697672421307,
+            2.2696162787368848,
+            -54.309855761998335,
+            19.169886192697376,
+            11.617557447904625,
+            3.8339772385394753,
+            8.450134956980246,
+            0.6448153751270347,
+            -0.06592056769892801,
+            -0.049851931590866254,
+            -0.013184113539785602,
+            -0.032960283849464006,
+            0.35518462487296537,
+            0.036311125653515755,
+            0.01210370855117192,
+            0.007262225130703151,
+            0.01210370855117192,
+            22.672705377894275,
+            -2.317869063663191,
+            -1.7528709783881558,
+            -0.46357381273263815,
+            -1.1589345318315956,
+            12.488840473005357,
+            1.2767553095638724,
+            0.42558510318795745,
+            0.25535106191277446,
+            0.42558510318795745,
+            114.6063711142744,
+            66.50995010460785,
+            187.5141217372698,
+            0.0,
+            1.0,
+            0.0
+          ]
+        },
+        {
+          "smiles": "C[N+](C)(C)CC(=O)[O-]",
+          "values": [
+            96.0129131844568,
+            -135.80068348270245,
+            -49.25076527129381,
+            -7.147404393826445,
+            -45.26689449423415,
+            186.50708839111894,
+            263.7956628732206,
+            16.19843528672323,
+            13.883982256485293,
+            16.487228929576286,
+            90.49417520666213,
+            399.59634635592306,
+            65.44920055801704,
+            21.031386650311738,
+            61.75412342381044,
+            0.33984465754284937,
+            -0.48067635114455776,
+            -0.17432664942881554,
+            -0.025298755323397776,
+            -0.16022545038151925,
+            0.6601553424571506,
+            0.9337238475225398,
+            0.05733553446264602,
+            0.049143360395923145,
+            0.05835774047015874,
+            27.125568384148355,
+            -38.36640931149736,
+            -13.914326282044238,
+            -2.0192847006051244,
+            -12.788803103832453,
+            52.69198290611497,
+            74.52755109057232,
+            4.576381962726909,
+            3.9225026889774908,
+            4.65797194316077,
+            93.87525163894709,
+            47.445398453892025,
+            186.50708839111894,
+            96.0129131844568,
+            0.6601553424571506,
+            0.33984465754284937
+          ]
+        },
+        {
+          "smiles": "C1=CC2=C(C=C1)C=CC=C2",
+          "values": [
+            133.3304704876621,
+            -66.7797514226113,
+            -6.447897175673195,
+            -3.709986190145072,
+            -6.67797514226113,
+            163.87043839587608,
+            82.07596584310848,
+            10.25962215136717,
+            4.559775880172693,
+            10.25949573038856,
+            30.53996790821398,
+            148.85571726571976,
+            16.707519327040366,
+            8.269762070317764,
+            16.93747087264969,
+            0.4486206687204624,
+            -0.22469565006875455,
+            -0.021695415400630164,
+            -0.012483091670486364,
+            -0.02246956500687546,
+            0.5513793312795376,
+            0.27616323971361395,
+            0.034520830336314784,
+            0.015342402206311884,
+            0.034520404964201744,
+            39.625937010802936,
+            -19.84700281781683,
+            -1.9163209009976723,
+            -1.1026112676564903,
+            -1.9847002817816828,
+            48.70244323039822,
+            24.393051646066073,
+            3.0491690281880035,
+            1.3551695358925595,
+            3.049131455758259,
+            131.31784902686155,
+            180.01429904649189,
+            297.20090888353815,
+            0.0,
+            1.0,
+            0.0
+          ]
+        },
+        {
+          "smiles": "C12C3C4C1C5C2C3C45",
+          "values": [
+            68.83858805830039,
+            -17.174664504683886,
+            -2.146833063085486,
+            -1.0734165315427429,
+            -2.1468330630854857,
+            187.7458051000943,
+            46.841042294839596,
+            5.855130286854949,
+            2.9275651434274748,
+            5.8551302868549495,
+            118.9072170417939,
+            64.01570679952349,
+            8.001963349940436,
+            4.000981674970218,
+            8.001963349940436,
+            0.26828828991093373,
+            -0.06693573328164829,
+            -0.008366966660206037,
+            -0.004183483330103018,
+            -0.008366966660206036,
+            0.7317117100890663,
+            0.1825560850301744,
+            0.022819510628771796,
+            0.0114097553143859,
+            0.0228195106287718,
+            17.662907342819718,
+            -4.406750869633336,
+            -0.5508438587041671,
+            -0.2754219293520835,
+            -0.550843858704167,
+            48.17264346964193,
+            12.018680412128116,
+            1.5023350515160143,
+            0.7511675257580073,
+            1.5023350515160145,
+            69.73627726427684,
+            186.94688678051935,
+            256.5843931583947,
+            0.0,
+            1.0,
+            0.0
+          ]
+        },
+        {
+          "smiles": "C1C2CC3CC1CC(C2)C3",
+          "values": [
+            31.584486010277153,
+            -14.145026272431304,
+            -1.3932416678653678,
+            -0.5440394720165886,
+            -1.4145026272431305,
+            271.46322670323775,
+            121.5740687521981,
+            7.586924525248921,
+            4.6759257212383885,
+            7.598379297012381,
+            239.8787406929606,
+            135.7190950246294,
+            8.980166193114288,
+            5.219965193254977,
+            9.012881924255511,
+            0.10422281602941987,
+            -0.04667590507704393,
+            -0.004597433372422328,
+            -0.0017952271183478436,
+            -0.004667590507704393,
+            0.8957771839705799,
+            0.4011713788024122,
+            0.02503541259993337,
+            0.015429668415477393,
+            0.025073211175150763,
+            9.571606242646503,
+            -4.2866178581328835,
+            -0.4222187007037624,
+            -0.1648699176204955,
+            -0.42866178581328834,
+            82.26630993824658,
+            36.842743460629244,
+            2.299200123906756,
+            1.4170285946395864,
+            2.3026714662893277,
+            47.614410753742504,
+            236.63145517079215,
+            303.04771271351495,
+            0.0,
+            1.0,
+            0.0
+          ]
+        },
+        {
+          "smiles": "CC#N",
+          "values": [
+            58.18780233536251,
+            -11.559497220066799,
+            -11.559497220066799,
+            -1.9265828700111332,
+            -11.559497220066799,
+            118.3910912252463,
+            23.51938782653087,
+            4.520419847653091,
+            3.9198979710884783,
+            4.703877565306174,
+            60.20328888988379,
+            35.07888504659767,
+            16.07991706771989,
+            5.846480841099611,
+            16.263374785372974,
+            0.32952863823099093,
+            -0.06546364056867944,
+            -0.06546364056867944,
+            -0.010910606761446572,
+            -0.06546364056867944,
+            0.6704713617690091,
+            0.133194785357844,
+            0.025600000976908975,
+            0.022199130892973998,
+            0.026638957071568797,
+            10.274737755101722,
+            -2.0411632292363286,
+            -2.0411632292363286,
+            -0.3401938715393881,
+            -2.0411632292363286,
+            20.90536789598709,
+            4.153027479631673,
+            0.7982107351279987,
+            0.6921712466052788,
+            0.8306054959263346,
+            58.18780233536251,
+            67.45964966573007,
+            176.5788935606088,
+            0.0,
+            1.0,
+            0.0
+          ]
+        },
+        {
+          "smiles": "FC(F)(F)c1ccc(Br)cc1",
+          "values": [
+            205.15759319878308,
+            -152.18687589210313,
+            -15.061192528400666,
+            -10.145791726140208,
+            -19.02335948651289,
+            117.19057633210289,
+            86.93252546932085,
+            9.70527626618922,
+            5.795501697954723,
+            12.418932209902978,
+            -87.96701686668018,
+            239.11940136142397,
+            24.766468794589883,
+            15.941293424094932,
+            31.44229169641587,
+            0.6364472101620722,
+            -0.4721195597716004,
+            -0.046723369176624306,
+            -0.031474637318106694,
+            -0.05901494497145005,
+            0.3635527898379277,
+            0.26968518417782217,
+            0.030108054530954307,
+            0.01797901227852148,
+            0.038526454882546024,
+            66.13217463298987,
+            -49.057160870443575,
+            -4.854947842482212,
+            -3.270477391362905,
+            -6.132145108805447,
+            37.77616776692294,
+            28.022540457732706,
+            3.1284780391976468,
+            1.8681693638488468,
+            4.003220065390386,
+            62.23235776339487,
+            19.887207452294156,
+            311.19792465665205,
+            11.150244874233966,
+            0.9654093122648689,
+            0.034590687735131055
+          ]
+        },
+        {
+          "smiles": "CN",
+          "values": [
+            45.22954999420078,
+            -15.955693245063712,
+            -8.728735602725008,
+            -2.279384749294816,
+            -7.977846622531856,
+            118.36282180778447,
+            41.755022471532286,
+            8.526798568748909,
+            5.965003210218898,
+            8.351004494306457,
+            73.13327181358369,
+            57.710715716596,
+            17.25553417147392,
+            8.244387959513713,
+            16.32885111683831,
+            0.2764771333528151,
+            -0.09753323501157336,
+            -0.053356617466799774,
+            -0.013933319287367622,
+            -0.04876661750578668,
+            0.723522866647185,
+            0.2552381997497611,
+            0.05212222596216087,
+            0.03646259996425158,
+            0.05104763994995221,
+            7.399209359087773,
+            -2.610229701704887,
+            -1.427954560082215,
+            -0.3728899573864124,
+            -1.3051148508524435,
+            19.3632547527112,
+            6.830803160763157,
+            1.3949192017394068,
+            0.9758290229661654,
+            1.3661606321526314,
+            26.471343505265256,
+            74.16394246891245,
+            138.58445234241216,
+            25.00791945957308,
+            0.8471327288423751,
+            0.152867271157625
+          ]
+        },
+        {
+          "smiles": "c1ccccc1[N+](=O)[O-]",
+          "values": [
+            136.90097165940398,
+            -94.36050204407492,
+            -25.977849768975297,
+            -6.740035860291066,
+            -18.872100408814983,
+            138.21358831293995,
+            95.26523752489547,
+            8.85131861597878,
+            6.804659823206819,
+            10.585026391655052,
+            1.3126166535359687,
+            189.6257395689704,
+            34.82916838495407,
+            13.544695683497885,
+            29.457126800470036,
+            0.497614418056122,
+            -0.3429862165548802,
+            -0.09442557228373061,
+            -0.02449901546820573,
+            -0.06859724331097604,
+            0.5023855819438782,
+            0.3462747937967081,
+            0.03217321037777341,
+            0.024733913842622007,
+            0.03847497708852313,
+            37.663450577863244,
+            -25.95994799862513,
+            -7.146884708219294,
+            -1.854281999901795,
+            -5.191989599725025,
+            38.02457053091317,
+            26.20885390232244,
+            2.435126626210018,
+            1.8720609930230314,
+            2.912094878035827,
+            120.35664956592069,
+            16.953462891814677,
+            178.3733685803081,
+            96.74119139203589,
+            0.6483603361386588,
+            0.3516396638613415
+          ]
+        },
+        {
+          "smiles": "CC(=O)O",
+          "values": [
+            82.60211294661936,
+            -60.65092429534716,
+            -28.502236654099715,
+            -7.581365536918395,
+            -30.32546214767358,
+            113.57710441671387,
+            83.39443285324312,
+            14.79661924737656,
+            10.42430410665539,
+            13.899072142207187,
+            30.97499147009451,
+            144.04535714859028,
+            43.29885590147627,
+            18.005669643573786,
+            44.224534289880765,
+            0.421054350490329,
+            -0.30916080260947704,
+            -0.14528672831491737,
+            -0.03864510032618463,
+            -0.15458040130473852,
+            0.5789456495096709,
+            0.42509310605920436,
+            0.07542398958587197,
+            0.053136638257400545,
+            0.07084885100986739,
+            16.20481787042544,
+            -11.89845086062398,
+            -5.591546479905792,
+            -1.4873063575779975,
+            -5.94922543031199,
+            22.281467454864504,
+            16.36025456960828,
+            2.9027891835735664,
+            2.045031821201035,
+            2.7267090949347135,
+            50.82669008786793,
+            44.972324330539365,
+            72.31427606208534,
+            123.86494130124788,
+            0.36861333750840625,
+            0.6313866624915937
+          ]
+        },
+        {
+          "smiles": "OP(=O)(O)O",
+          "values": [
+            114.16389984377973,
+            -129.78584453749323,
+            -32.22668024587196,
+            -16.223230567186654,
+            -32.44646113437331,
+            105.0406370983122,
+            119.41417396581329,
+            31.1478854065995,
+            14.926771745726661,
+            29.853543491453323,
+            -9.123262745467528,
+            249.20001850330652,
+            63.37456565247146,
+            31.150002312913315,
+            62.30000462582663,
+            0.5208099313835772,
+            -0.5920764521939581,
+            -0.1470164837618548,
+            -0.07400955652424476,
+            -0.14801911304848953,
+            0.4791900686164227,
+            0.5447614161259781,
+            0.14209507632055968,
+            0.06809517701574726,
+            0.13619035403149451,
+            25.0252448007591,
+            -28.44964595347954,
+            -7.064234520477226,
+            -3.5562057441849424,
+            -7.112411488369885,
+            23.025384215237853,
+            26.176128708498513,
+            6.827757797278987,
+            3.272016088562314,
+            6.544032177124628,
+            189.27594199124056,
+            76.9784247917101,
+            0.0,
+            219.20453694209195,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "smiles": "C",
+          "values": [
+            41.175586474130945,
+            -3.1934916555717203,
+            -3.1934916555717203,
+            -0.638698331114344,
+            -3.1934916555717203,
+            94.44136366205231,
+            7.324673007027131,
+            1.8311682517567829,
+            1.464934601405426,
+            1.8311682517567827,
+            53.265777187921366,
+            10.518164662598851,
+            5.024659907328504,
+            2.10363293251977,
+            5.024659907328503,
+            0.3036168151015298,
+            -0.02354787991003258,
+            -0.02354787991003258,
+            -0.004709575982006516,
+            -0.02354787991003258,
+            0.6963831848984701,
+            0.05401001128304294,
+            0.013502502820760737,
+            0.010802002256608588,
+            0.013502502820760735,
+            5.584107457690319,
+            -0.4330915986139874,
+            -0.4330915986139874,
+            -0.08661831972279746,
+            -0.4330915986139874,
+            12.8078497065497,
+            0.9933498139578459,
+            0.2483374534894615,
+            0.19866996279156918,
+            0.24833745348946148,
+            41.175586474130945,
+            94.02654068842692,
+            135.61695013618328,
+            0.0,
+            1.0,
+            0.0
+          ]
+        },
+        {
+          "smiles": "CC",
+          "values": [
+            36.899751045664104,
+            -5.037729908007,
+            -2.5188649540035,
+            -0.629716238500875,
+            -2.5188649540035,
+            134.83283024209715,
+            18.408020711339162,
+            3.0680034518898602,
+            2.3010025889173953,
+            3.0680034518898602,
+            97.93307919643304,
+            23.445750619346164,
+            5.586868405893361,
+            2.9307188274182705,
+            5.586868405893361,
+            0.21486750370236132,
+            -0.02933473584471196,
+            -0.01466736792235598,
+            -0.003666841980588995,
+            -0.01466736792235598,
+            0.7851324962976388,
+            0.10719003099647136,
+            0.017865005166078557,
+            0.01339875387455892,
+            0.017865005166078557,
+            6.336889495947663,
+            -0.8651423609325981,
+            -0.43257118046629905,
+            -0.10814279511657476,
+            -0.43257118046629905,
+            23.15518997980986,
+            3.161256913156845,
+            0.5268761521928075,
+            0.39515711414460564,
+            0.5268761521928075,
+            36.899751045664104,
+            134.21827768857804,
+            171.73258128776123,
+            0.0,
+            1.0,
+            0.0
+          ]
+        },
+        {
+          "smiles": "CCC",
+          "values": [
+            38.90774005903251,
+            -7.405280842598994,
+            -2.442673478503201,
+            -0.6732073493271813,
+            -2.4684269475329983,
+            164.22380611414954,
+            31.256593250357067,
+            3.899060940211759,
+            2.841508477305188,
+            3.9070741562946334,
+            125.31606605511703,
+            38.66187409295606,
+            6.34173441871496,
+            3.5147158266323695,
+            6.375501103827632,
+            0.191539624406055,
+            -0.03645559235927609,
+            -0.01202508189653946,
+            -0.00331414475993419,
+            -0.012151864119758698,
+            0.8084603755939449,
+            0.15387365399025177,
+            0.019194758340920475,
+            0.013988513999113796,
+            0.01923420674878147,
+            7.903389396295529,
+            -1.5042461474037783,
+            -0.4961840404845803,
+            -0.13674964976397985,
+            -0.5014153824679262,
+            33.35903565441207,
+            6.349200115051278,
+            0.7920222774086757,
+            0.5772000104592071,
+            0.7936500143814097,
+            47.53383270013979,
+            139.09845757153585,
+            203.13154617318207,
+            0.0,
+            1.0,
+            0.0
+          ]
+        },
+        {
+          "smiles": "CCCCCC",
+          "values": [
+            44.884460298823164,
+            -15.721493744081718,
+            -2.673899129068218,
+            -0.7860746872040859,
+            -2.620248957346953,
+            249.18569663816925,
+            87.28124042775531,
+            6.2472856764329965,
+            4.364062021387765,
+            6.234374316268236,
+            204.30123633934608,
+            103.00273417183702,
+            8.921184805501214,
+            5.150136708591851,
+            8.85462327361519,
+            0.15263180992704445,
+            -0.05346171100065148,
+            -0.009092725208566906,
+            -0.002673085550032574,
+            -0.008910285166775247,
+            0.8473681900729554,
+            0.29680414135479993,
+            0.0212442015249155,
+            0.014840207067739994,
+            0.021200295811057136,
+            13.199180284107136,
+            -4.623222132606056,
+            -0.7863139365187783,
+            -0.23116110663030282,
+            -0.7705370221010094,
+            73.27807691684023,
+            25.666808070245377,
+            1.8371402792988765,
+            1.2833404035122686,
+            1.8333434335889554,
+            87.8291987525711,
+            296.9174990500125,
+            294.0701569369925,
+            0.0,
+            1.0,
+            0.0
+          ]
+        },
+        {
+          "smiles": "C1CCCCC1",
+          "values": [
+            30.89940740571616,
+            -9.882737822213436,
+            -1.647122970368906,
+            -0.5490409901229687,
+            -1.6471229703689059,
+            226.46261597179944,
+            72.43086026846822,
+            6.03590502237235,
+            4.023936681581568,
+            6.035905022372352,
+            195.5632085660833,
+            82.31359809068167,
+            7.6830279927412555,
+            4.572977671704537,
+            7.683027992741257,
+            0.12006203168674527,
+            -0.038400140364597546,
+            -0.006400023394099592,
+            -0.0021333411313665305,
+            -0.006400023394099591,
+            0.8799379683132545,
+            0.2814356963700967,
+            0.02345297469750805,
+            0.015635316465005374,
+            0.023452974697508056,
+            7.952334011101303,
+            -2.543441402434352,
+            -0.42390690040572543,
+            -0.1413023001352418,
+            -0.4239069004057254,
+            58.282877065867595,
+            18.640952753667086,
+            1.5534127294722568,
+            1.0356084863148383,
+            1.5534127294722573,
+            30.89940740571617,
+            201.88051383103428,
+            257.36202337751564,
+            0.0,
+            1.0,
+            0.0
+          ]
+        },
+        {
+          "smiles": "C1CC1C",
+          "values": [
+            53.27076735465592,
+            -11.063499548512349,
+            -2.8415354198346376,
+            -0.9219582957093624,
+            -2.765874887128087,
+            164.50035476323316,
+            34.16413337049641,
+            4.272289050116151,
+            2.847011114208034,
+            4.270516671312051,
+            111.22958740857723,
+            45.227632919008755,
+            7.113824469950789,
+            3.7689694099173963,
+            7.036391558440139,
+            0.24461814237159563,
+            -0.050803336277631846,
+            -0.01304826550095283,
+            -0.00423361135646932,
+            -0.012700834069407961,
+            0.7553818576284045,
+            0.15688091716771274,
+            0.019618253368797786,
+            0.01307340976397606,
+            0.019610114645964093,
+            11.600834782904434,
+            -2.4093107112302934,
+            -0.618804356915116,
+            -0.20077589260252443,
+            -0.6023276778075733,
+            35.82342684558012,
+            7.439961660278223,
+            0.9303811804557646,
+            0.6199968050231852,
+            0.9299952075347778,
+            49.13321045591583,
+            147.0634808387038,
+            217.77112211788906,
+            0.0,
+            1.0,
+            0.0
+          ]
+        },
+        {
+          "smiles": "CCCCCCCCCCCCCCCC",
+          "values": [
+            68.41336685546942,
+            -60.43127697007932,
+            -3.932826472719348,
+            -1.2086255394015863,
+            -3.7769548106299573,
+            538.0407606059983,
+            475.26516702596405,
+            13.943993756556733,
+            9.505303340519282,
+            13.97838726546953,
+            469.62739375052894,
+            535.6964439960434,
+            17.87682022927608,
+            10.713928879920868,
+            17.75534207609949,
+            0.11280880738966723,
+            -0.09964690523755884,
+            -0.006484952933178326,
+            -0.001992938104751177,
+            -0.006227931577347428,
+            0.8871911926103327,
+            0.7836786749483553,
+            0.022992660326881343,
+            0.015673573498967107,
+            0.023049372792598683,
+            41.48956870303501,
+            -36.64879734627175,
+            -2.3850788469703743,
+            -0.732975946925435,
+            -2.2905498341419843,
+            326.2970400120152,
+            288.22652218155974,
+            8.45639256696077,
+            5.764530443631196,
+            8.477250652398817,
+            226.91963054505436,
+            490.3433085229774,
+            606.4541274614678,
+            0.0,
+            1.0,
+            0.0
+          ]
+        },
+        {
+          "smiles": "[13CH4]",
+          "values": [
+            41.175586474130945,
+            -3.1934916555717203,
+            -3.1934916555717203,
+            -0.638698331114344,
+            -3.1934916555717203,
+            94.44136366205231,
+            7.324673007027131,
+            1.8311682517567829,
+            1.464934601405426,
+            1.8311682517567827,
+            53.265777187921366,
+            10.518164662598851,
+            5.024659907328504,
+            2.10363293251977,
+            5.024659907328503,
+            0.3036168151015298,
+            -0.02354787991003258,
+            -0.02354787991003258,
+            -0.004709575982006516,
+            -0.02354787991003258,
+            0.6963831848984701,
+            0.05401001128304294,
+            0.013502502820760737,
+            0.010802002256608588,
+            0.013502502820760735,
+            5.584107457690319,
+            -0.4330915986139874,
+            -0.4330915986139874,
+            -0.08661831972279746,
+            -0.4330915986139874,
+            12.8078497065497,
+            0.9933498139578459,
+            0.2483374534894615,
+            0.19866996279156918,
+            0.24833745348946148,
+            41.175586474130945,
+            94.02654068842692,
+            135.61695013618328,
+            0.0,
+            1.0,
+            0.0
+          ]
+        },
+        {
+          "smiles": "COC(=O)c1ccc(OCC)c(O)c1C(=O)OCC",
+          "values": [
+            106.9825651536716,
+            -270.94973373101266,
+            -29.877782518914287,
+            -7.741420963743219,
+            -27.094973373101265,
+            382.8995653233642,
+            969.7518013431694,
+            38.34188361154873,
+            27.707194324090555,
+            38.790072053726774,
+            275.9170001696926,
+            1240.7015350741822,
+            68.21966613046303,
+            35.448615287833775,
+            65.88504542682804,
+            0.2183842979728501,
+            -0.5530916864984811,
+            -0.06098973744933297,
+            -0.015802619614242317,
+            -0.055309168649848105,
+            0.78161570202715,
+            1.9795614924733993,
+            0.07826756933185602,
+            0.05655889978495427,
+            0.07918245969893598,
+            52.408846941378926,
+            -132.73343281233403,
+            -14.636591754295267,
+            -3.7923837946381154,
+            -13.273343281233403,
+            187.57565481934057,
+            475.06407847593493,
+            18.783003630128036,
+            13.573259385026713,
+            19.002563139037395,
+            20.195074281373547,
+            231.58885129475473,
+            361.947367495806,
+            127.93476298122974,
+            0.7388458263283663,
+            0.26115417367163374
+          ]
+        }
+      ],
+      "source": "/Users/johnss51/Development/python/mordred/mordred/CPSA.py",
+      "primitive": "OpenEye OMEGA single-conformer explicit-hydrogen Mordred CPSA solvent-accessible surface-area descriptor",
+      "reason": "Pinned OEFP generated CPSA surface-area observations for no-conformer fixture rows where OMEGA and Mordred Gasteiger charge generation succeed."
     }
   ]
 }
