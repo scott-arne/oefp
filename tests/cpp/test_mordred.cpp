@@ -154,6 +154,25 @@ const std::vector<std::string>& slogp_vsa_names() {
     return names;
 }
 
+const std::vector<std::string>& peoe_vsa_names() {
+    static const std::vector<std::string> names{
+        "PEOE_VSA1",
+        "PEOE_VSA2",
+        "PEOE_VSA3",
+        "PEOE_VSA4",
+        "PEOE_VSA5",
+        "PEOE_VSA6",
+        "PEOE_VSA7",
+        "PEOE_VSA8",
+        "PEOE_VSA9",
+        "PEOE_VSA10",
+        "PEOE_VSA11",
+        "PEOE_VSA12",
+        "PEOE_VSA13",
+    };
+    return names;
+}
+
 std::uint32_t count_or_zero(
     const std::map<std::string, std::uint32_t>& counts,
     const std::string& key) {
@@ -1013,6 +1032,122 @@ TEST(MordredDescriptorTest, SlogPVSADescriptorsAreMissingForNonFiniteDummyAtomSu
 
     for (const auto& name : slogp_vsa_names()) {
         EXPECT_FALSE(descriptors.Has(name)) << name;
+    }
+}
+
+TEST(MordredDescriptorTest, PEOEVSADescriptorsMatchCopiedMordredReferences) {
+    struct Case {
+        std::string smiles;
+        std::vector<double> expected_values;
+    };
+
+    const std::vector<Case> cases{
+        {
+            "CCO",
+            {5.106527394840706, 0.0, 0.0, 0.0, 0.0, 0.0, 6.923737199690624,
+             6.606881964512918, 0.0, 0.0, 0.0, 0.0, 0.0},
+        },
+        {
+            "c1ccncc1",
+            {0.0, 4.983978520947208, 0.0, 0.0, 0.0, 6.06636706846161,
+             12.13273413692322, 12.393687143226153, 0.0, 0.0, 0.0, 0.0, 0.0},
+        },
+        {
+            "FC(F)(F)c1ccc(Br)cc1",
+            {0.0, 0.0, 0.0, 13.171245143024459, 0.0, 15.929943897949348,
+             24.26546827384644, 4.472719515832414, 5.563451491696996, 0.0, 0.0,
+             0.0, 0.0},
+        },
+        {
+            "COC(=O)c1ccc(OCC)c(O)c1C(=O)OCC",
+            {19.31711625624085, 0.0, 9.589074368143644, 0.0, 0.0, 0.0,
+             25.98020853630447, 0.0, 25.887012962000366, 5.563451491696996,
+             11.49902366656781, 0.0, 0.0},
+        },
+        {
+            "NC(=[NH2+])N",
+            {0.0, 16.876618560115894, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+             0.0, 0.0, 0.0},
+        },
+        {
+            "NC(=[NH+])N",
+            {0.0, 11.46733495432437, 0.0, 0.0, 5.409283605791522, 0.0, 0.0, 0.0,
+             0.0, 0.0, 0.0, 0.0, 0.0},
+        },
+        {
+            "O=[N+]([O-])O",
+            {5.20725302477729, 0.0, 0.0, 0.0, 10.114318268765572, 0.0, 0.0, 0.0,
+             0.0, 0.0, 0.0, 0.0, 5.086619042932543},
+        },
+        {
+            "C(=[O+])O",
+            {5.106527394840706, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 4.794537184071822,
+             0.0, 0.0, 0.0, 0.0, 0.0},
+        },
+        {
+            "S(=O)(=O)([O-])O",
+            {4.552749873690364, 4.552749873690364, 8.417796984328938, 0.0, 0.0,
+             0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 10.399000581649608, 0.0},
+        },
+    };
+
+    for (const auto& expected : cases) {
+        SCOPED_TRACE(expected.smiles);
+        const auto descriptors = MakeMordredDescriptors(mol_from_smiles(expected.smiles));
+
+        ASSERT_EQ(expected.expected_values.size(), peoe_vsa_names().size());
+        for (std::size_t index = 0u; index < peoe_vsa_names().size(); ++index) {
+            const auto& name = peoe_vsa_names()[index];
+            ASSERT_TRUE(descriptors.Has(name)) << name;
+            EXPECT_NEAR(descriptors.Float(name), expected.expected_values[index], 1.0e-12)
+                << name;
+        }
+    }
+}
+
+TEST(MordredDescriptorTest, PEOEVSADescriptorsKeepFiniteUntypedAtomsAndHideTailBin) {
+    struct Case {
+        std::string smiles;
+        std::vector<double> expected_values;
+    };
+
+    const std::vector<Case> cases{
+        {"*", {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0}},
+        {"[He]", {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 6.150546350318038,
+                  0.0, 0.0, 0.0, 0.0, 0.0}},
+        {"[H]", {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.426638064699622,
+                 0.0, 0.0, 0.0, 0.0, 0.0}},
+        {"[U]", {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 31.113148685038393,
+                 0.0, 0.0, 0.0, 0.0, 0.0}},
+        {"**", {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0}},
+    };
+
+    for (const auto& expected : cases) {
+        SCOPED_TRACE(expected.smiles);
+        const auto descriptors = MakeMordredDescriptors(mol_from_smiles(expected.smiles));
+
+        ASSERT_EQ(expected.expected_values.size(), peoe_vsa_names().size());
+        for (std::size_t index = 0u; index < peoe_vsa_names().size(); ++index) {
+            const auto& name = peoe_vsa_names()[index];
+            ASSERT_TRUE(descriptors.Has(name)) << name;
+            EXPECT_NEAR(descriptors.Float(name), expected.expected_values[index], 1.0e-12)
+                << name;
+        }
+    }
+}
+
+TEST(MordredDescriptorTest, PEOEVSADescriptorsTreatExplicitHydrogensAsImplicit) {
+    OEChem::OEGraphMol explicit_mol = mol_from_smiles("CCO");
+    OEChem::OEAddExplicitHydrogens(explicit_mol);
+
+    const auto implicit_descriptors = MakeMordredDescriptors(mol_from_smiles("CCO"));
+    const auto explicit_descriptors = MakeMordredDescriptors(explicit_mol);
+
+    for (const auto& name : peoe_vsa_names()) {
+        ASSERT_TRUE(implicit_descriptors.Has(name)) << name;
+        ASSERT_TRUE(explicit_descriptors.Has(name)) << name;
+        EXPECT_NEAR(explicit_descriptors.Float(name), implicit_descriptors.Float(name), 1.0e-12)
+            << name;
     }
 }
 

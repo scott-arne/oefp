@@ -2006,6 +2006,110 @@
       "reason": "OEFP matches Mordred LabuteASA values on the committed Mordred parity fixture."
     },
     {
+      "descriptor": "PEOE_VSA1",
+      "family": "MoeType",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/MoeType.py",
+      "status": "exact",
+      "primitive": "Mordred MoeType.PEOE_VSA calls RDKit MolSurf.py/MolSurf.cpp PEOE_VSA semantics: per-atom Gasteiger charges from ComputeGasteigerCharges/computeGasteigerCharges on the hydrogen-suppressed molecule, implicit hydrogen aggregate charges participate in the iteration, RDKit _LabuteHelper/getLabuteAtomContribs per-atom Labute contributions after the leading hydrogen contribution, bin=bisect_right/std::upper_bound(chgBins, charge), ans[bin]+=Labute contribution, and Mordred preset exposes PEOE_VSA1..13 while the native tail bin remains hidden.",
+      "reason": "OEFP matches Mordred PEOE_VSA1 values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "PEOE_VSA2",
+      "family": "MoeType",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/MoeType.py",
+      "status": "exact",
+      "primitive": "Mordred MoeType.PEOE_VSA calls RDKit MolSurf.py/MolSurf.cpp PEOE_VSA semantics: per-atom Gasteiger charges from ComputeGasteigerCharges/computeGasteigerCharges on the hydrogen-suppressed molecule, implicit hydrogen aggregate charges participate in the iteration, RDKit _LabuteHelper/getLabuteAtomContribs per-atom Labute contributions after the leading hydrogen contribution, bin=bisect_right/std::upper_bound(chgBins, charge), ans[bin]+=Labute contribution, and Mordred preset exposes PEOE_VSA1..13 while the native tail bin remains hidden.",
+      "reason": "OEFP matches Mordred PEOE_VSA2 values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "PEOE_VSA3",
+      "family": "MoeType",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/MoeType.py",
+      "status": "exact",
+      "primitive": "Mordred MoeType.PEOE_VSA calls RDKit MolSurf.py/MolSurf.cpp PEOE_VSA semantics: per-atom Gasteiger charges from ComputeGasteigerCharges/computeGasteigerCharges on the hydrogen-suppressed molecule, implicit hydrogen aggregate charges participate in the iteration, RDKit _LabuteHelper/getLabuteAtomContribs per-atom Labute contributions after the leading hydrogen contribution, bin=bisect_right/std::upper_bound(chgBins, charge), ans[bin]+=Labute contribution, and Mordred preset exposes PEOE_VSA1..13 while the native tail bin remains hidden.",
+      "reason": "OEFP matches Mordred PEOE_VSA3 values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "PEOE_VSA4",
+      "family": "MoeType",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/MoeType.py",
+      "status": "exact",
+      "primitive": "Mordred MoeType.PEOE_VSA calls RDKit MolSurf.py/MolSurf.cpp PEOE_VSA semantics: per-atom Gasteiger charges from ComputeGasteigerCharges/computeGasteigerCharges on the hydrogen-suppressed molecule, implicit hydrogen aggregate charges participate in the iteration, RDKit _LabuteHelper/getLabuteAtomContribs per-atom Labute contributions after the leading hydrogen contribution, bin=bisect_right/std::upper_bound(chgBins, charge), ans[bin]+=Labute contribution, and Mordred preset exposes PEOE_VSA1..13 while the native tail bin remains hidden.",
+      "reason": "OEFP matches Mordred PEOE_VSA4 values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "PEOE_VSA5",
+      "family": "MoeType",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/MoeType.py",
+      "status": "exact",
+      "primitive": "Mordred MoeType.PEOE_VSA calls RDKit MolSurf.py/MolSurf.cpp PEOE_VSA semantics: per-atom Gasteiger charges from ComputeGasteigerCharges/computeGasteigerCharges on the hydrogen-suppressed molecule, implicit hydrogen aggregate charges participate in the iteration, RDKit _LabuteHelper/getLabuteAtomContribs per-atom Labute contributions after the leading hydrogen contribution, bin=bisect_right/std::upper_bound(chgBins, charge), ans[bin]+=Labute contribution, and Mordred preset exposes PEOE_VSA1..13 while the native tail bin remains hidden.",
+      "reason": "OEFP matches Mordred PEOE_VSA5 values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "PEOE_VSA6",
+      "family": "MoeType",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/MoeType.py",
+      "status": "exact",
+      "primitive": "Mordred MoeType.PEOE_VSA calls RDKit MolSurf.py/MolSurf.cpp PEOE_VSA semantics: per-atom Gasteiger charges from ComputeGasteigerCharges/computeGasteigerCharges on the hydrogen-suppressed molecule, implicit hydrogen aggregate charges participate in the iteration, RDKit _LabuteHelper/getLabuteAtomContribs per-atom Labute contributions after the leading hydrogen contribution, bin=bisect_right/std::upper_bound(chgBins, charge), ans[bin]+=Labute contribution, and Mordred preset exposes PEOE_VSA1..13 while the native tail bin remains hidden.",
+      "reason": "OEFP matches Mordred PEOE_VSA6 values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "PEOE_VSA7",
+      "family": "MoeType",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/MoeType.py",
+      "status": "exact",
+      "primitive": "Mordred MoeType.PEOE_VSA calls RDKit MolSurf.py/MolSurf.cpp PEOE_VSA semantics: per-atom Gasteiger charges from ComputeGasteigerCharges/computeGasteigerCharges on the hydrogen-suppressed molecule, implicit hydrogen aggregate charges participate in the iteration, RDKit _LabuteHelper/getLabuteAtomContribs per-atom Labute contributions after the leading hydrogen contribution, bin=bisect_right/std::upper_bound(chgBins, charge), ans[bin]+=Labute contribution, and Mordred preset exposes PEOE_VSA1..13 while the native tail bin remains hidden.",
+      "reason": "OEFP matches Mordred PEOE_VSA7 values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "PEOE_VSA8",
+      "family": "MoeType",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/MoeType.py",
+      "status": "exact",
+      "primitive": "Mordred MoeType.PEOE_VSA calls RDKit MolSurf.py/MolSurf.cpp PEOE_VSA semantics: per-atom Gasteiger charges from ComputeGasteigerCharges/computeGasteigerCharges on the hydrogen-suppressed molecule, implicit hydrogen aggregate charges participate in the iteration, RDKit _LabuteHelper/getLabuteAtomContribs per-atom Labute contributions after the leading hydrogen contribution, bin=bisect_right/std::upper_bound(chgBins, charge), ans[bin]+=Labute contribution, and Mordred preset exposes PEOE_VSA1..13 while the native tail bin remains hidden.",
+      "reason": "OEFP matches Mordred PEOE_VSA8 values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "PEOE_VSA9",
+      "family": "MoeType",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/MoeType.py",
+      "status": "exact",
+      "primitive": "Mordred MoeType.PEOE_VSA calls RDKit MolSurf.py/MolSurf.cpp PEOE_VSA semantics: per-atom Gasteiger charges from ComputeGasteigerCharges/computeGasteigerCharges on the hydrogen-suppressed molecule, implicit hydrogen aggregate charges participate in the iteration, RDKit _LabuteHelper/getLabuteAtomContribs per-atom Labute contributions after the leading hydrogen contribution, bin=bisect_right/std::upper_bound(chgBins, charge), ans[bin]+=Labute contribution, and Mordred preset exposes PEOE_VSA1..13 while the native tail bin remains hidden.",
+      "reason": "OEFP matches Mordred PEOE_VSA9 values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "PEOE_VSA10",
+      "family": "MoeType",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/MoeType.py",
+      "status": "exact",
+      "primitive": "Mordred MoeType.PEOE_VSA calls RDKit MolSurf.py/MolSurf.cpp PEOE_VSA semantics: per-atom Gasteiger charges from ComputeGasteigerCharges/computeGasteigerCharges on the hydrogen-suppressed molecule, implicit hydrogen aggregate charges participate in the iteration, RDKit _LabuteHelper/getLabuteAtomContribs per-atom Labute contributions after the leading hydrogen contribution, bin=bisect_right/std::upper_bound(chgBins, charge), ans[bin]+=Labute contribution, and Mordred preset exposes PEOE_VSA1..13 while the native tail bin remains hidden.",
+      "reason": "OEFP matches Mordred PEOE_VSA10 values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "PEOE_VSA11",
+      "family": "MoeType",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/MoeType.py",
+      "status": "exact",
+      "primitive": "Mordred MoeType.PEOE_VSA calls RDKit MolSurf.py/MolSurf.cpp PEOE_VSA semantics: per-atom Gasteiger charges from ComputeGasteigerCharges/computeGasteigerCharges on the hydrogen-suppressed molecule, implicit hydrogen aggregate charges participate in the iteration, RDKit _LabuteHelper/getLabuteAtomContribs per-atom Labute contributions after the leading hydrogen contribution, bin=bisect_right/std::upper_bound(chgBins, charge), ans[bin]+=Labute contribution, and Mordred preset exposes PEOE_VSA1..13 while the native tail bin remains hidden.",
+      "reason": "OEFP matches Mordred PEOE_VSA11 values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "PEOE_VSA12",
+      "family": "MoeType",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/MoeType.py",
+      "status": "exact",
+      "primitive": "Mordred MoeType.PEOE_VSA calls RDKit MolSurf.py/MolSurf.cpp PEOE_VSA semantics: per-atom Gasteiger charges from ComputeGasteigerCharges/computeGasteigerCharges on the hydrogen-suppressed molecule, implicit hydrogen aggregate charges participate in the iteration, RDKit _LabuteHelper/getLabuteAtomContribs per-atom Labute contributions after the leading hydrogen contribution, bin=bisect_right/std::upper_bound(chgBins, charge), ans[bin]+=Labute contribution, and Mordred preset exposes PEOE_VSA1..13 while the native tail bin remains hidden.",
+      "reason": "OEFP matches Mordred PEOE_VSA12 values on the committed Mordred parity fixture."
+    },
+    {
+      "descriptor": "PEOE_VSA13",
+      "family": "MoeType",
+      "source": "/Users/johnss51/Development/python/mordred/mordred/MoeType.py",
+      "status": "exact",
+      "primitive": "Mordred MoeType.PEOE_VSA calls RDKit MolSurf.py/MolSurf.cpp PEOE_VSA semantics: per-atom Gasteiger charges from ComputeGasteigerCharges/computeGasteigerCharges on the hydrogen-suppressed molecule, implicit hydrogen aggregate charges participate in the iteration, RDKit _LabuteHelper/getLabuteAtomContribs per-atom Labute contributions after the leading hydrogen contribution, bin=bisect_right/std::upper_bound(chgBins, charge), ans[bin]+=Labute contribution, and Mordred preset exposes PEOE_VSA1..13 while the native tail bin remains hidden.",
+      "reason": "OEFP matches Mordred PEOE_VSA13 values on the committed Mordred parity fixture."
+    },
+    {
       "descriptor": "SMR_VSA1",
       "family": "MoeType",
       "source": "/Users/johnss51/Development/python/mordred/mordred/MoeType.py",

@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <cstddef>
 #include <iomanip>
+#include <limits>
 #include <map>
 #include <numeric>
 #include <optional>
@@ -98,6 +99,21 @@ struct MordredCrippenAtomContributions {
     std::vector<double> mr;
     std::vector<unsigned int> atom_ids;
 };
+
+struct MordredGasteigerAtomCharges {
+    std::vector<double> charges;
+    std::vector<unsigned int> atom_ids;
+};
+
+struct MordredGasteigerParameters {
+    const char* element;
+    const char* mode;
+    double a;
+    double b;
+    double c;
+};
+
+std::optional<int> mordred_outer_electrons(std::uint32_t atomic_number);
 
 struct MordredWalkCountValues {
     std::array<double, 11> mwc{};
@@ -643,6 +659,100 @@ std::optional<MordredLabuteAsaValues> compute_labute_asa_values(const OEChem::OE
     return MordredLabuteAsaValues{total, std::move(atom_contribs), std::move(atom_ids)};
 }
 
+MordredLabuteAsaValues compute_peoe_labute_asa_values(const OEChem::OEMolBase& mol) {
+    OEChem::OEGraphMol working_mol(mol);
+    OEChem::OEFindRingAtomsAndBonds(working_mol);
+    OEChem::OEAssignAromaticFlags(working_mol);
+    OEChem::OESuppressHydrogens(working_mol);
+    OEChem::OEFindRingAtomsAndBonds(working_mol);
+    OEChem::OEAssignAromaticFlags(working_mol);
+
+    std::unordered_map<unsigned int, std::size_t> atom_indices;
+    std::vector<unsigned int> atom_ids;
+    std::vector<double> radii;
+    radii.reserve(working_mol.NumAtoms());
+    atom_ids.reserve(working_mol.NumAtoms());
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = working_mol.GetAtoms(); atom; ++atom) {
+        atom_indices.emplace(atom->GetIdx(), radii.size());
+        atom_ids.push_back(atom->GetIdx());
+        radii.push_back(rdkit_bondi_radius(static_cast<std::uint32_t>(atom->GetAtomicNum())));
+    }
+
+    constexpr auto quiet_nan = std::numeric_limits<double>::quiet_NaN();
+    std::vector<double> atom_contribs(radii.size(), 0.0);
+    for (OESystem::OEIter<OEChem::OEBondBase> bond = working_mol.GetBonds(); bond; ++bond) {
+        const auto* begin = bond->GetBgn();
+        const auto* end = bond->GetEnd();
+        if (begin == nullptr || end == nullptr) {
+            continue;
+        }
+
+        const auto begin_index = atom_indices.find(begin->GetIdx());
+        const auto end_index = atom_indices.find(end->GetIdx());
+        if (begin_index == atom_indices.end() || end_index == atom_indices.end()) {
+            continue;
+        }
+
+        const auto first_index = begin_index->second;
+        const auto second_index = end_index->second;
+        const auto first_radius = radii[first_index];
+        const auto second_radius = radii[second_index];
+        double bond_distance = first_radius + second_radius;
+        if (bond->IsAromatic()) {
+            bond_distance -= 0.1;
+        } else {
+            static constexpr std::array<double, 4> bond_scale_factors{{0.1, 0.0, 0.2, 0.3}};
+            const auto order = bond->GetOrder();
+            if (order < bond_scale_factors.size()) {
+                bond_distance -= bond_scale_factors[order];
+            }
+        }
+
+        const auto distance = std::min(
+            std::max(std::fabs(first_radius - second_radius), bond_distance),
+            first_radius + second_radius);
+        if (distance <= 0.0 || !std::isfinite(distance)) {
+            atom_contribs[first_index] = quiet_nan;
+            atom_contribs[second_index] = quiet_nan;
+            continue;
+        }
+        atom_contribs[first_index] += second_radius * second_radius
+                                      - (first_radius - distance)
+                                            * (first_radius - distance) / distance;
+        atom_contribs[second_index] += first_radius * first_radius
+                                       - (second_radius - distance)
+                                             * (second_radius - distance) / distance;
+    }
+
+    double hydrogen_contrib = 0.0;
+    const auto hydrogen_radius = rdkit_bondi_radius(1u);
+    for (std::size_t index = 0u; index < radii.size(); ++index) {
+        const auto radius = radii[index];
+        const auto distance = radius + hydrogen_radius;
+        if (distance <= 0.0 || !std::isfinite(distance)) {
+            continue;
+        }
+        atom_contribs[index] += hydrogen_radius * hydrogen_radius
+                                - (radius - distance) * (radius - distance) / distance;
+        hydrogen_contrib += radius * radius
+                            - (hydrogen_radius - distance)
+                                  * (hydrogen_radius - distance) / distance;
+    }
+
+    double total = 0.0;
+    for (std::size_t index = 0u; index < radii.size(); ++index) {
+        const auto radius = radii[index];
+        atom_contribs[index] = kPi * radius * (4.0 * radius - atom_contribs[index]);
+        total += atom_contribs[index];
+    }
+    if (std::fabs(hydrogen_contrib) > 1.0e-4) {
+        hydrogen_contrib =
+            kPi * hydrogen_radius * (4.0 * hydrogen_radius - hydrogen_contrib);
+        total += hydrogen_contrib;
+    }
+    return MordredLabuteAsaValues{total, std::move(atom_contribs), std::move(atom_ids)};
+}
+
 bool is_halogen(std::uint32_t atomic_number) {
     return atomic_number == 9u || atomic_number == 17u || atomic_number == 35u
            || atomic_number == 53u;
@@ -1086,6 +1196,485 @@ std::optional<MordredCrippenAtomContributions> compute_crippen_atom_contribution
         }
     }
     return contributions;
+}
+
+const std::vector<MordredGasteigerParameters>& gasteiger_parameters() {
+    static const std::vector<MordredGasteigerParameters> parameters{
+        {"H", "*", 7.17, 6.24, -0.56},
+        {"C", "sp3", 7.98, 9.18, 1.88},
+        {"C", "sp2", 8.79, 9.32, 1.51},
+        {"C", "sp", 10.39, 9.45, 0.73},
+        {"N", "sp3", 11.54, 10.82, 1.36},
+        {"N", "sp2", 12.87, 11.15, 0.85},
+        {"N", "sp", 15.68, 11.7, -0.27},
+        {"O", "sp3", 14.18, 12.92, 1.39},
+        {"O", "sp2", 17.07, 13.79, 0.47},
+        {"F", "sp3", 14.66, 13.85, 2.31},
+        {"Cl", "sp3", 11.00, 9.69, 1.35},
+        {"Br", "sp3", 10.08, 8.47, 1.16},
+        {"I", "sp3", 9.9, 7.96, 0.96},
+        {"S", "sp3", 10.14, 9.13, 1.38},
+        {"S", "so", 10.14, 9.13, 1.38},
+        {"S", "so2", 12.00, 10.81, 1.20},
+        {"S", "sp2", 10.88, 9.49, 1.33},
+        {"P", "sp3", 8.90, 8.24, 0.96},
+        {"X", "*", 0.00, 0.00, 0.00},
+        {"P", "sp2", 9.665, 8.530, 0.735},
+        {"Si", "sp3", 7.300, 6.567, 0.657},
+        {"Si", "sp2", 7.905, 6.748, 0.443},
+        {"Si", "sp", 9.065, 7.027, -0.002},
+        {"B", "sp3", 5.980, 6.820, 1.605},
+        {"B", "sp2", 6.420, 6.807, 1.322},
+        {"Be", "sp3", 3.845, 6.755, 3.165},
+        {"Be", "sp2", 4.005, 6.725, 3.035},
+        {"Mg", "sp2", 3.565, 5.572, 2.197},
+        {"Mg", "sp3", 3.300, 5.587, 2.447},
+        {"Mg", "sp", 4.040, 5.472, 1.823},
+        {"Al", "sp3", 5.375, 4.953, 0.867},
+        {"Al", "sp2", 5.795, 5.020, 0.695},
+    };
+    return parameters;
+}
+
+const char* gasteiger_element_symbol(std::uint32_t atomic_number) {
+    switch (atomic_number) {
+    case 1:
+        return "H";
+    case 4:
+        return "Be";
+    case 5:
+        return "B";
+    case 6:
+        return "C";
+    case 7:
+        return "N";
+    case 8:
+        return "O";
+    case 9:
+        return "F";
+    case 12:
+        return "Mg";
+    case 13:
+        return "Al";
+    case 14:
+        return "Si";
+    case 15:
+        return "P";
+    case 16:
+        return "S";
+    case 17:
+        return "Cl";
+    case 35:
+        return "Br";
+    case 53:
+        return "I";
+    default:
+        return "X";
+    }
+}
+
+std::uint32_t oxygen_neighbor_count(const OEChem::OEAtomBase& atom) {
+    std::uint32_t count = 0u;
+    for (OESystem::OEIter<OEChem::OEAtomBase> nbr = atom.GetAtoms(); nbr; ++nbr) {
+        if (nbr->GetAtomicNum() == 8u) {
+            ++count;
+        }
+    }
+    return count;
+}
+
+bool has_bond_order_at_least(const OEChem::OEAtomBase& atom, unsigned int order) {
+    for (OESystem::OEIter<OEChem::OEBondBase> bond = atom.GetBonds(); bond; ++bond) {
+        if (bond->GetOrder() >= order) {
+            return true;
+        }
+    }
+    return false;
+}
+
+const char* gasteiger_mode(const OEChem::OEAtomBase& atom, bool has_conjugated_bond) {
+    const auto atomic_number = static_cast<std::uint32_t>(atom.GetAtomicNum());
+    if (atomic_number == 1u) {
+        return "*";
+    }
+    if (atomic_number != 16u && has_bond_order_at_least(atom, 3u)) {
+        return "sp";
+    }
+    // RDKit hybridization uses its conjugation flags before Gasteiger lookup;
+    // OpenEye can leave charged first-row conjugated atoms unspecified.
+    if (atomic_number <= 10u
+        && (atom.IsAromatic() || has_conjugated_bond || has_bond_order_at_least(atom, 2u))) {
+        return "sp2";
+    }
+
+    switch (atom.GetHyb()) {
+    case OEChem::OEHybridization::sp3:
+        return "sp3";
+    case OEChem::OEHybridization::sp2:
+        return "sp2";
+    case OEChem::OEHybridization::sp:
+        return "sp";
+    default:
+        if (atomic_number == 16u) {
+            const auto oxygens = oxygen_neighbor_count(atom);
+            if (oxygens == 2u) {
+                return "so2";
+            }
+            if (oxygens == 1u) {
+                return "so";
+            }
+            return "sp3";
+        }
+        switch (atomic_number) {
+        case 4:
+        case 5:
+        case 6:
+        case 7:
+        case 8:
+        case 9:
+        case 12:
+        case 13:
+        case 14:
+        case 15:
+        case 17:
+        case 35:
+        case 53:
+            return "sp3";
+        default:
+            break;
+        }
+        return "*";
+    }
+}
+
+const MordredGasteigerParameters& lookup_gasteiger_parameters(
+    const char* element,
+    const char* mode) {
+    const auto& parameters = gasteiger_parameters();
+    for (const auto& parameter : parameters) {
+        if (std::string(parameter.element) == element && std::string(parameter.mode) == mode) {
+            return parameter;
+        }
+    }
+    for (const auto& parameter : parameters) {
+        if (std::string(parameter.element) == "X" && std::string(parameter.mode) == "*") {
+            return parameter;
+        }
+    }
+    return parameters.front();
+}
+
+std::optional<int> gasteiger_default_valence(std::uint32_t atomic_number) {
+    constexpr std::array<int, 119> default_valences{{
+        -1, 1, 0, 1, 2, 3, 4, 3, 2, 1, 0, 1, 2, 3, 4, 3,
+        2, 1, 0, 1, 2, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, 3, 4, 3, 2, 1, 0, 1, 2, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, 3, 2, 3, 2, 1, 0, 1, 2, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 2,
+        3, 2, 1, 0, 1, 2, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+    }};
+    if (atomic_number >= default_valences.size()) {
+        return std::nullopt;
+    }
+    return default_valences[atomic_number];
+}
+
+std::uint32_t explicit_neighbor_count(const OEChem::OEAtomBase& atom) {
+    std::uint32_t count = 0u;
+    for (OESystem::OEIter<OEChem::OEAtomBase> neighbor = atom.GetAtoms(); neighbor; ++neighbor) {
+        ++count;
+    }
+    return count;
+}
+
+int gasteiger_count_atom_electrons(const OEChem::OEAtomBase& atom) {
+    const auto atomic_number = static_cast<std::uint32_t>(atom.GetAtomicNum());
+    const auto default_valence = gasteiger_default_valence(atomic_number);
+    if (!default_valence.has_value() || *default_valence <= 1) {
+        return -1;
+    }
+
+    const auto degree = static_cast<int>(atom.GetDegree());
+    if (degree > 3) {
+        return -1;
+    }
+
+    const auto outer_electrons = mordred_outer_electrons(atomic_number);
+    if (!outer_electrons.has_value()) {
+        return -1;
+    }
+
+    auto lone_pair_electrons = *outer_electrons - *default_valence - atom.GetFormalCharge();
+    lone_pair_electrons = std::max(lone_pair_electrons, 0);
+    auto electrons = (*default_valence - degree) + lone_pair_electrons;
+    if (electrons > 1) {
+        const auto unsaturations =
+            static_cast<int>(atom.GetExplicitValence())
+            - static_cast<int>(explicit_neighbor_count(atom));
+        if (unsaturations > 1) {
+            electrons = 1;
+        }
+    }
+    return electrons;
+}
+
+bool is_gasteiger_conjugation_candidate(const OEChem::OEAtomBase& atom) {
+    const auto atomic_number = static_cast<std::uint32_t>(atom.GetAtomicNum());
+    const auto default_valence = gasteiger_default_valence(atomic_number);
+    if (atom.GetFormalCharge() == 0 && default_valence.has_value() && *default_valence >= 0
+        && static_cast<int>(atom.GetValence()) > *default_valence) {
+        return false;
+    }
+
+    const auto outer_electrons = mordred_outer_electrons(atomic_number);
+    if (!outer_electrons.has_value()) {
+        return false;
+    }
+
+    return (atomic_number <= 10u || (*outer_electrons != 5 && *outer_electrons != 6)
+            || (*outer_electrons == 6 && atom.GetDegree() < 2u))
+           && gasteiger_count_atom_electrons(atom) > 0;
+}
+
+double gasteiger_bond_valence_contribution(const OEChem::OEBondBase& bond) {
+    return bond.IsAromatic() ? 1.5 : static_cast<double>(bond.GetOrder());
+}
+
+std::pair<std::size_t, std::size_t> gasteiger_bond_key(
+    std::size_t first,
+    std::size_t second) {
+    return first < second ? std::make_pair(first, second) : std::make_pair(second, first);
+}
+
+std::set<std::pair<std::size_t, std::size_t>> compute_gasteiger_conjugated_bond_keys(
+    const std::vector<OEChem::OEAtomBase*>& atoms,
+    const std::vector<std::vector<std::pair<std::size_t, const OEChem::OEBondBase*>>>&
+        atom_bonds) {
+    // RDKit's Gasteiger formal-charge split consumes MolOps::setConjugation().
+    // OpenEye does not expose that flag here, so mirror the RDKit marking pass.
+    std::set<std::pair<std::size_t, std::size_t>> conjugated_bonds;
+    for (std::size_t atom_index = 0u; atom_index < atoms.size(); ++atom_index) {
+        for (const auto& neighbor : atom_bonds[atom_index]) {
+            if (neighbor.second != nullptr && neighbor.second->IsAromatic()) {
+                conjugated_bonds.insert(gasteiger_bond_key(atom_index, neighbor.first));
+            }
+        }
+    }
+
+    for (std::size_t atom_index = 0u; atom_index < atoms.size(); ++atom_index) {
+        const auto* atom = atoms[atom_index];
+        if (atom == nullptr || !is_gasteiger_conjugation_candidate(*atom)) {
+            continue;
+        }
+
+        const auto substitution_count = atom->GetDegree();
+        if (substitution_count < 2u || substitution_count > 3u) {
+            continue;
+        }
+
+        for (const auto& first_bond : atom_bonds[atom_index]) {
+            if (first_bond.second == nullptr
+                || gasteiger_bond_valence_contribution(*first_bond.second) < 1.5
+                || atoms[first_bond.first] == nullptr
+                || !is_gasteiger_conjugation_candidate(*atoms[first_bond.first])) {
+                continue;
+            }
+
+            for (const auto& second_bond : atom_bonds[atom_index]) {
+                if (second_bond.second == nullptr || second_bond.second == first_bond.second
+                    || atoms[second_bond.first] == nullptr
+                    || atoms[second_bond.first]->GetDegree() > 3u
+                    || !is_gasteiger_conjugation_candidate(*atoms[second_bond.first])) {
+                    continue;
+                }
+
+                conjugated_bonds.insert(gasteiger_bond_key(atom_index, first_bond.first));
+                conjugated_bonds.insert(gasteiger_bond_key(atom_index, second_bond.first));
+            }
+        }
+    }
+    return conjugated_bonds;
+}
+
+bool atom_has_gasteiger_conjugated_bond(
+    std::size_t atom_index,
+    const std::vector<std::vector<std::pair<std::size_t, const OEChem::OEBondBase*>>>&
+        atom_bonds,
+    const std::set<std::pair<std::size_t, std::size_t>>& conjugated_bonds) {
+    for (const auto& neighbor : atom_bonds[atom_index]) {
+        if (conjugated_bonds.count(gasteiger_bond_key(atom_index, neighbor.first)) != 0u) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void split_gasteiger_formal_charges(
+    const std::vector<OEChem::OEAtomBase*>& atoms,
+    const std::vector<std::vector<std::pair<std::size_t, const OEChem::OEBondBase*>>>&
+        atom_bonds,
+    const std::set<std::pair<std::size_t, std::size_t>>& conjugated_bonds,
+    std::vector<double>& charges) {
+    static constexpr double eps = 1.0e-12;
+    for (std::size_t atom_index = 0u; atom_index < atoms.size(); ++atom_index) {
+        const auto* atom = atoms[atom_index];
+        if (atom == nullptr) {
+            continue;
+        }
+
+        double formal_charge = static_cast<double>(atom->GetFormalCharge());
+        std::vector<std::size_t> markers;
+        if (std::fabs(formal_charge) <= eps || std::fabs(charges[atom_index]) >= eps) {
+            continue;
+        }
+
+        markers.push_back(atom_index);
+        for (const auto& first_bond : atom_bonds[atom_index]) {
+            if (first_bond.second == nullptr
+                || conjugated_bonds.count(gasteiger_bond_key(atom_index, first_bond.first)) == 0u) {
+                continue;
+            }
+
+            const auto center_index = first_bond.first;
+            for (const auto& second_bond : atom_bonds[center_index]) {
+                if (second_bond.second == nullptr || second_bond.second == first_bond.second
+                    || conjugated_bonds.count(gasteiger_bond_key(center_index, second_bond.first))
+                           == 0u) {
+                    continue;
+                }
+
+                const auto terminal_index = second_bond.first;
+                if (atoms[terminal_index] != nullptr
+                    && atoms[terminal_index]->GetAtomicNum() == atom->GetAtomicNum()) {
+                    formal_charge += static_cast<double>(atoms[terminal_index]->GetFormalCharge());
+                    markers.push_back(terminal_index);
+                }
+            }
+        }
+
+        const auto split_charge = formal_charge / static_cast<double>(markers.size());
+        for (const auto marker : markers) {
+            charges[marker] = split_charge;
+        }
+    }
+}
+
+MordredGasteigerAtomCharges compute_gasteiger_atom_charges(const OEChem::OEMolBase& mol) {
+    static constexpr double ionxh = 20.02;
+    static constexpr double damp_scale = 0.5;
+    static constexpr double initial_damp = 0.5;
+    static constexpr unsigned int iterations = 12u;
+
+    OEChem::OEGraphMol working_mol(mol);
+    OEChem::OEFindRingAtomsAndBonds(working_mol);
+    OEChem::OEAssignAromaticFlags(working_mol);
+    OEChem::OEAssignHybridization(working_mol);
+    OEChem::OESuppressHydrogens(working_mol);
+    OEChem::OEFindRingAtomsAndBonds(working_mol);
+    OEChem::OEAssignAromaticFlags(working_mol);
+    OEChem::OEAssignHybridization(working_mol);
+
+    std::unordered_map<unsigned int, std::size_t> atom_indices;
+    std::vector<OEChem::OEAtomBase*> atoms;
+    std::vector<unsigned int> atom_ids;
+    atoms.reserve(working_mol.NumAtoms());
+    atom_ids.reserve(working_mol.NumAtoms());
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = working_mol.GetAtoms(); atom; ++atom) {
+        atom_indices.emplace(atom->GetIdx(), atoms.size());
+        atoms.push_back(&*atom);
+        atom_ids.push_back(atom->GetIdx());
+    }
+
+    std::vector<std::vector<std::pair<std::size_t, const OEChem::OEBondBase*>>> atom_bonds(
+        atoms.size());
+    for (OESystem::OEIter<OEChem::OEBondBase> bond = working_mol.GetBonds(); bond; ++bond) {
+        const auto* begin = bond->GetBgn();
+        const auto* end = bond->GetEnd();
+        if (begin == nullptr || end == nullptr) {
+            continue;
+        }
+
+        const auto begin_index = atom_indices.find(begin->GetIdx());
+        const auto end_index = atom_indices.find(end->GetIdx());
+        if (begin_index == atom_indices.end() || end_index == atom_indices.end()) {
+            continue;
+        }
+        atom_bonds[begin_index->second].emplace_back(end_index->second, &*bond);
+        atom_bonds[end_index->second].emplace_back(begin_index->second, &*bond);
+    }
+
+    std::vector<MordredGasteigerParameters> atom_parameters;
+    atom_parameters.reserve(atoms.size());
+    std::vector<double> charges(atoms.size(), 0.0);
+    std::vector<double> hydrogen_charges(atoms.size(), 0.0);
+    std::vector<double> ion_x(atoms.size(), 0.0);
+    std::vector<double> energies(atoms.size(), 0.0);
+
+    const auto conjugated_bonds = compute_gasteiger_conjugated_bond_keys(atoms, atom_bonds);
+    split_gasteiger_formal_charges(atoms, atom_bonds, conjugated_bonds, charges);
+
+    for (std::size_t atom_index = 0u; atom_index < atoms.size(); ++atom_index) {
+        const auto has_conjugated_bond =
+            atom_has_gasteiger_conjugated_bond(atom_index, atom_bonds, conjugated_bonds);
+        const auto& parameters = lookup_gasteiger_parameters(
+            gasteiger_element_symbol(static_cast<std::uint32_t>(atoms[atom_index]->GetAtomicNum())),
+            gasteiger_mode(*atoms[atom_index], has_conjugated_bond));
+        atom_parameters.push_back(parameters);
+        ion_x[atom_index] =
+            atoms[atom_index]->GetAtomicNum() == 1u
+                ? ionxh
+                : parameters.a + parameters.b + parameters.c;
+    }
+
+    const auto& hydrogen_parameters = lookup_gasteiger_parameters("H", "*");
+    double damp = initial_damp;
+    for (unsigned int iteration = 0u; iteration < iterations; ++iteration) {
+        for (std::size_t atom_index = 0u; atom_index < atoms.size(); ++atom_index) {
+            const auto& parameters = atom_parameters[atom_index];
+            energies[atom_index] = parameters.a
+                                   + charges[atom_index]
+                                         * (parameters.b
+                                            + parameters.c * charges[atom_index]);
+        }
+
+        for (std::size_t atom_index = 0u; atom_index < atoms.size(); ++atom_index) {
+            double delta_charge = 0.0;
+            for (const auto& neighbor : atom_bonds[atom_index]) {
+                const auto neighbor_index = neighbor.first;
+                const auto dx = energies[neighbor_index] - energies[atom_index];
+                const auto sign = dx < 0.0 ? 0 : 1;
+                delta_charge +=
+                    dx / (static_cast<double>(sign) * (ion_x[atom_index] - ion_x[neighbor_index])
+                          + ion_x[neighbor_index]);
+            }
+
+            const auto implicit_hydrogens = atoms[atom_index]->GetTotalHCount();
+            if (implicit_hydrogens > 0u) {
+                const auto hydrogen_charge =
+                    hydrogen_charges[atom_index] / static_cast<double>(implicit_hydrogens);
+                const auto hydrogen_energy =
+                    hydrogen_parameters.a
+                    + hydrogen_charge
+                          * (hydrogen_parameters.b
+                             + hydrogen_parameters.c * hydrogen_charge);
+                const auto dx = hydrogen_energy - energies[atom_index];
+                const auto sign = dx < 0.0 ? 0 : 1;
+                const auto hydrogen_delta =
+                    dx / (static_cast<double>(sign) * (ion_x[atom_index] - ionxh) + ionxh);
+                delta_charge += static_cast<double>(implicit_hydrogens) * hydrogen_delta;
+                hydrogen_charges[atom_index] -=
+                    static_cast<double>(implicit_hydrogens) * hydrogen_delta * damp;
+            }
+
+            charges[atom_index] += damp * delta_charge;
+        }
+        damp *= damp_scale;
+    }
+
+    return MordredGasteigerAtomCharges{std::move(charges), std::move(atom_ids)};
 }
 
 std::uint32_t count_mordred_acids(const OEChem::OEMolBase& mol) {
@@ -4067,6 +4656,22 @@ bool labute_values_align_with_crippen_atom_contributions(
     return true;
 }
 
+bool labute_values_align_with_gasteiger_atom_charges(
+    const MordredLabuteAsaValues& labute_values,
+    const MordredGasteigerAtomCharges& gasteiger_charges) {
+    if (labute_values.atom_contributions.size() != gasteiger_charges.charges.size()
+        || labute_values.atom_ids.size() != gasteiger_charges.atom_ids.size()) {
+        return false;
+    }
+
+    for (std::size_t atom_index = 0u; atom_index < labute_values.atom_ids.size(); ++atom_index) {
+        if (labute_values.atom_ids[atom_index] != gasteiger_charges.atom_ids[atom_index]) {
+            return false;
+        }
+    }
+    return true;
+}
+
 template <std::size_t BinCount>
 std::optional<std::array<double, BinCount>> compute_crippen_vsa_values(
     const OEChem::OEMolBase& mol,
@@ -4148,6 +4753,43 @@ std::optional<std::array<double, 11>> compute_slogp_vsa_values(
         labute_values,
         logp_bins,
         &MordredCrippenAtomContributions::logp);
+}
+
+std::optional<std::array<double, 14>> compute_peoe_vsa_values(const OEChem::OEMolBase& mol) {
+    static constexpr std::array<double, 13> charge_bins{{
+        -0.3,
+        -0.25,
+        -0.20,
+        -0.15,
+        -0.10,
+        -0.05,
+        0.0,
+        0.05,
+        0.10,
+        0.15,
+        0.20,
+        0.25,
+        0.30,
+    }};
+
+    const auto labute_values = compute_peoe_labute_asa_values(mol);
+    const auto charges = compute_gasteiger_atom_charges(mol);
+    if (!labute_values_align_with_gasteiger_atom_charges(labute_values, charges)) {
+        return std::nullopt;
+    }
+
+    std::array<double, 14> values{};
+    for (std::size_t atom_index = 0u; atom_index < charges.charges.size(); ++atom_index) {
+        const auto charge = charges.charges[atom_index];
+        const auto atom_contribution = labute_values.atom_contributions[atom_index];
+        // RDKit keeps the full tail bin. Mordred's preset exposes only
+        // PEOE_VSA1..13, so NaN charge/surface from bonded dummy atoms is hidden there.
+        const auto bin = static_cast<std::size_t>(
+            std::upper_bound(charge_bins.begin(), charge_bins.end(), charge)
+            - charge_bins.begin());
+        values[bin] += atom_contribution;
+    }
+    return values;
 }
 
 std::optional<std::array<double, 9>> compute_vsa_estate_values(
@@ -4982,6 +5624,7 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
     const auto ring_count_values = compute_ring_count_value_sets(mol);
     const auto estate_values = compute_mordred_estate_values(mol);
     const auto labute_asa_values = compute_labute_asa_values(mol);
+    const auto peoe_vsa_values = compute_peoe_vsa_values(mol);
     const auto smr_vsa_values =
         labute_asa_values.has_value()
             ? compute_smr_vsa_values(mol, *labute_asa_values)
@@ -5109,6 +5752,14 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
         "LabuteASA",
         labute_asa_values.has_value() ? std::optional<double>{labute_asa_values->total}
                                       : std::nullopt);
+    if (peoe_vsa_values.has_value()) {
+        for (std::size_t index = 0u; index < peoe_vsa_values->size() - 1u; ++index) {
+            set_float(
+                builder,
+                "PEOE_VSA" + std::to_string(index + 1u),
+                (*peoe_vsa_values)[index]);
+        }
+    }
     if (smr_vsa_values.has_value()) {
         for (std::size_t index = 0u; index < smr_vsa_values->size(); ++index) {
             set_float(

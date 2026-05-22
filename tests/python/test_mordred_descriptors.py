@@ -199,6 +199,19 @@ ENABLED_DESCRIPTOR_NAMES = {
     "EState_VSA9",
     "EState_VSA10",
     "LabuteASA",
+    "PEOE_VSA1",
+    "PEOE_VSA2",
+    "PEOE_VSA3",
+    "PEOE_VSA4",
+    "PEOE_VSA5",
+    "PEOE_VSA6",
+    "PEOE_VSA7",
+    "PEOE_VSA8",
+    "PEOE_VSA9",
+    "PEOE_VSA10",
+    "PEOE_VSA11",
+    "PEOE_VSA12",
+    "PEOE_VSA13",
     "SMR_VSA1",
     "SMR_VSA2",
     "SMR_VSA3",
@@ -688,7 +701,7 @@ def test_mordred_descriptors_match_enabled_reference_values():
     names = _enabled_descriptor_names(payload)
     row_divergences = _row_divergence_policy()
 
-    assert len(names) == 922
+    assert len(names) == 935
     assert set(ESTATE_COUNT_NAMES) <= set(names)
     assert set(ESTATE_SUM_NAMES) <= set(names)
     assert set(ESTATE_MAX_NAMES) <= set(names)
@@ -704,6 +717,7 @@ def test_mordred_descriptors_match_enabled_reference_values():
     assert "fMF" in names
     assert "fragCpx" in names
     assert "LabuteASA" in names
+    assert {f"PEOE_VSA{index}" for index in range(1, 14)} <= set(names)
     assert {f"SMR_VSA{index}" for index in range(1, 10)} <= set(names)
     assert {f"SlogP_VSA{index}" for index in range(1, 12)} <= set(names)
     assert {f"EState_VSA{index}" for index in range(1, 11)} <= set(names)
