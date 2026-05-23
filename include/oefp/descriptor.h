@@ -131,12 +131,31 @@ bool operator!=(const DescriptorSet& lhs, const DescriptorSet& rhs);
 
 class DescriptorSetBuilder {
 public:
+    /// \brief Build a schema-backed descriptor row.
+    ///
+    /// \param schema Shared descriptor schema for the row.
+    /// \param available_prerequisites Bitmap of prerequisites available on the
+    ///     input used to compute this row. Values set for descriptors whose
+    ///     required bits are absent are ignored and remain missing.
+    /// \throws std::invalid_argument: When the schema is null.
     explicit DescriptorSetBuilder(
         std::shared_ptr<const DescriptorSchema> schema,
         DescriptorPrerequisites available_prerequisites = kDescriptorPrerequisiteAll);
 
+    /// \brief Set one descriptor value when its prerequisites are available.
+    ///
+    /// When the descriptor definition has prerequisite bits that are not
+    /// present in ``AvailablePrerequisites()``, the value is left missing.
+    ///
+    /// \throws std::out_of_range: When the descriptor name is not in the schema.
+    /// \throws std::invalid_argument: When the value kind or shape does not
+    ///     match the descriptor definition.
     void Set(const std::string& name, DescriptorValue value);
+
+    /// \brief Return prerequisite bits available for this row.
     DescriptorPrerequisites AvailablePrerequisites() const;
+
+    /// \brief Return the completed schema-backed descriptor row.
     DescriptorSet Build(std::string row_id = "") const;
 
 private:

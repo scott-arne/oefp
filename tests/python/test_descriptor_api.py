@@ -159,11 +159,25 @@ def test_atom_pair_descriptors_expose_raw_keys_for_aromatic_heterocycle():
     assert descriptors.counts.tolist() == [4, 2, 4, 2, 2, 1]
     assert descriptors.spec.value_type == "string"
     assert descriptors.spec.source_name == "OEFP"
-    assert descriptors.spec.source_type == "AtomPair"
-    assert descriptors.spec.source_version == "AtomPair-1.1.0"
+    assert descriptors.spec.source_type == "TopologicalAtomPair"
+    assert descriptors.spec.source_version == "TopologicalAtomPair-1.1.0"
     assert descriptors.spec.parameters == (
-        "min_distance=1;max_distance=30;use_chirality=false;"
-        "use_2d=true;output=descriptors"
+        "min_distance=1;max_distance=30;use_chirality=false;output=descriptors"
+    )
+    assert oefp.TOPOLOGICAL_ATOM_PAIR_PREREQUISITES == (
+        oefp.DESCRIPTOR_PREREQUISITE_GRAPH
+    )
+    assert not (
+        oefp.TOPOLOGICAL_ATOM_PAIR_PREREQUISITES
+        & oefp.DESCRIPTOR_PREREQUISITE_COORDINATES_2D
+    )
+    assert not (
+        oefp.TOPOLOGICAL_ATOM_PAIR_PREREQUISITES
+        & oefp.DESCRIPTOR_PREREQUISITE_COORDINATES_3D
+    )
+    assert (
+        oefp.DISTANCE_ATOM_PAIR_PREREQUISITES
+        & oefp.DESCRIPTOR_PREREQUISITE_COORDINATES_3D
     )
 
     distance_one = oefp.atom_pair_descriptors(
@@ -173,6 +187,27 @@ def test_atom_pair_descriptors_expose_raw_keys_for_aromatic_heterocycle():
     assert distance_one.total_count == 6
     assert distance_one.string_keys == ("42_1_42", "42_1_74")
     assert distance_one.counts.tolist() == [4, 2]
+
+
+def test_topological_atom_pair_descriptors_alias_atom_pair_descriptors():
+    import oefp
+
+    mol = _openeye_mol("c1ccncc1")
+
+    topological = oefp.topological_atom_pair_descriptors(mol)
+    compatible = oefp.atom_pair_descriptors(mol)
+
+    assert topological.string_keys == compatible.string_keys
+    assert topological.counts.tolist() == compatible.counts.tolist()
+    assert topological.spec.source_type == "TopologicalAtomPair"
+
+
+def test_distance_atom_pair_descriptors_require_existing_3d_coordinates():
+    import pytest
+    import oefp
+
+    with pytest.raises(ValueError, match="requires existing 3D coordinates"):
+        oefp.distance_atom_pair_descriptors(_openeye_mol("CCO"))
 
 
 def test_morgan_descriptors_expose_raw_integer_keys_for_complex_molecules():

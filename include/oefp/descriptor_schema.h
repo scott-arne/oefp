@@ -34,12 +34,22 @@ struct DescriptorShape {
     std::vector<std::uint64_t> dimensions;
 };
 
+/// \brief Bitmap describing molecule prerequisites required by a descriptor.
 using DescriptorPrerequisites = std::uint32_t;
 
+/// \brief Descriptor has no special input prerequisites.
 inline constexpr DescriptorPrerequisites kDescriptorPrerequisiteNone = 0u;
+
+/// \brief Descriptor requires a molecular graph.
 inline constexpr DescriptorPrerequisites kDescriptorPrerequisiteGraph = 1u << 0u;
+
+/// \brief Descriptor requires existing 2D coordinates on the input molecule.
 inline constexpr DescriptorPrerequisites kDescriptorPrerequisiteCoordinates2D = 1u << 1u;
+
+/// \brief Descriptor requires existing 3D coordinates on the input molecule.
 inline constexpr DescriptorPrerequisites kDescriptorPrerequisiteCoordinates3D = 1u << 2u;
+
+/// \brief Treat every currently representable prerequisite bit as available.
 inline constexpr DescriptorPrerequisites kDescriptorPrerequisiteAll =
     std::numeric_limits<DescriptorPrerequisites>::max();
 
@@ -63,6 +73,12 @@ struct DescriptorDefinition {
     std::string parameters;
     std::string units;
     std::string description;
+    /// \brief Bitmap of input prerequisites required to compute this descriptor.
+    ///
+    /// Descriptor factories use this metadata to leave values missing when an
+    /// input molecule does not already satisfy the requirement. Coordinate
+    /// prerequisites are declarative; descriptor calculators do not generate
+    /// coordinates implicitly.
     DescriptorPrerequisites prerequisites = kDescriptorPrerequisiteNone;
     std::optional<DescriptorShape> shape;
 };

@@ -93,12 +93,12 @@ TEST(AtomPairTest, GeneratedFingerprintCarriesStrictAtomPairSpec) {
     EXPECT_EQ(spec.size_bits, 128u);
     EXPECT_EQ(spec.value_type, FingerprintValueType::Binary);
     EXPECT_EQ(spec.source_name, "RDKit-compatible");
-    EXPECT_EQ(spec.source_type, "AtomPair");
-    EXPECT_EQ(spec.source_version, "AtomPair-1.1.0");
+    EXPECT_EQ(spec.source_type, "TopologicalAtomPair");
+    EXPECT_EQ(spec.source_version, "TopologicalAtomPair-1.1.0");
     EXPECT_EQ(
         spec.parameters,
         "min_distance=1;max_distance=2;num_bits=128;use_chirality=false;"
-        "use_2d=true;count_simulation=false;count_bounds=1,2,4,8");
+        "count_simulation=false;count_bounds=1,2,4,8");
 }
 
 TEST(AtomPairTest, GeneratesNonEmptyFingerprintForSimpleMolecule) {
@@ -204,12 +204,12 @@ TEST(AtomPairTest, GeneratedCountFingerprintCarriesStrictAtomPairSpec) {
     EXPECT_EQ(spec.size_bits, 128u);
     EXPECT_EQ(spec.value_type, FingerprintValueType::Counted);
     EXPECT_EQ(spec.source_name, "RDKit-compatible");
-    EXPECT_EQ(spec.source_type, "AtomPair");
-    EXPECT_EQ(spec.source_version, "AtomPair-1.1.0");
+    EXPECT_EQ(spec.source_type, "TopologicalAtomPair");
+    EXPECT_EQ(spec.source_version, "TopologicalAtomPair-1.1.0");
     EXPECT_EQ(
         spec.parameters,
         "min_distance=1;max_distance=2;num_bits=128;use_chirality=false;"
-        "use_2d=true;count_simulation=false;count_bounds=1,2,4,8");
+        "count_simulation=false;count_bounds=1,2,4,8");
 }
 
 TEST(AtomPairTest, GeneratesNonEmptyCountFingerprintForSimpleMolecule) {
@@ -235,12 +235,12 @@ TEST(AtomPairTest, GeneratedSparseFingerprintCarriesStrictAtomPairSpec) {
     EXPECT_EQ(spec.size_bits, 8388608u);
     EXPECT_EQ(spec.value_type, FingerprintValueType::Binary);
     EXPECT_EQ(spec.source_name, "RDKit-compatible");
-    EXPECT_EQ(spec.source_type, "AtomPair");
-    EXPECT_EQ(spec.source_version, "AtomPair-1.1.0");
+    EXPECT_EQ(spec.source_type, "TopologicalAtomPair");
+    EXPECT_EQ(spec.source_version, "TopologicalAtomPair-1.1.0");
     EXPECT_EQ(
         spec.parameters,
         "min_distance=1;max_distance=2;use_chirality=false;"
-        "use_2d=true;count_simulation=false;count_bounds=1,2,4,8;"
+        "count_simulation=false;count_bounds=1,2,4,8;"
         "output=sparse_binary");
 }
 
@@ -265,12 +265,11 @@ TEST(AtomPairTest, GeneratedSparseCountFingerprintCarriesStrictAtomPairSpec) {
     EXPECT_EQ(spec.size_bits, 8388608u);
     EXPECT_EQ(spec.value_type, FingerprintValueType::Counted);
     EXPECT_EQ(spec.source_name, "RDKit-compatible");
-    EXPECT_EQ(spec.source_type, "AtomPair");
-    EXPECT_EQ(spec.source_version, "AtomPair-1.1.0");
+    EXPECT_EQ(spec.source_type, "TopologicalAtomPair");
+    EXPECT_EQ(spec.source_version, "TopologicalAtomPair-1.1.0");
     EXPECT_EQ(
         spec.parameters,
-        "min_distance=1;max_distance=2;use_chirality=false;"
-        "use_2d=true;output=sparse_count");
+        "min_distance=1;max_distance=2;use_chirality=false;output=sparse_count");
 }
 
 TEST(AtomPairTest, GeneratesNonEmptySparseCountFingerprintForSimpleMolecule) {
@@ -296,12 +295,14 @@ TEST(AtomPairTest, GeneratedDescriptorsCarryStrictAtomPairSpec) {
 
     EXPECT_EQ(definition.value_kind, DescriptorValueKind::CountedStringKeys);
     EXPECT_EQ(definition.source_name, "OEFP");
-    EXPECT_EQ(definition.source_type, "AtomPair");
-    EXPECT_EQ(definition.source_version, "AtomPair-1.1.0");
+    EXPECT_EQ(definition.source_type, "TopologicalAtomPair");
+    EXPECT_EQ(definition.source_version, "TopologicalAtomPair-1.1.0");
     EXPECT_EQ(
         definition.parameters,
-        "min_distance=1;max_distance=2;use_chirality=false;"
-        "use_2d=true;output=descriptors");
+        "min_distance=1;max_distance=2;use_chirality=false;output=descriptors");
+    EXPECT_EQ(definition.prerequisites, kDescriptorPrerequisiteGraph);
+    EXPECT_EQ(definition.prerequisites & kDescriptorPrerequisiteCoordinates2D, 0u);
+    EXPECT_EQ(definition.prerequisites & kDescriptorPrerequisiteCoordinates3D, 0u);
 }
 
 TEST(AtomPairTest, GeneratedDescriptorsUseRawAtomPairKeysAndCounts) {

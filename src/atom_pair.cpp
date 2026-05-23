@@ -18,7 +18,7 @@
 namespace OEFP {
 namespace {
 
-constexpr const char* ATOM_PAIR_COMPAT_VERSION = "AtomPair-1.1.0";
+constexpr const char* TOPOLOGICAL_ATOM_PAIR_COMPAT_VERSION = "TopologicalAtomPair-1.1.0";
 constexpr std::uint32_t NUM_TYPE_BITS = 4;
 constexpr std::uint32_t ATOM_NUMBER_TYPE_COUNT = 1u << NUM_TYPE_BITS;
 constexpr std::uint32_t ATOM_NUMBER_TYPES[ATOM_NUMBER_TYPE_COUNT] = {
@@ -75,7 +75,6 @@ std::string canonical_parameters(const AtomPairOptions& options) {
            << ";max_distance=" << options.max_distance
            << ";num_bits=" << options.num_bits
            << ";use_chirality=" << bool_parameter(options.use_chirality)
-           << ";use_2d=" << bool_parameter(options.use_2d)
            << ";count_simulation=" << bool_parameter(options.count_simulation)
            << ";count_bounds=";
     for (std::size_t i = 0; i < options.count_bounds.size(); ++i) {
@@ -92,7 +91,6 @@ std::string canonical_sparse_binary_parameters(const AtomPairOptions& options) {
     params << "min_distance=" << options.min_distance
            << ";max_distance=" << options.max_distance
            << ";use_chirality=" << bool_parameter(options.use_chirality)
-           << ";use_2d=" << bool_parameter(options.use_2d)
            << ";count_simulation=" << bool_parameter(options.count_simulation)
            << ";count_bounds=";
     for (std::size_t i = 0; i < options.count_bounds.size(); ++i) {
@@ -110,7 +108,6 @@ std::string canonical_sparse_count_parameters(const AtomPairOptions& options) {
     params << "min_distance=" << options.min_distance
            << ";max_distance=" << options.max_distance
            << ";use_chirality=" << bool_parameter(options.use_chirality)
-           << ";use_2d=" << bool_parameter(options.use_2d)
            << ";output=sparse_count";
     return params.str();
 }
@@ -120,7 +117,6 @@ std::string canonical_descriptor_parameters(const AtomPairOptions& options) {
     params << "min_distance=" << options.min_distance
            << ";max_distance=" << options.max_distance
            << ";use_chirality=" << bool_parameter(options.use_chirality)
-           << ";use_2d=" << bool_parameter(options.use_2d)
            << ";output=descriptors";
     return params.str();
 }
@@ -130,8 +126,8 @@ FingerprintSpec atom_pair_spec(const AtomPairOptions& options) {
     spec.size_bits = options.num_bits;
     spec.value_type = FingerprintValueType::Binary;
     spec.source_name = "RDKit-compatible";
-    spec.source_type = "AtomPair";
-    spec.source_version = ATOM_PAIR_COMPAT_VERSION;
+    spec.source_type = "TopologicalAtomPair";
+    spec.source_version = TOPOLOGICAL_ATOM_PAIR_COMPAT_VERSION;
     spec.parameters = canonical_parameters(options);
     return spec;
 }
@@ -155,8 +151,8 @@ DescriptorSpec atom_pair_descriptor_spec(const AtomPairOptions& options) {
     DescriptorSpec spec;
     spec.value_type = DescriptorValueType::String;
     spec.source_name = "OEFP";
-    spec.source_type = "AtomPair";
-    spec.source_version = ATOM_PAIR_COMPAT_VERSION;
+    spec.source_type = "TopologicalAtomPair";
+    spec.source_version = TOPOLOGICAL_ATOM_PAIR_COMPAT_VERSION;
     spec.parameters = canonical_descriptor_parameters(options);
     return spec;
 }
@@ -172,7 +168,10 @@ std::shared_ptr<const DescriptorSchema> atom_pair_descriptor_schema(
         spec.source_name,
         spec.source_type,
         spec.source_version,
-        spec.parameters});
+        spec.parameters,
+        "",
+        "Topological Atom Pair counted string keys.",
+        kTopologicalAtomPairPrerequisites});
     return builder.Build();
 }
 
@@ -202,7 +201,8 @@ void validate_options(const AtomPairOptions& options) {
         throw std::invalid_argument("Atom Pair chirality conformance is not implemented yet.");
     }
     if (!options.use_2d) {
-        throw std::invalid_argument("Atom Pair 3D distance conformance is not implemented yet.");
+        throw std::invalid_argument(
+            "Distance Atom Pair requires existing 3D coordinates and is not implemented yet.");
     }
     if (options.count_simulation && options.count_bounds.empty()) {
         throw std::invalid_argument("Atom Pair count_bounds cannot be empty when count simulation is enabled.");
@@ -226,7 +226,8 @@ void validate_count_options(const AtomPairOptions& options) {
         throw std::invalid_argument("Atom Pair chirality conformance is not implemented yet.");
     }
     if (!options.use_2d) {
-        throw std::invalid_argument("Atom Pair 3D distance conformance is not implemented yet.");
+        throw std::invalid_argument(
+            "Distance Atom Pair requires existing 3D coordinates and is not implemented yet.");
     }
 }
 
@@ -241,7 +242,8 @@ void validate_sparse_options(const AtomPairOptions& options) {
         throw std::invalid_argument("Atom Pair chirality conformance is not implemented yet.");
     }
     if (!options.use_2d) {
-        throw std::invalid_argument("Atom Pair 3D distance conformance is not implemented yet.");
+        throw std::invalid_argument(
+            "Distance Atom Pair requires existing 3D coordinates and is not implemented yet.");
     }
     if (options.count_simulation && options.count_bounds.empty()) {
         throw std::invalid_argument("Atom Pair count_bounds cannot be empty when count simulation is enabled.");
@@ -262,7 +264,8 @@ void validate_sparse_count_options(const AtomPairOptions& options) {
         throw std::invalid_argument("Atom Pair chirality conformance is not implemented yet.");
     }
     if (!options.use_2d) {
-        throw std::invalid_argument("Atom Pair 3D distance conformance is not implemented yet.");
+        throw std::invalid_argument(
+            "Distance Atom Pair requires existing 3D coordinates and is not implemented yet.");
     }
 }
 
@@ -277,7 +280,8 @@ void validate_descriptor_options(const AtomPairOptions& options) {
         throw std::invalid_argument("Atom Pair chirality conformance is not implemented yet.");
     }
     if (!options.use_2d) {
-        throw std::invalid_argument("Atom Pair 3D distance conformance is not implemented yet.");
+        throw std::invalid_argument(
+            "Distance Atom Pair requires existing 3D coordinates and is not implemented yet.");
     }
 }
 

@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from functools import lru_cache
 from numbers import Integral
 from pathlib import Path
-from typing import Any
+from typing import Any, NoReturn
 
 import numpy as np
 
@@ -23,6 +23,10 @@ DESCRIPTOR_PREREQUISITE_GRAPH = 1 << 0
 DESCRIPTOR_PREREQUISITE_COORDINATES_2D = 1 << 1
 DESCRIPTOR_PREREQUISITE_COORDINATES_3D = 1 << 2
 DESCRIPTOR_PREREQUISITE_ALL = _UINT32_MAX
+TOPOLOGICAL_ATOM_PAIR_PREREQUISITES = DESCRIPTOR_PREREQUISITE_GRAPH
+DISTANCE_ATOM_PAIR_PREREQUISITES = (
+    DESCRIPTOR_PREREQUISITE_GRAPH | DESCRIPTOR_PREREQUISITE_COORDINATES_3D
+)
 _NATIVE_TOKEN = object()
 _DESCRIPTOR_SCHEMA_METADATA_KEY = b"oefp.python_descriptor_schema"
 _ROW_IDS_METADATA_KEY = b"oefp.row_ids_json"
@@ -59,6 +63,39 @@ def descriptor_prerequisites_satisfied(required: int, available: int) -> bool:
     :returns: ``True`` when all required bits are present.
     """
     return descriptor_missing_prerequisites(required, available) == DESCRIPTOR_PREREQUISITE_NONE
+
+
+def _molecule_has_3d_coordinates(mol: Any) -> bool:
+    get_dimension = getattr(mol, "GetDimension", None)
+    if get_dimension is None or int(get_dimension()) != 3:
+        return False
+
+    num_atoms_fn = getattr(mol, "NumAtoms", None)
+    expected_atoms = int(num_atoms_fn()) if num_atoms_fn is not None else 0
+    if expected_atoms == 0:
+        return False
+
+    get_coords = getattr(mol, "GetCoords", None)
+    if get_coords is None:
+        return False
+    coords = get_coords()
+    if not isinstance(coords, Mapping) or len(coords) < expected_atoms:
+        return False
+    return all(len(tuple(value)) >= 3 for value in coords.values())
+
+
+def _require_distance_atom_pair_3d(mol: Any) -> None:
+    if not _molecule_has_3d_coordinates(mol):
+        raise ValueError(
+            "Distance Atom Pair requires existing 3D coordinates; "
+            "OEFP does not generate conformers implicitly."
+        )
+
+
+def _raise_distance_atom_pair_not_implemented() -> NoReturn:
+    raise NotImplementedError(
+        "Distance Atom Pair requires existing 3D coordinates and is not implemented yet."
+    )
 
 
 @dataclass(frozen=True)
@@ -589,7 +626,9 @@ def _normalized_atom_pair_values(
     if use_chirality:
         raise ValueError("Atom Pair chirality conformance is not implemented yet.")
     if not use_2d:
-        raise ValueError("Atom Pair 3D distance conformance is not implemented yet.")
+        raise ValueError(
+            "Distance Atom Pair requires existing 3D coordinates and is not implemented yet."
+        )
     if count_simulation and not normalized_count_bounds:
         raise ValueError("Atom Pair count_bounds cannot be empty when count simulation is enabled.")
     if count_simulation and len(normalized_count_bounds) >= num_bits_int:
@@ -1808,8 +1847,42 @@ class MorganGenerator:
         return OEFP._from_native(self._native.Fingerprint(mol))
 
 
-class AtomPairGenerator:
-    """Reusable generator for folded binary Atom Pair fingerprints."""
+class TopologicalAtomPairGenerator:
+    """Reusable generator for folded binary topological Atom Pair fingerprints."""
+
+    def __init__(
+        self,
+        *,
+        min_distance: int = 1,
+        max_distance: int = 30,
+        num_bits: int = 2048,
+        use_chirality: bool = False,
+        count_simulation: bool = True,
+        count_bounds: Sequence[int] | None = None,
+    ) -> None:
+        options = _atom_pair_options(
+            min_distance,
+            max_distance,
+            num_bits,
+            use_chirality,
+            True,
+            count_simulation,
+            count_bounds,
+        )
+        self._native = _native._NativeAtomPairGenerator(options)
+
+    def fingerprint(self, mol: Any) -> OEFP:
+        """Generate a folded dense binary topological Atom Pair fingerprint."""
+        return OEFP._from_native(self._native.Fingerprint(mol))
+
+
+class AtomPairGenerator(TopologicalAtomPairGenerator):
+    """Compatibility generator for RDKit-style Atom Pair options.
+
+    ``use_2d=True`` is the topological/connectivity-distance model. Passing
+    ``use_2d=False`` selects the separate Distance Atom Pair model, which is
+    not implemented.
+    """
 
     def __init__(
         self,
@@ -1832,10 +1905,6 @@ class AtomPairGenerator:
             count_bounds,
         )
         self._native = _native._NativeAtomPairGenerator(options)
-
-    def fingerprint(self, mol: Any) -> OEFP:
-        """Generate a folded dense binary Atom Pair fingerprint."""
-        return OEFP._from_native(self._native.Fingerprint(mol))
 
 
 @dataclass(frozen=True)
@@ -2308,7 +2377,9 @@ def _atom_pair_descriptor_options(
     if use_chirality:
         raise ValueError("Atom Pair chirality conformance is not implemented yet.")
     if not use_2d:
-        raise ValueError("Atom Pair 3D distance conformance is not implemented yet.")
+        raise ValueError(
+            "Distance Atom Pair requires existing 3D coordinates and is not implemented yet."
+        )
 
     options = _native.AtomPairOptions()
     options.min_distance = min_distance_int
@@ -2336,6 +2407,133 @@ def atom_pair_descriptors(
     )
     native = _native.MakeAtomPairDescriptors(mol, options)
     return _legacy_counted_string_descriptor(native, _descriptor_spec(native.Spec()))
+
+
+def topological_atom_pair_fingerprint(
+    mol: Any,
+    *,
+    min_distance: int = 1,
+    max_distance: int = 30,
+    num_bits: int = 2048,
+    use_chirality: bool = False,
+    count_simulation: bool = True,
+    count_bounds: Sequence[int] | None = None,
+) -> OEFP:
+    """Generate a folded binary topological Atom Pair fingerprint."""
+    return atom_pair_fingerprint(
+        mol,
+        min_distance=min_distance,
+        max_distance=max_distance,
+        num_bits=num_bits,
+        use_chirality=use_chirality,
+        use_2d=True,
+        count_simulation=count_simulation,
+        count_bounds=count_bounds,
+    )
+
+
+def topological_atom_pair_count_fingerprint(
+    mol: Any,
+    *,
+    min_distance: int = 1,
+    max_distance: int = 30,
+    num_bits: int = 2048,
+    use_chirality: bool = False,
+) -> OEFPCount:
+    """Generate a folded count topological Atom Pair fingerprint."""
+    return atom_pair_count_fingerprint(
+        mol,
+        min_distance=min_distance,
+        max_distance=max_distance,
+        num_bits=num_bits,
+        use_chirality=use_chirality,
+        use_2d=True,
+    )
+
+
+def topological_atom_pair_sparse_fingerprint(
+    mol: Any,
+    *,
+    min_distance: int = 1,
+    max_distance: int = 30,
+    use_chirality: bool = False,
+    count_simulation: bool = True,
+    count_bounds: Sequence[int] | None = None,
+) -> OEFPSparse:
+    """Generate a sparse binary topological Atom Pair fingerprint."""
+    return atom_pair_sparse_fingerprint(
+        mol,
+        min_distance=min_distance,
+        max_distance=max_distance,
+        use_chirality=use_chirality,
+        use_2d=True,
+        count_simulation=count_simulation,
+        count_bounds=count_bounds,
+    )
+
+
+def topological_atom_pair_sparse_count_fingerprint(
+    mol: Any,
+    *,
+    min_distance: int = 1,
+    max_distance: int = 30,
+    use_chirality: bool = False,
+) -> OEFPCount:
+    """Generate a sparse count topological Atom Pair fingerprint."""
+    return atom_pair_sparse_count_fingerprint(
+        mol,
+        min_distance=min_distance,
+        max_distance=max_distance,
+        use_chirality=use_chirality,
+        use_2d=True,
+    )
+
+
+def topological_atom_pair_descriptors(
+    mol: Any,
+    *,
+    min_distance: int = 1,
+    max_distance: int = 30,
+    use_chirality: bool = False,
+) -> DescriptorSet:
+    """Generate raw topological Atom Pair descriptors as counted string keys."""
+    return atom_pair_descriptors(
+        mol,
+        min_distance=min_distance,
+        max_distance=max_distance,
+        use_chirality=use_chirality,
+        use_2d=True,
+    )
+
+
+def distance_atom_pair_fingerprint(mol: Any, **_: Any) -> OEFP:
+    """Reject unsupported 3D coordinate-distance Atom Pair fingerprints."""
+    _require_distance_atom_pair_3d(mol)
+    _raise_distance_atom_pair_not_implemented()
+
+
+def distance_atom_pair_count_fingerprint(mol: Any, **_: Any) -> OEFPCount:
+    """Reject unsupported 3D coordinate-distance Atom Pair count fingerprints."""
+    _require_distance_atom_pair_3d(mol)
+    _raise_distance_atom_pair_not_implemented()
+
+
+def distance_atom_pair_sparse_fingerprint(mol: Any, **_: Any) -> OEFPSparse:
+    """Reject unsupported 3D coordinate-distance Atom Pair sparse fingerprints."""
+    _require_distance_atom_pair_3d(mol)
+    _raise_distance_atom_pair_not_implemented()
+
+
+def distance_atom_pair_sparse_count_fingerprint(mol: Any, **_: Any) -> OEFPCount:
+    """Reject unsupported 3D coordinate-distance Atom Pair sparse count fingerprints."""
+    _require_distance_atom_pair_3d(mol)
+    _raise_distance_atom_pair_not_implemented()
+
+
+def distance_atom_pair_descriptors(mol: Any, **_: Any) -> DescriptorSet:
+    """Reject unsupported 3D coordinate-distance Atom Pair descriptors."""
+    _require_distance_atom_pair_3d(mol)
+    _raise_distance_atom_pair_not_implemented()
 
 
 def morgan_descriptors(
