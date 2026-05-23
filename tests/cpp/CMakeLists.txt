@@ -16,11 +16,17 @@ add_executable(oefp_tests
     test_count.cpp
     test_count_batch.cpp
     test_descriptor.cpp
+    test_descriptor_arrow.cpp
     test_descriptor_batch.cpp
     test_descriptor_compare.cpp
+    test_descriptor_schema.cpp
+    test_descriptor_selection.cpp
+    test_descriptor_set.cpp
+    test_descriptor_value.cpp
     test_fingerprint.cpp
     test_metric.cpp
     test_mordred.cpp
+    test_mordred_schema.cpp
     test_morgan.cpp
     test_openeye_interop.cpp
     test_sparse.cpp
@@ -32,6 +38,7 @@ target_link_libraries(oefp_tests
         oefp
         GTest::gtest_main
 )
+target_compile_features(oefp_tests PRIVATE cxx_std_20)
 
 include(GoogleTest)
 gtest_discover_tests(oefp_tests)

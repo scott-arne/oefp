@@ -5,6 +5,7 @@
 #include <oechem.h>
 
 #include <cstdint>
+#include <numeric>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -19,6 +20,14 @@ OEChem::OEGraphMol mol_from_smiles(const std::string& smiles) {
         throw std::runtime_error("Failed to parse test SMILES: " + smiles);
     }
     return mol;
+}
+
+const CountedStringKeyValues& atom_pair_values(const DescriptorSet& descriptors) {
+    return descriptors.Value("atom_pair").CountedStringKeys();
+}
+
+std::uint64_t total_count(const CountedStringKeyValues& values) {
+    return std::accumulate(values.counts.begin(), values.counts.end(), std::uint64_t{0});
 }
 
 } // namespace
@@ -84,12 +93,12 @@ TEST(AtomPairTest, GeneratedFingerprintCarriesStrictAtomPairSpec) {
     EXPECT_EQ(spec.size_bits, 128u);
     EXPECT_EQ(spec.value_type, FingerprintValueType::Binary);
     EXPECT_EQ(spec.source_name, "RDKit-compatible");
-    EXPECT_EQ(spec.source_type, "AtomPair");
-    EXPECT_EQ(spec.source_version, "AtomPair-1.1.0");
+    EXPECT_EQ(spec.source_type, "TopologicalAtomPair");
+    EXPECT_EQ(spec.source_version, "TopologicalAtomPair-1.1.0");
     EXPECT_EQ(
         spec.parameters,
         "min_distance=1;max_distance=2;num_bits=128;use_chirality=false;"
-        "use_2d=true;count_simulation=false;count_bounds=1,2,4,8");
+        "count_simulation=false;count_bounds=1,2,4,8");
 }
 
 TEST(AtomPairTest, GeneratesNonEmptyFingerprintForSimpleMolecule) {
@@ -195,12 +204,12 @@ TEST(AtomPairTest, GeneratedCountFingerprintCarriesStrictAtomPairSpec) {
     EXPECT_EQ(spec.size_bits, 128u);
     EXPECT_EQ(spec.value_type, FingerprintValueType::Counted);
     EXPECT_EQ(spec.source_name, "RDKit-compatible");
-    EXPECT_EQ(spec.source_type, "AtomPair");
-    EXPECT_EQ(spec.source_version, "AtomPair-1.1.0");
+    EXPECT_EQ(spec.source_type, "TopologicalAtomPair");
+    EXPECT_EQ(spec.source_version, "TopologicalAtomPair-1.1.0");
     EXPECT_EQ(
         spec.parameters,
         "min_distance=1;max_distance=2;num_bits=128;use_chirality=false;"
-        "use_2d=true;count_simulation=false;count_bounds=1,2,4,8");
+        "count_simulation=false;count_bounds=1,2,4,8");
 }
 
 TEST(AtomPairTest, GeneratesNonEmptyCountFingerprintForSimpleMolecule) {
@@ -226,12 +235,12 @@ TEST(AtomPairTest, GeneratedSparseFingerprintCarriesStrictAtomPairSpec) {
     EXPECT_EQ(spec.size_bits, 8388608u);
     EXPECT_EQ(spec.value_type, FingerprintValueType::Binary);
     EXPECT_EQ(spec.source_name, "RDKit-compatible");
-    EXPECT_EQ(spec.source_type, "AtomPair");
-    EXPECT_EQ(spec.source_version, "AtomPair-1.1.0");
+    EXPECT_EQ(spec.source_type, "TopologicalAtomPair");
+    EXPECT_EQ(spec.source_version, "TopologicalAtomPair-1.1.0");
     EXPECT_EQ(
         spec.parameters,
         "min_distance=1;max_distance=2;use_chirality=false;"
-        "use_2d=true;count_simulation=false;count_bounds=1,2,4,8;"
+        "count_simulation=false;count_bounds=1,2,4,8;"
         "output=sparse_binary");
 }
 
@@ -256,12 +265,11 @@ TEST(AtomPairTest, GeneratedSparseCountFingerprintCarriesStrictAtomPairSpec) {
     EXPECT_EQ(spec.size_bits, 8388608u);
     EXPECT_EQ(spec.value_type, FingerprintValueType::Counted);
     EXPECT_EQ(spec.source_name, "RDKit-compatible");
-    EXPECT_EQ(spec.source_type, "AtomPair");
-    EXPECT_EQ(spec.source_version, "AtomPair-1.1.0");
+    EXPECT_EQ(spec.source_type, "TopologicalAtomPair");
+    EXPECT_EQ(spec.source_version, "TopologicalAtomPair-1.1.0");
     EXPECT_EQ(
         spec.parameters,
-        "min_distance=1;max_distance=2;use_chirality=false;"
-        "use_2d=true;output=sparse_count");
+        "min_distance=1;max_distance=2;use_chirality=false;output=sparse_count");
 }
 
 TEST(AtomPairTest, GeneratesNonEmptySparseCountFingerprintForSimpleMolecule) {
@@ -282,37 +290,50 @@ TEST(AtomPairTest, GeneratedDescriptorsCarryStrictAtomPairSpec) {
     options.count_simulation = false;
 
     const auto descriptors = MakeAtomPairDescriptors(mol, options);
-    const auto& spec = descriptors.Spec();
+    const auto& schema = descriptors.Schema();
+    const auto& definition = schema.Definition(schema.IndexOf("atom_pair"));
 
-    EXPECT_EQ(descriptors.ValueType(), DescriptorValueType::String);
-    EXPECT_EQ(spec.value_type, DescriptorValueType::String);
-    EXPECT_EQ(spec.source_name, "OEFP");
-    EXPECT_EQ(spec.source_type, "AtomPair");
-    EXPECT_EQ(spec.source_version, "AtomPair-1.1.0");
+    EXPECT_EQ(definition.value_kind, DescriptorValueKind::CountedStringKeys);
+    EXPECT_EQ(definition.source_name, "OEFP");
+    EXPECT_EQ(definition.source_type, "TopologicalAtomPair");
+    EXPECT_EQ(definition.source_version, "TopologicalAtomPair-1.1.0");
     EXPECT_EQ(
-        spec.parameters,
-        "min_distance=1;max_distance=2;use_chirality=false;"
-        "use_2d=true;output=descriptors");
+        definition.parameters,
+        "min_distance=1;max_distance=2;use_chirality=false;output=descriptors");
+    EXPECT_EQ(definition.prerequisites, kDescriptorPrerequisiteGraph);
+    EXPECT_EQ(definition.prerequisites & kDescriptorPrerequisiteCoordinates2D, 0u);
+    EXPECT_EQ(definition.prerequisites & kDescriptorPrerequisiteCoordinates3D, 0u);
 }
 
 TEST(AtomPairTest, GeneratedDescriptorsUseRawAtomPairKeysAndCounts) {
     const auto ethane = mol_from_smiles("CC");
     const auto ethane_descriptors = MakeAtomPairDescriptors(ethane);
+    const auto& ethane_values = atom_pair_values(ethane_descriptors);
 
-    EXPECT_EQ(ethane_descriptors.TotalCount(), 1u);
-    EXPECT_EQ(ethane_descriptors.StringKeys(), std::vector<std::string>({"33_1_33"}));
-    EXPECT_EQ(ethane_descriptors.Counts(), std::vector<std::uint32_t>({1u}));
+    EXPECT_EQ(total_count(ethane_values), 1u);
+    EXPECT_EQ(ethane_values.keys, std::vector<std::string>({"33_1_33"}));
+    EXPECT_EQ(ethane_values.counts, std::vector<std::uint32_t>({1u}));
 
     const auto ethanol = mol_from_smiles("CCO");
     const auto ethanol_descriptors = MakeAtomPairDescriptors(ethanol);
+    const auto& ethanol_values = atom_pair_values(ethanol_descriptors);
 
-    EXPECT_EQ(ethanol_descriptors.TotalCount(), 3u);
+    EXPECT_EQ(total_count(ethanol_values), 3u);
     EXPECT_EQ(
-        ethanol_descriptors.StringKeys(),
+        ethanol_values.keys,
         std::vector<std::string>({"33_1_34", "33_2_97", "34_1_97"}));
     EXPECT_EQ(
-        ethanol_descriptors.Counts(),
+        ethanol_values.counts,
         std::vector<std::uint32_t>({1u, 1u, 1u}));
+}
+
+TEST(AtomPairTest, GeneratedDescriptorsUseCountedStringKeyValue) {
+    const auto descriptors = MakeAtomPairDescriptors(mol_from_smiles("CCO"));
+
+    EXPECT_TRUE(descriptors.Schema().Contains("atom_pair"));
+    const auto& value = descriptors.Value("atom_pair");
+    EXPECT_EQ(value.Kind(), DescriptorValueKind::CountedStringKeys);
+    EXPECT_GT(value.CountedStringKeys().size(), 0u);
 }
 
 TEST(AtomPairTest, DescriptorDistanceOptionsFilterRawAtomPairs) {
@@ -323,63 +344,69 @@ TEST(AtomPairTest, DescriptorDistanceOptionsFilterRawAtomPairs) {
     options.max_distance = 1;
 
     const auto descriptors = MakeAtomPairDescriptors(mol, options);
+    const auto& values = atom_pair_values(descriptors);
 
-    EXPECT_EQ(descriptors.TotalCount(), 2u);
+    EXPECT_EQ(total_count(values), 2u);
     EXPECT_EQ(
-        descriptors.StringKeys(),
+        values.keys,
         std::vector<std::string>({"33_1_34", "34_1_97"}));
     EXPECT_EQ(
-        descriptors.Counts(),
+        values.counts,
         std::vector<std::uint32_t>({1u, 1u}));
 }
 
 TEST(AtomPairTest, GeneratedDescriptorsCoverAromaticityValenceAndBranching) {
     const auto benzene_descriptors = MakeAtomPairDescriptors(mol_from_smiles("c1ccccc1"));
-    EXPECT_EQ(benzene_descriptors.TotalCount(), 15u);
+    const auto& benzene_values = atom_pair_values(benzene_descriptors);
+    EXPECT_EQ(total_count(benzene_values), 15u);
     EXPECT_EQ(
-        benzene_descriptors.StringKeys(),
+        benzene_values.keys,
         std::vector<std::string>({"42_1_42", "42_2_42", "42_3_42"}));
     EXPECT_EQ(
-        benzene_descriptors.Counts(),
+        benzene_values.counts,
         std::vector<std::uint32_t>({6u, 6u, 3u}));
 
     const auto pyridine_descriptors = MakeAtomPairDescriptors(mol_from_smiles("c1ccncc1"));
-    EXPECT_EQ(pyridine_descriptors.TotalCount(), 15u);
+    const auto& pyridine_values = atom_pair_values(pyridine_descriptors);
+    EXPECT_EQ(total_count(pyridine_values), 15u);
     EXPECT_EQ(
-        pyridine_descriptors.StringKeys(),
+        pyridine_values.keys,
         std::vector<std::string>(
             {"42_1_42", "42_1_74", "42_2_42", "42_2_74", "42_3_42", "42_3_74"}));
     EXPECT_EQ(
-        pyridine_descriptors.Counts(),
+        pyridine_values.counts,
         std::vector<std::uint32_t>({4u, 2u, 4u, 2u, 2u, 1u}));
 
     const auto acetaldehyde_descriptors = MakeAtomPairDescriptors(mol_from_smiles("CC=O"));
-    EXPECT_EQ(acetaldehyde_descriptors.TotalCount(), 3u);
+    const auto& acetaldehyde_values = atom_pair_values(acetaldehyde_descriptors);
+    EXPECT_EQ(total_count(acetaldehyde_values), 3u);
     EXPECT_EQ(
-        acetaldehyde_descriptors.StringKeys(),
+        acetaldehyde_values.keys,
         std::vector<std::string>({"33_1_42", "33_2_105", "42_1_105"}));
     EXPECT_EQ(
-        acetaldehyde_descriptors.Counts(),
+        acetaldehyde_values.counts,
         std::vector<std::uint32_t>({1u, 1u, 1u}));
 
     const auto acetonitrile_descriptors = MakeAtomPairDescriptors(mol_from_smiles("CC#N"));
-    EXPECT_EQ(acetonitrile_descriptors.TotalCount(), 3u);
+    const auto& acetonitrile_values = atom_pair_values(acetonitrile_descriptors);
+    EXPECT_EQ(total_count(acetonitrile_values), 3u);
     EXPECT_EQ(
-        acetonitrile_descriptors.StringKeys(),
+        acetonitrile_values.keys,
         std::vector<std::string>({"33_1_50", "33_2_81", "50_1_81"}));
     EXPECT_EQ(
-        acetonitrile_descriptors.Counts(),
+        acetonitrile_values.counts,
         std::vector<std::uint32_t>({1u, 1u, 1u}));
 
     const auto tertiary_chloride_descriptors =
         MakeAtomPairDescriptors(mol_from_smiles("CC(C)(C)Cl"));
-    EXPECT_EQ(tertiary_chloride_descriptors.TotalCount(), 10u);
+    const auto& tertiary_chloride_values = atom_pair_values(tertiary_chloride_descriptors);
+    EXPECT_EQ(total_count(tertiary_chloride_values), 10u);
     EXPECT_EQ(
-        tertiary_chloride_descriptors.StringKeys(),
+        tertiary_chloride_values.keys,
         std::vector<std::string>(
             {"33_1_36", "33_2_257", "33_2_33", "36_1_257"}));
     EXPECT_EQ(
-        tertiary_chloride_descriptors.Counts(),
+        tertiary_chloride_values.counts,
         std::vector<std::uint32_t>({3u, 3u, 3u, 1u}));
 }
 

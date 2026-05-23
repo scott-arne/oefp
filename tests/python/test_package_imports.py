@@ -1,8 +1,46 @@
 """Package import behavior tests."""
 
 import importlib
+import os
+from pathlib import Path
 import shutil
+import subprocess
 import sys
+
+import pytest
+
+
+def test_pyarrow_is_required_for_descriptor_storage():
+    """Descriptor storage relies on the PyArrow-distributed Arrow runtime."""
+    import pyarrow as pa
+    import pyarrow.parquet as pq
+
+    assert pa.__version__
+    assert pq is not None
+
+
+def test_oefp_import_preloads_pyarrow_runtime():
+    """A cold OEFP import should not require users to import PyArrow first."""
+    if not list(Path("python/oefp").glob("_oefp*")):
+        pytest.skip("native extension has not been built")
+
+    env = os.environ.copy()
+    python_path = str(Path("python").resolve())
+    if env.get("PYTHONPATH"):
+        python_path = f"{python_path}{os.pathsep}{env['PYTHONPATH']}"
+    env["PYTHONPATH"] = python_path
+
+    result = subprocess.run(
+        [sys.executable, "-c", "import oefp; print(oefp.__version__)"],
+        check=False,
+        cwd=Path.cwd(),
+        env=env,
+        stderr=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stderr
 
 
 def test_import_uses_user_cache_for_broken_openeye_runtime_compat_symlink(

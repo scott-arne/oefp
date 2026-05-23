@@ -16,14 +16,19 @@ The main Python components are:
 - :class:`OEFPBatch` - Dense binary batch storage
 - :class:`OEFPSparseBatch` - Sparse binary batch storage
 - :class:`OEFPCountBatch` - Sparse counted batch storage
-- :class:`DescriptorSet` - Raw typed feature keys with counts
-- :class:`DescriptorBatch` - Batch storage for descriptor sets
+- :class:`DescriptorDefinition` - Named descriptor column metadata
+- :class:`DescriptorSchema` - Ordered schema for named descriptor rows
+- :class:`DescriptorSet` - Raw counted descriptors or schema-backed named rows
+- :class:`DescriptorBatch` - Batch storage for descriptor rows
 - :class:`FingerprintSpec` - Read-only fingerprint metadata
 - :class:`DescriptorSpec` - Read-only descriptor metadata
 - :class:`Metric` - Scikit-learn-style distance metrics plus Tanimoto and
   Tversky similarity metrics
 - :class:`MorganGenerator` - Reusable Morgan dense-binary generator
-- :class:`AtomPairGenerator` - Reusable Atom Pair dense-binary generator
+- :class:`TopologicalAtomPairGenerator` - Reusable topological Atom Pair
+  dense-binary generator
+- :func:`mordred_schema` and :func:`mordred_descriptors` -
+  Mordred-compatible schema-backed descriptors
 
 For side-by-side RDKit, OEFP, and OEGraphSim examples, see
 :ref:`api-comparison`.
@@ -196,10 +201,143 @@ Batch Containers
 Descriptor Containers
 ---------------------
 
+OEFP has two descriptor row shapes:
+
+- **Raw counted descriptors** store feature keys and counts. Morgan and Atom
+  Pair descriptor factories use this shape, and the rows can be compared with
+  ``compare()``, ``cdist()``, and ``pdist()``.
+- **Schema-backed descriptors** store named scalar values against an ordered
+  :class:`DescriptorSchema`. Mordred-compatible descriptors use this shape.
+  Missing values are explicit ``None`` values in Python.
+
+Schema-backed rows and batches are tabular data. They support named access,
+column extraction, subsetting, and Arrow/Parquet interchange, but they are not
+accepted by the descriptor comparison kernels.
+
+.. data:: DESCRIPTOR_PREREQUISITE_NONE
+          DESCRIPTOR_PREREQUISITE_GRAPH
+          DESCRIPTOR_PREREQUISITE_COORDINATES_2D
+          DESCRIPTOR_PREREQUISITE_COORDINATES_3D
+          DESCRIPTOR_PREREQUISITE_ALL
+          TOPOLOGICAL_ATOM_PAIR_PREREQUISITES
+          DISTANCE_ATOM_PAIR_PREREQUISITES
+
+   Integer bitmap constants used by :class:`DescriptorDefinition`
+   ``prerequisites`` metadata.
+
+.. function:: descriptor_missing_prerequisites(required, available)
+
+   Return prerequisite bits that are required by a descriptor but absent from
+   an input.
+
+.. function:: descriptor_prerequisites_satisfied(required, available)
+
+   Return ``True`` when all required prerequisite bits are present.
+
+.. class:: DescriptorDefinition
+
+   Immutable metadata for one schema-backed descriptor column.
+
+   Constructor fields:
+
+   - ``name``
+   - ``value_type``: ``"float"``, ``"int"``, ``"bool"``, or ``"string"``
+   - ``group``
+   - ``source_name``
+   - ``source_type``
+   - ``source_version``
+   - ``parameters``
+   - ``units``
+   - ``description``
+   - ``prerequisites``
+
+   ``prerequisites`` is a ``uint32`` bitmap. Descriptor factories use this
+   metadata to leave values missing when the input molecule does not satisfy a
+   descriptor's requirements. The bitmap is also serialized in Arrow and
+   Parquet schema metadata.
+
+.. class:: DescriptorSchema
+
+   Ordered collection of :class:`DescriptorDefinition` objects.
+
+   .. attribute:: definitions
+
+      Tuple of descriptor definitions in schema order.
+
+   .. attribute:: names
+
+      Tuple of descriptor names in schema order.
+
+   .. attribute:: schema_id
+
+      Stable identifier derived from descriptor definitions and prerequisite
+      metadata.
+
+   .. method:: index(name)
+
+      Return the integer position for a descriptor name.
+
+   .. method:: group(group)
+
+      Return positions that belong to a descriptor group.
+
+   .. method:: subset(names)
+
+      Return a schema projected to descriptor names in selection order.
+
+   Example::
+
+      schema = oefp.DescriptorSchema(
+          [
+              oefp.DescriptorDefinition("MW", "float"),
+              oefp.DescriptorDefinition(
+                  "GeomDiameter",
+                  "float",
+                  prerequisites=oefp.DESCRIPTOR_PREREQUISITE_COORDINATES_3D,
+              ),
+          ]
+      )
+
 .. class:: DescriptorSet
 
-   Counted raw descriptors backed by typed feature keys. A set stores one key
-   vector for its active value type and a parallel ``uint32`` count vector.
+   Python wrapper for legacy raw counted descriptor rows or schema-backed
+   named descriptor rows.
+
+   For schema-backed rows, construct with ``DescriptorSet(schema, values)``.
+   Values are addressed by descriptor name and may be ``None`` when a
+   descriptor is unsupported or unavailable.
+
+   .. method:: DescriptorSet(schema, values, *, row_id="")
+
+      Create a schema-backed descriptor row from a
+      :class:`DescriptorSchema` and a mapping of descriptor names to values.
+
+   .. method:: subset(names)
+
+      Return a schema-backed row projected to named columns.
+
+   .. attribute:: schema
+
+      Descriptor schema for schema-backed rows.
+
+   .. attribute:: row_id
+
+      Optional row identifier for schema-backed rows.
+
+   Example::
+
+      schema = oefp.DescriptorSchema(
+          [
+              oefp.DescriptorDefinition("MW", "float"),
+              oefp.DescriptorDefinition("nAtom", "int"),
+          ]
+      )
+      row = oefp.DescriptorSet(schema, {"MW": 46.069, "nAtom": 9})
+      print(row["MW"])
+      print(row.subset(["nAtom"]).schema.names)
+
+   Raw counted descriptor rows store one key vector for their active value
+   type and a parallel ``uint32`` count vector.
 
    .. method:: DescriptorSet.from_strings(keys, counts=None, *, spec=None, source_name="OEFP", source_type="manual", source_version="", parameters="")
 
@@ -236,7 +374,7 @@ Descriptor Containers
 
       Read-only :class:`DescriptorSpec` metadata.
 
-   Example::
+   Raw counted example::
 
       desc = oefp.DescriptorSet.from_strings(
           ["aromatic_N", "aromatic_C", "aromatic_C"],
@@ -247,12 +385,80 @@ Descriptor Containers
 
 .. class:: DescriptorBatch
 
-   Contiguous descriptor batch using flattened keys, counts, and row offsets.
-   All rows must have matching :class:`DescriptorSpec` metadata.
+   Batch storage for raw counted descriptor rows or schema-backed named rows.
 
    .. method:: DescriptorBatch.from_descriptors(descriptors)
 
       Create a batch from compatible :class:`DescriptorSet` objects.
+
+   For schema-backed rows, all rows must have the same
+   :class:`DescriptorSchema`.
+
+   .. attribute:: schema
+
+      Shared schema for schema-backed batches.
+
+   .. attribute:: row_ids
+
+      Tuple of schema-backed row identifiers.
+
+   .. method:: float_column(name)
+
+      Return a floating-point descriptor column. Missing values are returned
+      as ``numpy.nan``.
+
+   .. method:: int_column(name)
+
+      Return an integer descriptor column. Columns with missing values use an
+      object dtype so ``None`` can be preserved.
+
+   .. method:: bool_column(name)
+
+      Return a boolean descriptor column. Columns with missing values use an
+      object dtype so ``None`` can be preserved.
+
+   .. method:: string_column(name)
+
+      Return a tuple of string or ``None`` values.
+
+   .. method:: column_validity(name)
+
+      Return a boolean NumPy mask where ``True`` marks present values.
+
+   .. method:: subset(names)
+
+      Return a schema-backed batch projected to named columns.
+
+   .. method:: to_arrow()
+
+      Convert a schema-backed descriptor batch to a ``pyarrow.Table`` with
+      OEFP schema metadata.
+
+   .. method:: DescriptorBatch.from_arrow(table)
+
+      Reconstruct a schema-backed batch from a ``pyarrow.Table`` produced by
+      :meth:`to_arrow`.
+
+   .. method:: write_parquet(path)
+
+      Write a schema-backed descriptor batch to Parquet.
+
+   .. method:: DescriptorBatch.read_parquet(path)
+
+      Read a schema-backed descriptor batch from Parquet.
+
+   Schema-backed example::
+
+      rows = [
+          oefp.mordred_descriptors(mol_a),
+          oefp.mordred_descriptors(mol_b),
+      ]
+      batch = oefp.DescriptorBatch.from_descriptors(rows)
+      print(batch.float_column("MW"))
+      print(batch.column_validity("GeomDiameter"))
+
+   Raw counted batches use flattened keys, counts, and row offsets. All rows
+   must have matching :class:`DescriptorSpec` metadata.
 
    .. attribute:: string_keys
                   integer_keys
@@ -317,7 +523,9 @@ Metrics and Comparison
 .. function:: compare(a, b, metric, *, descriptor_mode="count_overlap", num_threads=0, chunk_size=256)
 
    Compare two fingerprints, two descriptor sets, or one query object against a
-   matching batch.
+   matching batch. Descriptor comparison supports raw counted descriptor rows
+   and batches. Schema-backed descriptor rows are tabular data and are not
+   accepted by comparison kernels.
 
    Example::
 
@@ -341,10 +549,12 @@ Metrics and Comparison
 .. function:: cdist(a, b, metric, *, descriptor_mode="count_overlap", num_threads=0, chunk_size=256)
 
    Return row-major cross-comparison values for two matching batch containers.
+   Schema-backed descriptor batches are not accepted.
 
 .. function:: pdist(batch, metric, *, descriptor_mode="count_overlap", num_threads=0, chunk_size=256)
 
    Return SciPy-compatible condensed pairwise values for one batch.
+   Schema-backed descriptor batches are not accepted.
 
 Morgan Fingerprints
 -------------------
@@ -398,12 +608,13 @@ Morgan Fingerprints
 
    Generate Morgan fingerprints with RDKit-style bit environment mappings.
 
-Atom Pair Fingerprints
-----------------------
+Topological and Distance Atom Pair Fingerprints
+-----------------------------------------------
 
-.. class:: AtomPairGenerator(...)
+.. class:: TopologicalAtomPairGenerator(...)
 
-   Reusable generator for folded dense binary Atom Pair fingerprints.
+   Reusable generator for folded dense binary topological Atom Pair
+   fingerprints.
 
    Constructor options:
 
@@ -411,46 +622,111 @@ Atom Pair Fingerprints
    - ``max_distance=30``
    - ``num_bits=2048``
    - ``use_chirality=False``
-   - ``use_2d=True``
    - ``count_simulation=True``
    - ``count_bounds=None``
 
    .. method:: fingerprint(mol)
 
-      Generate a folded dense binary Atom Pair fingerprint.
+      Generate a folded dense binary topological Atom Pair fingerprint.
+
+.. class:: AtomPairGenerator(...)
+
+   Compatibility generator with RDKit-style options. ``use_2d=True`` selects
+   the topological/connectivity-distance model. ``use_2d=False`` selects the
+   separate Distance Atom Pair model and fails because Distance Atom Pair is
+   not implemented.
 
 .. function:: atom_pair_fingerprint(mol, *, min_distance=1, max_distance=30, num_bits=2048, ...)
+              topological_atom_pair_fingerprint(mol, *, min_distance=1, max_distance=30, num_bits=2048, ...)
 
-   Generate an RDKit-compatible folded binary Atom Pair fingerprint.
+   Generate a folded binary topological Atom Pair fingerprint. Topological
+   Atom Pair uses graph shortest-path distances and does not require 2D or 3D
+   coordinates.
 
 .. function:: atom_pair_count_fingerprint(mol, *, ...)
+              topological_atom_pair_count_fingerprint(mol, *, ...)
 
-   Generate a folded count Atom Pair fingerprint.
+   Generate a folded count topological Atom Pair fingerprint.
 
 .. function:: atom_pair_sparse_fingerprint(mol, *, ...)
+              topological_atom_pair_sparse_fingerprint(mol, *, ...)
 
-   Generate a sparse binary Atom Pair fingerprint.
+   Generate a sparse binary topological Atom Pair fingerprint.
 
 .. function:: atom_pair_sparse_count_fingerprint(mol, *, ...)
+              topological_atom_pair_sparse_count_fingerprint(mol, *, ...)
 
-   Generate a sparse count Atom Pair fingerprint.
+   Generate a sparse count topological Atom Pair fingerprint.
 
 .. function:: atom_pair_descriptors(mol, *, min_distance=1, max_distance=30, use_chirality=False, use_2d=True)
+              topological_atom_pair_descriptors(mol, *, min_distance=1, max_distance=30, use_chirality=False)
 
-   Generate raw counted Atom Pair descriptors as string-key
-   :class:`DescriptorSet` objects. Descriptor generation currently supports
-   2D, non-chiral Atom Pair features.
+   Generate raw counted topological Atom Pair descriptors as string-key
+   :class:`DescriptorSet` objects. Topological Atom Pair descriptors require
+   only molecular graph connectivity.
+
+.. function:: distance_atom_pair_fingerprint(mol, *, ...)
+              distance_atom_pair_count_fingerprint(mol, *, ...)
+              distance_atom_pair_sparse_fingerprint(mol, *, ...)
+              distance_atom_pair_sparse_count_fingerprint(mol, *, ...)
+              distance_atom_pair_descriptors(mol, *, ...)
+
+   Reserved entry points for 3D coordinate-distance Atom Pair outputs. These
+   functions require an input molecule with existing 3D coordinates and then
+   fail explicitly because Distance Atom Pair parity is not implemented.
 
 Mordred-Compatible Descriptors
 ------------------------------
 
+.. function:: mordred_schema()
+
+   Return the full generated Mordred 1.2.0 descriptor schema.
+
+   The schema preserves Mordred calculator order and includes descriptor
+   source metadata, group labels, serialized parameters, descriptions, value
+   types, and prerequisite bitmaps.
+
 .. function:: mordred_descriptors(mol)
 
-   Generate the supported Mordred-compatible integer count descriptor subset as
-   a string-key :class:`DescriptorSet`. The current subset includes aromatic
-   atom/bond counts, atom and element counts, and bond-count descriptors.
-   Zero-valued supported descriptors are omitted from storage and should be
-   interpreted as zero by consumers.
+   Generate Mordred-compatible descriptors as a schema-backed
+   :class:`DescriptorSet`.
+
+   The row uses :func:`mordred_schema`. Implemented descriptors are filled with
+   typed values. Descriptors that have not been implemented, cannot be
+   calculated for the molecule, or require unavailable prerequisites remain
+   ``None``.
+
+   OEFP does not generate 2D or 3D coordinates during descriptor calculation.
+   Mordred descriptors whose local Mordred definitions require 3D coordinates
+   declare ``DESCRIPTOR_PREREQUISITE_COORDINATES_3D``. If the input molecule is
+   a 2D or no-conformer molecule, those descriptors remain missing.
+
+   Example::
+
+      row = oefp.mordred_descriptors(mol)
+      schema = row.schema
+
+      print(row["MW"])
+      print(row["AMW"])
+
+      requires_3d = [
+          definition.name
+          for definition in schema.definitions
+          if (
+              definition.prerequisites
+              & oefp.DESCRIPTOR_PREREQUISITE_COORDINATES_3D
+          )
+      ]
+      print(row[requires_3d[0]])  # None unless mol already has 3D coords.
+
+   To build a tabular result across molecules, use
+   :class:`DescriptorBatch`::
+
+      batch = oefp.DescriptorBatch.from_descriptors(
+          [oefp.mordred_descriptors(mol) for mol in mols]
+      )
+      mw = batch.float_column("MW")
+      geom_present = batch.column_validity("GeomDiameter")
 
 Mapping Results
 ---------------
@@ -497,4 +773,8 @@ Unsupported options fail explicitly:
 
 - Morgan chirality
 - Atom Pair chirality
-- Atom Pair 3D-distance generation
+- Distance Atom Pair generation
+- Implicit 2D or 3D coordinate generation during descriptor calculation
+
+For Mordred-compatible descriptors, missing prerequisites are represented as
+missing descriptor values rather than silently generating coordinates.

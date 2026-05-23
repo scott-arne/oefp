@@ -1,9 +1,11 @@
 OEFP Documentation
 ==================
 
-**RDKit-compatible fingerprints for OpenEye molecules** - A high-performance
-C++ library with Python bindings for generating, storing, and comparing
-molecular fingerprints from OpenEye ``OEMolBase`` objects.
+**RDKit-compatible fingerprints and descriptor tables for OpenEye molecules**
+- A high-performance C++ library with Python bindings for generating, storing,
+and comparing molecular fingerprints from OpenEye ``OEMolBase`` objects.
+OEFP also exposes raw generator descriptors and schema-backed
+Mordred-compatible descriptor rows.
 
 .. note::
 
@@ -14,24 +16,32 @@ Overview
 
 OEFP provides tools for:
 
-- **Fingerprint Generation**: RDKit-compatible Morgan and Atom Pair
+- **Fingerprint Generation**: RDKit-compatible Morgan and topological Atom Pair
   fingerprints from OpenEye molecules
 - **Fingerprint Storage**: Dense binary, sparse binary, and sparse counted
   containers
 - **Batch Comparison**: Scalar, query-to-batch, ``cdist``, and condensed
   ``pdist`` kernels
+- **Descriptor Tables**: Raw counted Morgan and topological Atom Pair
+  descriptors, plus schema-backed Mordred-compatible descriptor rows with
+  missing-value support and Arrow/Parquet interchange
+- **Prerequisite Metadata**: Descriptor definitions can declare lightweight
+  prerequisite bitmaps such as existing 2D or 3D coordinates
 - **OpenEye Integration**: Native OpenEye molecule and ``OEFingerPrint``
   interoperability
 
 Key Features
 ------------
 
-- **RDKit-Compatible Output**: Morgan and Atom Pair generators are tested
+- **RDKit-Compatible Output**: Morgan and topological Atom Pair generators are tested
   against RDKit for supported options
 - **Fast Batch Kernels**: Contiguous batch storage with cached popcounts for
   high-throughput similarity and distance calculations
 - **Python Bindings**: SWIG-based Python bindings with read-only NumPy views
   over C++-owned memory
+- **Explicit Scientific Boundaries**: Descriptor calculators do not generate
+  2D or 3D coordinates implicitly; descriptors whose prerequisites are absent
+  remain unavailable
 
 Quick Links
 -----------

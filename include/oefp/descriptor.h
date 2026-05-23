@@ -1,12 +1,19 @@
 #ifndef OEFP_DESCRIPTOR_H
 #define OEFP_DESCRIPTOR_H
 
+#include "oefp/descriptor_schema.h"
+#include "oefp/descriptor_value.h"
+
 #include <cstddef>
 #include <cstdint>
+#include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
 namespace OEFP {
+
+class DescriptorSelection;
 
 enum class DescriptorValueType {
     Integer,
@@ -46,6 +53,10 @@ public:
         DescriptorSpec spec,
         std::vector<double> keys,
         std::vector<std::uint32_t> counts);
+    DescriptorSet(
+        std::shared_ptr<const DescriptorSchema> schema,
+        std::vector<std::optional<DescriptorValue>> values,
+        std::string row_id = "");
 
     static DescriptorSet FromStrings(
         DescriptorSpec spec,
@@ -86,18 +97,72 @@ public:
     const double* FloatKeyData() const;
     std::uint64_t FloatKeyDataAddress() const;
 
+    const DescriptorSchema& Schema() const;
+    std::shared_ptr<const DescriptorSchema> SchemaPtr() const;
+    const std::string& RowId() const;
+    bool Has(const std::string& name) const;
+    bool Has(std::size_t index) const;
+    const DescriptorValue& Value(const std::string& name) const;
+    const DescriptorValue& Value(std::size_t index) const;
+    const std::vector<std::optional<DescriptorValue>>& Values() const;
+    bool Bool(const std::string& name) const;
+    std::int64_t Int(const std::string& name) const;
+    double Float(const std::string& name) const;
+    const std::string& String(const std::string& name) const;
+    DescriptorSet Subset(const std::vector<std::string>& names) const;
+    DescriptorSet Subset(const DescriptorSelection& selection) const;
+
 private:
     DescriptorSpec spec_;
     std::vector<std::string> string_keys_;
     std::vector<std::int64_t> integer_keys_;
     std::vector<double> float_keys_;
     std::vector<std::uint32_t> counts_;
+    std::shared_ptr<const DescriptorSchema> schema_;
+    std::vector<std::optional<DescriptorValue>> values_;
+    std::string row_id_;
 
     void ValidateStorage() const;
+    void ValidateTypedStorage() const;
 };
 
 bool operator==(const DescriptorSet& lhs, const DescriptorSet& rhs);
 bool operator!=(const DescriptorSet& lhs, const DescriptorSet& rhs);
+
+class DescriptorSetBuilder {
+public:
+    /// \brief Build a schema-backed descriptor row.
+    ///
+    /// \param schema Shared descriptor schema for the row.
+    /// \param available_prerequisites Bitmap of prerequisites available on the
+    ///     input used to compute this row. Values set for descriptors whose
+    ///     required bits are absent are ignored and remain missing.
+    /// \throws std::invalid_argument: When the schema is null.
+    explicit DescriptorSetBuilder(
+        std::shared_ptr<const DescriptorSchema> schema,
+        DescriptorPrerequisites available_prerequisites = kDescriptorPrerequisiteAll);
+
+    /// \brief Set one descriptor value when its prerequisites are available.
+    ///
+    /// When the descriptor definition has prerequisite bits that are not
+    /// present in ``AvailablePrerequisites()``, the value is left missing.
+    ///
+    /// \throws std::out_of_range: When the descriptor name is not in the schema.
+    /// \throws std::invalid_argument: When the value kind or shape does not
+    ///     match the descriptor definition.
+    void Set(const std::string& name, DescriptorValue value);
+
+    /// \brief Return prerequisite bits available for this row.
+    DescriptorPrerequisites AvailablePrerequisites() const;
+
+    /// \brief Return the completed schema-backed descriptor row.
+    DescriptorSet Build(std::string row_id = "") const;
+
+private:
+    std::shared_ptr<const DescriptorSchema> schema_;
+    std::vector<std::optional<DescriptorValue>> values_;
+    DescriptorPrerequisites available_prerequisites_ = kDescriptorPrerequisiteAll;
+};
 
 } // namespace OEFP
 

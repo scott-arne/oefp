@@ -30,6 +30,8 @@ if(APPLE AND NOT CMAKE_OSX_DEPLOYMENT_TARGET)
 endif()
 
 # Dependencies
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+
 include(FetchContent)
 
 FetchContent_Declare(
@@ -52,6 +54,92 @@ endif()
 
 find_package(OpenEye REQUIRED)
 
+set(_OEFP_OPENEYE_SEARCH_PATHS
+    ${OPENEYE_LIB_DIR}
+    ${OPENEYE_RUNTIME_LIB_DIR}
+    ${OPENEYE_ROOT}/lib
+    ${OE_DIR}/lib
+    $ENV{OPENEYE_ROOT}/lib
+    $ENV{OE_DIR}/lib
+)
+if(OPENEYE_INCLUDE_DIR)
+    get_filename_component(_OEFP_OPENEYE_DEFAULT_LIB_DIR "${OPENEYE_INCLUDE_DIR}/../lib" ABSOLUTE)
+    list(APPEND _OEFP_OPENEYE_SEARCH_PATHS "${_OEFP_OPENEYE_DEFAULT_LIB_DIR}")
+endif()
+
+function(_oefp_find_openeye_library out_var library_name)
+    set(_OEFP_LIBRARY "")
+    if(OPENEYE_USE_SHARED)
+        foreach(_OEFP_SEARCH_PATH IN LISTS _OEFP_OPENEYE_SEARCH_PATHS)
+            if(_OEFP_SEARCH_PATH)
+                file(GLOB _OEFP_VERSIONED_LIBRARY
+                    "${_OEFP_SEARCH_PATH}/lib${library_name}-*.dylib"
+                    "${_OEFP_SEARCH_PATH}/lib${library_name}-*.so"
+                )
+                if(_OEFP_VERSIONED_LIBRARY)
+                    list(GET _OEFP_VERSIONED_LIBRARY 0 _OEFP_LIBRARY)
+                    break()
+                endif()
+            endif()
+        endforeach()
+    endif()
+    if(NOT _OEFP_LIBRARY)
+        unset(_OEFP_FOUND_LIBRARY CACHE)
+        find_library(_OEFP_FOUND_LIBRARY
+            NAMES ${library_name}
+            PATHS ${_OEFP_OPENEYE_SEARCH_PATHS}
+            NO_DEFAULT_PATH
+        )
+        set(_OEFP_LIBRARY "${_OEFP_FOUND_LIBRARY}")
+    endif()
+    set(${out_var} "${_OEFP_LIBRARY}" PARENT_SCOPE)
+endfunction()
+
+if(NOT TARGET OpenEye::OEMolProp)
+    if(OPENEYE_USE_SHARED)
+        foreach(_OEFP_OEMOLPROP_SEARCH_PATH IN LISTS _OEFP_OPENEYE_SEARCH_PATHS)
+            if(_OEFP_OEMOLPROP_SEARCH_PATH)
+                file(GLOB _OEFP_VERSIONED_OEMOLPROP
+                    "${_OEFP_OEMOLPROP_SEARCH_PATH}/liboemolprop-*.dylib"
+                    "${_OEFP_OEMOLPROP_SEARCH_PATH}/liboemolprop-*.so"
+                )
+                if(_OEFP_VERSIONED_OEMOLPROP)
+                    list(GET _OEFP_VERSIONED_OEMOLPROP 0 OEMOLPROP_LIBRARY)
+                    break()
+                endif()
+            endif()
+        endforeach()
+    endif()
+    if(NOT OEMOLPROP_LIBRARY)
+        find_library(OEMOLPROP_LIBRARY
+            NAMES oemolprop
+            PATHS ${_OEFP_OPENEYE_SEARCH_PATHS}
+            NO_DEFAULT_PATH
+        )
+    endif()
+    if(NOT OEMOLPROP_LIBRARY)
+        message(FATAL_ERROR "OpenEye OEMolProp library is required for Mordred-compatible descriptors.")
+    endif()
+    add_library(OpenEye::OEMolProp UNKNOWN IMPORTED)
+    set_target_properties(OpenEye::OEMolProp PROPERTIES
+        IMPORTED_LOCATION "${OEMOLPROP_LIBRARY}"
+        INTERFACE_INCLUDE_DIRECTORIES "${OPENEYE_INCLUDE_DIR}"
+        INTERFACE_LINK_LIBRARIES "OpenEye::OEChem"
+    )
+endif()
+
+find_package(Arrow CONFIG QUIET)
+find_package(Parquet CONFIG QUIET)
+
+if(TARGET Arrow::arrow_shared AND TARGET Parquet::parquet_shared)
+    set(OEFP_ARROW_TARGET Arrow::arrow_shared)
+    set(OEFP_PARQUET_TARGET Parquet::parquet_shared)
+else()
+    find_package(ArrowPython REQUIRED)
+    set(OEFP_ARROW_TARGET ArrowPython::Arrow)
+    set(OEFP_PARQUET_TARGET ArrowPython::Parquet)
+endif()
+
 # Library
 set(OEFP_SOURCES
     src/annotation.cpp
@@ -61,10 +149,15 @@ set(OEFP_SOURCES
     src/count.cpp
     src/count_batch.cpp
     src/descriptor.cpp
+    src/descriptor_arrow.cpp
     src/descriptor_batch.cpp
+    src/descriptor_schema.cpp
+    src/descriptor_selection.cpp
+    src/descriptor_value.cpp
     src/fingerprint.cpp
     src/metric.cpp
     src/mordred.cpp
+    src/mordred_schema.cpp
     src/morgan.cpp
     src/openeye.cpp
     src/sparse.cpp
@@ -74,6 +167,7 @@ set(OEFP_SOURCES
 add_library(oefp ${OEFP_SOURCES})
 
 set_target_properties(oefp PROPERTIES POSITION_INDEPENDENT_CODE ON)
+target_compile_features(oefp PRIVATE cxx_std_20)
 
 target_include_directories(oefp
     PUBLIC
@@ -85,6 +179,9 @@ target_link_libraries(oefp
     PUBLIC
         OpenEye::OEChem
         OpenEye::OEGraphSim
+        OpenEye::OEMolProp
+        ${OEFP_ARROW_TARGET}
+        ${OEFP_PARQUET_TARGET}
 )
 
 if(TARGET OpenEye::OEGrid)

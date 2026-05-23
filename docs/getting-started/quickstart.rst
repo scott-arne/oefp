@@ -93,15 +93,14 @@ Use Counted and Sparse Outputs
    print(sparse_binary.indices[:5])
    print(atom_pair_count.total_count)
 
-Compare Raw Descriptors
-^^^^^^^^^^^^^^^^^^^^^^^
+Compare Raw Counted Descriptors
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Raw descriptors keep unfurled feature keys and counts instead of folding them
 into a fixed-length fingerprint. Use ``morgan_descriptors()`` for raw Morgan
-environment identifiers, ``atom_pair_descriptors()`` for raw Atom Pair
-features, or ``mordred_descriptors()`` for the supported Mordred-compatible
-count subset. Descriptor sets use the same ``compare``, ``cdist``, and
-``pdist`` functions as fingerprints.
+environment identifiers or ``topological_atom_pair_descriptors()`` for raw
+topological Atom Pair features. These counted-key descriptor sets use the same
+``compare``, ``cdist``, and ``pdist`` functions as fingerprints.
 
 .. code-block:: python
 
@@ -113,11 +112,11 @@ count subset. Descriptor sets use the same ``compare``, ``cdist``, and
        oechem.OESmilesToMol(mol, smiles)
        return mol
 
-   query = oefp.atom_pair_descriptors(mol_from_smiles("c1ccncc1"))
+   query = oefp.topological_atom_pair_descriptors(mol_from_smiles("c1ccncc1"))
    library = [
-       oefp.atom_pair_descriptors(mol_from_smiles("c1ccccc1")),
-       oefp.atom_pair_descriptors(mol_from_smiles("c1ccc(O)cc1")),
-       oefp.atom_pair_descriptors(mol_from_smiles("CC(C)(C)Cl")),
+       oefp.topological_atom_pair_descriptors(mol_from_smiles("c1ccccc1")),
+       oefp.topological_atom_pair_descriptors(mol_from_smiles("c1ccc(O)cc1")),
+       oefp.topological_atom_pair_descriptors(mol_from_smiles("CC(C)(C)Cl")),
    ]
 
    batch = oefp.DescriptorBatch.from_descriptors(library)
@@ -153,6 +152,77 @@ Descriptor comparison modes control how counts are interpreted:
 - ``presence`` ignores counts and compares only whether a key is present.
 - ``exact_count`` treats a key as shared only when both molecules have the same
   count for that key.
+
+Work With Mordred-Compatible Descriptors
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+``mordred_descriptors()`` returns a schema-backed descriptor row. The row uses
+the full generated Mordred 1.2.0 schema, fills values for implemented
+descriptors, and leaves unsupported or unavailable values as ``None``. This is
+different from raw counted descriptors: schema-backed rows are named descriptor
+tables for analysis and export, not inputs to ``compare()``, ``cdist()``, or
+``pdist()``.
+
+.. code-block:: python
+
+   from openeye import oechem
+   import oefp
+
+   mol = oechem.OEGraphMol()
+   oechem.OESmilesToMol(mol, "CCO")
+
+   row = oefp.mordred_descriptors(mol)
+   schema = row.schema
+
+   print(schema.names[:5])
+   print(row["MW"])
+   print(row["AMW"])
+
+   three_d_bit = oefp.DESCRIPTOR_PREREQUISITE_COORDINATES_3D
+   three_d_names = [
+       definition.name
+       for definition in schema.definitions
+       if definition.prerequisites & three_d_bit
+   ]
+   print(three_d_names[:5])
+   print(row[three_d_names[0]])  # None for a molecule without 3D coordinates.
+
+Descriptor prerequisites are metadata and a calculation gate. OEFP descriptor
+calculators do not generate 2D or 3D coordinates implicitly. If a descriptor
+requires coordinates that the input molecule does not already have, the
+descriptor remains missing.
+
+Use schema-backed descriptor batches when you want tabular columns:
+
+.. code-block:: python
+
+   from openeye import oechem
+   import oefp
+
+   def mol_from_smiles(smiles: str) -> oechem.OEGraphMol:
+       mol = oechem.OEGraphMol()
+       oechem.OESmilesToMol(mol, smiles)
+       return mol
+
+   rows = [
+       oefp.mordred_descriptors(mol_from_smiles("CCO")),
+       oefp.mordred_descriptors(mol_from_smiles("c1ccccc1")),
+   ]
+
+   batch = oefp.DescriptorBatch.from_descriptors(rows)
+   print(batch.float_column("MW"))
+   print(batch.column_validity("GeomDiameter"))
+   subset = batch.subset(["MW", "AMW", "nAtom"])
+
+Schema-backed batches can also round-trip through Arrow and Parquet when
+``pyarrow`` is installed:
+
+.. code-block:: python
+
+   table = batch.to_arrow()
+   restored = oefp.DescriptorBatch.from_arrow(table)
+   restored.write_parquet("mordred.parquet")
+   from_disk = oefp.DescriptorBatch.read_parquet("mordred.parquet")
 
 Inspect Morgan Bit Mappings
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -201,7 +271,8 @@ API Comparison
 
 RDKit, OEFP, and OEGraphSim solve overlapping but different problems. RDKit
 owns the reference generator API for RDKit molecules. OEFP provides
-RDKit-compatible Morgan and Atom Pair fingerprints for OpenEye molecules.
+RDKit-compatible Morgan and topological Atom Pair fingerprints for OpenEye
+molecules.
 OEGraphSim provides native OpenEye fingerprint generation and similarity.
 
 .. list-table::
@@ -220,9 +291,9 @@ OEGraphSim provides native OpenEye fingerprint generation and similarity.
      - ``GetMorganGenerator(...).GetFingerprint(mol)``
      - ``oefp.morgan_fingerprint(mol, ...)``
      - ``OEMakeCircularFP(fp, mol, ...)``
-   * - Atom Pair fingerprint
+   * - Topological Atom Pair fingerprint
      - ``GetAtomPairGenerator(...).GetFingerprint(mol)``
-     - ``oefp.atom_pair_fingerprint(mol, ...)``
+     - ``oefp.topological_atom_pair_fingerprint(mol, ...)``
      - No RDKit-style Atom Pair generator surface
    * - Count and sparse Morgan outputs
      - ``GetCountFingerprint()``, ``GetSparseFingerprint()``,
@@ -233,9 +304,14 @@ OEGraphSim provides native OpenEye fingerprint generation and similarity.
    * - Raw counted descriptors
      - Sparse count fingerprints expose raw identifiers for supported
        generators
-     - ``morgan_descriptors()``, ``atom_pair_descriptors()``, and
-       ``mordred_descriptors()`` with ``DescriptorBatch``
+     - ``morgan_descriptors()`` and ``topological_atom_pair_descriptors()`` with
+       ``DescriptorBatch``
      - No raw descriptor batch comparison surface
+   * - Named molecular descriptor table
+     - Descriptor calculators such as Mordred are separate packages
+     - ``mordred_descriptors()`` with schema-backed ``DescriptorSet`` and
+       ``DescriptorBatch``
+     - Toolkit-specific descriptor packages
    * - Morgan bit provenance
      - ``AdditionalOutput`` with ``GetBitInfoMap()``
      - ``morgan_*_with_mapping(...).mapping.bit_info()``
@@ -446,10 +522,17 @@ Supported Generator Scope
      - Folded binary, folded count, sparse binary, sparse count, raw
        descriptors
      - Bit mapping is available for all Morgan outputs
-   * - Atom Pair
+   * - Topological Atom Pair
      - Folded binary, folded count, sparse binary, sparse count, raw
        descriptors
-     - Count simulation is enabled by default for binary output
+     - Uses graph shortest-path distances; no coordinate generation is needed
+   * - Distance Atom Pair
+     - Reserved unsupported surface
+     - Requires existing 3D coordinates and is not implemented yet
+   * - Mordred-compatible
+     - Schema-backed named descriptor rows and columnar batches
+     - 3D descriptors require existing 3D coordinates; no implicit conformer
+       generation is performed
    * - OpenEye
      - Import/export of ``OEFingerPrint``
      - Numeric type metadata is preserved when available
@@ -461,10 +544,11 @@ The unsupported paths fail explicitly:
 
 - Morgan chirality
 - Atom Pair chirality
-- Atom Pair 3D-distance generation
+- Distance Atom Pair generation
+- Implicit 2D or 3D coordinate generation during descriptor calculation
 
 These options will remain disabled until they have dedicated RDKit parity
-coverage.
+coverage or an explicit higher-level preparation API.
 
 Next Steps
 ----------

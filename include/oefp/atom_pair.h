@@ -12,16 +12,29 @@
 
 namespace OEFP {
 
-/// \brief Public options for RDKit-compatible Atom Pair fingerprints.
+/// \brief Public options for RDKit-compatible topological Atom Pair fingerprints.
 struct AtomPairOptions {
     std::uint32_t min_distance = 1;
     std::uint32_t max_distance = 30;
     std::uint32_t num_bits = 2048;
     bool use_chirality = false;
+    /// \brief RDKit compatibility flag.
+    ///
+    /// ``true`` selects topological graph distances. ``false`` selects
+    /// RDKit's 3D coordinate-distance Atom Pair model, which is represented as
+    /// a separate Distance Atom Pair concept and is not implemented yet.
     bool use_2d = true;
     bool count_simulation = true;
     std::vector<std::uint32_t> count_bounds{1u, 2u, 4u, 8u};
 };
+
+/// \brief Prerequisites for topological Atom Pair descriptors.
+inline constexpr DescriptorPrerequisites kTopologicalAtomPairPrerequisites =
+    1u;
+
+/// \brief Prerequisites for 3D coordinate-distance Atom Pair descriptors.
+inline constexpr DescriptorPrerequisites kDistanceAtomPairPrerequisites =
+    5u;
 
 /// \brief Benchmark-only native stage timing summary for Atom Pair generation.
 struct AtomPairGenerationProfile {
@@ -39,7 +52,7 @@ struct AtomPairGenerationProfile {
     double TotalSeconds() const;
 };
 
-/// \brief Reusable generator for RDKit-compatible dense Atom Pair fingerprints.
+/// \brief Reusable generator for RDKit-compatible dense topological Atom Pair fingerprints.
 class AtomPairGenerator {
 public:
     /// \brief Construct a reusable generator from validated Atom Pair options.
@@ -53,14 +66,14 @@ public:
     explicit AtomPairGenerator(AtomPairOptions options = AtomPairOptions{});
 #endif
 
-    /// \brief Generate a folded dense binary Atom Pair fingerprint.
+    /// \brief Generate a folded dense binary topological Atom Pair fingerprint.
     ///
     /// Count-simulation options are supported because they still produce dense
     /// binary output. Count and sparse output remain on the existing
     /// free-function APIs.
     ///
     /// \param mol Molecule to fingerprint.
-    /// \returns Dense binary Atom Pair fingerprint.
+    /// \returns Dense binary topological Atom Pair fingerprint.
     OEFP Fingerprint(const OEChem::OEMolBase& mol) const;
 
     /// \brief Return the normalized generator options.
@@ -71,14 +84,14 @@ private:
     FingerprintSpec binary_spec_;
 };
 
-/// \brief Generate an RDKit-compatible folded binary Atom Pair fingerprint.
+/// \brief Generate an RDKit-compatible folded binary topological Atom Pair fingerprint.
 ///
 /// The production implementation is OEFP-owned; RDKit is used only by
 /// conformance tests.
 ///
 /// \param mol Molecule to fingerprint.
 /// \param options Atom Pair generation options.
-/// \returns Dense binary Atom Pair fingerprint.
+/// \returns Dense binary topological Atom Pair fingerprint.
 /// \throws std::invalid_argument: When the requested options are unsupported
 ///     or invalid.
 #ifdef SWIG
@@ -91,7 +104,7 @@ OEFP MakeAtomPairFingerprint(
     const AtomPairOptions& options = AtomPairOptions{});
 #endif
 
-/// \brief Generate an RDKit-compatible folded count Atom Pair fingerprint.
+/// \brief Generate an RDKit-compatible folded count topological Atom Pair fingerprint.
 ///
 /// Counts are accumulated from the same atom-pair events used by the binary
 /// generator, then folded by ``raw_id % num_bits``. Count simulation is a
@@ -112,9 +125,9 @@ OEFPCount MakeAtomPairCountFingerprint(
     const AtomPairOptions& options = AtomPairOptions{});
 #endif
 
-/// \brief Generate an RDKit-compatible sparse binary Atom Pair fingerprint.
+/// \brief Generate an RDKit-compatible sparse binary topological Atom Pair fingerprint.
 ///
-/// Sparse Atom Pair fingerprints use RDKit's fixed sparse result size and keep
+/// Sparse topological Atom Pair fingerprints use RDKit's fixed sparse result size and keep
 /// count simulation enabled by default, matching
 /// ``GetAtomPairGenerator(...).GetSparseFingerprint()``.
 ///
@@ -133,9 +146,9 @@ OEFPSparse MakeAtomPairSparseFingerprint(
     const AtomPairOptions& options = AtomPairOptions{});
 #endif
 
-/// \brief Generate an RDKit-compatible sparse count Atom Pair fingerprint.
+/// \brief Generate an RDKit-compatible sparse count topological Atom Pair fingerprint.
 ///
-/// Sparse count Atom Pair fingerprints use RDKit's fixed raw Atom Pair
+/// Sparse count topological Atom Pair fingerprints use RDKit's fixed raw Atom Pair
 /// identifier domain. Count simulation is a binary-output concern and is
 /// ignored for this counted output, matching
 /// ``GetAtomPairGenerator(...).GetSparseCountFingerprint()``.
@@ -155,17 +168,18 @@ OEFPCount MakeAtomPairSparseCountFingerprint(
     const AtomPairOptions& options = AtomPairOptions{});
 #endif
 
-/// \brief Generate raw Atom Pair descriptors as typed string keys with counts.
+/// \brief Generate raw topological Atom Pair descriptors as a schema-backed counted-key row.
 ///
 /// The descriptor keys are OEFP-owned, unfurled Atom Pair feature identifiers
 /// of the form ``smaller_atom_code_distance_larger_atom_code``. They reuse the
 /// same atom-code and graph-distance model as the Atom Pair fingerprint
-/// generators but do not fold into a fixed-size fingerprint domain.
+/// generators but do not fold into a fixed-size fingerprint domain. The
+/// descriptor row contains one ``atom_pair`` column with counted string keys.
 ///
 /// \param mol Molecule to describe.
 /// \param options Atom Pair generation options. ``num_bits`` and count
 ///     simulation options do not affect descriptor output.
-/// \returns Counted string-key Atom Pair descriptors.
+/// \returns Schema-backed counted string-key Atom Pair descriptors.
 /// \throws std::invalid_argument: When the requested options are unsupported
 ///     or invalid.
 #ifdef SWIG

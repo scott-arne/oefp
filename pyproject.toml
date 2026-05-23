@@ -1,5 +1,5 @@
 [build-system]
-requires = ["scikit-build-core>=0.8", "swig>=4.0"]
+requires = ["scikit-build-core>=0.8", "swig>=4.0", "pyarrow>=24"]
 build-backend = "scikit_build_core.build"
 
 [project]
@@ -24,6 +24,7 @@ classifiers = [
 dependencies = [
     "numpy>=1.24",
     "openeye-toolkits>=2025.2",
+    "pyarrow>=24",
 ]
 
 [project.optional-dependencies]
@@ -95,11 +96,13 @@ package-name = "oefp"
 cmake-test-flag = "OEFP_BUILD_TESTS"
 rpath-strategy = "platform"  # "platform" = @loader_path/../openeye/libs/{platform}, "simple" = @loader_path
 
-# OpenEye libraries that are expected to be missing from delocate
-# (they are provided at runtime by openeye-toolkits, not bundled in the wheel)
+# External libraries that are expected to be missing from delocate.
+# OpenEye is provided at runtime by openeye-toolkits; Arrow and Parquet are
+# provided at runtime by pyarrow.
 expected-missing-libs = [
     "liboechem", "liboegraphsim", "liboegrid", "liboesystem", "liboeplatform",
-    "liboemath", "libzstd",
+    "liboemath", "liboemolprop", "libzstd",
+    "libarrow", "libparquet",
 ]
 
 # Additional CMake defines passed during wheel build (beyond the standard ones)

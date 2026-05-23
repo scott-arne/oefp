@@ -5,6 +5,7 @@
 
 #include <cmath>
 #include <cstdint>
+#include <memory>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -37,6 +38,19 @@ DescriptorSpec float_spec() {
     return spec;
 }
 
+std::shared_ptr<const DescriptorSchema> counted_string_schema() {
+    DescriptorSchemaBuilder builder;
+    builder.Add(DescriptorDefinition{
+        "raw",
+        DescriptorValueKind::CountedStringKeys,
+        "test",
+        "unit-test",
+        "descriptor",
+        "1",
+        "kind=string"});
+    return builder.Build();
+}
+
 } // namespace
 
 TEST(DescriptorCompareTest, CountOverlapTanimotoUsesMinMaxCounts) {
@@ -48,6 +62,18 @@ TEST(DescriptorCompareTest, CountOverlapTanimotoUsesMinMaxCounts) {
         {"alpha", "gamma", "gamma"});
 
     EXPECT_NEAR(Compare(a, b, Metric::Tanimoto()), 1.0 / 6.0, 1.0e-12);
+}
+
+TEST(DescriptorCompareTest, ComparesOneColumnCountedRowsThroughLegacyView) {
+    const auto schema = counted_string_schema();
+
+    DescriptorSetBuilder first(schema);
+    first.Set("raw", DescriptorValue::CountedStringKeys({"alpha", "beta"}, {2u, 1u}));
+
+    DescriptorSetBuilder second(schema);
+    second.Set("raw", DescriptorValue::CountedStringKeys({"alpha", "gamma"}, {1u, 2u}));
+
+    EXPECT_NEAR(Compare(first.Build(), second.Build(), Metric::Tanimoto()), 1.0 / 5.0, 1.0e-12);
 }
 
 TEST(DescriptorCompareTest, CountOverlapBooleanDimensionsUseWeightedUnion) {

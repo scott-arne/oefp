@@ -1,10 +1,58 @@
-"""Parity fixtures for the supported Mordred-compatible descriptor subset."""
+"""Parity fixtures for the supported Mordred-compatible descriptor surface."""
 
 from __future__ import annotations
 
+import json
+import math
+import sys
+from collections import Counter
+from importlib import resources
+from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
 import numpy as np
+import pytest
+
+import compare_mordred_parity
+
+REFERENCE_FIXTURE = Path(__file__).with_name("mordred_references.json")
+DIVERGENCE_FIXTURE = Path(__file__).with_name("mordred_divergences.json")
+POLICY_STATUSES = {"exact", "openeye_divergent", "deferred", "not_applicable"}
+POLICY_REQUIRED_FIELDS = {
+    "descriptor",
+    "family",
+    "status",
+    "source",
+    "primitive",
+    "reason",
+}
+ROW_DIVERGENCE_REQUIRED_FIELDS = {
+    "status",
+    "descriptor",
+    "smiles",
+    "reference",
+    "observed",
+    "source",
+    "primitive",
+    "reason",
+}
+GENERATED_OBSERVATION_REQUIRED_FIELDS = {
+    "status",
+    "descriptors",
+    "rows",
+    "source",
+    "primitive",
+    "reason",
+}
+_OPTIONAL_REFERENCE_MODULES_AT_IMPORT = {
+    name
+    for name in sys.modules
+    if name == "mordred"
+    or name.startswith("mordred.")
+    or name == "rdkit"
+    or name.startswith("rdkit.")
+}
 
 SUPPORTED_COUNT_NAMES = (
     "nAromAtom",
@@ -35,97 +83,742 @@ SUPPORTED_COUNT_NAMES = (
     "nX",
 )
 
-MORDRED_REFERENCES = {
-    "CCO": {
-        "nAromAtom": 0,
-        "nAromBond": 0,
-        "nAtom": 9,
-        "nHeavyAtom": 3,
-        "nHetero": 1,
-        "nH": 6,
-        "nB": 0,
-        "nC": 2,
-        "nN": 0,
-        "nO": 1,
-        "nS": 0,
-        "nP": 0,
-        "nF": 0,
-        "nCl": 0,
-        "nBr": 0,
-        "nI": 0,
-        "nX": 0,
-        "nBonds": 8,
-        "nBondsO": 2,
-        "nBondsS": 8,
-        "nBondsD": 0,
-        "nBondsT": 0,
-        "nBondsA": 0,
-        "nBondsM": 0,
-        "nBondsKS": 8,
-        "nBondsKD": 0,
-    },
-    "c1ccncc1": {
-        "nAromAtom": 6,
-        "nAromBond": 6,
-        "nAtom": 11,
-        "nHeavyAtom": 6,
-        "nHetero": 1,
-        "nH": 5,
-        "nB": 0,
-        "nC": 5,
-        "nN": 1,
-        "nO": 0,
-        "nS": 0,
-        "nP": 0,
-        "nF": 0,
-        "nCl": 0,
-        "nBr": 0,
-        "nI": 0,
-        "nX": 0,
-        "nBonds": 11,
-        "nBondsO": 6,
-        "nBondsS": 5,
-        "nBondsD": 0,
-        "nBondsT": 0,
-        "nBondsA": 6,
-        "nBondsM": 6,
-        "nBondsKS": 8,
-        "nBondsKD": 3,
-    },
-    "CC(C)(C)Cl": {
-        "nAromAtom": 0,
-        "nAromBond": 0,
-        "nAtom": 14,
-        "nHeavyAtom": 5,
-        "nHetero": 1,
-        "nH": 9,
-        "nB": 0,
-        "nC": 4,
-        "nN": 0,
-        "nO": 0,
-        "nS": 0,
-        "nP": 0,
-        "nF": 0,
-        "nCl": 1,
-        "nBr": 0,
-        "nI": 0,
-        "nX": 1,
-        "nBonds": 13,
-        "nBondsO": 4,
-        "nBondsS": 13,
-        "nBondsD": 0,
-        "nBondsT": 0,
-        "nBondsA": 0,
-        "nBondsM": 0,
-        "nBondsKS": 13,
-        "nBondsKD": 0,
-    },
+ESTATE_COUNT_NAMES = (
+    "NsLi",
+    "NssBe",
+    "NssssBe",
+    "NssBH",
+    "NsssB",
+    "NssssB",
+    "NsCH3",
+    "NdCH2",
+    "NssCH2",
+    "NtCH",
+    "NdsCH",
+    "NaaCH",
+    "NsssCH",
+    "NddC",
+    "NtsC",
+    "NdssC",
+    "NaasC",
+    "NaaaC",
+    "NssssC",
+    "NsNH3",
+    "NsNH2",
+    "NssNH2",
+    "NdNH",
+    "NssNH",
+    "NaaNH",
+    "NtN",
+    "NsssNH",
+    "NdsN",
+    "NaaN",
+    "NsssN",
+    "NddsN",
+    "NaasN",
+    "NssssN",
+    "NsOH",
+    "NdO",
+    "NssO",
+    "NaaO",
+    "NsF",
+    "NsSiH3",
+    "NssSiH2",
+    "NsssSiH",
+    "NssssSi",
+    "NsPH2",
+    "NssPH",
+    "NsssP",
+    "NdsssP",
+    "NsssssP",
+    "NsSH",
+    "NdS",
+    "NssS",
+    "NaaS",
+    "NdssS",
+    "NddssS",
+    "NsCl",
+    "NsGeH3",
+    "NssGeH2",
+    "NsssGeH",
+    "NssssGe",
+    "NsAsH2",
+    "NssAsH",
+    "NsssAs",
+    "NsssdAs",
+    "NsssssAs",
+    "NsSeH",
+    "NdSe",
+    "NssSe",
+    "NaaSe",
+    "NdssSe",
+    "NddssSe",
+    "NsBr",
+    "NsSnH3",
+    "NssSnH2",
+    "NsssSnH",
+    "NssssSn",
+    "NsI",
+    "NsPbH3",
+    "NssPbH2",
+    "NsssPbH",
+    "NssssPb",
+)
+
+ESTATE_SUM_NAMES = tuple("S" + name[1:] for name in ESTATE_COUNT_NAMES)
+ESTATE_MAX_NAMES = tuple("MAX" + name[1:] for name in ESTATE_COUNT_NAMES)
+ESTATE_MIN_NAMES = tuple("MIN" + name[1:] for name in ESTATE_COUNT_NAMES)
+AUTOCORRELATION_ATS_AATS_PROPERTIES = (
+    "Z",
+    "m",
+    "v",
+    "se",
+    "pe",
+    "are",
+    "p",
+    "i",
+    "dv",
+    "d",
+    "s",
+)
+AUTOCORRELATION_ATS_AATS_NAMES = tuple(
+    f"{kind}{index}{prop}"
+    for prop in AUTOCORRELATION_ATS_AATS_PROPERTIES
+    for kind in ("ATS", "AATS")
+    for index in range(9)
+)
+AUTOCORRELATION_ATSC_AATSC_NAMES = tuple(
+    f"{kind}{index}{prop}"
+    for prop in AUTOCORRELATION_ATS_AATS_PROPERTIES
+    for kind in ("ATSC", "AATSC")
+    for index in range(9)
+)
+AUTOCORRELATION_CHARGE_ATSC_AATSC_NAMES = tuple(
+    f"{kind}{index}c"
+    for kind in ("ATSC", "AATSC")
+    for index in range(9)
+)
+AUTOCORRELATION_MATS_GATS_PROPERTIES = (
+    "c",
+    "dv",
+    "d",
+    "s",
+    "Z",
+    "m",
+    "v",
+    "se",
+    "pe",
+    "are",
+    "p",
+    "i",
+)
+AUTOCORRELATION_MATS_GATS_NAMES = tuple(
+    f"{kind}{index}{prop}"
+    for prop in AUTOCORRELATION_MATS_GATS_PROPERTIES
+    for kind in ("MATS", "GATS")
+    for index in range(1, 9)
+)
+
+ENABLED_SOURCE_TYPES = {
+    "AcidBase",
+    "Aromatic",
+    "AtomCount",
+    "BaryszMatrix",
+    "BCUT",
+    "BondCount",
+    "CarbonTypes",
+    "Constitutional",
+    "DetourMatrix",
+    "HydrogenBond",
+    "InformationContent",
+    "Lipinski",
+    "LogS",
+    "McGowanVolume",
+    "MolecularId",
+    "Polarizability",
+    "RotatableBond",
+    "SLogP",
+    "TopoPSA",
+    "VdwVolumeABC",
+    "WalkCount",
+    "Weight",
+}
+
+NO_CONFORMER_3D_SOURCE_TYPES = {
+    "CPSA",
+    "GeometricalIndex",
+    "GravitationalIndex",
+    "MoRSE",
+    "MomentOfInertia",
+    "PBF",
+}
+CHARGE_ONLY_CPSA_DESCRIPTOR_NAMES = {"RNCG", "RPCG"}
+CPSA_SURFACE_DESCRIPTOR_NAMES = (
+    {f"PNSA{version}" for version in range(1, 6)}
+    | {f"PPSA{version}" for version in range(1, 6)}
+    | {f"DPSA{version}" for version in range(1, 6)}
+    | {f"FNSA{version}" for version in range(1, 6)}
+    | {f"FPSA{version}" for version in range(1, 6)}
+    | {f"WNSA{version}" for version in range(1, 6)}
+    | {f"WPSA{version}" for version in range(1, 6)}
+    | {"RNCS", "RPCS", "TASA", "TPSA", "RASA", "RPSA"}
+)
+MORSE_DESCRIPTOR_NAMES = {
+    f"Mor{distance:02d}{suffix}"
+    for suffix in ("", "m", "v", "se", "p")
+    for distance in range(1, 33)
+}
+IMPLEMENTED_3D_DESCRIPTOR_NAMES = {
+    "GeomDiameter",
+    "GeomRadius",
+    "GeomShapeIndex",
+    "GeomPetitjeanIndex",
+    "GRAV",
+    "GRAVH",
+    "GRAVp",
+    "GRAVHp",
+    "MOMI-X",
+    "MOMI-Y",
+    "MOMI-Z",
+    "PBF",
+} | MORSE_DESCRIPTOR_NAMES | CPSA_SURFACE_DESCRIPTOR_NAMES
+DESCRIPTOR_PREREQUISITE_COORDINATES_3D = 1 << 2
+
+ENABLED_DESCRIPTOR_NAMES = {
+    "ABC",
+    "ABCGG",
+    "BalabanJ",
+    "BertzCT",
+    "EState_VSA1",
+    "EState_VSA2",
+    "EState_VSA3",
+    "EState_VSA4",
+    "EState_VSA5",
+    "EState_VSA6",
+    "EState_VSA7",
+    "EState_VSA8",
+    "EState_VSA9",
+    "EState_VSA10",
+    "ETA_alpha",
+    "AETA_alpha",
+    "ETA_shape_p",
+    "ETA_shape_y",
+    "ETA_shape_x",
+    "ETA_beta",
+    "AETA_beta",
+    "ETA_beta_s",
+    "AETA_beta_s",
+    "ETA_beta_ns",
+    "AETA_beta_ns",
+    "ETA_beta_ns_d",
+    "AETA_beta_ns_d",
+    "ETA_eta",
+    "AETA_eta",
+    "ETA_eta_L",
+    "AETA_eta_L",
+    "ETA_eta_R",
+    "AETA_eta_R",
+    "ETA_eta_RL",
+    "AETA_eta_RL",
+    "ETA_eta_F",
+    "AETA_eta_F",
+    "ETA_eta_FL",
+    "AETA_eta_FL",
+    "ETA_eta_B",
+    "AETA_eta_B",
+    "ETA_eta_BR",
+    "AETA_eta_BR",
+    "ETA_dAlpha_A",
+    "ETA_dAlpha_B",
+    "ETA_epsilon_1",
+    "ETA_epsilon_2",
+    "ETA_epsilon_3",
+    "ETA_epsilon_4",
+    "ETA_epsilon_5",
+    "ETA_dEpsilon_A",
+    "ETA_dEpsilon_B",
+    "ETA_dEpsilon_C",
+    "ETA_dEpsilon_D",
+    "ETA_dBeta",
+    "AETA_dBeta",
+    "ETA_psi_1",
+    "ETA_dPsi_A",
+    "ETA_dPsi_B",
+    "LabuteASA",
+    "RNCG",
+    "RPCG",
+    "PEOE_VSA1",
+    "PEOE_VSA2",
+    "PEOE_VSA3",
+    "PEOE_VSA4",
+    "PEOE_VSA5",
+    "PEOE_VSA6",
+    "PEOE_VSA7",
+    "PEOE_VSA8",
+    "PEOE_VSA9",
+    "PEOE_VSA10",
+    "PEOE_VSA11",
+    "PEOE_VSA12",
+    "PEOE_VSA13",
+    "SMR_VSA1",
+    "SMR_VSA2",
+    "SMR_VSA3",
+    "SMR_VSA4",
+    "SMR_VSA5",
+    "SMR_VSA6",
+    "SMR_VSA7",
+    "SMR_VSA8",
+    "SMR_VSA9",
+    "SlogP_VSA1",
+    "SlogP_VSA2",
+    "SlogP_VSA3",
+    "SlogP_VSA4",
+    "SlogP_VSA5",
+    "SlogP_VSA6",
+    "SlogP_VSA7",
+    "SlogP_VSA8",
+    "SlogP_VSA9",
+    "SlogP_VSA10",
+    "SlogP_VSA11",
+    "VSA_EState1",
+    "VSA_EState2",
+    "VSA_EState3",
+    "VSA_EState4",
+    "VSA_EState5",
+    "VSA_EState6",
+    "VSA_EState7",
+    "VSA_EState8",
+    "VSA_EState9",
+    "SpAbs_A",
+    "SpMax_A",
+    "SpDiam_A",
+    "SpAD_A",
+    "SpMAD_A",
+    "LogEE_A",
+    "VE1_A",
+    "VE2_A",
+    "VE3_A",
+    "VR1_A",
+    "VR2_A",
+    "VR3_A",
+    "SpAbs_D",
+    "SpMax_D",
+    "SpDiam_D",
+    "SpAD_D",
+    "SpMAD_D",
+    "LogEE_D",
+    "VE1_D",
+    "VE2_D",
+    "VE3_D",
+    "VR1_D",
+    "VR2_D",
+    "VR3_D",
+    "SpAbs_Dt",
+    "SpMax_Dt",
+    "SpDiam_Dt",
+    "SpAD_Dt",
+    "SpMAD_Dt",
+    "LogEE_Dt",
+    "SM1_Dt",
+    "VE1_Dt",
+    "VE2_Dt",
+    "VE3_Dt",
+    "VR1_Dt",
+    "VR2_Dt",
+    "VR3_Dt",
+    "DetourIndex",
+    "SpAbs_DzZ",
+    "SpMax_DzZ",
+    "SpDiam_DzZ",
+    "SpAD_DzZ",
+    "SpMAD_DzZ",
+    "LogEE_DzZ",
+    "SM1_DzZ",
+    "VE1_DzZ",
+    "VE2_DzZ",
+    "VE3_DzZ",
+    "VR1_DzZ",
+    "VR2_DzZ",
+    "VR3_DzZ",
+    "MDEC-11",
+    "MDEC-12",
+    "MDEC-13",
+    "MDEC-14",
+    "MDEC-22",
+    "MDEC-23",
+    "MDEC-24",
+    "MDEC-33",
+    "MDEC-34",
+    "MDEC-44",
+    "MDEO-11",
+    "MDEO-12",
+    "MDEO-22",
+    "MDEN-11",
+    "MDEN-12",
+    "MDEN-13",
+    "MDEN-22",
+    "MDEN-23",
+    "MDEN-33",
+    "fMF",
+    "fragCpx",
+    "GGI1",
+    "GGI2",
+    "GGI3",
+    "GGI4",
+    "GGI5",
+    "GGI6",
+    "GGI7",
+    "GGI8",
+    "GGI9",
+    "GGI10",
+    "JGI1",
+    "JGI2",
+    "JGI3",
+    "JGI4",
+    "JGI5",
+    "JGI6",
+    "JGI7",
+    "JGI8",
+    "JGI9",
+    "JGI10",
+    "JGT10",
+    "AXp-0d",
+    "AXp-0dv",
+    "AXp-1d",
+    "AXp-1dv",
+    "AXp-2d",
+    "AXp-2dv",
+    "AXp-3d",
+    "AXp-3dv",
+    "AXp-4d",
+    "AXp-4dv",
+    "AXp-5d",
+    "AXp-5dv",
+    "AXp-6d",
+    "AXp-6dv",
+    "AXp-7d",
+    "AXp-7dv",
+    "Xch-3d",
+    "Xch-3dv",
+    "Xch-4d",
+    "Xch-4dv",
+    "Xch-5d",
+    "Xch-5dv",
+    "Xch-6d",
+    "Xch-6dv",
+    "Xch-7d",
+    "Xch-7dv",
+    "Xc-3d",
+    "Xc-3dv",
+    "Xc-4d",
+    "Xc-4dv",
+    "Xc-5d",
+    "Xc-5dv",
+    "Xc-6d",
+    "Xc-6dv",
+    "Xpc-4d",
+    "Xpc-4dv",
+    "Xpc-5d",
+    "Xpc-5dv",
+    "Xpc-6d",
+    "Xpc-6dv",
+    "MPC2",
+    "MPC3",
+    "MPC4",
+    "MPC5",
+    "MPC6",
+    "MPC7",
+    "MPC8",
+    "MPC9",
+    "MPC10",
+    "TMPC10",
+    "piPC1",
+    "piPC2",
+    "piPC3",
+    "piPC4",
+    "piPC5",
+    "piPC6",
+    "piPC7",
+    "piPC8",
+    "piPC9",
+    "piPC10",
+    "TpiPC10",
+    "Xp-0d",
+    "Xp-0dv",
+    "Xp-1d",
+    "Xp-1dv",
+    "Xp-2d",
+    "Xp-2dv",
+    "Xp-3d",
+    "Xp-3dv",
+    "Xp-4d",
+    "Xp-4dv",
+    "Xp-5d",
+    "Xp-5dv",
+    "Xp-6d",
+    "Xp-6dv",
+    "Xp-7d",
+    "Xp-7dv",
+    "Kier1",
+    "Kier2",
+    "Kier3",
+    "nRing",
+    "n3Ring",
+    "n4Ring",
+    "n5Ring",
+    "n6Ring",
+    "n7Ring",
+    "n8Ring",
+    "n9Ring",
+    "n10Ring",
+    "n11Ring",
+    "n12Ring",
+    "nG12Ring",
+    "nHRing",
+    "n3HRing",
+    "n4HRing",
+    "n5HRing",
+    "n6HRing",
+    "n7HRing",
+    "n8HRing",
+    "n9HRing",
+    "n10HRing",
+    "n11HRing",
+    "n12HRing",
+    "nG12HRing",
+    "naRing",
+    "n3aRing",
+    "n4aRing",
+    "n5aRing",
+    "n6aRing",
+    "n7aRing",
+    "n8aRing",
+    "n9aRing",
+    "n10aRing",
+    "n11aRing",
+    "n12aRing",
+    "nG12aRing",
+    "naHRing",
+    "n3aHRing",
+    "n4aHRing",
+    "n5aHRing",
+    "n6aHRing",
+    "n7aHRing",
+    "n8aHRing",
+    "n9aHRing",
+    "n10aHRing",
+    "n11aHRing",
+    "n12aHRing",
+    "nG12aHRing",
+    "nARing",
+    "n3ARing",
+    "n4ARing",
+    "n5ARing",
+    "n6ARing",
+    "n7ARing",
+    "n8ARing",
+    "n9ARing",
+    "n10ARing",
+    "n11ARing",
+    "n12ARing",
+    "nG12ARing",
+    "nAHRing",
+    "n3AHRing",
+    "n4AHRing",
+    "n5AHRing",
+    "n6AHRing",
+    "n7AHRing",
+    "n8AHRing",
+    "n9AHRing",
+    "n10AHRing",
+    "n11AHRing",
+    "n12AHRing",
+    "nG12AHRing",
+    "nFRing",
+    "n4FRing",
+    "n5FRing",
+    "n6FRing",
+    "n7FRing",
+    "n8FRing",
+    "n9FRing",
+    "n10FRing",
+    "n11FRing",
+    "n12FRing",
+    "nG12FRing",
+    "nFHRing",
+    "n4FHRing",
+    "n5FHRing",
+    "n6FHRing",
+    "n7FHRing",
+    "n8FHRing",
+    "n9FHRing",
+    "n10FHRing",
+    "n11FHRing",
+    "n12FHRing",
+    "nG12FHRing",
+    "nFaRing",
+    "n4FaRing",
+    "n5FaRing",
+    "n6FaRing",
+    "n7FaRing",
+    "n8FaRing",
+    "n9FaRing",
+    "n10FaRing",
+    "n11FaRing",
+    "n12FaRing",
+    "nG12FaRing",
+    "nFaHRing",
+    "n4FaHRing",
+    "n5FaHRing",
+    "n6FaHRing",
+    "n7FaHRing",
+    "n8FaHRing",
+    "n9FaHRing",
+    "n10FaHRing",
+    "n11FaHRing",
+    "n12FaHRing",
+    "nG12FaHRing",
+    "nFARing",
+    "n4FARing",
+    "n5FARing",
+    "n6FARing",
+    "n7FARing",
+    "n8FARing",
+    "n9FARing",
+    "n10FARing",
+    "n11FARing",
+    "n12FARing",
+    "nG12FARing",
+    "nFAHRing",
+    "n4FAHRing",
+    "n5FAHRing",
+    "n6FAHRing",
+    "n7FAHRing",
+    "n8FAHRing",
+    "n9FAHRing",
+    "n10FAHRing",
+    "n11FAHRing",
+    "n12FAHRing",
+    "nG12FAHRing",
+    "Diameter",
+    "ECIndex",
+    "PetitjeanIndex",
+    "Radius",
+    "TopoShapeIndex",
+    "VAdjMat",
+    "WPath",
+    "WPol",
+    "Zagreb1",
+    "Zagreb2",
+    "mZagreb1",
+    "mZagreb2",
 }
 
 
-def _openeye_mol(smiles: str) -> Any:
-    import pytest
+def _reference_payload() -> dict[str, Any]:
+    with REFERENCE_FIXTURE.open(encoding="utf-8") as handle:
+        return json.load(handle)
 
+
+def _divergence_payload() -> dict[str, Any]:
+    with DIVERGENCE_FIXTURE.open(encoding="utf-8") as handle:
+        return json.load(handle)
+
+
+def _package_reference_payload() -> dict[str, Any]:
+    fixture = resources.files("oefp").joinpath("mordred_references.json")
+    assert fixture.is_file()
+    with fixture.open(encoding="utf-8") as handle:
+        return json.load(handle)
+
+
+def _mordred_references() -> dict[str, dict[str, int]]:
+    payload = _reference_payload()
+    descriptor_names = [definition["name"] for definition in payload["definitions"]]
+    references = {}
+    for row in payload["reference_rows"]:
+        values_by_name = dict(zip(descriptor_names, row["values"], strict=True))
+        references[row["smiles"]] = {
+            name: int(values_by_name[name]) for name in SUPPORTED_COUNT_NAMES
+        }
+    return references
+
+
+def _definition_names(payload: dict[str, Any]) -> tuple[str, ...]:
+    return tuple(definition["name"] for definition in payload["definitions"])
+
+
+def _enabled_descriptor_names(payload: dict[str, Any]) -> tuple[str, ...]:
+    return tuple(
+        definition["name"]
+        for definition in payload["definitions"]
+        if definition["source_type"] in ENABLED_SOURCE_TYPES
+        or definition["name"] in ENABLED_DESCRIPTOR_NAMES
+        or definition["name"] in AUTOCORRELATION_ATS_AATS_NAMES
+        or definition["name"] in AUTOCORRELATION_ATSC_AATSC_NAMES
+        or definition["name"] in AUTOCORRELATION_CHARGE_ATSC_AATSC_NAMES
+        or definition["name"] in AUTOCORRELATION_MATS_GATS_NAMES
+        or definition["name"] in ESTATE_COUNT_NAMES
+        or definition["name"] in ESTATE_SUM_NAMES
+        or definition["name"] in ESTATE_MAX_NAMES
+        or definition["name"] in ESTATE_MIN_NAMES
+        or (
+            definition["source_type"] in NO_CONFORMER_3D_SOURCE_TYPES
+            and definition["name"] not in CHARGE_ONLY_CPSA_DESCRIPTOR_NAMES
+        )
+    )
+
+
+def _no_conformer_3d_descriptor_names(payload: dict[str, Any]) -> tuple[str, ...]:
+    return tuple(
+        definition["name"]
+        for definition in payload["definitions"]
+        if definition["source_type"] in NO_CONFORMER_3D_SOURCE_TYPES
+        and definition["name"] not in CHARGE_ONLY_CPSA_DESCRIPTOR_NAMES
+    )
+
+
+def _not_applicable_no_conformer_3d_descriptor_names(
+    payload: dict[str, Any],
+) -> tuple[str, ...]:
+    return tuple(
+        name
+        for name in _no_conformer_3d_descriptor_names(payload)
+        if name not in IMPLEMENTED_3D_DESCRIPTOR_NAMES
+    )
+
+
+def _policy_descriptors_by_status(status: str) -> tuple[str, ...]:
+    return tuple(
+        policy["descriptor"]
+        for policy in _divergence_payload()["policies"]
+        if policy["status"] == status
+    )
+
+
+def _row_divergence_policy() -> dict[tuple[str, str], dict[str, Any]]:
+    return {
+        (row["descriptor"], row["smiles"]): row
+        for row in _divergence_payload()["row_divergences"]
+        if row["status"] == "openeye_divergent"
+    }
+
+
+def _generated_observation_policy() -> dict[tuple[str, str], Any]:
+    observations: dict[tuple[str, str], Any] = {}
+    for block in _divergence_payload()["generated_observations"]:
+        descriptors = tuple(block["descriptors"])
+        for row in block["rows"]:
+            for descriptor, observed in zip(descriptors, row["values"], strict=True):
+                observations[(descriptor, row["smiles"])] = observed
+    return observations
+
+
+def _reference_values_by_name(payload: dict[str, Any], row: dict[str, Any]) -> dict[str, Any]:
+    return dict(zip(_definition_names(payload), row["values"], strict=True))
+
+
+def _openeye_mol(smiles: str) -> Any:
     oechem = pytest.importorskip("openeye.oechem", reason="OpenEye Toolkits not installed")
 
     mol = oechem.OEGraphMol()
@@ -150,32 +843,783 @@ def _count_tanimoto(left: dict[str, int], right: dict[str, int]) -> float:
 def test_mordred_descriptors_match_copied_reference_values():
     import oefp
 
-    for smiles, expected in MORDRED_REFERENCES.items():
+    for smiles, expected in _mordred_references().items():
         descriptors = oefp.mordred_descriptors(_openeye_mol(smiles))
-        counts = _descriptor_counts(descriptors)
 
-        assert descriptors.value_type == "string"
-        assert descriptors.spec.value_type == "string"
-        assert descriptors.spec.source_name == "Mordred-compatible"
-        assert descriptors.spec.source_type == "MordredCount"
-        assert descriptors.spec.source_version == "Mordred-1.2.0"
-        assert descriptors.spec.parameters == "preset=atom_bond_count;zero_counts=omitted"
+        assert descriptors.schema == oefp.mordred_schema()
         for name in SUPPORTED_COUNT_NAMES:
-            assert _count_or_zero(counts, name) == expected[name]
+            assert descriptors[name] == expected[name]
 
 
 def test_mordred_descriptors_compare_with_existing_descriptor_surface():
     import oefp
 
     query = oefp.mordred_descriptors(_openeye_mol("CCO"))
-    library_smiles = ["CCO", "c1ccncc1", "CC(C)(C)Cl"]
-    library = [oefp.mordred_descriptors(_openeye_mol(smiles)) for smiles in library_smiles]
-    batch = oefp.DescriptorBatch.from_descriptors(library)
-
-    expected = np.array(
-        [
-            _count_tanimoto(MORDRED_REFERENCES["CCO"], MORDRED_REFERENCES[smiles])
-            for smiles in library_smiles
-        ]
+    batch = oefp.DescriptorBatch.from_descriptors(
+        [oefp.mordred_descriptors(_openeye_mol("CCO"))]
     )
-    np.testing.assert_allclose(oefp.compare(query, batch, oefp.Metric.tanimoto()), expected)
+
+    assert query.schema == oefp.mordred_schema()
+    assert batch.schema == oefp.mordred_schema()
+    with np.testing.assert_raises(TypeError):
+        oefp.compare(query, batch, oefp.Metric.tanimoto())
+
+
+def test_mordred_descriptors_leave_no_conformer_3d_values_missing():
+    import oefp
+
+    mol = _openeye_mol("CCO")
+    assert mol.NumAtoms() == 3
+    assert mol.GetDimension() == 0
+
+    descriptors = oefp.mordred_descriptors(mol)
+
+    for name in IMPLEMENTED_3D_DESCRIPTOR_NAMES:
+        assert descriptors[name] is None, name
+
+    assert mol.NumAtoms() == 3
+    assert mol.GetDimension() == 0
+
+
+def test_mordred_descriptors_leave_no_conformer_morse_values_missing():
+    import oefp
+
+    mol = _openeye_mol("CCO")
+    assert mol.NumAtoms() == 3
+    assert mol.GetDimension() == 0
+
+    descriptors = oefp.mordred_descriptors(mol)
+
+    for name in ("Mor01", "Mor01m", "Mor02", "Mor32", "Mor02v", "Mor02se", "Mor32p"):
+        assert descriptors[name] is None, name
+
+    assert mol.NumAtoms() == 3
+    assert mol.GetDimension() == 0
+
+
+def test_mordred_schema_marks_3d_descriptor_prerequisites():
+    import oefp
+
+    definitions = {definition.name: definition for definition in oefp.mordred_schema().definitions}
+
+    for name in ("GeomDiameter", "Mor01", "PNSA1"):
+        assert (
+            definitions[name].prerequisites & DESCRIPTOR_PREREQUISITE_COORDINATES_3D
+        ) == DESCRIPTOR_PREREQUISITE_COORDINATES_3D
+    assert (
+        definitions["nAtom"].prerequisites & DESCRIPTOR_PREREQUISITE_COORDINATES_3D
+    ) == 0
+
+
+def test_mordred_schema_matches_committed_fixture_definitions():
+    import oefp
+
+    payload = _reference_payload()
+    schema = oefp.mordred_schema()
+
+    assert len(schema.definitions) == 1826
+    assert schema.names == _definition_names(payload)
+
+
+def test_packaged_mordred_reference_matches_test_fixture():
+    assert _package_reference_payload() == _reference_payload()
+
+
+def test_mordred_descriptors_match_enabled_reference_values():
+    import oefp
+
+    payload = _reference_payload()
+    names = _enabled_descriptor_names(payload)
+    row_divergences = _row_divergence_policy()
+    generated_observations = _generated_observation_policy()
+    row_policies = {
+        (row["descriptor"], row["smiles"]): row
+        for row in _divergence_payload()["row_divergences"]
+    }
+    descriptor_policies = {
+        policy["descriptor"]: policy for policy in _divergence_payload()["policies"]
+    }
+    all_names = _definition_names(payload)
+    no_conformer_3d_names = _no_conformer_3d_descriptor_names(payload)
+    not_applicable_no_conformer_3d_names = (
+        _not_applicable_no_conformer_3d_descriptor_names(payload)
+    )
+
+    assert len(names) == 1826
+    assert set(names) == set(all_names)
+    assert len(set(all_names) - set(names)) == 0
+    assert len(no_conformer_3d_names) == 213
+    assert len(not_applicable_no_conformer_3d_names) == 0
+    assert set(no_conformer_3d_names) <= set(names)
+    assert IMPLEMENTED_3D_DESCRIPTOR_NAMES <= set(no_conformer_3d_names)
+    assert CPSA_SURFACE_DESCRIPTOR_NAMES <= IMPLEMENTED_3D_DESCRIPTOR_NAMES
+    assert set(AUTOCORRELATION_ATS_AATS_NAMES) <= set(names)
+    assert set(AUTOCORRELATION_ATSC_AATSC_NAMES) <= set(names)
+    assert set(AUTOCORRELATION_CHARGE_ATSC_AATSC_NAMES) <= set(names)
+    assert set(AUTOCORRELATION_MATS_GATS_NAMES) <= set(names)
+    assert set(ESTATE_COUNT_NAMES) <= set(names)
+    assert set(ESTATE_SUM_NAMES) <= set(names)
+    assert set(ESTATE_MAX_NAMES) <= set(names)
+    assert set(ESTATE_MIN_NAMES) <= set(names)
+    assert {"VR1_A", "VR2_A", "VR3_A", "VR1_D", "VR2_D", "VR3_D"} <= set(names)
+    assert {"SpAbs_Dt", "VR1_Dt", "VR2_Dt", "VR3_Dt", "DetourIndex"} <= set(names)
+    assert {"SM1_DzZ", "VR1_DzZ", "VR2_DzZ", "VR3_DzZ"} <= set(names)
+    assert {"SpAbs_Dzm", "VR3_Dzm", "SpAbs_Dzi", "VR3_Dzi"} <= set(names)
+    assert {"BCUTc-1h", "BCUTc-1l", "BCUTi-1h", "BCUTi-1l"} <= set(names)
+    assert {"RNCG", "RPCG"} <= set(names)
+    assert {"MDEC-11", "MDEC-12", "MDEC-44"} <= set(names)
+    assert {"MDEO-11", "MDEO-12", "MDEO-22"} <= set(names)
+    assert {"MDEN-11", "MDEN-12", "MDEN-33"} <= set(names)
+    assert {"IC0", "TIC5", "SIC5", "BIC5", "CIC5", "MIC5", "ZMIC5"} <= set(names)
+    assert "fMF" in names
+    assert "fragCpx" in names
+    assert "LabuteASA" in names
+    assert {f"PEOE_VSA{index}" for index in range(1, 14)} <= set(names)
+    assert {f"SMR_VSA{index}" for index in range(1, 10)} <= set(names)
+    assert {f"SlogP_VSA{index}" for index in range(1, 12)} <= set(names)
+    assert {f"EState_VSA{index}" for index in range(1, 11)} <= set(names)
+    assert {f"VSA_EState{index}" for index in range(1, 10)} <= set(names)
+    assert {"ETA_alpha", "ETA_eta_BR", "ETA_epsilon_5", "ETA_dPsi_B"} <= set(names)
+    assert {"MID", "AMID", "MID_h", "AMID_h", "MID_X", "AMID_X"} <= set(names)
+    assert CHARGE_ONLY_CPSA_DESCRIPTOR_NAMES <= set(names)
+    for row in payload["reference_rows"]:
+        smiles = row["smiles"]
+        descriptors = oefp.mordred_descriptors(_openeye_mol(row["smiles"]))
+        expected_by_name = _reference_values_by_name(payload, row)
+
+        assert descriptors.schema == oefp.mordred_schema()
+        for name in names:
+            expected = expected_by_name[name]
+            actual = descriptors[name]
+            row_divergence = row_divergences.get((name, smiles))
+            if row_divergence is not None:
+                assert expected == row_divergence["reference"]
+                assert actual == row_divergence["observed"]
+                continue
+            descriptor_policy = descriptor_policies.get(name, {})
+            if (
+                descriptor_policy.get("status") == "openeye_divergent"
+                and isinstance(expected, dict)
+            ):
+                assert expected["state"] in {"missing", "error", "nonfinite"}
+                if actual is None:
+                    assert row_policies[(name, smiles)]["status"] == "not_applicable"
+                else:
+                    assert math.isfinite(actual)
+                    assert actual == pytest.approx(
+                        generated_observations[(name, smiles)],
+                        rel=1e-8,
+                        abs=1e-8,
+                    )
+                continue
+            if isinstance(expected, dict):
+                assert expected["state"] in {"missing", "error", "nonfinite"}
+                assert actual is None
+            elif isinstance(expected, float):
+                assert actual is not None
+                assert actual == pytest.approx(expected, rel=1e-8, abs=1e-8)
+            else:
+                assert actual == expected
+
+
+def test_no_mordred_filter_descriptors_remain_deferred():
+    assert "Lipinski" not in _policy_descriptors_by_status("deferred")
+    assert "GhoseFilter" not in _policy_descriptors_by_status("deferred")
+
+
+def test_parity_harness_rejects_concrete_values_for_deferred_descriptors(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    fake_oefp = SimpleNamespace(mordred_descriptors=lambda _mol: {"DeferredFlag": True})
+    monkeypatch.setitem(sys.modules, "oefp", fake_oefp)
+    monkeypatch.setattr(compare_mordred_parity, "_openeye_mol", lambda smiles: smiles)
+
+    references = {
+        "definitions": [
+            {
+                "name": "DeferredFlag",
+                "source_type": "DeferredFamily",
+            }
+        ],
+        "reference_rows": [
+            {
+                "smiles": "CCO",
+                "values": [False],
+            }
+        ],
+    }
+    policy = {
+        "policies": [
+            {
+                "descriptor": "DeferredFlag",
+                "status": "deferred",
+            }
+        ],
+        "row_divergences": [],
+    }
+
+    counts, unclassified = compare_mordred_parity._compare(
+        references,
+        policy,
+        ("DeferredFlag",),
+    )
+
+    assert counts == {
+        "exact": 0,
+        "accepted_divergences": 0,
+        "deferred": 0,
+        "not_applicable": 0,
+        "unclassified": 1,
+    }
+    assert unclassified == [
+        "DeferredFlag CCO: deferred descriptor produced concrete value True "
+        "primitive=DeferredFamily"
+    ]
+
+
+def test_parity_harness_rejects_invalid_not_applicable_values(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    fake_oefp = SimpleNamespace(
+        mordred_descriptors=lambda _mol: {
+            "MissingReferenceConcreteObserved": 7,
+            "ConcreteReferenceNoneObserved": None,
+        }
+    )
+    monkeypatch.setitem(sys.modules, "oefp", fake_oefp)
+    monkeypatch.setattr(compare_mordred_parity, "_openeye_mol", lambda smiles: smiles)
+
+    references = {
+        "definitions": [
+            {
+                "name": "MissingReferenceConcreteObserved",
+                "source_type": "ThreeD",
+            },
+            {
+                "name": "ConcreteReferenceNoneObserved",
+                "source_type": "ThreeD",
+            },
+        ],
+        "reference_rows": [
+            {
+                "smiles": "CCO",
+                "values": [
+                    {
+                        "state": "missing",
+                        "error_type": "Missing3DCoordinate",
+                    },
+                    3.0,
+                ],
+            }
+        ],
+    }
+    policy = {
+        "policies": [
+            {
+                "descriptor": "MissingReferenceConcreteObserved",
+                "status": "not_applicable",
+            },
+            {
+                "descriptor": "ConcreteReferenceNoneObserved",
+                "status": "not_applicable",
+            },
+        ],
+        "row_divergences": [],
+    }
+
+    counts, unclassified = compare_mordred_parity._compare(
+        references,
+        policy,
+        ("MissingReferenceConcreteObserved", "ConcreteReferenceNoneObserved"),
+    )
+
+    assert counts == {
+        "exact": 0,
+        "accepted_divergences": 0,
+        "deferred": 0,
+        "not_applicable": 0,
+        "unclassified": 2,
+    }
+    assert unclassified == [
+        "MissingReferenceConcreteObserved CCO: "
+        "reference={'state': 'missing', 'error_type': 'Missing3DCoordinate'} "
+        "observed=7 primitive=ThreeD",
+        "ConcreteReferenceNoneObserved CCO: reference=3.0 observed=None "
+        "primitive=ThreeD",
+    ]
+
+
+def test_parity_harness_rejects_openeye_divergent_missing_reference_without_row_policy(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    fake_oefp = SimpleNamespace(
+        mordred_descriptors=lambda _mol: {
+            "Generated3D": 1.25,
+        }
+    )
+    monkeypatch.setitem(sys.modules, "oefp", fake_oefp)
+    monkeypatch.setattr(compare_mordred_parity, "_openeye_mol", lambda smiles: smiles)
+
+    references = {
+        "definitions": [
+            {
+                "name": "Generated3D",
+                "source_type": "ThreeD",
+            }
+        ],
+        "reference_rows": [
+            {
+                "smiles": "CCO",
+                "values": [
+                    {
+                        "state": "missing",
+                        "error_type": "Missing3DCoordinate",
+                    }
+                ],
+            }
+        ],
+    }
+    policy = {
+        "policies": [
+            {
+                "descriptor": "Generated3D",
+                "status": "openeye_divergent",
+            }
+        ],
+        "row_divergences": [],
+    }
+
+    counts, unclassified = compare_mordred_parity._compare(
+        references,
+        policy,
+        ("Generated3D",),
+    )
+
+    assert counts == {
+        "exact": 0,
+        "accepted_divergences": 0,
+        "deferred": 0,
+        "not_applicable": 0,
+        "unclassified": 1,
+    }
+    assert unclassified == [
+        "Generated3D CCO: "
+        "reference={'state': 'missing', 'error_type': 'Missing3DCoordinate'} "
+        "observed=1.25 primitive=ThreeD"
+    ]
+
+
+def test_parity_harness_rejects_unlisted_openeye_divergent_missing_values(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    fake_oefp = SimpleNamespace(
+        mordred_descriptors=lambda _mol: {
+            "Generated3D": None,
+        }
+    )
+    monkeypatch.setitem(sys.modules, "oefp", fake_oefp)
+    monkeypatch.setattr(compare_mordred_parity, "_openeye_mol", lambda smiles: smiles)
+
+    references = {
+        "definitions": [
+            {
+                "name": "Generated3D",
+                "source_type": "ThreeD",
+            }
+        ],
+        "reference_rows": [
+            {
+                "smiles": "CCO",
+                "values": [
+                    {
+                        "state": "missing",
+                        "error_type": "Missing3DCoordinate",
+                    }
+                ],
+            }
+        ],
+    }
+    policy = {
+        "policies": [
+            {
+                "descriptor": "Generated3D",
+                "status": "openeye_divergent",
+            }
+        ],
+        "row_divergences": [],
+    }
+
+    counts, unclassified = compare_mordred_parity._compare(
+        references,
+        policy,
+        ("Generated3D",),
+    )
+
+    assert counts == {
+        "exact": 0,
+        "accepted_divergences": 0,
+        "deferred": 0,
+        "not_applicable": 0,
+        "unclassified": 1,
+    }
+    assert unclassified == [
+        "Generated3D CCO: "
+        "reference={'state': 'missing', 'error_type': 'Missing3DCoordinate'} "
+        "observed=None primitive=ThreeD"
+    ]
+
+
+def test_parity_harness_accepts_explicit_not_applicable_row_for_generated_3d_failure(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    fake_oefp = SimpleNamespace(
+        mordred_descriptors=lambda _mol: {
+            "Generated3D": None,
+        }
+    )
+    monkeypatch.setitem(sys.modules, "oefp", fake_oefp)
+    monkeypatch.setattr(compare_mordred_parity, "_openeye_mol", lambda smiles: smiles)
+
+    references = {
+        "definitions": [
+            {
+                "name": "Generated3D",
+                "source_type": "ThreeD",
+            }
+        ],
+        "reference_rows": [
+            {
+                "smiles": "C[Na]",
+                "values": [
+                    {
+                        "state": "missing",
+                        "error_type": "Missing3DCoordinate",
+                    }
+                ],
+            }
+        ],
+    }
+    policy = {
+        "policies": [
+            {
+                "descriptor": "Generated3D",
+                "status": "openeye_divergent",
+            }
+        ],
+        "row_divergences": [
+            {
+                "status": "not_applicable",
+                "descriptor": "Generated3D",
+                "smiles": "C[Na]",
+                "reference": {
+                    "state": "missing",
+                    "error_type": "Missing3DCoordinate",
+                },
+                "observed": None,
+                "source": "local test",
+                "primitive": "Explicit generated 3D preparation",
+                "reason": "The explicit preparation layer does not generate a conformer.",
+            }
+        ],
+    }
+
+    counts, unclassified = compare_mordred_parity._compare(
+        references,
+        policy,
+        ("Generated3D",),
+    )
+
+    assert counts == {
+        "exact": 0,
+        "accepted_divergences": 0,
+        "deferred": 0,
+        "not_applicable": 1,
+        "unclassified": 0,
+    }
+    assert unclassified == []
+
+
+def test_parity_harness_accepts_explicit_openeye_divergent_row_for_generated_3d_value(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    fake_oefp = SimpleNamespace(
+        mordred_descriptors=lambda _mol: {
+            "Generated3D": 1.25,
+        }
+    )
+    monkeypatch.setitem(sys.modules, "oefp", fake_oefp)
+    monkeypatch.setattr(compare_mordred_parity, "_openeye_mol", lambda smiles: smiles)
+
+    references = {
+        "definitions": [
+            {
+                "name": "Generated3D",
+                "source_type": "ThreeD",
+            }
+        ],
+        "reference_rows": [
+            {
+                "smiles": "CCO",
+                "values": [
+                    {
+                        "state": "missing",
+                        "error_type": "Missing3DCoordinate",
+                    }
+                ],
+            }
+        ],
+    }
+    policy = {
+        "policies": [
+            {
+                "descriptor": "Generated3D",
+                "status": "openeye_divergent",
+            }
+        ],
+        "row_divergences": [
+            {
+                "status": "openeye_divergent",
+                "descriptor": "Generated3D",
+                "smiles": "CCO",
+                "reference": {
+                    "state": "missing",
+                    "error_type": "Missing3DCoordinate",
+                },
+                "observed": 1.25,
+                "source": "local test",
+                "primitive": "Explicit generated 3D preparation",
+                "reason": "Generated 3D value has no local Mordred reference.",
+            }
+        ],
+    }
+
+    counts, unclassified = compare_mordred_parity._compare(
+        references,
+        policy,
+        ("Generated3D",),
+    )
+
+    assert counts == {
+        "exact": 0,
+        "accepted_divergences": 1,
+        "deferred": 0,
+        "not_applicable": 0,
+        "unclassified": 0,
+    }
+    assert unclassified == []
+
+
+def test_parity_harness_accepts_pinned_generated_observation_for_generated_3d_value(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    fake_oefp = SimpleNamespace(
+        mordred_descriptors=lambda _mol: {
+            "Generated3D": 1.25,
+        }
+    )
+    monkeypatch.setitem(sys.modules, "oefp", fake_oefp)
+    monkeypatch.setattr(compare_mordred_parity, "_openeye_mol", lambda smiles: smiles)
+
+    references = {
+        "definitions": [
+            {
+                "name": "Generated3D",
+                "source_type": "ThreeD",
+            }
+        ],
+        "reference_rows": [
+            {
+                "smiles": "CCO",
+                "values": [
+                    {
+                        "state": "missing",
+                        "error_type": "Missing3DCoordinate",
+                    }
+                ],
+            }
+        ],
+    }
+    policy = {
+        "policies": [
+            {
+                "descriptor": "Generated3D",
+                "status": "openeye_divergent",
+            }
+        ],
+        "row_divergences": [],
+        "generated_observations": [
+            {
+                "status": "openeye_divergent",
+                "descriptors": ["Generated3D"],
+                "rows": [
+                    {
+                        "smiles": "CCO",
+                        "values": [1.25],
+                    }
+                ],
+                "source": "local test",
+                "primitive": "Explicit generated 3D preparation",
+                "reason": "Generated 3D value has no local Mordred reference.",
+            }
+        ],
+    }
+
+    counts, unclassified = compare_mordred_parity._compare(
+        references,
+        policy,
+        ("Generated3D",),
+    )
+
+    assert counts == {
+        "exact": 0,
+        "accepted_divergences": 1,
+        "deferred": 0,
+        "not_applicable": 0,
+        "unclassified": 0,
+    }
+    assert unclassified == []
+
+
+def test_parity_harness_rejects_duplicate_descriptor_policies():
+    policy = {
+        "policies": [
+            {
+                "descriptor": "Repeated",
+                "status": "exact",
+            },
+            {
+                "descriptor": "Repeated",
+                "status": "deferred",
+            },
+        ]
+    }
+
+    with pytest.raises(ValueError, match="Duplicate descriptor policy entries: Repeated"):
+        compare_mordred_parity._descriptor_policy(policy)
+
+
+def test_mordred_reference_fixture_contains_full_schema_and_panel():
+    payload = _reference_payload()
+    definitions = payload["definitions"]
+    definitions_by_name = {definition["name"]: definition for definition in definitions}
+    names = [definition["name"] for definition in definitions]
+
+    assert payload["schema_id"] == "3ad3d49398681f3d"
+    assert payload["source"] == {
+        "descriptor_source": "local-mordred-1.2.0",
+        "ignore_3D": False,
+        "name": "Mordred",
+        "version": "Mordred-1.2.0",
+    }
+    assert payload["source"]["version"] == "Mordred-1.2.0"
+    assert len(definitions) == 1826
+    assert names[0] == "ABC"
+    assert names[-1] == "mZagreb2"
+    assert names.index("nAtom") == 18
+    assert names.index("Lipinski") == 1351
+    assert names.index("GhoseFilter") == 1352
+    assert len(payload["reference_rows"]) == 26
+    assert definitions_by_name["ABC"]["value_kind"] == "float"
+    assert definitions_by_name["nAtom"]["value_kind"] == "int"
+    assert definitions_by_name["Lipinski"]["value_kind"] == "bool"
+    for row in payload["reference_rows"]:
+        assert len(row["values"]) == 1826
+        for value in row["values"]:
+            if isinstance(value, dict):
+                assert set(value) == {"error_type", "state"}
+                assert value["state"] in {"missing", "error", "nonfinite"}
+                assert value["error_type"]
+
+
+def test_mordred_divergence_policy_manifest_is_valid():
+    payload = _divergence_payload()
+    reference_payload = _reference_payload()
+    expected_descriptors = set(_enabled_descriptor_names(reference_payload))
+    not_applicable_no_conformer_3d_descriptors = set(
+        _not_applicable_no_conformer_3d_descriptor_names(reference_payload)
+    )
+
+    assert {
+        "schema_version",
+        "reference_sources",
+        "policies",
+        "row_divergences",
+        "generated_observations",
+    } <= set(payload)
+    assert payload["schema_version"] == 1
+
+    policies = payload["policies"]
+    assert isinstance(policies, list)
+    assert Counter(policy["descriptor"] for policy in policies) == {
+        descriptor: 1 for descriptor in expected_descriptors
+    }
+    policies_by_descriptor = {policy["descriptor"]: policy for policy in policies}
+    row_policies = payload["row_divergences"]
+    assert {
+        policy["descriptor"]
+        for policy in policies
+        if policy["status"] == "not_applicable"
+    } == not_applicable_no_conformer_3d_descriptors
+    assert {
+        policies_by_descriptor[name]["status"]
+        for name in IMPLEMENTED_3D_DESCRIPTOR_NAMES
+    } == {"exact"}
+    assert policies_by_descriptor["RNCG"]["status"] == "exact"
+    assert policies_by_descriptor["RPCG"]["status"] == "exact"
+    for policy in policies:
+        assert POLICY_REQUIRED_FIELDS <= set(policy)
+        assert policy["status"] in POLICY_STATUSES
+
+    assert {
+        (row["descriptor"], row["smiles"])
+        for row in row_policies
+        if row["status"] == "not_applicable"
+    } == set()
+    generated_observation_keys = set()
+    for block in payload["generated_observations"]:
+        assert GENERATED_OBSERVATION_REQUIRED_FIELDS <= set(block)
+        assert block["status"] == "openeye_divergent"
+        descriptors = tuple(block["descriptors"])
+        assert set(descriptors) <= IMPLEMENTED_3D_DESCRIPTOR_NAMES
+        for row in block["rows"]:
+            assert set(row) == {"smiles", "values"}
+            assert len(row["values"]) == len(descriptors)
+            for descriptor, observed in zip(descriptors, row["values"], strict=True):
+                assert observed is not None
+                generated_observation_keys.add((descriptor, row["smiles"]))
+
+    assert generated_observation_keys == set()
+
+
+def test_mordred_divergence_rows_include_required_context():
+    payload = _divergence_payload()
+    reference_payload = _reference_payload()
+    reference_rows_by_smiles = {
+        row["smiles"]: row for row in reference_payload["reference_rows"]
+    }
+    row_policy_keys = Counter(
+        (row["descriptor"], row["smiles"]) for row in payload["row_divergences"]
+    )
+
+    assert row_policy_keys == {key: 1 for key in row_policy_keys}
+
+    for row in payload["row_divergences"]:
+        assert row["status"] in POLICY_STATUSES
+        if row["status"] in {"openeye_divergent", "not_applicable"}:
+            assert ROW_DIVERGENCE_REQUIRED_FIELDS <= set(row)
+        reference_row = reference_rows_by_smiles[row["smiles"]]
+        expected_by_name = _reference_values_by_name(reference_payload, reference_row)
+        assert row["reference"] == expected_by_name[row["descriptor"]]
+
+
+def test_mordred_descriptor_tests_do_not_import_reference_toolkits():
+    loaded_after_import = {
+        name
+        for name in sys.modules
+        if name == "mordred"
+        or name.startswith("mordred.")
+        or name == "rdkit"
+        or name.startswith("rdkit.")
+    }
+
+    assert loaded_after_import <= _OPTIONAL_REFERENCE_MODULES_AT_IMPORT

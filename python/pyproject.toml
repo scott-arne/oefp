@@ -9,10 +9,11 @@ requires-python = ">=3.10"
 dependencies = [
     "numpy>=1.24",
     "openeye-toolkits>=2025.2",
+    "pyarrow>=24",
 ]
 
 [tool.setuptools]
 packages = ["oefp"]
 
 [tool.setuptools.package-data]
-oefp = ["py.typed"]
+oefp = ["mordred_references.json", "py.typed"]

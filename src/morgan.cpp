@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <limits>
 #include <map>
+#include <memory>
 #include <set>
 #include <sstream>
 #include <stdexcept>
@@ -289,6 +290,20 @@ DescriptorSpec morgan_descriptor_spec(const MorganOptions& options) {
     spec.source_version = MORGAN_COMPAT_VERSION;
     spec.parameters = canonical_descriptor_parameters(options);
     return spec;
+}
+
+std::shared_ptr<const DescriptorSchema> morgan_descriptor_schema(const MorganOptions& options) {
+    const auto spec = morgan_descriptor_spec(options);
+    DescriptorSchemaBuilder builder;
+    builder.Add(DescriptorDefinition{
+        "morgan",
+        DescriptorValueKind::CountedIntegerKeys,
+        "raw",
+        spec.source_name,
+        spec.source_type,
+        spec.source_version,
+        spec.parameters});
+    return builder.Build();
 }
 
 std::uint32_t event_bit_id(std::uint32_t raw_id, std::uint32_t fold_size) {
@@ -913,7 +928,7 @@ OEFPCount count_fingerprint_from_events(
 }
 
 DescriptorSet descriptors_from_events(
-    DescriptorSpec spec,
+    std::shared_ptr<const DescriptorSchema> schema,
     const std::vector<MorganEvent>& events,
     const char* overflow_message) {
     std::map<std::uint32_t, std::uint32_t> raw_counts;
@@ -934,7 +949,9 @@ DescriptorSet descriptors_from_events(
         counts.push_back(count);
     }
 
-    return DescriptorSet(std::move(spec), std::move(keys), std::move(counts));
+    DescriptorSetBuilder builder(std::move(schema));
+    builder.Set("morgan", DescriptorValue::CountedIntegerKeys(std::move(keys), std::move(counts)));
+    return builder.Build();
 }
 
 } // namespace
@@ -1108,7 +1125,7 @@ DescriptorSet MakeMorganDescriptors(
 
     const auto events = enumerate_events(mol, options, UNFOLDED_MORGAN_IDS);
     return descriptors_from_events(
-        morgan_descriptor_spec(options),
+        morgan_descriptor_schema(options),
         events,
         "Morgan descriptor count exceeds uint32 storage.");
 }

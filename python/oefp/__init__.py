@@ -13,9 +13,12 @@ import warnings
 from importlib import metadata
 from pathlib import Path
 
+# PyArrow owns the Arrow/Parquet shared libraries that the native extension
+# links against. Import it before any direct or cached _oefp load.
+import pyarrow as _pyarrow  # noqa: F401
+
 __version__ = "0.2.5"
 __version_info__ = (0, 2, 5)
-
 
 _OPENEYE_COMPAT_PRELOAD_PATHS: list[str] = []
 _OPENEYE_COMPAT_EXTENSION_DIR: Path | None = None
@@ -528,8 +531,16 @@ _check_openeye_version()
 from .api import (
     AtomPairGenerator,
     DescriptorBatch,
+    DescriptorDefinition,
+    DescriptorSchema,
     DescriptorSet,
     DescriptorSpec,
+    DESCRIPTOR_PREREQUISITE_ALL,
+    DESCRIPTOR_PREREQUISITE_COORDINATES_2D,
+    DESCRIPTOR_PREREQUISITE_COORDINATES_3D,
+    DESCRIPTOR_PREREQUISITE_GRAPH,
+    DESCRIPTOR_PREREQUISITE_NONE,
+    DISTANCE_ATOM_PAIR_PREREQUISITES,
     FingerprintSpec,
     Metric,
     MorganGenerator,
@@ -544,6 +555,8 @@ from .api import (
     MorganFingerprintResult,
     MorganSparseCountFingerprintResult,
     MorganSparseFingerprintResult,
+    TOPOLOGICAL_ATOM_PAIR_PREREQUISITES,
+    TopologicalAtomPairGenerator,
     atom_pair_count_fingerprint,
     atom_pair_descriptors,
     atom_pair_fingerprint,
@@ -551,6 +564,13 @@ from .api import (
     atom_pair_sparse_fingerprint,
     cdist,
     compare,
+    descriptor_missing_prerequisites,
+    descriptor_prerequisites_satisfied,
+    distance_atom_pair_count_fingerprint,
+    distance_atom_pair_descriptors,
+    distance_atom_pair_fingerprint,
+    distance_atom_pair_sparse_count_fingerprint,
+    distance_atom_pair_sparse_fingerprint,
     from_openeye_fingerprint,
     morgan_count_fingerprint,
     morgan_count_fingerprint_with_mapping,
@@ -558,12 +578,18 @@ from .api import (
     morgan_fingerprint,
     morgan_fingerprint_with_mapping,
     mordred_descriptors,
+    mordred_schema,
     morgan_sparse_count_fingerprint,
     morgan_sparse_count_fingerprint_with_mapping,
     morgan_sparse_fingerprint,
     morgan_sparse_fingerprint_with_mapping,
     pdist,
     to_openeye_fingerprint,
+    topological_atom_pair_count_fingerprint,
+    topological_atom_pair_descriptors,
+    topological_atom_pair_fingerprint,
+    topological_atom_pair_sparse_count_fingerprint,
+    topological_atom_pair_sparse_fingerprint,
 )
 
 __all__ = [
@@ -571,8 +597,16 @@ __all__ = [
     "__version_info__",
     "AtomPairGenerator",
     "DescriptorBatch",
+    "DescriptorDefinition",
+    "DescriptorSchema",
     "DescriptorSet",
     "DescriptorSpec",
+    "DESCRIPTOR_PREREQUISITE_ALL",
+    "DESCRIPTOR_PREREQUISITE_COORDINATES_2D",
+    "DESCRIPTOR_PREREQUISITE_COORDINATES_3D",
+    "DESCRIPTOR_PREREQUISITE_GRAPH",
+    "DESCRIPTOR_PREREQUISITE_NONE",
+    "DISTANCE_ATOM_PAIR_PREREQUISITES",
     "FingerprintSpec",
     "Metric",
     "MorganGenerator",
@@ -587,6 +621,8 @@ __all__ = [
     "MorganFingerprintResult",
     "MorganSparseCountFingerprintResult",
     "MorganSparseFingerprintResult",
+    "TOPOLOGICAL_ATOM_PAIR_PREREQUISITES",
+    "TopologicalAtomPairGenerator",
     "atom_pair_count_fingerprint",
     "atom_pair_descriptors",
     "atom_pair_fingerprint",
@@ -594,6 +630,13 @@ __all__ = [
     "atom_pair_sparse_fingerprint",
     "cdist",
     "compare",
+    "descriptor_missing_prerequisites",
+    "descriptor_prerequisites_satisfied",
+    "distance_atom_pair_count_fingerprint",
+    "distance_atom_pair_descriptors",
+    "distance_atom_pair_fingerprint",
+    "distance_atom_pair_sparse_count_fingerprint",
+    "distance_atom_pair_sparse_fingerprint",
     "from_openeye_fingerprint",
     "morgan_count_fingerprint",
     "morgan_count_fingerprint_with_mapping",
@@ -601,10 +644,16 @@ __all__ = [
     "morgan_fingerprint",
     "morgan_fingerprint_with_mapping",
     "mordred_descriptors",
+    "mordred_schema",
     "morgan_sparse_count_fingerprint",
     "morgan_sparse_count_fingerprint_with_mapping",
     "morgan_sparse_fingerprint",
     "morgan_sparse_fingerprint_with_mapping",
     "pdist",
     "to_openeye_fingerprint",
+    "topological_atom_pair_count_fingerprint",
+    "topological_atom_pair_descriptors",
+    "topological_atom_pair_fingerprint",
+    "topological_atom_pair_sparse_count_fingerprint",
+    "topological_atom_pair_sparse_fingerprint",
 ]

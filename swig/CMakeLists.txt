@@ -14,7 +14,7 @@ openeye_add_swig_module(
     SWIG_FLAGS ${_oefp_swig_flags}
     EXPECTED_LIB_VARS
         OECHEM_LIBRARY OESYSTEM_LIBRARY OEPLATFORM_LIBRARY
-        OEMATH_LIBRARY OEZSTD_LIBRARY
+        OEMATH_LIBRARY OEMOLPROP_LIBRARY OEZSTD_LIBRARY
     INIT_PY ${CMAKE_SOURCE_DIR}/python/oefp/__init__.py
 )
 
@@ -37,6 +37,8 @@ install(CODE [[
     endif()
 ]])
 
-install(FILES ${CMAKE_SOURCE_DIR}/python/oefp/py.typed
+install(FILES
+    ${CMAKE_SOURCE_DIR}/python/oefp/py.typed
+    ${CMAKE_SOURCE_DIR}/python/oefp/mordred_references.json
     DESTINATION oefp
 )

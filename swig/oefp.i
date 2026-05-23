@@ -449,7 +449,16 @@ namespace std {
 %rename(_ProfileMorganFingerprintStages) OEFP::ProfileMorganFingerprint;
 
 %ignore OEFP::OEFPMappingSet::EnvironmentsForBit;
+%ignore OEFP::DescriptorSchema::DescriptorSchema;
+%ignore OEFP::DescriptorSchema::Definitions;
 %ignore OEFP::DescriptorSet::DescriptorSet;
+%ignore OEFP::DescriptorSet::Values;
+%ignore OEFP::ToArrowRecordBatch;
+%ignore OEFP::FromArrowRecordBatch;
+%ignore OEFP::WriteDescriptorIpc;
+%ignore OEFP::ReadDescriptorIpc;
+%ignore OEFP::WriteDescriptorParquet;
+%ignore OEFP::ReadDescriptorParquet;
 
 %define OEFP_GIL_RELEASE_EXCEPTION(FUNC)
 %exception FUNC {
@@ -497,8 +506,12 @@ OEFP_GIL_RELEASE_EXCEPTION(OEFP::MakeMordredDescriptors)
 %include "oefp/count.h"
 %include "oefp/sparse.h"
 %include "oefp/annotation.h"
+%include "oefp/descriptor_schema.h"
+%include "oefp/descriptor_value.h"
+%include "oefp/descriptor_selection.h"
 %include "oefp/descriptor.h"
 %include "oefp/descriptor_batch.h"
+%include "oefp/descriptor_arrow.h"
 %include "oefp/atom_pair.h"
 
 namespace std {

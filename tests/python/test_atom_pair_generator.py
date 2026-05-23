@@ -45,6 +45,19 @@ def test_atom_pair_generator_matches_functional_api_default_options():
     assert _on_bits(generated) == _on_bits(functional)
 
 
+def test_topological_atom_pair_generator_matches_atom_pair_alias():
+    import oefp
+
+    mol = _openeye_mol("CC(=O)Oc1ccccc1C(=O)O")
+    generator = oefp.TopologicalAtomPairGenerator()
+
+    generated = generator.fingerprint(mol)
+    functional = oefp.atom_pair_fingerprint(mol)
+
+    assert generated.words.tolist() == functional.words.tolist()
+    assert generated.spec.source_type == "TopologicalAtomPair"
+
+
 def test_atom_pair_generator_matches_functional_api_nondefault_options():
     import oefp
 

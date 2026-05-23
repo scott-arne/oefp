@@ -2,14 +2,18 @@
 
 High-performance molecular fingerprints for the [OpenEye Toolkits](https://www.eyesopen.com/).
 
-OEFP generates RDKit-compatible Morgan and Atom Pair fingerprints from OpenEye
-molecules, stores them in compact C++ containers, and compares them with fast
-scalar and batch kernels. Python bindings are built with SWIG, so
-`openeye.oechem` molecules pass directly into C++ without serialization.
+OEFP generates RDKit-compatible Morgan and topological Atom Pair fingerprints
+from OpenEye molecules, stores them in compact C++ containers, and compares
+them with fast scalar and batch kernels. It also provides raw Morgan and
+topological Atom Pair descriptor rows plus a schema-backed Mordred-compatible
+descriptor surface. Python
+bindings are built with SWIG, so `openeye.oechem` molecules pass directly into
+C++ without serialization.
 
 OEFP currently supports dense binary, sparse binary, and sparse counted
 fingerprint containers; scalar comparison; query-to-batch comparison; `cdist`;
-and SciPy-compatible condensed `pdist`.
+SciPy-compatible condensed `pdist`; columnar descriptor batches; and
+Arrow/Parquet interchange for schema-backed descriptor rows.
 
 Try it out:
 
@@ -98,6 +102,34 @@ round_tripped = oefp.to_openeye_fingerprint(fp)
 print(oegraphsim.OETanimoto(oe_fp, round_tripped))
 ```
 
+Work with Mordred-compatible named descriptors:
+
+```python
+from openeye import oechem
+import oefp
+
+mol = oechem.OEGraphMol()
+oechem.OESmilesToMol(mol, "CCO")
+
+row = oefp.mordred_descriptors(mol)
+schema = row.schema
+
+print(schema.schema_id)
+print(row["MW"])
+print(row["GeomDiameter"])  # None unless the input already has 3D coordinates.
+
+requires_3d = [
+    definition.name
+    for definition in schema.definitions
+    if definition.prerequisites & oefp.DESCRIPTOR_PREREQUISITE_COORDINATES_3D
+]
+print(len(requires_3d))
+```
+
+Descriptor calculation never generates 2D or 3D coordinates implicitly. When a
+descriptor requires coordinates that the input molecule does not already have,
+that descriptor value remains missing (`None` in Python).
+
 ### C++
 
 ```cpp
@@ -127,12 +159,29 @@ int main() {
 | Family | Outputs | Notes |
 |--------|---------|-------|
 | Morgan | Folded binary, folded count, sparse binary, sparse count | Bit mapping is available for all Morgan outputs |
-| Atom Pair | Folded binary, folded count, sparse binary, sparse count | Count simulation is enabled by default for binary output |
+| Topological Atom Pair | Folded binary, folded count, sparse binary, sparse count | Uses connectivity distances; legacy `atom_pair_*` names remain compatibility aliases |
 | OpenEye | `OEFingerPrint` import/export | Numeric type metadata is preserved when available |
 
+## Supported Descriptors
+
+| Family | Output | Notes |
+|--------|--------|-------|
+| Morgan | Raw counted integer-key descriptors | Uses unfurled Morgan environment identifiers |
+| Topological Atom Pair | Raw counted string-key descriptors | Uses graph shortest-path distances and requires no coordinate generation |
+| Distance Atom Pair | Reserved | Requires existing 3D coordinates and is not implemented yet |
+| Mordred-compatible | Schema-backed named descriptor rows | Full Mordred 1.2.0 schema with implemented values filled and unsupported or unavailable values left missing |
+
+Mordred-compatible descriptors use local Mordred and RDKit source as the
+reference truth. Descriptor definitions include source metadata, group labels,
+serialized parameters, value type, description, and prerequisite bitmaps.
+Coordinate prerequisites are declarative only: OEFP descriptor calculators do
+not invoke conformer generation.
+
 Current conformance scope is explicit: Morgan chirality, Atom Pair chirality,
-and Atom Pair 3D-distance generation raise `ValueError` until those paths have
-dedicated RDKit parity coverage.
+and Distance Atom Pair generation raise `ValueError` or `NotImplementedError`
+until those paths have dedicated RDKit parity coverage. Topological Atom Pair
+uses only the molecular connectivity graph; it does not require 2D
+coordinates.
 
 ## Installation
 

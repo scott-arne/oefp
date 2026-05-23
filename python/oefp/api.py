@@ -2,11 +2,15 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+import hashlib
+import json
+from importlib import resources
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from functools import lru_cache
 from numbers import Integral
-from typing import Any
+from pathlib import Path
+from typing import Any, NoReturn
 
 import numpy as np
 
@@ -14,7 +18,84 @@ from . import _native
 from ._views import readonly_array_from_address
 
 _UINT32_MAX = 2**32 - 1
+DESCRIPTOR_PREREQUISITE_NONE = 0
+DESCRIPTOR_PREREQUISITE_GRAPH = 1 << 0
+DESCRIPTOR_PREREQUISITE_COORDINATES_2D = 1 << 1
+DESCRIPTOR_PREREQUISITE_COORDINATES_3D = 1 << 2
+DESCRIPTOR_PREREQUISITE_ALL = _UINT32_MAX
+TOPOLOGICAL_ATOM_PAIR_PREREQUISITES = DESCRIPTOR_PREREQUISITE_GRAPH
+DISTANCE_ATOM_PAIR_PREREQUISITES = (
+    DESCRIPTOR_PREREQUISITE_GRAPH | DESCRIPTOR_PREREQUISITE_COORDINATES_3D
+)
 _NATIVE_TOKEN = object()
+_DESCRIPTOR_SCHEMA_METADATA_KEY = b"oefp.python_descriptor_schema"
+_ROW_IDS_METADATA_KEY = b"oefp.row_ids_json"
+_MORDRED_REFERENCE_RESOURCE = "mordred_references.json"
+_MORDRED_REFERENCE_FIXTURE = (
+    Path(__file__).resolve().parents[2] / "tests" / "python" / "mordred_references.json"
+)
+
+
+def _normalized_descriptor_prerequisites(value: int) -> int:
+    prerequisites = int(value)
+    if prerequisites < 0 or prerequisites > _UINT32_MAX:
+        raise ValueError("Descriptor prerequisites must fit in uint32.")
+    return prerequisites
+
+
+def descriptor_missing_prerequisites(required: int, available: int) -> int:
+    """Return prerequisite bits required by a descriptor but absent from an input.
+
+    :param required: Descriptor prerequisite bitmap.
+    :param available: Input prerequisite bitmap.
+    :returns: Bitmap of missing prerequisite bits.
+    """
+    required_bits = _normalized_descriptor_prerequisites(required)
+    available_bits = _normalized_descriptor_prerequisites(available)
+    return required_bits & (~available_bits & _UINT32_MAX)
+
+
+def descriptor_prerequisites_satisfied(required: int, available: int) -> bool:
+    """Return whether an input satisfies a descriptor prerequisite bitmap.
+
+    :param required: Descriptor prerequisite bitmap.
+    :param available: Input prerequisite bitmap.
+    :returns: ``True`` when all required bits are present.
+    """
+    return descriptor_missing_prerequisites(required, available) == DESCRIPTOR_PREREQUISITE_NONE
+
+
+def _molecule_has_3d_coordinates(mol: Any) -> bool:
+    get_dimension = getattr(mol, "GetDimension", None)
+    if get_dimension is None or int(get_dimension()) != 3:
+        return False
+
+    num_atoms_fn = getattr(mol, "NumAtoms", None)
+    expected_atoms = int(num_atoms_fn()) if num_atoms_fn is not None else 0
+    if expected_atoms == 0:
+        return False
+
+    get_coords = getattr(mol, "GetCoords", None)
+    if get_coords is None:
+        return False
+    coords = get_coords()
+    if not isinstance(coords, Mapping) or len(coords) < expected_atoms:
+        return False
+    return all(len(tuple(value)) >= 3 for value in coords.values())
+
+
+def _require_distance_atom_pair_3d(mol: Any) -> None:
+    if not _molecule_has_3d_coordinates(mol):
+        raise ValueError(
+            "Distance Atom Pair requires existing 3D coordinates; "
+            "OEFP does not generate conformers implicitly."
+        )
+
+
+def _raise_distance_atom_pair_not_implemented() -> NoReturn:
+    raise NotImplementedError(
+        "Distance Atom Pair requires existing 3D coordinates and is not implemented yet."
+    )
 
 
 @dataclass(frozen=True)
@@ -41,12 +122,209 @@ class DescriptorSpec:
     parameters: str
 
 
+@dataclass(frozen=True)
+class DescriptorDefinition:
+    """Descriptor column metadata for schema-backed descriptor rows.
+
+    :param name: Descriptor column name.
+    :param value_type: Scalar value type, such as ``"float"``, ``"int"``,
+        ``"bool"``, or ``"string"``.
+    :param group: Optional descriptor group used for selection.
+    :param source_name: Optional source package or toolkit name.
+    :param source_type: Optional source descriptor family.
+    :param source_version: Optional source version string.
+    :param parameters: Optional serialized source parameters.
+    :param units: Optional physical units for numeric descriptors.
+    :param description: Optional human-readable descriptor description.
+    :param prerequisites: Bitmap of input prerequisites needed to compute
+        this descriptor.
+    """
+
+    name: str
+    value_type: str
+    group: str = ""
+    source_name: str = ""
+    source_type: str = ""
+    source_version: str = ""
+    parameters: str = ""
+    units: str = ""
+    description: str = ""
+    prerequisites: int = 0
+
+    def __post_init__(self) -> None:
+        normalized = _normalized_descriptor_kind(self.value_type)
+        prerequisites = _normalized_descriptor_prerequisites(self.prerequisites)
+        object.__setattr__(self, "name", str(self.name))
+        object.__setattr__(self, "value_type", normalized)
+        object.__setattr__(self, "group", str(self.group))
+        object.__setattr__(self, "source_name", str(self.source_name))
+        object.__setattr__(self, "source_type", str(self.source_type))
+        object.__setattr__(self, "source_version", str(self.source_version))
+        object.__setattr__(self, "parameters", str(self.parameters))
+        object.__setattr__(self, "units", str(self.units))
+        object.__setattr__(self, "description", str(self.description))
+        object.__setattr__(self, "prerequisites", prerequisites)
+
+    def _metadata(self) -> dict[str, str | int]:
+        return {
+            "name": self.name,
+            "value_type": self.value_type,
+            "group": self.group,
+            "source_name": self.source_name,
+            "source_type": self.source_type,
+            "source_version": self.source_version,
+            "parameters": self.parameters,
+            "units": self.units,
+            "description": self.description,
+            "prerequisites": self.prerequisites,
+        }
+
+    @classmethod
+    def _from_metadata(cls, metadata: Mapping[str, Any]) -> DescriptorDefinition:
+        return cls(
+            str(metadata["name"]),
+            str(metadata["value_type"]),
+            group=str(metadata.get("group", "")),
+            source_name=str(metadata.get("source_name", "")),
+            source_type=str(metadata.get("source_type", "")),
+            source_version=str(metadata.get("source_version", "")),
+            parameters=str(metadata.get("parameters", "")),
+            units=str(metadata.get("units", "")),
+            description=str(metadata.get("description", "")),
+            prerequisites=int(metadata.get("prerequisites", 0)),
+        )
+
+
+class DescriptorSchema:
+    """Schema for named descriptor columns.
+
+    :param definitions: Descriptor column definitions in storage order.
+    :raises ValueError: When descriptor names are empty or duplicated.
+    """
+
+    def __init__(self, definitions: Sequence[DescriptorDefinition]):
+        normalized = tuple(definitions)
+        if not normalized:
+            raise ValueError("DescriptorSchema requires at least one definition.")
+        names = tuple(definition.name for definition in normalized)
+        if any(not name for name in names):
+            raise ValueError("Descriptor schema names must be non-empty.")
+        if len(set(names)) != len(names):
+            raise ValueError("Descriptor schema names must be unique.")
+        self._definitions = normalized
+        self._index_by_name = {name: index for index, name in enumerate(names)}
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, DescriptorSchema):
+            return NotImplemented
+        return self.definitions == other.definitions
+
+    def __ne__(self, other: object) -> bool:
+        result = self.__eq__(other)
+        if result is NotImplemented:
+            return NotImplemented
+        return not result
+
+    @property
+    def definitions(self) -> tuple[DescriptorDefinition, ...]:
+        """Descriptor definitions in schema order."""
+        return self._definitions
+
+    @property
+    def schema_id(self) -> str:
+        """Stable identifier derived from descriptor definitions."""
+        return hashlib.sha256(self._metadata().encode("utf-8")).hexdigest()
+
+    @property
+    def names(self) -> tuple[str, ...]:
+        """Descriptor names in schema order."""
+        return tuple(definition.name for definition in self._definitions)
+
+    def index(self, name: str) -> int:
+        """Return the integer position for a descriptor name.
+
+        :param name: Descriptor name to resolve.
+        :returns: Zero-based descriptor position.
+        :raises KeyError: When the descriptor name is not present.
+        """
+        return self._index_by_name[name]
+
+    def group(self, group: str) -> tuple[int, ...]:
+        """Return descriptor positions that belong to a group.
+
+        :param group: Descriptor group label.
+        :returns: Tuple of descriptor positions in schema order.
+        """
+        return tuple(
+            index
+            for index, definition in enumerate(self._definitions)
+            if definition.group == group
+        )
+
+    def subset(self, names: Sequence[str]) -> DescriptorSchema:
+        """Return a schema projected to descriptor names in selection order.
+
+        :param names: Descriptor names to keep.
+        :returns: Projected descriptor schema.
+        """
+        return DescriptorSchema([self._definitions[self.index(name)] for name in names])
+
+    def _metadata(self) -> str:
+        return json.dumps(
+            [definition._metadata() for definition in self._definitions],
+            separators=(",", ":"),
+            sort_keys=True,
+        )
+
+    @classmethod
+    def _from_metadata(cls, metadata: bytes) -> DescriptorSchema:
+        raw_definitions = json.loads(metadata.decode("utf-8"))
+        if not isinstance(raw_definitions, list):
+            raise ValueError("Descriptor schema metadata must contain a list.")
+        return cls([DescriptorDefinition._from_metadata(item) for item in raw_definitions])
+
+
 def _value_type_name(value: Any) -> str:
     if value == _native.FingerprintValueType_Binary:
         return "binary"
     if value == _native.FingerprintValueType_Counted:
         return "counted"
     return "unknown"
+
+
+def _normalized_descriptor_kind(value_type: str) -> str:
+    normalized = str(value_type).lower()
+    if normalized == "integer":
+        return "int"
+    if normalized in {"bool", "int", "float", "string"}:
+        return normalized
+    raise ValueError(f"Unknown descriptor value type: {value_type!r}.")
+
+
+def _descriptor_arrow_type(pa: Any, value_type: str) -> Any:
+    if value_type == "bool":
+        return pa.bool_()
+    if value_type == "int":
+        return pa.int64()
+    if value_type == "float":
+        return pa.float64()
+    if value_type == "string":
+        return pa.string()
+    raise ValueError(f"Unknown descriptor value type: {value_type!r}.")
+
+
+def _is_schema_descriptor_set(value: DescriptorSet) -> bool:
+    return value._native is None
+
+
+def _is_schema_descriptor_batch(value: DescriptorBatch) -> bool:
+    return value._native is None
+
+
+def _raise_schema_descriptor_compare_error() -> None:
+    raise TypeError(
+        "compare, cdist, and pdist do not support schema-backed descriptors."
+    )
 
 
 def _fingerprint_spec(native_spec: Any) -> FingerprintSpec:
@@ -116,6 +394,81 @@ def _manual_descriptor_spec(
         source_type=source_type,
         source_version=source_version,
         parameters=parameters,
+    )
+
+
+@lru_cache(maxsize=1)
+def _mordred_reference_payload() -> dict[str, Any]:
+    resource = resources.files("oefp").joinpath(_MORDRED_REFERENCE_RESOURCE)
+    if resource.is_file():
+        with resource.open(encoding="utf-8") as handle:
+            payload = json.load(handle)
+    else:
+        with _MORDRED_REFERENCE_FIXTURE.open(encoding="utf-8") as handle:
+            payload = json.load(handle)
+    if not isinstance(payload, dict) or not isinstance(payload.get("definitions"), list):
+        raise ValueError("Mordred reference fixture does not contain definitions.")
+    return payload
+
+
+def _mordred_definition_from_fixture(definition: Mapping[str, Any]) -> DescriptorDefinition:
+    return DescriptorDefinition(
+        str(definition["name"]),
+        str(definition["value_kind"]),
+        group=str(definition.get("group", "")),
+        source_name=str(definition.get("source_name", "")),
+        source_type=str(definition.get("source_type", "")),
+        source_version=str(definition.get("source_version", "")),
+        parameters=str(definition.get("parameters", "")),
+        units=str(definition.get("units", "")),
+        description=str(definition.get("description", "")),
+        prerequisites=int(definition.get("prerequisites", 0)),
+    )
+
+
+@lru_cache(maxsize=1)
+def mordred_schema() -> DescriptorSchema:
+    """Return the full Mordred descriptor schema.
+
+    :returns: Descriptor schema matching the committed Mordred 1.2.0 fixture.
+    """
+    payload = _mordred_reference_payload()
+    return DescriptorSchema(
+        [_mordred_definition_from_fixture(item) for item in payload["definitions"]]
+    )
+
+
+def _mordred_value_from_native(native: Any, definition: DescriptorDefinition) -> Any:
+    if not native.Has(definition.name):
+        return None
+    if definition.value_type == "bool":
+        return bool(native.Bool(definition.name))
+    if definition.value_type == "int":
+        return int(native.Int(definition.name))
+    if definition.value_type == "float":
+        return float(native.Float(definition.name))
+    if definition.value_type == "string":
+        return str(native.String(definition.name))
+    return None
+
+
+def _legacy_counted_string_descriptor(native: Any, spec: DescriptorSpec) -> DescriptorSet:
+    return DescriptorSet._from_native(
+        _native._NativeDescriptorSet.FromStringCounts(
+            _native_descriptor_spec(spec),
+            native.StringKeys(),
+            native.Counts(),
+        )
+    )
+
+
+def _legacy_counted_integer_descriptor(native: Any, spec: DescriptorSpec) -> DescriptorSet:
+    return DescriptorSet._from_native(
+        _native._NativeDescriptorSet.FromIntegerCounts(
+            _native_descriptor_spec(spec),
+            native.IntegerKeys(),
+            native.Counts(),
+        )
     )
 
 
@@ -273,7 +626,9 @@ def _normalized_atom_pair_values(
     if use_chirality:
         raise ValueError("Atom Pair chirality conformance is not implemented yet.")
     if not use_2d:
-        raise ValueError("Atom Pair 3D distance conformance is not implemented yet.")
+        raise ValueError(
+            "Distance Atom Pair requires existing 3D coordinates and is not implemented yet."
+        )
     if count_simulation and not normalized_count_bounds:
         raise ValueError("Atom Pair count_bounds cannot be empty when count simulation is enabled.")
     if count_simulation and len(normalized_count_bounds) >= num_bits_int:
@@ -481,20 +836,114 @@ class OEFPSparse:
 
 
 class DescriptorSet:
-    """Python wrapper for a native descriptor set."""
+    """Python wrapper for legacy native or schema-backed descriptor rows."""
 
-    def __init__(self, native: Any, *, _token: object | None = None):
-        if _token is not _NATIVE_TOKEN:
+    def __init__(
+        self,
+        schema: DescriptorSchema | Any,
+        values: Mapping[str, Any] | None = None,
+        *,
+        row_id: str = "",
+        _token: object | None = None,
+    ):
+        if _token is _NATIVE_TOKEN:
+            self._native: Any = schema
+            self._schema: DescriptorSchema | None = None
+            self._values: dict[str, Any] | None = None
+            self._row_id = ""
+            return
+        if not isinstance(schema, DescriptorSchema) or values is None:
             raise TypeError(
-                "DescriptorSet objects are created by DescriptorSet.from_strings(), "
-                "DescriptorSet.from_integers(), DescriptorSet.from_floats(), or "
-                "descriptor factories."
+                "DescriptorSet objects are created by DescriptorSet(schema, values), "
+                "DescriptorSet.from_strings(), DescriptorSet.from_integers(), "
+                "DescriptorSet.from_floats(), or descriptor factories."
             )
-        self._native = native
+        self._native = None
+        self._schema = schema
+        self._values = self._normalized_values(schema, values)
+        self._row_id = str(row_id)
 
     @classmethod
     def _from_native(cls, native: Any) -> DescriptorSet:
         return cls(native, _token=_NATIVE_TOKEN)
+
+    @staticmethod
+    def _normalized_values(
+        schema: DescriptorSchema,
+        values: Mapping[str, Any],
+    ) -> dict[str, Any]:
+        normalized: dict[str, Any] = {}
+        for definition in schema.definitions:
+            value = values.get(definition.name)
+            if value is None:
+                normalized[definition.name] = None
+            elif definition.value_type == "bool":
+                if not isinstance(value, bool):
+                    raise TypeError(f"Descriptor {definition.name!r} must be a bool.")
+                normalized[definition.name] = value
+            elif definition.value_type == "int":
+                if isinstance(value, bool) or not isinstance(value, Integral):
+                    raise TypeError(f"Descriptor {definition.name!r} must be an integer.")
+                normalized[definition.name] = int(value)
+            elif definition.value_type == "float":
+                if isinstance(value, bool):
+                    raise TypeError(f"Descriptor {definition.name!r} must be a float.")
+                normalized[definition.name] = float(value)
+            elif definition.value_type == "string":
+                if not isinstance(value, str):
+                    raise TypeError(f"Descriptor {definition.name!r} must be a string.")
+                normalized[definition.name] = value
+        return normalized
+
+    def _require_native(self) -> Any:
+        if self._native is None:
+            raise TypeError(
+                "Schema-backed descriptor sets do not expose legacy descriptor storage."
+            )
+        return self._native
+
+    def _require_schema(self) -> DescriptorSchema:
+        if self._schema is None:
+            raise TypeError("Legacy descriptor sets do not expose a descriptor schema.")
+        return self._schema
+
+    def __getitem__(self, name: str) -> Any:
+        """Return one schema-backed descriptor value by name.
+
+        :param name: Descriptor name.
+        :returns: Descriptor value.
+        :raises TypeError: When the descriptor row is not schema-backed.
+        """
+        if self._values is None:
+            raise TypeError("Legacy descriptor sets do not support named value access.")
+        self._require_schema().index(name)
+        return self._values[name]
+
+    def subset(self, names: Sequence[str]) -> DescriptorSet:
+        """Return a schema-backed descriptor row projected to named columns.
+
+        :param names: Descriptor names to keep.
+        :returns: Projected descriptor row.
+        :raises TypeError: When the descriptor row is not schema-backed.
+        """
+        if self._values is None:
+            raise TypeError("Legacy descriptor sets do not support named subsets.")
+        schema = self.schema.subset(names)
+        return DescriptorSet(
+            schema,
+            {name: self._values[name] for name in schema.names},
+            row_id=self._row_id,
+        )
+
+    @property
+    def schema(self) -> DescriptorSchema:
+        """Descriptor schema for schema-backed rows."""
+        return self._require_schema()
+
+    @property
+    def row_id(self) -> str:
+        """Optional schema-backed row identifier."""
+        return self._row_id
 
     @classmethod
     def from_strings(
@@ -595,24 +1044,24 @@ class DescriptorSet:
     @property
     def value_type(self) -> str:
         """Descriptor key value type."""
-        return _descriptor_value_type_name(self._native.ValueType())
+        return _descriptor_value_type_name(self._require_native().ValueType())
 
     @property
     def size(self) -> int:
         """Number of unique descriptor keys."""
-        return int(self._native.Size())
+        return int(self._require_native().Size())
 
     @property
     def total_count(self) -> int:
         """Sum of all descriptor counts."""
-        return int(self._native.TotalCount())
+        return int(self._require_native().TotalCount())
 
     @property
     def string_keys(self) -> tuple[str, ...]:
         """Canonical sorted string keys."""
         if self.value_type != "string":
             return ()
-        return tuple(str(value) for value in self._native.StringKeys())
+        return tuple(str(value) for value in self._require_native().StringKeys())
 
     @property
     def integer_keys(self) -> tuple[int, ...]:
@@ -621,8 +1070,8 @@ class DescriptorSet:
             return ()
         keys = readonly_array_from_address(
             self,
-            self._native.IntegerKeyDataAddress(),
-            (self._native.Size(),),
+            self._require_native().IntegerKeyDataAddress(),
+            (self._require_native().Size(),),
             np.dtype(np.int64),
         )
         return tuple(int(value) for value in keys)
@@ -634,8 +1083,8 @@ class DescriptorSet:
             return ()
         keys = readonly_array_from_address(
             self,
-            self._native.FloatKeyDataAddress(),
-            (self._native.Size(),),
+            self._require_native().FloatKeyDataAddress(),
+            (self._require_native().Size(),),
             np.dtype(np.float64),
         )
         return tuple(float(value) for value in keys)
@@ -645,27 +1094,50 @@ class DescriptorSet:
         """Read-only view of descriptor counts parallel to active keys."""
         return readonly_array_from_address(
             self,
-            self._native.CountDataAddress(),
-            (self._native.Size(),),
+            self._require_native().CountDataAddress(),
+            (self._require_native().Size(),),
             np.dtype(np.uint32),
         )
 
     @property
     def spec(self) -> DescriptorSpec:
         """Read-only descriptor metadata."""
-        return _descriptor_spec(self._native.Spec())
+        return _descriptor_spec(self._require_native().Spec())
 
 
 class DescriptorBatch:
-    """Python wrapper for a native descriptor batch."""
+    """Python wrapper for legacy native or schema-backed descriptor batches."""
 
-    def __init__(self, native: Any, *, _token: object | None = None):
-        if _token is not _NATIVE_TOKEN:
+    def __init__(
+        self,
+        native: Any | None = None,
+        *,
+        schema: DescriptorSchema | None = None,
+        rows: Sequence[Mapping[str, Any]] | None = None,
+        row_ids: Sequence[str] | None = None,
+        _token: object | None = None,
+    ):
+        if _token is _NATIVE_TOKEN:
+            self._native: Any = native
+            self._schema: DescriptorSchema | None = None
+            self._rows: tuple[dict[str, Any], ...] | None = None
+            self._row_ids: tuple[str, ...] = ()
+            return
+        if schema is None or rows is None:
             raise TypeError(
                 "DescriptorBatch objects are created by "
                 "DescriptorBatch.from_descriptors()."
             )
-        self._native = native
+        normalized_rows = tuple(
+            DescriptorSet._normalized_values(schema, row)
+            for row in rows
+        )
+        if row_ids is not None and len(row_ids) != len(normalized_rows):
+            raise ValueError("DescriptorBatch row_ids length must match row count.")
+        self._native = None
+        self._schema = schema
+        self._rows = normalized_rows
+        self._row_ids = tuple(row_ids or ("",) * len(normalized_rows))
 
     @classmethod
     def _from_native(cls, native: Any) -> DescriptorBatch:
@@ -674,32 +1146,215 @@ class DescriptorBatch:
     @classmethod
     def from_descriptors(cls, descriptors: Sequence[DescriptorSet]) -> DescriptorBatch:
         """Create a contiguous descriptor batch from descriptor sets."""
+        if not descriptors:
+            return cls._from_native(_native._NativeDescriptorBatch.FromDescriptorSets(_native.DescriptorSetVector()))
+        if all(descriptor._schema is not None for descriptor in descriptors):
+            schema = descriptors[0].schema
+            rows: list[Mapping[str, Any]] = []
+            row_ids: list[str] = []
+            for descriptor_set in descriptors:
+                if descriptor_set.schema != schema:
+                    raise ValueError("Descriptor set schema does not match batch schema.")
+                if descriptor_set._values is None:
+                    raise TypeError("Descriptor set is not schema-backed.")
+                rows.append(descriptor_set._values)
+                row_ids.append(descriptor_set.row_id)
+            return cls(schema=schema, rows=rows, row_ids=row_ids)
         native_descriptors = _native.DescriptorSetVector()
         for descriptor_set in descriptors:
+            if descriptor_set._native is None:
+                raise TypeError("Cannot mix schema-backed and legacy descriptor sets.")
             native_descriptors.push_back(descriptor_set._native)
         return cls._from_native(_native._NativeDescriptorBatch.FromDescriptorSets(native_descriptors))
 
     @property
+    def schema(self) -> DescriptorSchema:
+        """Descriptor schema for schema-backed batches."""
+        return self._require_schema()
+
+    @property
+    def row_ids(self) -> tuple[str, ...]:
+        """Schema-backed descriptor row identifiers."""
+        self._require_schema()
+        return self._row_ids
+
+    def float_column(self, name: str) -> np.ndarray:
+        """Return a float descriptor column.
+
+        :param name: Descriptor name.
+        :returns: NumPy float column.
+        """
+        self._require_column_kind(name, "float")
+        return np.array(
+            [
+                np.nan if row[name] is None else row[name]
+                for row in self._schema_rows()
+            ],
+            dtype=np.float64,
+        )
+
+    def int_column(self, name: str) -> np.ndarray:
+        """Return an integer descriptor column.
+
+        :param name: Descriptor name.
+        :returns: NumPy integer column.
+        """
+        self._require_column_kind(name, "int")
+        values = [row[name] for row in self._schema_rows()]
+        dtype = object if any(value is None for value in values) else np.int64
+        return np.array(values, dtype=dtype)
+
+    def bool_column(self, name: str) -> np.ndarray:
+        """Return a boolean descriptor column.
+
+        :param name: Descriptor name.
+        :returns: NumPy boolean column.
+        """
+        self._require_column_kind(name, "bool")
+        values = [row[name] for row in self._schema_rows()]
+        dtype = object if any(value is None for value in values) else np.bool_
+        return np.array(values, dtype=dtype)
+
+    def string_column(self, name: str) -> tuple[str | None, ...]:
+        """Return a string descriptor column.
+
+        :param name: Descriptor name.
+        :returns: Tuple of string values.
+        """
+        self._require_column_kind(name, "string")
+        return tuple(row[name] for row in self._schema_rows())
+
+    def column_validity(self, name: str) -> np.ndarray:
+        """Return a boolean mask indicating present descriptor values.
+
+        :param name: Descriptor name.
+        :returns: Boolean NumPy array where ``True`` marks present values.
+        """
+        self.schema.index(name)
+        return np.array([row[name] is not None for row in self._schema_rows()], dtype=np.bool_)
+
+    def subset(self, names: Sequence[str]) -> DescriptorBatch:
+        """Return a schema-backed descriptor batch projected to named columns.
+
+        :param names: Descriptor names to keep.
+        :returns: Projected descriptor batch.
+        """
+        schema = self.schema.subset(names)
+        rows = [{name: row[name] for name in schema.names} for row in self._schema_rows()]
+        return DescriptorBatch(schema=schema, rows=rows, row_ids=self._row_ids)
+
+    def to_arrow(self) -> Any:
+        """Convert a schema-backed descriptor batch to a ``pyarrow.Table``.
+
+        :returns: Arrow table with OEFP Python descriptor schema metadata.
+        """
+        import pyarrow as pa
+
+        arrays = {
+            definition.name: pa.array(
+                [row[definition.name] for row in self._schema_rows()],
+                type=_descriptor_arrow_type(pa, definition.value_type),
+            )
+            for definition in self.schema.definitions
+        }
+        table = pa.table(arrays)
+        metadata = dict(table.schema.metadata or {})
+        metadata[_DESCRIPTOR_SCHEMA_METADATA_KEY] = self.schema._metadata().encode("utf-8")
+        metadata[_ROW_IDS_METADATA_KEY] = json.dumps(list(self._row_ids)).encode("utf-8")
+        return table.replace_schema_metadata(metadata)
+
+    @classmethod
+    def from_arrow(cls, table: Any) -> DescriptorBatch:
+        """Create a descriptor batch from a ``pyarrow.Table``.
+
+        :param table: Arrow table produced by :meth:`to_arrow`.
+        :returns: Schema-backed descriptor batch.
+        :raises ValueError: When schema metadata is missing.
+        """
+        metadata = table.schema.metadata or {}
+        if _DESCRIPTOR_SCHEMA_METADATA_KEY not in metadata:
+            raise ValueError("Arrow table is missing OEFP descriptor schema metadata.")
+        schema = DescriptorSchema._from_metadata(metadata[_DESCRIPTOR_SCHEMA_METADATA_KEY])
+        if _ROW_IDS_METADATA_KEY in metadata:
+            row_ids = tuple(json.loads(metadata[_ROW_IDS_METADATA_KEY].decode("utf-8")))
+        else:
+            row_ids = ("",) * int(table.num_rows)
+        columns = {name: table.column(name).to_pylist() for name in schema.names}
+        row_count = int(table.num_rows)
+        rows = [
+            {name: columns[name][row_index] for name in schema.names}
+            for row_index in range(row_count)
+        ]
+        return cls(schema=schema, rows=rows, row_ids=row_ids)
+
+    def write_parquet(self, path: Any) -> None:
+        """Write a schema-backed descriptor batch to a Parquet file.
+
+        :param path: Destination file path.
+        """
+        import pyarrow.parquet as pq
+
+        pq.write_table(self.to_arrow(), path)
+
+    @classmethod
+    def read_parquet(cls, path: Any) -> DescriptorBatch:
+        """Read a schema-backed descriptor batch from a Parquet file.
+
+        :param path: Source file path.
+        :returns: Schema-backed descriptor batch.
+        """
+        import pyarrow.parquet as pq
+
+        return cls.from_arrow(pq.read_table(path))
+
+    def _schema_rows(self) -> tuple[dict[str, Any], ...]:
+        if self._rows is None:
+            raise TypeError("Legacy descriptor batches do not support named columns.")
+        return self._rows
+
+    def _require_native(self) -> Any:
+        if self._native is None:
+            raise TypeError(
+                "Schema-backed descriptor batches do not expose legacy descriptor storage."
+            )
+        return self._native
+
+    def _require_schema(self) -> DescriptorSchema:
+        if self._schema is None:
+            raise TypeError("Legacy descriptor batches do not expose a descriptor schema.")
+        return self._schema
+
+    def _require_column_kind(self, name: str, value_type: str) -> None:
+        definition = self.schema.definitions[self.schema.index(name)]
+        if definition.value_type != value_type:
+            raise TypeError(
+                f"Descriptor {name!r} has value type {definition.value_type!r}, "
+                f"not {value_type!r}."
+            )
+
+    @property
     def value_type(self) -> str:
         """Shared descriptor key value type."""
-        return _descriptor_value_type_name(self._native.ValueType())
+        return _descriptor_value_type_name(self._require_native().ValueType())
 
     @property
     def size(self) -> int:
         """Number of descriptor rows."""
-        return int(self._native.Size())
+        if self._rows is not None:
+            return len(self._rows)
+        return int(self._require_native().Size())
 
     @property
     def entry_count(self) -> int:
         """Number of flattened descriptor entries."""
-        return int(self._native.EntryCount())
+        return int(self._require_native().EntryCount())
 
     @property
     def string_keys(self) -> tuple[str, ...]:
         """Flattened string keys."""
         if self.value_type != "string":
             return ()
-        return tuple(str(value) for value in self._native.StringKeys())
+        return tuple(str(value) for value in self._require_native().StringKeys())
 
     @property
     def integer_keys(self) -> tuple[int, ...]:
@@ -708,8 +1363,8 @@ class DescriptorBatch:
             return ()
         keys = readonly_array_from_address(
             self,
-            self._native.IntegerKeyDataAddress(),
-            (self._native.EntryCount(),),
+            self._require_native().IntegerKeyDataAddress(),
+            (self._require_native().EntryCount(),),
             np.dtype(np.int64),
         )
         return tuple(int(value) for value in keys)
@@ -721,8 +1376,8 @@ class DescriptorBatch:
             return ()
         keys = readonly_array_from_address(
             self,
-            self._native.FloatKeyDataAddress(),
-            (self._native.EntryCount(),),
+            self._require_native().FloatKeyDataAddress(),
+            (self._require_native().EntryCount(),),
             np.dtype(np.float64),
         )
         return tuple(float(value) for value in keys)
@@ -732,8 +1387,8 @@ class DescriptorBatch:
         """Read-only view of flattened descriptor counts."""
         return readonly_array_from_address(
             self,
-            self._native.CountDataAddress(),
-            (self._native.EntryCount(),),
+            self._require_native().CountDataAddress(),
+            (self._require_native().EntryCount(),),
             np.dtype(np.uint32),
         )
 
@@ -742,15 +1397,15 @@ class DescriptorBatch:
         """Read-only view of row offsets into flattened keys and counts."""
         return readonly_array_from_address(
             self,
-            self._native.RowOffsetDataAddress(),
-            (self._native.Size() + 1,),
+            self._require_native().RowOffsetDataAddress(),
+            (self._require_native().Size() + 1,),
             np.dtype(np.uint64),
         )
 
     @property
     def spec(self) -> DescriptorSpec:
         """Read-only descriptor metadata for all rows."""
-        return _descriptor_spec(self._native.Spec())
+        return _descriptor_spec(self._require_native().Spec())
 
 
 class OEFPMappingSet:
@@ -1192,8 +1847,42 @@ class MorganGenerator:
         return OEFP._from_native(self._native.Fingerprint(mol))
 
 
-class AtomPairGenerator:
-    """Reusable generator for folded binary Atom Pair fingerprints."""
+class TopologicalAtomPairGenerator:
+    """Reusable generator for folded binary topological Atom Pair fingerprints."""
+
+    def __init__(
+        self,
+        *,
+        min_distance: int = 1,
+        max_distance: int = 30,
+        num_bits: int = 2048,
+        use_chirality: bool = False,
+        count_simulation: bool = True,
+        count_bounds: Sequence[int] | None = None,
+    ) -> None:
+        options = _atom_pair_options(
+            min_distance,
+            max_distance,
+            num_bits,
+            use_chirality,
+            True,
+            count_simulation,
+            count_bounds,
+        )
+        self._native = _native._NativeAtomPairGenerator(options)
+
+    def fingerprint(self, mol: Any) -> OEFP:
+        """Generate a folded dense binary topological Atom Pair fingerprint."""
+        return OEFP._from_native(self._native.Fingerprint(mol))
+
+
+class AtomPairGenerator(TopologicalAtomPairGenerator):
+    """Compatibility generator for RDKit-style Atom Pair options.
+
+    ``use_2d=True`` is the topological/connectivity-distance model. Passing
+    ``use_2d=False`` selects the separate Distance Atom Pair model, which is
+    not implemented.
+    """
 
     def __init__(
         self,
@@ -1216,10 +1905,6 @@ class AtomPairGenerator:
             count_bounds,
         )
         self._native = _native._NativeAtomPairGenerator(options)
-
-    def fingerprint(self, mol: Any) -> OEFP:
-        """Generate a folded dense binary Atom Pair fingerprint."""
-        return OEFP._from_native(self._native.Fingerprint(mol))
 
 
 @dataclass(frozen=True)
@@ -1280,6 +1965,8 @@ def compare(
     if isinstance(a, OEFPSparse) and isinstance(b, OEFPSparse):
         return float(_native.Compare(a._native, b._native, metric._native))
     if isinstance(a, DescriptorSet) and isinstance(b, DescriptorSet):
+        if _is_schema_descriptor_set(a) or _is_schema_descriptor_set(b):
+            _raise_schema_descriptor_compare_error()
         return float(
             _native.Compare(
                 a._native,
@@ -1322,6 +2009,8 @@ def compare(
         )
         return output
     if isinstance(a, DescriptorSet) and isinstance(b, DescriptorBatch):
+        if _is_schema_descriptor_set(a) or _is_schema_descriptor_batch(b):
+            _raise_schema_descriptor_compare_error()
         output = np.empty((b.size,), dtype=np.float64)
         _native.CompareIntoAddress(
             a._native,
@@ -1366,6 +2055,8 @@ def cdist(
 
     output = np.empty((a.size, b.size), dtype=np.float64)
     if isinstance(a, DescriptorBatch) and isinstance(b, DescriptorBatch):
+        if _is_schema_descriptor_batch(a) or _is_schema_descriptor_batch(b):
+            _raise_schema_descriptor_compare_error()
         _native.CDistIntoAddress(
             a._native,
             b._native,
@@ -1404,6 +2095,8 @@ def pdist(
 
     output = np.empty((batch.size * (batch.size - 1) // 2,), dtype=np.float64)
     if isinstance(batch, DescriptorBatch):
+        if _is_schema_descriptor_batch(batch):
+            _raise_schema_descriptor_compare_error()
         _native.PDistIntoAddress(
             batch._native,
             metric._native,
@@ -1684,7 +2377,9 @@ def _atom_pair_descriptor_options(
     if use_chirality:
         raise ValueError("Atom Pair chirality conformance is not implemented yet.")
     if not use_2d:
-        raise ValueError("Atom Pair 3D distance conformance is not implemented yet.")
+        raise ValueError(
+            "Distance Atom Pair requires existing 3D coordinates and is not implemented yet."
+        )
 
     options = _native.AtomPairOptions()
     options.min_distance = min_distance_int
@@ -1710,7 +2405,135 @@ def atom_pair_descriptors(
         use_chirality,
         use_2d,
     )
-    return DescriptorSet._from_native(_native.MakeAtomPairDescriptors(mol, options))
+    native = _native.MakeAtomPairDescriptors(mol, options)
+    return _legacy_counted_string_descriptor(native, _descriptor_spec(native.Spec()))
+
+
+def topological_atom_pair_fingerprint(
+    mol: Any,
+    *,
+    min_distance: int = 1,
+    max_distance: int = 30,
+    num_bits: int = 2048,
+    use_chirality: bool = False,
+    count_simulation: bool = True,
+    count_bounds: Sequence[int] | None = None,
+) -> OEFP:
+    """Generate a folded binary topological Atom Pair fingerprint."""
+    return atom_pair_fingerprint(
+        mol,
+        min_distance=min_distance,
+        max_distance=max_distance,
+        num_bits=num_bits,
+        use_chirality=use_chirality,
+        use_2d=True,
+        count_simulation=count_simulation,
+        count_bounds=count_bounds,
+    )
+
+
+def topological_atom_pair_count_fingerprint(
+    mol: Any,
+    *,
+    min_distance: int = 1,
+    max_distance: int = 30,
+    num_bits: int = 2048,
+    use_chirality: bool = False,
+) -> OEFPCount:
+    """Generate a folded count topological Atom Pair fingerprint."""
+    return atom_pair_count_fingerprint(
+        mol,
+        min_distance=min_distance,
+        max_distance=max_distance,
+        num_bits=num_bits,
+        use_chirality=use_chirality,
+        use_2d=True,
+    )
+
+
+def topological_atom_pair_sparse_fingerprint(
+    mol: Any,
+    *,
+    min_distance: int = 1,
+    max_distance: int = 30,
+    use_chirality: bool = False,
+    count_simulation: bool = True,
+    count_bounds: Sequence[int] | None = None,
+) -> OEFPSparse:
+    """Generate a sparse binary topological Atom Pair fingerprint."""
+    return atom_pair_sparse_fingerprint(
+        mol,
+        min_distance=min_distance,
+        max_distance=max_distance,
+        use_chirality=use_chirality,
+        use_2d=True,
+        count_simulation=count_simulation,
+        count_bounds=count_bounds,
+    )
+
+
+def topological_atom_pair_sparse_count_fingerprint(
+    mol: Any,
+    *,
+    min_distance: int = 1,
+    max_distance: int = 30,
+    use_chirality: bool = False,
+) -> OEFPCount:
+    """Generate a sparse count topological Atom Pair fingerprint."""
+    return atom_pair_sparse_count_fingerprint(
+        mol,
+        min_distance=min_distance,
+        max_distance=max_distance,
+        use_chirality=use_chirality,
+        use_2d=True,
+    )
+
+
+def topological_atom_pair_descriptors(
+    mol: Any,
+    *,
+    min_distance: int = 1,
+    max_distance: int = 30,
+    use_chirality: bool = False,
+) -> DescriptorSet:
+    """Generate raw topological Atom Pair descriptors as counted string keys."""
+    return atom_pair_descriptors(
+        mol,
+        min_distance=min_distance,
+        max_distance=max_distance,
+        use_chirality=use_chirality,
+        use_2d=True,
+    )
+
+
+def distance_atom_pair_fingerprint(mol: Any, **_: Any) -> OEFP:
+    """Reject unsupported 3D coordinate-distance Atom Pair fingerprints."""
+    _require_distance_atom_pair_3d(mol)
+    _raise_distance_atom_pair_not_implemented()
+
+
+def distance_atom_pair_count_fingerprint(mol: Any, **_: Any) -> OEFPCount:
+    """Reject unsupported 3D coordinate-distance Atom Pair count fingerprints."""
+    _require_distance_atom_pair_3d(mol)
+    _raise_distance_atom_pair_not_implemented()
+
+
+def distance_atom_pair_sparse_fingerprint(mol: Any, **_: Any) -> OEFPSparse:
+    """Reject unsupported 3D coordinate-distance Atom Pair sparse fingerprints."""
+    _require_distance_atom_pair_3d(mol)
+    _raise_distance_atom_pair_not_implemented()
+
+
+def distance_atom_pair_sparse_count_fingerprint(mol: Any, **_: Any) -> OEFPCount:
+    """Reject unsupported 3D coordinate-distance Atom Pair sparse count fingerprints."""
+    _require_distance_atom_pair_3d(mol)
+    _raise_distance_atom_pair_not_implemented()
+
+
+def distance_atom_pair_descriptors(mol: Any, **_: Any) -> DescriptorSet:
+    """Reject unsupported 3D coordinate-distance Atom Pair descriptors."""
+    _require_distance_atom_pair_3d(mol)
+    _raise_distance_atom_pair_not_implemented()
 
 
 def morgan_descriptors(
@@ -1736,12 +2559,23 @@ def morgan_descriptors(
         include_ring_membership,
         include_redundant_environments,
     )
-    return DescriptorSet._from_native(_native.MakeMorganDescriptors(mol, options))
+    native = _native.MakeMorganDescriptors(mol, options)
+    return _legacy_counted_integer_descriptor(native, _descriptor_spec(native.Spec()))
 
 
 def mordred_descriptors(mol: Any) -> DescriptorSet:
-    """Generate the supported Mordred-compatible count descriptor subset."""
-    return DescriptorSet._from_native(_native.MakeMordredDescriptors(mol))
+    """Generate schema-backed Mordred-compatible descriptors.
+
+    :param mol: OpenEye molecule to describe.
+    :returns: Descriptor row backed by :func:`mordred_schema`.
+    """
+    native = _native.MakeMordredDescriptors(mol)
+    schema = mordred_schema()
+    values = {
+        definition.name: _mordred_value_from_native(native, definition)
+        for definition in schema.definitions
+    }
+    return DescriptorSet(schema, values)
 
 
 def morgan_fingerprint_with_mapping(

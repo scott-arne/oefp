@@ -53,7 +53,7 @@ jobs:
           ${{ matrix.python }} -m venv /opt/venv
           echo "/opt/venv/bin" >> $GITHUB_PATH
           /opt/venv/bin/pip install --upgrade pip setuptools wheel
-          /opt/venv/bin/pip install scikit-build-core ninja cmake build swig auditwheel patchelf
+          /opt/venv/bin/pip install scikit-build-core ninja cmake build swig auditwheel patchelf "pyarrow>=24"
 
       - name: Validate configuration
         run: |
@@ -131,7 +131,14 @@ jobs:
           for lib in "$OE_LIB_DIR"/lib*.so; do
             EXCLUDE_ARGS="$EXCLUDE_ARGS --exclude $(basename $lib)"
           done
-          LD_LIBRARY_PATH="$OE_LIB_DIR" auditwheel repair \
+          while IFS= read -r pyarrow_lib_dir; do
+            for lib in "$pyarrow_lib_dir"/lib*.so*; do
+              [ -e "$lib" ] || continue
+              EXCLUDE_ARGS="$EXCLUDE_ARGS --exclude $(basename "$lib")"
+            done
+          done < <(/opt/venv/bin/python -c "import pyarrow as pa; print('\n'.join(pa.get_library_dirs()))")
+          PYARROW_LD_LIBRARY_PATH=$(/opt/venv/bin/python -c "import pyarrow as pa; print(':'.join(pa.get_library_dirs()))")
+          LD_LIBRARY_PATH="$OE_LIB_DIR:$PYARROW_LD_LIBRARY_PATH" auditwheel repair \
             $EXCLUDE_ARGS \
             --plat ${{ matrix.manylinux_plat }} \
             --wheel-dir dist-repaired/ \
@@ -149,6 +156,7 @@ jobs:
           SO_FILE=$(find "$TMPDIR" -name '_oefp*.so' | head -1)
           if [ -n "$SO_FILE" ]; then
             patchelf --add-rpath '$ORIGIN' "$SO_FILE"
+            patchelf --add-rpath '$ORIGIN/../pyarrow' "$SO_FILE"
             patchelf --add-rpath "\$ORIGIN/../openeye/libs/$OE_PLATFORM" "$SO_FILE"
             echo "RPATH set to: $(patchelf --print-rpath "$SO_FILE")"
           fi
@@ -192,7 +200,7 @@ jobs:
         run: |
           brew install swig
           pip install --upgrade pip setuptools wheel
-          pip install scikit-build-core ninja cmake build delocate
+          pip install scikit-build-core ninja cmake build delocate "pyarrow>=24"
 
       - name: Validate configuration
         run: |
@@ -308,7 +316,7 @@ jobs:
       - name: Install build dependencies
         run: |
           python -m pip install --upgrade pip setuptools wheel
-          python -m pip install scikit-build-core ninja cmake build swig pytest
+          python -m pip install scikit-build-core ninja cmake build swig pytest "pyarrow>=24"
 
       - name: Validate configuration
         run: |
