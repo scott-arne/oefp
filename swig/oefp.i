@@ -445,6 +445,7 @@ namespace std {
 %rename(_NativeMetric) OEFP::Metric;
 %rename(_NativeAtomPairGenerator) OEFP::AtomPairGenerator;
 %rename(_NativeMorganGenerator) OEFP::MorganGenerator;
+%rename(_NativeTopologicalTorsionsGenerator) OEFP::TopologicalTorsionsGenerator;
 %rename(_ProfileAtomPairFingerprintStages) OEFP::ProfileAtomPairFingerprint;
 %rename(_ProfileMorganFingerprintStages) OEFP::ProfileMorganFingerprint;
 
@@ -489,6 +490,12 @@ OEFP_GIL_RELEASE_EXCEPTION(OEFP::MakeAtomPairSparseCountFingerprint)
 OEFP_GIL_RELEASE_EXCEPTION(OEFP::MakeAtomPairDescriptors)
 OEFP_GIL_RELEASE_EXCEPTION(OEFP::AtomPairGenerator::Fingerprint)
 OEFP_GIL_RELEASE_EXCEPTION(OEFP::ProfileAtomPairFingerprint)
+OEFP_GIL_RELEASE_EXCEPTION(OEFP::MakeTopologicalTorsionsFingerprint)
+OEFP_GIL_RELEASE_EXCEPTION(OEFP::MakeTopologicalTorsionsCountFingerprint)
+OEFP_GIL_RELEASE_EXCEPTION(OEFP::MakeTopologicalTorsionsSparseFingerprint)
+OEFP_GIL_RELEASE_EXCEPTION(OEFP::MakeTopologicalTorsionsSparseCountFingerprint)
+OEFP_GIL_RELEASE_EXCEPTION(OEFP::MakeTopologicalTorsionsDescriptors)
+OEFP_GIL_RELEASE_EXCEPTION(OEFP::TopologicalTorsionsGenerator::Fingerprint)
 OEFP_GIL_RELEASE_EXCEPTION(OEFP::MakeMorganFingerprint)
 OEFP_GIL_RELEASE_EXCEPTION(OEFP::MakeMorganFingerprintWithMapping)
 OEFP_GIL_RELEASE_EXCEPTION(OEFP::MakeMorganCountFingerprint)
@@ -513,6 +520,7 @@ OEFP_GIL_RELEASE_EXCEPTION(OEFP::MakeMordredDescriptors)
 %include "oefp/descriptor_batch.h"
 %include "oefp/descriptor_arrow.h"
 %include "oefp/atom_pair.h"
+%include "oefp/topological_torsions.h"
 
 namespace std {
 %template(OEFPVector) vector< ::OEFP::OEFP >;

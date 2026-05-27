@@ -31,6 +31,7 @@ add_executable(oefp_tests
     test_openeye_interop.cpp
     test_sparse.cpp
     test_sparse_batch.cpp
+    test_topological_torsions.cpp
 )
 
 target_link_libraries(oefp_tests

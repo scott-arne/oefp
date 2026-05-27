@@ -24,5 +24,6 @@
 #include "oefp/openeye.h"
 #include "oefp/sparse.h"
 #include "oefp/sparse_batch.h"
+#include "oefp/topological_torsions.h"
 
 #endif // OEFP_H

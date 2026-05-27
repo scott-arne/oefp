@@ -24,6 +24,7 @@ DESCRIPTOR_PREREQUISITE_COORDINATES_2D = 1 << 1
 DESCRIPTOR_PREREQUISITE_COORDINATES_3D = 1 << 2
 DESCRIPTOR_PREREQUISITE_ALL = _UINT32_MAX
 TOPOLOGICAL_ATOM_PAIR_PREREQUISITES = DESCRIPTOR_PREREQUISITE_GRAPH
+TOPOLOGICAL_TORSIONS_PREREQUISITES = DESCRIPTOR_PREREQUISITE_GRAPH
 DISTANCE_ATOM_PAIR_PREREQUISITES = (
     DESCRIPTOR_PREREQUISITE_GRAPH | DESCRIPTOR_PREREQUISITE_COORDINATES_3D
 )
@@ -682,6 +683,71 @@ def _atom_pair_options(
     return options
 
 
+def _normalized_topological_torsions_values(
+    torsion_atom_count: int,
+    num_bits: int,
+    use_chirality: bool,
+    count_simulation: bool,
+    count_bounds: Sequence[int] | None,
+) -> tuple[int, int, bool, bool, tuple[int, ...]]:
+    torsion_atom_count_int = _uint32_option(
+        "Topological Torsions",
+        "torsion_atom_count",
+        torsion_atom_count,
+        positive=True,
+    )
+    num_bits_int = _uint32_option("Topological Torsions", "num_bits", num_bits, positive=True)
+    normalized_count_bounds = _normalized_count_bounds("Topological Torsions", count_bounds)
+    if torsion_atom_count_int >= 8:
+        raise ValueError("Topological Torsions torsion_atom_count must be smaller than 8.")
+    if use_chirality:
+        raise ValueError("Topological Torsions chirality conformance is not implemented yet.")
+    if count_simulation and not normalized_count_bounds:
+        raise ValueError(
+            "Topological Torsions count_bounds cannot be empty when count simulation is enabled."
+        )
+    if count_simulation and len(normalized_count_bounds) >= num_bits_int:
+        raise ValueError(
+            "Topological Torsions count_bounds length must be smaller than num_bits."
+        )
+    return (
+        torsion_atom_count_int,
+        num_bits_int,
+        bool(use_chirality),
+        bool(count_simulation),
+        normalized_count_bounds,
+    )
+
+
+def _topological_torsions_options(
+    torsion_atom_count: int,
+    num_bits: int,
+    use_chirality: bool,
+    count_simulation: bool,
+    count_bounds: Sequence[int] | None,
+) -> Any:
+    (
+        torsion_atom_count_int,
+        num_bits_int,
+        use_chirality_bool,
+        count_simulation_bool,
+        normalized_count_bounds,
+    ) = _normalized_topological_torsions_values(
+        torsion_atom_count,
+        num_bits,
+        use_chirality,
+        count_simulation,
+        count_bounds,
+    )
+    options = _native.TopologicalTorsionsOptions()
+    options.torsion_atom_count = torsion_atom_count_int
+    options.num_bits = num_bits_int
+    options.use_chirality = use_chirality_bool
+    options.count_simulation = count_simulation_bool
+    options.count_bounds = _native_uint32_vector(normalized_count_bounds)
+    return options
+
+
 class OEFP:
     """Python wrapper for a native dense-binary OEFP."""
 
@@ -786,6 +852,62 @@ class OEFPCount:
     @property
     def num_bits(self) -> int:
         """Fixed folded fingerprint size."""
+        return int(self._native.SizeBits())
+
+    @property
+    def spec(self) -> FingerprintSpec:
+        """Read-only fingerprint metadata."""
+        return _fingerprint_spec(self._native.Spec())
+
+
+class OEFPCount64:
+    """Python wrapper for a native sparse counted fingerprint with uint64 indices."""
+
+    def __init__(self, native: Any, *, _token: object | None = None):
+        if _token is not _NATIVE_TOKEN:
+            raise TypeError(
+                "OEFPCount64 objects are created by OEFPCount64 factories such as "
+                "topological_torsions_sparse_count_fingerprint()."
+            )
+        self._native = native
+
+    @classmethod
+    def _from_native(cls, native: Any) -> OEFPCount64:
+        return cls(native, _token=_NATIVE_TOKEN)
+
+    @property
+    def indices(self) -> np.ndarray:
+        """Read-only view of sorted nonzero uint64 count indices."""
+        return readonly_array_from_address(
+            self,
+            self._native.IndexDataAddress(),
+            (self._native.NonzeroCount(),),
+            np.dtype(np.uint64),
+        )
+
+    @property
+    def counts(self) -> np.ndarray:
+        """Read-only view of counts parallel to indices."""
+        return readonly_array_from_address(
+            self,
+            self._native.CountDataAddress(),
+            (self._native.NonzeroCount(),),
+            np.dtype(np.uint32),
+        )
+
+    @property
+    def nonzero_count(self) -> int:
+        """Number of nonzero sparse count entries."""
+        return int(self._native.NonzeroCount())
+
+    @property
+    def total_count(self) -> int:
+        """Sum of all sparse counts."""
+        return int(self._native.TotalCount())
+
+    @property
+    def num_bits(self) -> int:
+        """Raw fingerprint identifier domain size."""
         return int(self._native.SizeBits())
 
     @property
@@ -1876,6 +1998,32 @@ class TopologicalAtomPairGenerator:
         return OEFP._from_native(self._native.Fingerprint(mol))
 
 
+class TopologicalTorsionsGenerator:
+    """Reusable generator for folded binary Topological Torsions fingerprints."""
+
+    def __init__(
+        self,
+        *,
+        torsion_atom_count: int = 4,
+        num_bits: int = 2048,
+        use_chirality: bool = False,
+        count_simulation: bool = True,
+        count_bounds: Sequence[int] | None = None,
+    ) -> None:
+        options = _topological_torsions_options(
+            torsion_atom_count,
+            num_bits,
+            use_chirality,
+            count_simulation,
+            count_bounds,
+        )
+        self._native = _native._NativeTopologicalTorsionsGenerator(options)
+
+    def fingerprint(self, mol: Any) -> OEFP:
+        """Generate a folded dense binary Topological Torsions fingerprint."""
+        return OEFP._from_native(self._native.Fingerprint(mol))
+
+
 class AtomPairGenerator(TopologicalAtomPairGenerator):
     """Compatibility generator for RDKit-style Atom Pair options.
 
@@ -2240,6 +2388,23 @@ def _cached_atom_pair_generator(
     )
 
 
+@lru_cache(maxsize=32)
+def _cached_topological_torsions_generator(
+    torsion_atom_count: int,
+    num_bits: int,
+    use_chirality: bool,
+    count_simulation: bool,
+    count_bounds: tuple[int, ...],
+) -> TopologicalTorsionsGenerator:
+    return TopologicalTorsionsGenerator(
+        torsion_atom_count=torsion_atom_count,
+        num_bits=num_bits,
+        use_chirality=use_chirality,
+        count_simulation=count_simulation,
+        count_bounds=count_bounds,
+    )
+
+
 def morgan_fingerprint(
     mol: Any,
     *,
@@ -2504,6 +2669,102 @@ def topological_atom_pair_descriptors(
         use_chirality=use_chirality,
         use_2d=True,
     )
+
+
+def topological_torsions_fingerprint(
+    mol: Any,
+    *,
+    torsion_atom_count: int = 4,
+    num_bits: int = 2048,
+    use_chirality: bool = False,
+    count_simulation: bool = True,
+    count_bounds: Sequence[int] | None = None,
+) -> OEFP:
+    """Generate an RDKit-compatible folded binary Topological Torsions fingerprint."""
+    generator = _cached_topological_torsions_generator(
+        *_normalized_topological_torsions_values(
+            torsion_atom_count,
+            num_bits,
+            use_chirality,
+            count_simulation,
+            count_bounds,
+        )
+    )
+    return generator.fingerprint(mol)
+
+
+def topological_torsions_count_fingerprint(
+    mol: Any,
+    *,
+    torsion_atom_count: int = 4,
+    num_bits: int = 2048,
+    use_chirality: bool = False,
+) -> OEFPCount:
+    """Generate an RDKit-compatible folded count Topological Torsions fingerprint."""
+    options = _topological_torsions_options(
+        torsion_atom_count,
+        num_bits,
+        use_chirality,
+        False,
+        None,
+    )
+    return OEFPCount._from_native(_native.MakeTopologicalTorsionsCountFingerprint(mol, options))
+
+
+def topological_torsions_sparse_fingerprint(
+    mol: Any,
+    *,
+    torsion_atom_count: int = 4,
+    use_chirality: bool = False,
+    count_simulation: bool = True,
+    count_bounds: Sequence[int] | None = None,
+) -> OEFPSparse:
+    """Generate an RDKit-compatible sparse binary Topological Torsions fingerprint."""
+    options = _topological_torsions_options(
+        torsion_atom_count,
+        2048,
+        use_chirality,
+        count_simulation,
+        count_bounds,
+    )
+    return OEFPSparse._from_native(_native.MakeTopologicalTorsionsSparseFingerprint(mol, options))
+
+
+def topological_torsions_sparse_count_fingerprint(
+    mol: Any,
+    *,
+    torsion_atom_count: int = 4,
+    use_chirality: bool = False,
+) -> OEFPCount64:
+    """Generate an RDKit-compatible raw sparse-count Topological Torsions fingerprint."""
+    options = _topological_torsions_options(
+        torsion_atom_count,
+        2048,
+        use_chirality,
+        False,
+        None,
+    )
+    return OEFPCount64._from_native(
+        _native.MakeTopologicalTorsionsSparseCountFingerprint(mol, options)
+    )
+
+
+def topological_torsions_descriptors(
+    mol: Any,
+    *,
+    torsion_atom_count: int = 4,
+    use_chirality: bool = False,
+) -> DescriptorSet:
+    """Generate raw Topological Torsions descriptors as counted string keys."""
+    options = _topological_torsions_options(
+        torsion_atom_count,
+        2048,
+        use_chirality,
+        False,
+        None,
+    )
+    native = _native.MakeTopologicalTorsionsDescriptors(mol, options)
+    return _legacy_counted_string_descriptor(native, _descriptor_spec(native.Spec()))
 
 
 def distance_atom_pair_fingerprint(mol: Any, **_: Any) -> OEFP:
