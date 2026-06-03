@@ -25,6 +25,9 @@ jobs:
             python: python3.11
             dnf_repo: powertools
             manylinux_plat: manylinux_2_28_x86_64
+            # rockylinux:8 ships gcc 8.5, which predates <span> (gcc 10+);
+            # pyarrow>=24 headers require C++20, so use the newer toolset.
+            gcc_toolset: gcc-toolset-12
 
           - arch: aarch64
             runner: ubuntu-24.04-arm
@@ -32,6 +35,8 @@ jobs:
             python: python3.11
             dnf_repo: crb
             manylinux_plat: manylinux_2_34_aarch64
+            # rockylinux:9 ships gcc 11, which already provides <span>.
+            gcc_toolset: ''
 
     runs-on: ${{ matrix.runner }}
     container: ${{ matrix.container }}
@@ -45,6 +50,9 @@ jobs:
             git curl unzip gcc gcc-c++ cmake ninja-build \
             python3.11 python3.11-devel \
             zlib-devel cairo
+          if [ -n "${{ matrix.gcc_toolset }}" ]; then
+            dnf install -y "${{ matrix.gcc_toolset }}"
+          fi
 
       - uses: actions/checkout@v6
 
@@ -118,6 +126,10 @@ jobs:
         env:
           OPENEYE_ROOT: /opt/openeye
         run: |
+          if [ -n "${{ matrix.gcc_toolset }}" ]; then
+            . "/opt/rh/${{ matrix.gcc_toolset }}/enable"
+            echo "Using $(gcc --version | head -1)"
+          fi
           /opt/venv/bin/python scripts/build_python.py \
             --openeye-root /opt/openeye \
             --python /opt/venv/bin/python \

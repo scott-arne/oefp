@@ -30,6 +30,19 @@ list(GET _arrow_python_lines 0 ARROW_PYTHON_INCLUDE_DIR)
 set(ARROW_PYTHON_LIBRARY_DIRS ${_arrow_python_lines})
 list(REMOVE_AT ARROW_PYTHON_LIBRARY_DIRS 0)
 
+# pyarrow reports native paths; on Windows these use backslashes, which are
+# escape characters inside file(GLOB) patterns (a path like
+# C:\hostedtoolcache\... fails to parse as "Invalid character escape"). Convert
+# every path to a forward-slash CMake path before it is used in a glob or as an
+# include directory.
+file(TO_CMAKE_PATH "${ARROW_PYTHON_INCLUDE_DIR}" ARROW_PYTHON_INCLUDE_DIR)
+set(_arrow_python_cmake_dirs "")
+foreach(_arrow_python_native_dir IN LISTS ARROW_PYTHON_LIBRARY_DIRS)
+    file(TO_CMAKE_PATH "${_arrow_python_native_dir}" _arrow_python_native_dir)
+    list(APPEND _arrow_python_cmake_dirs "${_arrow_python_native_dir}")
+endforeach()
+set(ARROW_PYTHON_LIBRARY_DIRS ${_arrow_python_cmake_dirs})
+
 foreach(_arrow_python_dir IN LISTS ARROW_PYTHON_LIBRARY_DIRS)
     file(GLOB _arrow_python_arrow_candidates CONFIGURE_DEPENDS
         "${_arrow_python_dir}/${CMAKE_SHARED_LIBRARY_PREFIX}arrow${CMAKE_SHARED_LIBRARY_SUFFIX}"
