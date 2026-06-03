@@ -994,7 +994,16 @@ def test_mordred_descriptors_match_enabled_reference_values():
             row_divergence = row_divergences.get((name, smiles))
             if row_divergence is not None:
                 assert expected == row_divergence["reference"]
-                assert actual == row_divergence["observed"]
+                observed = row_divergence["observed"]
+                # Float observations are compared with a tolerance: the pinned
+                # value is only reproducible bit-for-bit on the toolchain that
+                # generated it, and last-bit codegen differences (e.g. FMA
+                # contraction across GCC versions) otherwise break parity on
+                # other build platforms. Non-float observations stay exact.
+                if isinstance(observed, float) and isinstance(actual, float):
+                    assert actual == pytest.approx(observed, rel=1e-8, abs=1e-8)
+                else:
+                    assert actual == observed
                 continue
             descriptor_policy = descriptor_policies.get(name, {})
             if (
