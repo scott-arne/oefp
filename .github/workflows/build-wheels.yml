@@ -143,12 +143,16 @@ jobs:
           for lib in "$OE_LIB_DIR"/lib*.so; do
             EXCLUDE_ARGS="$EXCLUDE_ARGS --exclude $(basename $lib)"
           done
-          while IFS= read -r pyarrow_lib_dir; do
+          # POSIX sh has no process substitution; recent rockylinux:8 images
+          # ship without bash, so GitHub runs these steps under /bin/sh. Iterate
+          # over the pyarrow directories with command substitution instead (the
+          # paths contain no spaces).
+          for pyarrow_lib_dir in $(/opt/venv/bin/python -c "import pyarrow as pa; print(' '.join(pa.get_library_dirs()))"); do
             for lib in "$pyarrow_lib_dir"/lib*.so*; do
               [ -e "$lib" ] || continue
               EXCLUDE_ARGS="$EXCLUDE_ARGS --exclude $(basename "$lib")"
             done
-          done < <(/opt/venv/bin/python -c "import pyarrow as pa; print('\n'.join(pa.get_library_dirs()))")
+          done
           PYARROW_LD_LIBRARY_PATH=$(/opt/venv/bin/python -c "import pyarrow as pa; print(':'.join(pa.get_library_dirs()))")
           LD_LIBRARY_PATH="$OE_LIB_DIR:$PYARROW_LD_LIBRARY_PATH" auditwheel repair \
             $EXCLUDE_ARGS \
