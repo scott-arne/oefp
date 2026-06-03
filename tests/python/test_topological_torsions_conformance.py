@@ -262,3 +262,211 @@ def test_topological_torsions_explicit_hydrogens_match_rdkit_when_preserved():
         int(index): int(count)
         for index, count in generator.GetSparseCountFingerprint(rd_mol).GetNonzeroElements().items()
     }
+
+
+# ---------------------------------------------------------------------------
+# Chirality conformance.
+#
+# RDKit's new rdFingerprintGenerator Topological Torsions path does not encode
+# CIP chirality into the atom code (its includeChirality=True output fails to
+# distinguish enantiomers on rdkit 2026.03.2). Its legacy
+# rdkit.Chem.AtomPairs.Torsions API does encode chirality the same way OEFP and
+# RDKit's Atom Pair generator do (R=1, S=2 in the atom-code high bits), so the
+# chirality conformance reference is the legacy API. The achiral tests above
+# continue to use the new generator, with which both APIs and OEFP agree.
+# ---------------------------------------------------------------------------
+
+# Single-stereocenter molecules with paths long enough to form torsions. Their
+# achiral output matches RDKit, so chiral assertions isolate the chirality code.
+_CHIRAL_SMILES = [
+    "C[C@](F)(Cl)CC",
+    "C[C@@](F)(Cl)CC",
+]
+
+
+def _legacy_rdkit_chiral_raw_counts(smiles: str) -> dict[int, int]:
+    from rdkit.Chem.AtomPairs import Torsions
+
+    mol = _rdkit_mol(smiles)
+    Chem.AssignStereochemistry(mol, cleanIt=True, force=True)
+    return {
+        int(code): int(count)
+        for code, count in Torsions.GetTopologicalTorsionFingerprint(
+            mol, includeChirality=True
+        ).GetNonzeroElements().items()
+    }
+
+
+def _legacy_rdkit_chiral_hashed_counts(smiles: str, *, num_bits: int) -> dict[int, int]:
+    from rdkit.Chem import rdMolDescriptors
+
+    mol = _rdkit_mol(smiles)
+    Chem.AssignStereochemistry(mol, cleanIt=True, force=True)
+    return {
+        int(index): int(count)
+        for index, count in rdMolDescriptors.GetHashedTopologicalTorsionFingerprint(
+            mol, nBits=num_bits, includeChirality=True
+        ).GetNonzeroElements().items()
+    }
+
+
+def _legacy_rdkit_chiral_hashed_on_bits(smiles: str, *, num_bits: int) -> set[int]:
+    from rdkit.Chem import rdMolDescriptors
+
+    mol = _rdkit_mol(smiles)
+    Chem.AssignStereochemistry(mol, cleanIt=True, force=True)
+    return set(
+        rdMolDescriptors.GetHashedTopologicalTorsionFingerprintAsBitVect(
+            mol, nBits=num_bits, includeChirality=True
+        ).GetOnBits()
+    )
+
+
+def _legacy_rdkit_chiral_descriptor_counts(smiles: str) -> dict[str, int]:
+    # The descriptor key is the underscore-joined canonical path codes; decode
+    # the legacy raw torsion code into its four 11-bit (chirality-widened)
+    # per-atom path codes to build the expected keys.
+    raw_counts = _legacy_rdkit_chiral_raw_counts(smiles)
+    code_size = 9 + 2
+    expected: dict[str, int] = {}
+    for code, count in raw_counts.items():
+        parts = [str((code >> (code_size * i)) & ((1 << code_size) - 1)) for i in range(4)]
+        expected["_".join(parts)] = count
+    return expected
+
+
+@pytest.mark.parametrize("smiles", _CHIRAL_SMILES)
+@pytest.mark.parametrize("num_bits", [256, 2048])
+def test_topological_torsions_binary_matches_rdkit_with_chirality(
+    smiles: str,
+    num_bits: int,
+):
+    import oefp
+
+    fp = oefp.topological_torsions_fingerprint(
+        _openeye_mol(smiles),
+        num_bits=num_bits,
+        use_chirality=True,
+    )
+
+    assert fp.num_bits == num_bits
+    assert _oefp_on_bits(fp) == _legacy_rdkit_chiral_hashed_on_bits(smiles, num_bits=num_bits)
+
+
+@pytest.mark.parametrize("smiles", _CHIRAL_SMILES)
+@pytest.mark.parametrize("num_bits", [256, 2048])
+def test_topological_torsions_count_matches_rdkit_with_chirality(
+    smiles: str,
+    num_bits: int,
+):
+    import oefp
+
+    fp = oefp.topological_torsions_count_fingerprint(
+        _openeye_mol(smiles),
+        num_bits=num_bits,
+        use_chirality=True,
+    )
+
+    assert fp.num_bits == num_bits
+    assert _oefp_counts(fp) == _legacy_rdkit_chiral_hashed_counts(smiles, num_bits=num_bits)
+
+
+@pytest.mark.parametrize("smiles", _CHIRAL_SMILES)
+def test_topological_torsions_sparse_count_matches_rdkit_with_chirality(smiles: str):
+    import oefp
+
+    fp = oefp.topological_torsions_sparse_count_fingerprint(
+        _openeye_mol(smiles),
+        use_chirality=True,
+    )
+
+    assert _oefp_counts64(fp) == _legacy_rdkit_chiral_raw_counts(smiles)
+
+
+def test_topological_torsions_sparse_binary_chirality_distinguishes_enantiomers():
+    # The sparse binary fingerprint folds the hashed chirality-widened code into
+    # the uint32 identifier domain, so there is no chirality-correct RDKit
+    # reference at this fold (the legacy raw API uses 64-bit codes and the new
+    # generator mis-encodes chirality). Assert the behavioral guarantee instead:
+    # enantiomers map to different on-bit sets.
+    import oefp
+
+    r_bits = _oefp_sparse_bits(
+        oefp.topological_torsions_sparse_fingerprint(
+            _openeye_mol("C[C@](F)(Cl)CC"),
+            use_chirality=True,
+            count_simulation=False,
+        )
+    )
+    s_bits = _oefp_sparse_bits(
+        oefp.topological_torsions_sparse_fingerprint(
+            _openeye_mol("C[C@@](F)(Cl)CC"),
+            use_chirality=True,
+            count_simulation=False,
+        )
+    )
+
+    assert r_bits and r_bits != s_bits
+
+
+@pytest.mark.parametrize("smiles", _CHIRAL_SMILES)
+def test_topological_torsions_descriptors_match_rdkit_with_chirality(smiles: str):
+    import oefp
+
+    descriptors = oefp.topological_torsions_descriptors(
+        _openeye_mol(smiles),
+        use_chirality=True,
+    )
+
+    actual = {
+        str(key): int(count)
+        for key, count in zip(descriptors.string_keys, descriptors.counts, strict=True)
+    }
+    assert actual == _legacy_rdkit_chiral_descriptor_counts(smiles)
+
+
+def test_topological_torsions_chirality_distinguishes_enantiomers():
+    import oefp
+
+    r_fp = oefp.topological_torsions_sparse_count_fingerprint(
+        _openeye_mol("C[C@](F)(Cl)CC"),
+        use_chirality=True,
+    )
+    s_fp = oefp.topological_torsions_sparse_count_fingerprint(
+        _openeye_mol("C[C@@](F)(Cl)CC"),
+        use_chirality=True,
+    )
+
+    assert _oefp_counts64(r_fp) != _oefp_counts64(s_fp)
+
+
+def test_topological_torsions_chirality_leaves_folded_achiral_output_unchanged():
+    # For an achiral molecule the folded fingerprint is bit-identical whether or
+    # not chirality is requested: the chirality bits reduce away in the folded
+    # hash. (The raw sparse-count code legitimately changes width, matching
+    # RDKit, so the invariant is asserted on the folded output.)
+    import oefp
+
+    mol = _openeye_mol("CCCC")
+    with_chirality = oefp.topological_torsions_count_fingerprint(
+        mol, use_chirality=True, num_bits=2048
+    )
+    without_chirality = oefp.topological_torsions_count_fingerprint(
+        mol, use_chirality=False, num_bits=2048
+    )
+
+    assert _oefp_counts(with_chirality) == _oefp_counts(without_chirality)
+
+
+def test_topological_torsions_rejects_chirality_overflow_at_large_torsion_length():
+    import oefp
+
+    # The raw sparse-count code packs torsion_atom_count * 11 bits with
+    # chirality; lengths above five exceed the 64-bit code budget. SWIG maps the
+    # native std::invalid_argument to RuntimeError.
+    with pytest.raises(RuntimeError, match="torsion_atom_count"):
+        oefp.topological_torsions_sparse_count_fingerprint(
+            _openeye_mol("CCCCCCC"),
+            torsion_atom_count=6,
+            use_chirality=True,
+        )

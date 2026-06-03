@@ -698,8 +698,6 @@ def _normalized_topological_torsions_values(
     normalized_count_bounds = _normalized_count_bounds("Topological Torsions", count_bounds)
     if torsion_atom_count_int >= 8:
         raise ValueError("Topological Torsions torsion_atom_count must be smaller than 8.")
-    if use_chirality:
-        raise ValueError("Topological Torsions chirality conformance is not implemented yet.")
     if count_simulation and not normalized_count_bounds:
         raise ValueError(
             "Topological Torsions count_bounds cannot be empty when count simulation is enabled."

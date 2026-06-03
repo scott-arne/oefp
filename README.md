@@ -177,12 +177,12 @@ serialized parameters, value type, description, and prerequisite bitmaps.
 Coordinate prerequisites are declarative only: OEFP descriptor calculators do
 not invoke conformer generation.
 
-Morgan and Topological Atom Pair outputs support RDKit-compatible chirality
-encoding with `use_chirality=True`. OEFP keeps the caller's OpenEye molecule
-graph as the input truth; it does not normalize molecules to RDKit's graph
-model. When OpenEye and RDKit materialize a molecule differently, such as stereo
-hydrogens or sanitization-specific valence rewrites, chirality-enabled output
-may reflect that graph-model boundary.
+Morgan, Topological Atom Pair, and Topological Torsions outputs support
+RDKit-compatible chirality encoding with `use_chirality=True`. OEFP keeps the
+caller's OpenEye molecule graph as the input truth; it does not normalize
+molecules to RDKit's graph model. When OpenEye and RDKit materialize a molecule
+differently, such as stereo hydrogens or sanitization-specific valence rewrites,
+chirality-enabled output may reflect that graph-model boundary.
 
 Current conformance scope is otherwise explicit: Distance Atom Pair generation
 raises `ValueError` or `NotImplementedError` until that path has dedicated RDKit

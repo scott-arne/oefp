@@ -1,5 +1,7 @@
 #include "oefp/topological_torsions.h"
 
+#include "oefp/stereo.h"
+
 #include <algorithm>
 #include <cstdint>
 #include <limits>
@@ -27,8 +29,18 @@ constexpr std::uint32_t MAX_NUM_PI = (1u << NUM_PI_BITS) - 1u;
 constexpr std::uint32_t NUM_BRANCH_BITS = 3;
 constexpr std::uint32_t MAX_NUM_BRANCHES = (1u << NUM_BRANCH_BITS) - 1u;
 constexpr std::uint32_t CODE_SIZE = NUM_TYPE_BITS + NUM_PI_BITS + NUM_BRANCH_BITS;
+// RDKit appends two chirality bits (R=1, S=2, none=0) above the base atom code
+// when includeChirality is set, matching the Atom Pair encoding.
+constexpr std::uint32_t NUM_CHIRAL_BITS = 2;
 constexpr std::uint64_t BITS_PER_WORD = 64u;
 constexpr std::uint32_t MAX_TORSION_ATOM_COUNT = 7u;
+
+// Per-atom path-code width, widened by the chirality bits when enabled. The
+// base CODE_SIZE bits are computed identically regardless of chirality, so the
+// use_chirality=false output is bit-for-bit unchanged.
+std::uint32_t path_code_size(const TopologicalTorsionsOptions& options) {
+    return CODE_SIZE + (options.use_chirality ? NUM_CHIRAL_BITS : 0u);
+}
 
 struct BondRef {
     std::uint32_t atom_index = 0;
@@ -123,12 +135,14 @@ FingerprintSpec topological_torsions_spec(const TopologicalTorsionsOptions& opti
 }
 
 std::uint64_t raw_sparse_count_result_size(const TopologicalTorsionsOptions& options) {
-    const auto raw_bits = static_cast<std::uint64_t>(options.torsion_atom_count) * CODE_SIZE;
+    const auto raw_bits =
+        static_cast<std::uint64_t>(options.torsion_atom_count) * path_code_size(options);
     return std::uint64_t{1} << raw_bits;
 }
 
 std::uint32_t sparse_result_size(const TopologicalTorsionsOptions& options) {
-    const auto raw_bits = static_cast<std::uint64_t>(options.torsion_atom_count) * CODE_SIZE;
+    const auto raw_bits =
+        static_cast<std::uint64_t>(options.torsion_atom_count) * path_code_size(options);
     const auto raw_size = std::uint64_t{1} << raw_bits;
     return static_cast<std::uint32_t>(
         std::min<std::uint64_t>(std::numeric_limits<std::uint32_t>::max(), raw_size));
@@ -196,9 +210,15 @@ void validate_common_options(const TopologicalTorsionsOptions& options) {
         throw std::invalid_argument(
             "Topological Torsions torsion_atom_count must be smaller than 8.");
     }
-    if (options.use_chirality) {
+    // The raw sparse-count code packs torsion_atom_count atom codes into one
+    // uint64. The base 9-bit code always fits (max 7*9=63), but the two extra
+    // chirality bits per atom can exceed 64 bits at large torsion lengths.
+    if (options.use_chirality
+        && static_cast<std::uint64_t>(options.torsion_atom_count) * path_code_size(options)
+               > 64u) {
         throw std::invalid_argument(
-            "Topological Torsions chirality conformance is not implemented yet.");
+            "Topological Torsions chirality requires torsion_atom_count small enough that "
+            "torsion_atom_count * 11 does not exceed 64 bits.");
     }
 }
 
@@ -465,25 +485,36 @@ std::vector<std::uint32_t> canonical_path_codes(
 
 std::uint32_t topological_torsion_hash(
     const std::vector<std::uint32_t>& canonical_codes) {
+    // The folded/hashed fingerprint reduces each path code modulo the base
+    // 9-bit limit, which collapses the chirality high bits back into the base
+    // value (e.g. base 34 with chiral bit R -> 35). RDKit hashes this reduced
+    // value for chirality-aware folded output, whereas the raw sparse-count and
+    // descriptor codes keep the full-width code. For achiral codes the value is
+    // already below the limit, so the reduction is a no-op and the output is
+    // unchanged.
+    constexpr std::uint32_t code_size_limit = (1u << CODE_SIZE) - 1u;
     std::uint32_t seed = 0;
     for (const auto code : canonical_codes) {
-        seed = hash_combine_value(seed, code);
+        seed = hash_combine_value(seed, code % code_size_limit);
     }
     return seed;
 }
 
 std::uint64_t topological_torsion_code(
-    const std::vector<std::uint32_t>& canonical_codes) {
+    const std::vector<std::uint32_t>& canonical_codes,
+    std::uint32_t code_size) {
     std::uint64_t code = 0;
     for (std::size_t i = 0; i < canonical_codes.size(); ++i) {
-        code |= static_cast<std::uint64_t>(canonical_codes[i]) << (CODE_SIZE * i);
+        code |= static_cast<std::uint64_t>(canonical_codes[i]) << (code_size * i);
     }
     return code;
 }
 
 std::vector<std::uint32_t> path_codes_from_atom_path(
     const std::vector<std::uint32_t>& atom_path,
-    const std::vector<std::uint32_t>& atom_invariants) {
+    const std::vector<std::uint32_t>& atom_invariants,
+    const std::vector<std::uint32_t>& atom_chiral_bits,
+    bool use_chirality) {
     const auto code_size_limit = (1u << CODE_SIZE) - 1u;
     std::vector<std::uint32_t> path_codes;
     path_codes.reserve(atom_path.size());
@@ -491,6 +522,11 @@ std::vector<std::uint32_t> path_codes_from_atom_path(
         auto code = atom_invariants[atom_path[i]] % code_size_limit + 1u;
         if (i != 0u && i + 1u != atom_path.size()) {
             --code;
+        }
+        // The base code occupies the low CODE_SIZE bits unchanged; chirality
+        // bits sit above it so the achiral encoding is preserved exactly.
+        if (use_chirality) {
+            code |= atom_chiral_bits[atom_path[i]] << CODE_SIZE;
         }
         path_codes.push_back(code);
     }
@@ -507,18 +543,25 @@ void enumerate_code_events_into(
     const auto graph = build_graph(working_mol);
 
     std::vector<std::uint32_t> atom_invariants(graph.atoms.size(), 0u);
+    std::vector<std::uint32_t> atom_chiral_bits(graph.atoms.size(), 0u);
     for (const auto& atom_record : graph.atoms) {
         if (atom_record.atom != nullptr) {
             atom_invariants[atom_record.index] = atom_code(*atom_record.atom) - 2u;
+            if (options.use_chirality) {
+                atom_chiral_bits[atom_record.index] = detail::AtomPairChiralityBits(
+                    detail::PerceiveAtomStereo(working_mol, *atom_record.atom));
+            }
         }
     }
 
+    const bool use_chirality = options.use_chirality;
     enumerate_atom_paths(
         graph,
         options.torsion_atom_count,
-        [&atom_invariants, &emit_code_event](const std::vector<std::uint32_t>& atom_path) {
-            emit_code_event(TorsionCodeEvent{
-                path_codes_from_atom_path(atom_path, atom_invariants)});
+        [&atom_invariants, &atom_chiral_bits, use_chirality, &emit_code_event](
+            const std::vector<std::uint32_t>& atom_path) {
+            emit_code_event(TorsionCodeEvent{path_codes_from_atom_path(
+                atom_path, atom_invariants, atom_chiral_bits, use_chirality)});
         });
 }
 
@@ -645,11 +688,12 @@ OEFPCount64 make_sparse_count_fingerprint(
     const OEChem::OEMolBase& mol,
     const TopologicalTorsionsOptions& options) {
     std::map<std::uint64_t, std::uint32_t> raw_counts;
+    const auto code_size = path_code_size(options);
     enumerate_code_events_into(
         mol,
         options,
-        [&raw_counts](const TorsionCodeEvent& event) {
-            auto& count = raw_counts[topological_torsion_code(event.path_codes)];
+        [&raw_counts, code_size](const TorsionCodeEvent& event) {
+            auto& count = raw_counts[topological_torsion_code(event.path_codes, code_size)];
             if (count == std::numeric_limits<std::uint32_t>::max()) {
                 throw std::overflow_error(
                     "Topological Torsions sparse count fingerprint count exceeds uint32 storage.");

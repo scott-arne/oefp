@@ -540,11 +540,15 @@ Supported Generator Scope
 Current Boundaries
 ------------------
 
-Morgan and Atom Pair outputs support RDKit-compatible chirality encoding with
-``use_chirality=True``. Morgan chirality is covered for dense binary, sparse
-binary, folded count, sparse count, bit mapping, and raw descriptor outputs.
-Atom Pair chirality is covered for dense binary, sparse binary, folded count,
-sparse count, and raw descriptor outputs.
+Morgan, Atom Pair, and Topological Torsions outputs support RDKit-compatible
+chirality encoding with ``use_chirality=True``. Morgan chirality is covered for
+dense binary, sparse binary, folded count, sparse count, bit mapping, and raw
+descriptor outputs. Atom Pair and Topological Torsions chirality are covered for
+dense binary, sparse binary, folded count, sparse count, and raw descriptor
+outputs. Topological Torsions chirality matches RDKit's legacy
+``GetTopologicalTorsionFingerprint`` reference (the newer
+``rdFingerprintGenerator`` Topological Torsions path does not encode CIP
+chirality).
 
 OEFP preserves the caller's OpenEye molecule graph. It does not normalize the
 molecule into RDKit's graph model before generating fingerprints. If OpenEye and

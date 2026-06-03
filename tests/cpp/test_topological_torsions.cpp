@@ -57,9 +57,14 @@ TEST(TopologicalTorsionsTest, RejectsInvalidOptions) {
     too_many_atoms.torsion_atom_count = 8;
     EXPECT_THROW(MakeTopologicalTorsionsFingerprint(mol, too_many_atoms), std::invalid_argument);
 
-    TopologicalTorsionsOptions chiral;
-    chiral.use_chirality = true;
-    EXPECT_THROW(MakeTopologicalTorsionsFingerprint(mol, chiral), std::invalid_argument);
+    // Chirality widens each atom code by two bits, so it can only be combined
+    // with torsion lengths whose total raw code stays within 64 bits.
+    TopologicalTorsionsOptions chiral_overflow;
+    chiral_overflow.use_chirality = true;
+    chiral_overflow.torsion_atom_count = 6;
+    EXPECT_THROW(
+        MakeTopologicalTorsionsSparseCountFingerprint(mol, chiral_overflow),
+        std::invalid_argument);
 
     TopologicalTorsionsOptions empty_count_bounds;
     empty_count_bounds.count_bounds.clear();
@@ -208,6 +213,48 @@ TEST(TopologicalTorsionsTest, GeneratedDescriptorsUseCanonicalPathCodeKeys) {
     EXPECT_EQ(total_count(cyclopropane_values), 1u);
     EXPECT_EQ(cyclopropane_values.keys, std::vector<std::string>({"33_32_32_33"}));
     EXPECT_EQ(cyclopropane_values.counts, std::vector<std::uint32_t>({1u}));
+}
+
+TEST(TopologicalTorsionsTest, ChiralSparseCountMatchesRdkitRawIds) {
+    TopologicalTorsionsOptions options;
+    options.use_chirality = true;
+
+    const auto r_form =
+        MakeTopologicalTorsionsSparseCountFingerprint(mol_from_smiles("C[C@](F)(Cl)CC"), options);
+
+    EXPECT_EQ(
+        r_form.Indices(),
+        std::vector<std::uint64_t>({279315546144ULL, 1103949266976ULL, 2203460894752ULL}));
+    EXPECT_EQ(r_form.Counts(), std::vector<std::uint32_t>({1u, 1u, 1u}));
+}
+
+TEST(TopologicalTorsionsTest, ChiralEncodingDistinguishesEnantiomers) {
+    TopologicalTorsionsOptions options;
+    options.use_chirality = true;
+
+    const auto r_form =
+        MakeTopologicalTorsionsSparseCountFingerprint(mol_from_smiles("C[C@](F)(Cl)CC"), options);
+    const auto s_form =
+        MakeTopologicalTorsionsSparseCountFingerprint(mol_from_smiles("C[C@@](F)(Cl)CC"), options);
+
+    EXPECT_NE(r_form.Indices(), s_form.Indices());
+}
+
+TEST(TopologicalTorsionsTest, ChiralityLeavesFoldedAchiralOutputUnchanged) {
+    const auto mol = mol_from_smiles("CCCC");
+
+    TopologicalTorsionsOptions with_chirality;
+    with_chirality.use_chirality = true;
+    with_chirality.num_bits = 128;
+
+    TopologicalTorsionsOptions without_chirality;
+    without_chirality.num_bits = 128;
+
+    const auto chiral_fp = MakeTopologicalTorsionsCountFingerprint(mol, with_chirality);
+    const auto achiral_fp = MakeTopologicalTorsionsCountFingerprint(mol, without_chirality);
+
+    EXPECT_EQ(chiral_fp.Indices(), achiral_fp.Indices());
+    EXPECT_EQ(chiral_fp.Counts(), achiral_fp.Counts());
 }
 
 } // namespace test

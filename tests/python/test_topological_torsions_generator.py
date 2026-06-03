@@ -49,8 +49,15 @@ def test_topological_torsions_generator_rejects_invalid_options():
     with pytest.raises(ValueError, match="torsion_atom_count"):
         oefp.TopologicalTorsionsGenerator(torsion_atom_count=0)
 
-    with pytest.raises(ValueError, match="chirality"):
-        oefp.TopologicalTorsionsGenerator(use_chirality=True)
-
     with pytest.raises(ValueError, match="count_bounds"):
         oefp.TopologicalTorsionsGenerator(count_simulation=True, count_bounds=[])
+
+
+def test_topological_torsions_generator_accepts_chirality():
+    import oefp
+
+    generator = oefp.TopologicalTorsionsGenerator(use_chirality=True)
+    fp = generator.fingerprint(_openeye_mol("C[C@](F)(Cl)CC"))
+
+    assert fp.num_bits == 2048
+    assert fp.popcount > 0
