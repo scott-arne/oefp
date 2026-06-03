@@ -56,10 +56,6 @@ TEST(MorganTest, RejectsInvalidOptions) {
     zero_bits.num_bits = 0;
     EXPECT_THROW(MakeMorganFingerprint(mol, zero_bits), std::invalid_argument);
 
-    MorganOptions chiral;
-    chiral.use_chirality = true;
-    EXPECT_THROW(MakeMorganFingerprint(mol, chiral), std::invalid_argument);
-
     MorganOptions empty_count_bounds;
     empty_count_bounds.count_simulation = true;
     empty_count_bounds.count_bounds.clear();
@@ -137,6 +133,21 @@ TEST(MorganGeneratorTest, FingerprintMatchesFunctionalApiForNonDefaultOptions) {
     EXPECT_EQ(generated.CountOnBits(), functional.CountOnBits());
 }
 
+TEST(MorganGeneratorTest, AcceptsChiralityOption) {
+    const auto mol = mol_from_smiles("F[C@](Cl)(Br)I");
+    MorganOptions options;
+    options.use_chirality = true;
+
+    const MorganGenerator generator(options);
+    const auto generated = generator.Fingerprint(mol);
+    const auto functional = MakeMorganFingerprint(mol, options);
+
+    EXPECT_EQ(generated.Spec(), functional.Spec());
+    EXPECT_EQ(generated.Words(), functional.Words());
+    EXPECT_GT(generated.CountOnBits(), 0u);
+    EXPECT_NE(generated.Spec().parameters.find("use_chirality=true"), std::string::npos);
+}
+
 TEST(MorganGeneratorTest, CountSimulationMatchesFunctionalApi) {
     const auto mol = mol_from_smiles("CCC(CC)CO");
     MorganOptions options;
@@ -178,10 +189,6 @@ TEST(MorganGeneratorTest, ConstructorRejectsInvalidOptions) {
     MorganOptions zero_bits;
     zero_bits.num_bits = 0;
     EXPECT_THROW(static_cast<void>(MorganGenerator{zero_bits}), std::invalid_argument);
-
-    MorganOptions chiral;
-    chiral.use_chirality = true;
-    EXPECT_THROW(static_cast<void>(MorganGenerator{chiral}), std::invalid_argument);
 
     MorganOptions empty_count_bounds;
     empty_count_bounds.count_simulation = true;
@@ -258,6 +265,18 @@ TEST(MorganTest, GeneratesNonEmptyFingerprintForSimpleMolecule) {
     const auto fp = MakeMorganFingerprint(mol);
 
     EXPECT_GT(fp.CountOnBits(), 0u);
+}
+
+TEST(MorganTest, GeneratesNonEmptyFingerprintsWithChirality) {
+    const auto mol = mol_from_smiles("F[C@](Cl)(Br)I");
+    MorganOptions options;
+    options.use_chirality = true;
+
+    EXPECT_GT(MakeMorganFingerprint(mol, options).CountOnBits(), 0u);
+    EXPECT_GT(MakeMorganSparseFingerprint(mol, options).CountOnBits(), 0u);
+    EXPECT_GT(MakeMorganCountFingerprint(mol, options).NonzeroCount(), 0u);
+    EXPECT_GT(MakeMorganSparseCountFingerprint(mol, options).NonzeroCount(), 0u);
+    EXPECT_GT(MakeMorganDescriptors(mol, options).Size(), 0u);
 }
 
 TEST(MorganTest, GeneratesFoldedBinaryFingerprintWithBitMappings) {

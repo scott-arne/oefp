@@ -91,6 +91,7 @@ def _rdkit_count_bit_info(
     radius: int = 2,
     num_bits: int = 2048,
     sparse: bool = False,
+    use_chirality: bool = False,
     use_bond_types: bool = True,
     include_ring_membership: bool = True,
     include_redundant_environments: bool = False,
@@ -99,7 +100,7 @@ def _rdkit_count_bit_info(
     generator = rdFingerprintGenerator.GetMorganGenerator(
         radius=radius,
         countSimulation=False,
-        includeChirality=False,
+        includeChirality=use_chirality,
         useBondTypes=use_bond_types,
         onlyNonzeroInvariants=False,
         includeRingMembership=include_ring_membership,
@@ -138,6 +139,21 @@ def _rdkit_count_fingerprint(
         includeRedundantEnvironments=False,
     )
     return generator.GetCountFingerprint(_rdkit_mol(smiles))
+
+
+def _descriptor_integer_counts(descriptors) -> dict[int, int]:
+    return {
+        int(key): int(count)
+        for key, count in zip(descriptors.integer_keys, descriptors.counts, strict=True)
+    }
+
+
+_ALIGNED_CHIRALITY_SMILES = [
+    "F[C@](Cl)(Br)I",
+    "F[C@@](Cl)(Br)I",
+    "C/C=C/C",
+    "C/C=C\\C",
+]
 
 
 def _count_stats(a: dict[int, int], b: dict[int, int]) -> tuple[int, int, int, int, float, int]:
@@ -240,6 +256,129 @@ def test_morgan_sparse_count_option_toggles_match_rdkit(kwargs: dict[str, bool],
     assert _oefp_counts(fp) == expected_counts
 
 
+@pytest.mark.parametrize("smiles", _ALIGNED_CHIRALITY_SMILES)
+@pytest.mark.parametrize("radius", [1, 2])
+@pytest.mark.parametrize("num_bits", [256, 1024])
+def test_morgan_counts_match_rdkit_with_chirality(smiles: str, radius: int, num_bits: int):
+    import oefp
+
+    fp = oefp.morgan_count_fingerprint(
+        _openeye_mol(smiles),
+        radius=radius,
+        num_bits=num_bits,
+        use_chirality=True,
+    )
+
+    assert fp.num_bits == num_bits
+    assert _oefp_counts(fp) == _rdkit_counts(
+        smiles,
+        radius=radius,
+        num_bits=num_bits,
+        use_chirality=True,
+    )
+
+
+@pytest.mark.parametrize("smiles", _ALIGNED_CHIRALITY_SMILES)
+@pytest.mark.parametrize("radius", [1, 2])
+@pytest.mark.parametrize("num_bits", [256, 1024])
+def test_morgan_count_mapping_bit_info_matches_rdkit_with_chirality(
+    smiles: str,
+    radius: int,
+    num_bits: int,
+):
+    import oefp
+
+    result = oefp.morgan_count_fingerprint_with_mapping(
+        _openeye_mol(smiles),
+        radius=radius,
+        num_bits=num_bits,
+        use_chirality=True,
+    )
+    expected = _rdkit_count_bit_info(
+        smiles,
+        radius=radius,
+        num_bits=num_bits,
+        use_chirality=True,
+    )
+
+    assert _oefp_counts(result.fingerprint) == _rdkit_counts(
+        smiles,
+        radius=radius,
+        num_bits=num_bits,
+        use_chirality=True,
+    )
+    assert result.mapping.bit_info() == expected
+
+
+@pytest.mark.parametrize("smiles", _ALIGNED_CHIRALITY_SMILES)
+@pytest.mark.parametrize("radius", [1, 2])
+def test_morgan_sparse_counts_match_rdkit_with_chirality(smiles: str, radius: int):
+    import oefp
+
+    fp = oefp.morgan_sparse_count_fingerprint(
+        _openeye_mol(smiles),
+        radius=radius,
+        use_chirality=True,
+    )
+
+    assert fp.num_bits == 2**64 - 1
+    assert _oefp_counts(fp) == _rdkit_sparse_counts(
+        smiles,
+        radius=radius,
+        use_chirality=True,
+    )
+
+
+@pytest.mark.parametrize("smiles", _ALIGNED_CHIRALITY_SMILES)
+@pytest.mark.parametrize("radius", [1, 2])
+def test_morgan_sparse_count_mapping_bit_info_matches_rdkit_with_chirality(
+    smiles: str,
+    radius: int,
+):
+    import oefp
+
+    result = oefp.morgan_sparse_count_fingerprint_with_mapping(
+        _openeye_mol(smiles),
+        radius=radius,
+        use_chirality=True,
+    )
+    expected = _rdkit_count_bit_info(
+        smiles,
+        radius=radius,
+        sparse=True,
+        use_chirality=True,
+    )
+
+    assert _oefp_counts(result.fingerprint) == _rdkit_sparse_counts(
+        smiles,
+        radius=radius,
+        use_chirality=True,
+    )
+    assert result.mapping.bit_info() == expected
+
+
+@pytest.mark.parametrize("smiles", _ALIGNED_CHIRALITY_SMILES)
+@pytest.mark.parametrize("radius", [1, 2])
+def test_morgan_descriptor_integer_counts_match_rdkit_with_chirality(
+    smiles: str,
+    radius: int,
+):
+    import oefp
+
+    descriptors = oefp.morgan_descriptors(
+        _openeye_mol(smiles),
+        radius=radius,
+        use_chirality=True,
+    )
+
+    assert descriptors.value_type == "integer"
+    assert _descriptor_integer_counts(descriptors) == _rdkit_sparse_counts(
+        smiles,
+        radius=radius,
+        use_chirality=True,
+    )
+
+
 def test_morgan_count_mapping_bit_info_matches_rdkit():
     import oefp
 
@@ -289,13 +428,13 @@ def test_morgan_count_reuses_public_option_validation():
         oefp.morgan_count_fingerprint(mol, num_bits=0)
     with pytest.raises(ValueError, match="radius"):
         oefp.morgan_count_fingerprint(mol, radius=-1)
-    with pytest.raises(ValueError, match="chirality"):
-        oefp.morgan_count_fingerprint(mol, use_chirality=True)
+    fp = oefp.morgan_count_fingerprint(mol, use_chirality=True)
+    assert fp.num_bits == 2048
 
     with pytest.raises(ValueError, match="radius"):
         oefp.morgan_sparse_count_fingerprint(mol, radius=-1)
-    with pytest.raises(ValueError, match="chirality"):
-        oefp.morgan_sparse_count_fingerprint(mol, use_chirality=True)
+    sparse_fp = oefp.morgan_sparse_count_fingerprint(mol, use_chirality=True)
+    assert sparse_fp.num_bits == 2**64 - 1
 
 
 def test_morgan_count_compare_uses_nonzero_boolean_metrics():

@@ -624,8 +624,6 @@ def _normalized_atom_pair_values(
         raise ValueError("Atom Pair min_distance cannot exceed max_distance.")
     if max_distance_int >= 31:
         raise ValueError("Atom Pair max_distance must be smaller than 31.")
-    if use_chirality:
-        raise ValueError("Atom Pair chirality conformance is not implemented yet.")
     if not use_2d:
         raise ValueError(
             "Distance Atom Pair requires existing 3D coordinates and is not implemented yet."
@@ -2327,8 +2325,6 @@ def _normalized_morgan_values(
         raise ValueError("Morgan count_bounds cannot be empty when count simulation is enabled.")
     if count_simulation and len(normalized_count_bounds) >= num_bits_int:
         raise ValueError("Morgan count_bounds length must be smaller than num_bits.")
-    if use_chirality:
-        raise ValueError("Morgan chirality conformance is not implemented yet.")
     return (
         radius_int,
         num_bits_int,
@@ -2539,8 +2535,6 @@ def _atom_pair_descriptor_options(
         raise ValueError("Atom Pair min_distance cannot exceed max_distance.")
     if max_distance_int >= 31:
         raise ValueError("Atom Pair max_distance must be smaller than 31.")
-    if use_chirality:
-        raise ValueError("Atom Pair chirality conformance is not implemented yet.")
     if not use_2d:
         raise ValueError(
             "Distance Atom Pair requires existing 3D coordinates and is not implemented yet."

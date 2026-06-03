@@ -162,6 +162,7 @@ set(OEFP_SOURCES
     src/openeye.cpp
     src/sparse.cpp
     src/sparse_batch.cpp
+    src/stereo.cpp
     src/topological_torsions.cpp
 )
 

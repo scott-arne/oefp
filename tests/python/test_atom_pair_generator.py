@@ -109,11 +109,21 @@ def test_atom_pair_generator_rejects_invalid_options():
     with pytest.raises(ValueError, match="num_bits must be greater than zero"):
         oefp.AtomPairGenerator(num_bits=0)
 
-    with pytest.raises(ValueError, match="chirality conformance"):
-        oefp.AtomPairGenerator(use_chirality=True)
-
     with pytest.raises(ValueError, match="count_bounds cannot be empty"):
         oefp.AtomPairGenerator(count_simulation=True, count_bounds=[])
+
+
+def test_atom_pair_generator_accepts_chirality_option():
+    import oefp
+
+    mol = _openeye_mol("F[C@](Cl)(Br)I")
+    generator = oefp.AtomPairGenerator(use_chirality=True)
+
+    generated = generator.fingerprint(mol)
+    functional = oefp.atom_pair_fingerprint(mol, use_chirality=True)
+
+    assert generated.num_bits == functional.num_bits
+    assert generated.words.tolist() == functional.words.tolist()
 
 
 def _clear_atom_pair_generator_cache(api_module: Any) -> None:

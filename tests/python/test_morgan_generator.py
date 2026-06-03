@@ -100,11 +100,21 @@ def test_morgan_generator_rejects_invalid_options():
     with pytest.raises(ValueError, match="num_bits must be greater than zero"):
         oefp.MorganGenerator(num_bits=0)
 
-    with pytest.raises(ValueError, match="chirality conformance"):
-        oefp.MorganGenerator(use_chirality=True)
-
     with pytest.raises(ValueError, match="count_bounds cannot be empty"):
         oefp.MorganGenerator(count_simulation=True, count_bounds=[])
+
+
+def test_morgan_generator_accepts_chirality_option():
+    import oefp
+
+    mol = _openeye_mol("F[C@](Cl)(Br)I")
+    generator = oefp.MorganGenerator(use_chirality=True)
+
+    generated = generator.fingerprint(mol)
+    functional = oefp.morgan_fingerprint(mol, use_chirality=True)
+
+    assert generated.num_bits == functional.num_bits
+    assert generated.words.tolist() == functional.words.tolist()
 
 
 def _clear_morgan_generator_cache(api_module: Any) -> None:

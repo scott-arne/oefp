@@ -599,7 +599,9 @@ Morgan Fingerprints
 
    Generate raw counted Morgan descriptors as integer-key
    :class:`DescriptorSet` objects. Descriptor keys are the unfurled Morgan raw
-   environment identifiers used by sparse count output.
+   environment identifiers used by sparse count output. Passing
+   ``use_chirality=True`` applies the same chirality encoding as Morgan
+   fingerprint generation.
 
 .. function:: morgan_fingerprint_with_mapping(mol, *, ...)
               morgan_count_fingerprint_with_mapping(mol, *, ...)
@@ -663,7 +665,8 @@ Topological and Distance Atom Pair Fingerprints
 
    Generate raw counted topological Atom Pair descriptors as string-key
    :class:`DescriptorSet` objects. Topological Atom Pair descriptors require
-   only molecular graph connectivity.
+   only molecular graph connectivity, and support chirality-aware atom codes
+   when ``use_chirality=True``.
 
 .. function:: distance_atom_pair_fingerprint(mol, *, ...)
               distance_atom_pair_count_fingerprint(mol, *, ...)
@@ -769,10 +772,19 @@ Conformance Notes
 OEFP's Morgan and Atom Pair generators are implemented in OEFP and tested
 against RDKit for supported options. RDKit is not a runtime dependency.
 
-Unsupported options fail explicitly:
+Morgan and Atom Pair outputs support RDKit-compatible chirality encoding with
+``use_chirality=True``. Morgan chirality is covered for dense binary, sparse
+binary, folded count, sparse count, bit mapping, and raw descriptor outputs.
+Atom Pair chirality is covered for dense binary, sparse binary, folded count,
+sparse count, and raw descriptor outputs.
 
-- Morgan chirality
-- Atom Pair chirality
+OEFP preserves the caller's OpenEye molecule graph. It does not normalize the
+molecule into RDKit's graph model before generating fingerprints. If OpenEye and
+RDKit materialize a molecule differently, for example around stereo hydrogens
+or sanitization-specific valence rewrites, output can differ for that reason.
+
+The unsupported paths fail explicitly:
+
 - Distance Atom Pair generation
 - Implicit 2D or 3D coordinate generation during descriptor calculation
 

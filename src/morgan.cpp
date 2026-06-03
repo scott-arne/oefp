@@ -1,4 +1,5 @@
 #include "oefp/morgan.h"
+#include "oefp/stereo.h"
 
 #include <algorithm>
 #include <chrono>
@@ -60,6 +61,7 @@ struct AtomRecord {
     std::uint32_t index = 0;
     std::uint32_t compact_index = 0;
     std::int32_t formal_charge_adjustment = 0;
+    detail::AtomStereoLabel stereo_label = detail::AtomStereoLabel::None;
     std::vector<std::uint32_t> bond_indices;
 };
 
@@ -181,9 +183,6 @@ void add_neighborhood(
 void validate_options(const MorganOptions& options) {
     if (options.num_bits == 0) {
         throw std::invalid_argument("Morgan num_bits must be greater than zero.");
-    }
-    if (options.use_chirality) {
-        throw std::invalid_argument("Morgan chirality conformance is not implemented yet.");
     }
     if (options.count_simulation && options.count_bounds.empty()) {
         throw std::invalid_argument("Morgan count_bounds cannot be empty when count simulation is enabled.");
@@ -427,6 +426,7 @@ std::int32_t bond_type_value(const OEChem::OEBondBase& bond) {
 }
 
 std::int32_t bond_invariant(
+    const OEChem::OEMolBase& mol,
     const OEChem::OEBondBase& bond,
     const AtomRecord& begin,
     const AtomRecord& end,
@@ -436,6 +436,13 @@ std::int32_t bond_invariant(
     }
     if (rdkit_normalizes_halogen_oxide_bond(begin, end, bond)) {
         return 1;
+    }
+    if (options.use_chirality && bond.GetOrder() == 2 && !bond.IsAromatic()) {
+        const auto stereo =
+            detail::MorganDoubleBondStereoValue(detail::PerceiveBondStereo(mol, bond));
+        if (stereo != 0) {
+            return 100 + 10 * bond_type_value(bond) + stereo;
+        }
     }
     return bond_type_value(bond);
 }
@@ -508,6 +515,9 @@ MoleculeGraph build_graph(const OEChem::OEMolBase& mol, const MorganOptions& opt
         record.atom = atom;
         record.index = idx;
         record.compact_index = compact_index;
+        if (options.use_chirality) {
+            record.stereo_label = detail::PerceiveAtomStereo(mol, *atom);
+        }
         record.bond_indices.reserve(atom->GetDegree());
         graph.atoms.push_back(std::move(record));
     }
@@ -545,7 +555,7 @@ MoleculeGraph build_graph(const OEChem::OEMolBase& mol, const MorganOptions& opt
         auto& begin = graph.atoms[record.begin_atom];
         auto& end = graph.atoms[record.end_atom];
         apply_rdkit_halogen_oxide_normalization(begin, end, *bond);
-        record.invariant = bond_invariant(*bond, begin, end, options);
+        record.invariant = bond_invariant(mol, *bond, begin, end, options);
         graph.atoms[record.begin_atom].bond_indices.push_back(compact_bond_id);
         graph.atoms[record.end_atom].bond_indices.push_back(compact_bond_id);
         graph.bonds.push_back(record);
@@ -610,6 +620,7 @@ void enumerate_events_into(
     BondBitsetStorage neighborhoods(graph.atoms.size(), graph.bonds.size());
     BondBitsetStorage round_neighborhoods(graph.atoms.size(), graph.bonds.size());
     std::vector<bool> dead_atoms(graph.atoms.size(), false);
+    std::vector<bool> chiral_atoms(graph.atoms.size(), false);
     std::unordered_set<std::uint64_t> seen_single_word_neighborhoods;
     std::unordered_set<BondBitset, BondBitsetHash> seen_multi_word_neighborhoods;
     const auto atom_order = atom_iteration_order(current, options);
@@ -669,10 +680,29 @@ void enumerate_events_into(
 
             std::sort(neighbors.begin(), neighbors.end());
 
+            auto looks_chiral = options.use_chirality
+                                && atom_record.stereo_label != detail::AtomStereoLabel::None;
             std::uint32_t invariant = layer;
             invariant = combine_hash(invariant, current[atom_id]);
-            for (const auto& neighbor : neighbors) {
+            for (std::size_t neighbor_index = 0; neighbor_index < neighbors.size();
+                 ++neighbor_index) {
+                const auto& neighbor = neighbors[neighbor_index];
                 invariant = combine_hash(invariant, neighbor);
+                if (looks_chiral && !chiral_atoms[atom_id]) {
+                    if (neighbor.bond != 1) {
+                        looks_chiral = false;
+                    } else if (
+                        neighbor_index != 0u
+                        && neighbor.atom == neighbors[neighbor_index - 1u].atom) {
+                        looks_chiral = false;
+                    }
+                }
+            }
+            if (looks_chiral) {
+                chiral_atoms[atom_id] = true;
+                invariant = combine_hash(
+                    invariant,
+                    detail::MorganAtomChiralityValue(atom_record.stereo_label));
             }
 
             next[atom_id] = invariant;

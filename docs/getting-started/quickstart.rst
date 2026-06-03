@@ -540,10 +540,19 @@ Supported Generator Scope
 Current Boundaries
 ------------------
 
+Morgan and Atom Pair outputs support RDKit-compatible chirality encoding with
+``use_chirality=True``. Morgan chirality is covered for dense binary, sparse
+binary, folded count, sparse count, bit mapping, and raw descriptor outputs.
+Atom Pair chirality is covered for dense binary, sparse binary, folded count,
+sparse count, and raw descriptor outputs.
+
+OEFP preserves the caller's OpenEye molecule graph. It does not normalize the
+molecule into RDKit's graph model before generating fingerprints. If OpenEye and
+RDKit materialize a molecule differently, for example around stereo hydrogens
+or sanitization-specific valence rewrites, output can differ for that reason.
+
 The unsupported paths fail explicitly:
 
-- Morgan chirality
-- Atom Pair chirality
 - Distance Atom Pair generation
 - Implicit 2D or 3D coordinate generation during descriptor calculation
 

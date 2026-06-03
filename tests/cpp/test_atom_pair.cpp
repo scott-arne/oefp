@@ -60,10 +60,6 @@ TEST(AtomPairTest, RejectsInvalidOptions) {
     too_long_distance.max_distance = 31;
     EXPECT_THROW(MakeAtomPairFingerprint(mol, too_long_distance), std::invalid_argument);
 
-    AtomPairOptions chiral;
-    chiral.use_chirality = true;
-    EXPECT_THROW(MakeAtomPairFingerprint(mol, chiral), std::invalid_argument);
-
     AtomPairOptions three_dimensional;
     three_dimensional.use_2d = false;
     EXPECT_THROW(MakeAtomPairFingerprint(mol, three_dimensional), std::invalid_argument);
@@ -107,6 +103,18 @@ TEST(AtomPairTest, GeneratesNonEmptyFingerprintForSimpleMolecule) {
     const auto fp = MakeAtomPairFingerprint(mol);
 
     EXPECT_GT(fp.CountOnBits(), 0u);
+}
+
+TEST(AtomPairTest, GeneratesNonEmptyFingerprintsWithChirality) {
+    const auto mol = mol_from_smiles("F[C@](Cl)(Br)I");
+    AtomPairOptions options;
+    options.use_chirality = true;
+
+    EXPECT_GT(MakeAtomPairFingerprint(mol, options).CountOnBits(), 0u);
+    EXPECT_GT(MakeAtomPairSparseFingerprint(mol, options).CountOnBits(), 0u);
+    EXPECT_GT(MakeAtomPairCountFingerprint(mol, options).NonzeroCount(), 0u);
+    EXPECT_GT(MakeAtomPairSparseCountFingerprint(mol, options).NonzeroCount(), 0u);
+    EXPECT_GT(MakeAtomPairDescriptors(mol, options).Size(), 0u);
 }
 
 TEST(AtomPairGeneratorTest, FingerprintMatchesFunctionalApiForDefaultOptions) {
@@ -156,6 +164,21 @@ TEST(AtomPairGeneratorTest, CountSimulationMatchesFunctionalApi) {
     EXPECT_EQ(generated.Words(), functional.Words());
 }
 
+TEST(AtomPairGeneratorTest, AcceptsChiralityOption) {
+    const auto mol = mol_from_smiles("F[C@](Cl)(Br)I");
+    AtomPairOptions options;
+    options.use_chirality = true;
+
+    const AtomPairGenerator generator(options);
+    const auto generated = generator.Fingerprint(mol);
+    const auto functional = MakeAtomPairFingerprint(mol, options);
+
+    EXPECT_EQ(generated.Spec(), functional.Spec());
+    EXPECT_EQ(generated.Words(), functional.Words());
+    EXPECT_GT(generated.CountOnBits(), 0u);
+    EXPECT_NE(generated.Spec().parameters.find("use_chirality=true"), std::string::npos);
+}
+
 TEST(AtomPairGeneratorTest, ProfileReportsStageTimingsAndGeneratedBits) {
     const auto mol = mol_from_smiles("CC(=O)Oc1ccccc1C(=O)O");
     AtomPairOptions options;
@@ -180,10 +203,6 @@ TEST(AtomPairGeneratorTest, ConstructorRejectsInvalidOptions) {
     AtomPairOptions zero_bits;
     zero_bits.num_bits = 0;
     EXPECT_THROW(static_cast<void>(AtomPairGenerator{zero_bits}), std::invalid_argument);
-
-    AtomPairOptions chiral;
-    chiral.use_chirality = true;
-    EXPECT_THROW(static_cast<void>(AtomPairGenerator{chiral}), std::invalid_argument);
 
     AtomPairOptions empty_count_bounds;
     empty_count_bounds.count_bounds.clear();
@@ -421,10 +440,6 @@ TEST(AtomPairTest, DescriptorGenerationRejectsUnsupportedOptions) {
     AtomPairOptions too_long_distance;
     too_long_distance.max_distance = 31;
     EXPECT_THROW(MakeAtomPairDescriptors(mol, too_long_distance), std::invalid_argument);
-
-    AtomPairOptions chiral;
-    chiral.use_chirality = true;
-    EXPECT_THROW(MakeAtomPairDescriptors(mol, chiral), std::invalid_argument);
 
     AtomPairOptions three_dimensional;
     three_dimensional.use_2d = false;

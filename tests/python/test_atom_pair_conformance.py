@@ -148,6 +148,48 @@ def _rdkit_atom_pair_sparse_counts(
     )
 
 
+def _atom_pair_descriptor_key(raw_id: int, *, use_chirality: bool = False) -> str:
+    num_path_bits = 5
+    code_size = 9 + (2 if use_chirality else 0)
+    code_mask = (1 << code_size) - 1
+    distance = raw_id & ((1 << num_path_bits) - 1)
+    first_code = (raw_id >> num_path_bits) & code_mask
+    second_code = (raw_id >> (num_path_bits + code_size)) & code_mask
+    return f"{first_code}_{distance}_{second_code}"
+
+
+def _rdkit_atom_pair_descriptor_counts(
+    smiles: str,
+    *,
+    min_distance: int = 1,
+    max_distance: int = 30,
+    use_chirality: bool = False,
+) -> dict[str, int]:
+    _, sparse_counts = _rdkit_atom_pair_sparse_counts(
+        smiles,
+        min_distance=min_distance,
+        max_distance=max_distance,
+        use_chirality=use_chirality,
+    )
+    return {
+        _atom_pair_descriptor_key(raw_id, use_chirality=use_chirality): count
+        for raw_id, count in sparse_counts.items()
+    }
+
+
+def _descriptor_string_counts(descriptors) -> dict[str, int]:
+    return {
+        str(key): int(count)
+        for key, count in zip(descriptors.string_keys, descriptors.counts, strict=True)
+    }
+
+
+_ALIGNED_TETRAHEDRAL_SMILES = [
+    "F[C@](Cl)(Br)I",
+    "F[C@@](Cl)(Br)I",
+]
+
+
 @pytest.mark.parametrize(
     "smiles",
     [
@@ -414,24 +456,112 @@ def test_atom_pair_sparse_count_distance_bounds_match_rdkit(
     assert _oefp_counts(fp) == expected_counts
 
 
-def test_atom_pair_rejects_unsupported_options():
+@pytest.mark.parametrize("smiles", _ALIGNED_TETRAHEDRAL_SMILES)
+@pytest.mark.parametrize("num_bits", [256, 1024])
+def test_atom_pair_binary_matches_rdkit_with_chirality(smiles: str, num_bits: int):
+    import oefp
+
+    fp = oefp.atom_pair_fingerprint(
+        _openeye_mol(smiles),
+        num_bits=num_bits,
+        use_chirality=True,
+    )
+
+    assert fp.num_bits == num_bits
+    assert _oefp_on_bits(fp) == _rdkit_atom_pair_on_bits(
+        smiles,
+        num_bits=num_bits,
+        use_chirality=True,
+    )
+
+
+@pytest.mark.parametrize("smiles", _ALIGNED_TETRAHEDRAL_SMILES)
+def test_atom_pair_sparse_binary_matches_rdkit_with_chirality(smiles: str):
+    import oefp
+
+    fp = oefp.atom_pair_sparse_fingerprint(
+        _openeye_mol(smiles),
+        use_chirality=True,
+    )
+    expected_num_bits, expected_bits = _rdkit_atom_pair_sparse_on_bits(
+        smiles,
+        use_chirality=True,
+    )
+
+    assert fp.num_bits == expected_num_bits
+    assert _oefp_sparse_bits(fp) == expected_bits
+
+
+@pytest.mark.parametrize("smiles", _ALIGNED_TETRAHEDRAL_SMILES)
+@pytest.mark.parametrize("num_bits", [256, 1024])
+def test_atom_pair_counts_match_rdkit_with_chirality(smiles: str, num_bits: int):
+    import oefp
+
+    fp = oefp.atom_pair_count_fingerprint(
+        _openeye_mol(smiles),
+        num_bits=num_bits,
+        use_chirality=True,
+    )
+
+    assert fp.num_bits == num_bits
+    assert _oefp_counts(fp) == _rdkit_atom_pair_counts(
+        smiles,
+        num_bits=num_bits,
+        use_chirality=True,
+    )
+
+
+@pytest.mark.parametrize("smiles", _ALIGNED_TETRAHEDRAL_SMILES)
+def test_atom_pair_sparse_counts_match_rdkit_with_chirality(smiles: str):
+    import oefp
+
+    fp = oefp.atom_pair_sparse_count_fingerprint(
+        _openeye_mol(smiles),
+        use_chirality=True,
+    )
+    expected_num_bits, expected_counts = _rdkit_atom_pair_sparse_counts(
+        smiles,
+        use_chirality=True,
+    )
+
+    assert fp.num_bits == expected_num_bits
+    assert _oefp_counts(fp) == expected_counts
+
+
+@pytest.mark.parametrize("smiles", _ALIGNED_TETRAHEDRAL_SMILES)
+def test_atom_pair_descriptor_string_counts_match_rdkit_with_chirality(smiles: str):
+    import oefp
+
+    descriptors = oefp.atom_pair_descriptors(
+        _openeye_mol(smiles),
+        use_chirality=True,
+    )
+
+    assert descriptors.value_type == "string"
+    assert _descriptor_string_counts(descriptors) == _rdkit_atom_pair_descriptor_counts(
+        smiles,
+        use_chirality=True,
+    )
+
+
+def test_atom_pair_accepts_chirality_and_rejects_3d_options():
     import oefp
 
     mol = _openeye_mol("CCO")
-    with pytest.raises(ValueError, match="chirality"):
-        oefp.atom_pair_fingerprint(mol, use_chirality=True)
+    fp = oefp.atom_pair_fingerprint(mol, use_chirality=True)
+    assert fp.num_bits == 2048
     with pytest.raises(ValueError, match="3D"):
         oefp.atom_pair_fingerprint(mol, use_2d=False)
-    with pytest.raises(ValueError, match="chirality"):
-        oefp.atom_pair_count_fingerprint(mol, use_chirality=True)
+    count_fp = oefp.atom_pair_count_fingerprint(mol, use_chirality=True)
+    assert count_fp.num_bits == 2048
     with pytest.raises(ValueError, match="3D"):
         oefp.atom_pair_count_fingerprint(mol, use_2d=False)
-    with pytest.raises(ValueError, match="chirality"):
-        oefp.atom_pair_sparse_fingerprint(mol, use_chirality=True)
+    sparse_fp = oefp.atom_pair_sparse_fingerprint(mol, use_chirality=True)
+    assert sparse_fp.popcount > 0
     with pytest.raises(ValueError, match="3D"):
         oefp.atom_pair_sparse_fingerprint(mol, use_2d=False)
-    with pytest.raises(ValueError, match="chirality"):
-        oefp.atom_pair_sparse_count_fingerprint(mol, use_chirality=True)
+    sparse_count_fp = oefp.atom_pair_sparse_count_fingerprint(mol, use_chirality=True)
+    assert sparse_count_fp.nonzero_count > 0
     with pytest.raises(ValueError, match="3D"):
         oefp.atom_pair_sparse_count_fingerprint(mol, use_2d=False)
 
