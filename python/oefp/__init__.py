@@ -232,6 +232,33 @@ def _ensure_cache_alias(cache_dir, expected_name, target_path):
     return alias_path
 
 
+def _mirror_openeye_runtime_libs(oe_lib_dir, cache_dir):
+    """Mirror the full OpenEye runtime library set into the cache directory.
+
+    Relocating the extension so its ``$ORIGIN`` can resolve name-drift aliases
+    also drops the build-time RPATH entry that points at the OpenEye library
+    directory. Transitive dependencies that are not recorded as direct
+    dependencies of the extension (for example ``liboecuda``) would then be
+    unresolvable from the cache. Mirroring every shared library from that
+    directory reproduces the directory the dropped RPATH entry pointed at,
+    restoring a complete, ``$ORIGIN``-local view of the runtime set.
+
+    Symlinks are used rather than copies, so no library is loaded here and the
+    global symbol namespace is left untouched; ``ld.so`` only resolves a
+    mirrored library if the extension's dependency chain actually needs it.
+
+    :param oe_lib_dir: The OpenEye runtime library directory to mirror.
+    :param cache_dir: The user cache directory the extension loads from.
+    """
+    for file_name in sorted(os.listdir(oe_lib_dir)):
+        if not _runtime_shared_library_names([file_name]):
+            continue
+        source_path = os.path.join(oe_lib_dir, file_name)
+        if not os.path.isfile(source_path):
+            continue
+        _ensure_cache_alias(cache_dir, file_name, source_path)
+
+
 def _ensure_library_compat():
     """Prepare compatibility aliases when OpenEye library filenames drift.
 
@@ -301,6 +328,10 @@ def _ensure_library_compat():
 
     _OPENEYE_COMPAT_PRELOAD_PATHS = preload_paths
     if needs_cached_origin:
+        # The relocated extension loses its build-time RPATH entry into the
+        # OpenEye library directory, so mirror the full runtime set into the
+        # cache to keep transitive dependencies (e.g. liboecuda) resolvable.
+        _mirror_openeye_runtime_libs(oe_lib_dir, cache_dir)
         _OPENEYE_COMPAT_EXTENSION_DIR = cache_dir
 
     return needs_cached_origin
