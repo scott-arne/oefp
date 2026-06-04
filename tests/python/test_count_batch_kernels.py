@@ -83,3 +83,59 @@ def test_count_cdist_matches_scalar_compare():
 
     assert values.shape == (2, 2)
     np.testing.assert_allclose(values, expected)
+
+
+def _count_panel_mols():
+    from openeye import oechem
+
+    mols = []
+    for smiles in ("CCO", "c1ccccc1", "CC(=O)O", "CCN"):
+        mol = oechem.OEGraphMol()
+        assert oechem.OESmilesToMol(mol, smiles)
+        mols.append(mol)
+    return mols
+
+
+def test_count_batch_from_molecules_matches_from_fingerprints():
+    import oefp
+
+    mols = _count_panel_mols()
+    direct = oefp.OEFPCountBatch.from_molecules(mols, oefp.morgan_count_fingerprint, radius=2)
+    manual = oefp.OEFPCountBatch.from_fingerprints(
+        [oefp.morgan_count_fingerprint(m, radius=2) for m in mols]
+    )
+
+    assert direct.size == manual.size
+    np.testing.assert_array_equal(direct.indices, manual.indices)
+    np.testing.assert_array_equal(direct.counts, manual.counts)
+    np.testing.assert_array_equal(direct.offsets, manual.offsets)
+
+
+def test_count_batch_from_molecules_forwards_options():
+    import oefp
+
+    mols = _count_panel_mols()
+    ecfp = oefp.OEFPCountBatch.from_molecules(mols, oefp.morgan_count_fingerprint, radius=2)
+    fcfp = oefp.OEFPCountBatch.from_molecules(
+        mols, oefp.morgan_count_fingerprint, radius=2, use_features=True
+    )
+
+    assert not (
+        np.array_equal(ecfp.indices, fcfp.indices)
+        and np.array_equal(ecfp.counts, fcfp.counts)
+    )
+
+
+def test_count_batch_from_molecules_empty_returns_empty_batch():
+    import oefp
+
+    batch = oefp.OEFPCountBatch.from_molecules([], oefp.morgan_count_fingerprint)
+    assert batch.size == 0
+
+
+def test_count_batch_from_molecules_rejects_wrong_element_type():
+    import oefp
+
+    mols = _count_panel_mols()
+    with pytest.raises(TypeError, match="OEFPCount"):
+        oefp.OEFPCountBatch.from_molecules(mols, oefp.morgan_fingerprint)
