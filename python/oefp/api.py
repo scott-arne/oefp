@@ -1771,6 +1771,34 @@ class OEFPSparseBatch:
             native_fps.push_back(fp._native)
         return cls._from_native(_native._NativeOEFPSparseBatch.FromFingerprints(native_fps))
 
+    @classmethod
+    def from_molecules(
+        cls,
+        molecules: Iterable[Any],
+        generator: Callable[..., OEFPSparse],
+        /,
+        **options: Any,
+    ) -> OEFPSparseBatch:
+        """Build a sparse binary batch directly from molecules using a generator.
+
+        :param molecules: Iterable of OpenEye molecules.
+        :param generator: Callable mapping one molecule to one :class:`OEFPSparse`,
+            e.g. :func:`morgan_sparse_fingerprint`. Called as ``generator(mol, **options)``.
+        :param options: Keyword options forwarded to ``generator`` for each molecule.
+        :returns: A sparse binary batch.
+        :raises TypeError: When ``generator`` returns a non-:class:`OEFPSparse` value.
+        """
+        fingerprints = []
+        for mol in molecules:
+            fingerprint = generator(mol, **options)
+            if not isinstance(fingerprint, OEFPSparse):
+                raise TypeError(
+                    "OEFPSparseBatch.from_molecules generator must return OEFPSparse, "
+                    f"got {type(fingerprint).__name__}."
+                )
+            fingerprints.append(fingerprint)
+        return cls.from_fingerprints(fingerprints)
+
     @property
     def indices(self) -> np.ndarray:
         """Read-only view of flattened sparse uint32 indices."""
