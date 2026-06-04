@@ -177,6 +177,13 @@ serialized parameters, value type, description, and prerequisite bitmaps.
 Coordinate prerequisites are declarative only: OEFP descriptor calculators do
 not invoke conformer generation.
 
+Morgan supports both ECFP-style connectivity invariants (default) and
+FCFP-style pharmacophore-feature invariants via `use_features=True` (Donor,
+Acceptor, Aromatic, Halogen, Basic, Acidic), matching RDKit's feature
+atom-invariant generator and composing with `use_chirality`.
+`morgan_fingerprint(mol, radius=2)` is ECFP4; `morgan_fingerprint(mol,
+radius=2, use_features=True)` is FCFP4.
+
 Morgan, Topological Atom Pair, and Topological Torsions outputs support
 RDKit-compatible chirality encoding with `use_chirality=True`. OEFP keeps the
 caller's OpenEye molecule graph as the input truth; it does not normalize

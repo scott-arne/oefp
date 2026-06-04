@@ -95,7 +95,8 @@ TEST(MorganTest, GeneratedFingerprintCarriesStrictMorganSpec) {
     EXPECT_EQ(spec.source_version, "Morgan-2026.03.1");
     EXPECT_EQ(
         spec.parameters,
-        "radius=1;num_bits=128;use_chirality=false;use_bond_types=false;"
+        "radius=1;num_bits=128;use_chirality=false;use_features=false;"
+        "use_bond_types=false;"
         "only_nonzero_invariants=true;include_ring_membership=false;"
         "include_redundant_environments=true;count_simulation=true;"
         "count_bounds=1,3,7");
@@ -465,7 +466,7 @@ TEST(MorganTest, GeneratesSparseCountFingerprintWithRawIdentifiers) {
     EXPECT_EQ(spec.source_version, "Morgan-2026.03.1");
     EXPECT_EQ(
         spec.parameters,
-        "radius=2;use_chirality=false;use_bond_types=true;"
+        "radius=2;use_chirality=false;use_features=false;use_bond_types=true;"
         "only_nonzero_invariants=false;include_ring_membership=true;"
         "include_redundant_environments=false;output=sparse_count");
     EXPECT_GT(fp.NonzeroCount(), 0u);
@@ -489,7 +490,7 @@ TEST(MorganTest, GeneratesSparseFingerprintWithRawIdentifiers) {
     EXPECT_EQ(spec.source_version, "Morgan-2026.03.1");
     EXPECT_EQ(
         spec.parameters,
-        "radius=2;use_chirality=false;use_bond_types=true;"
+        "radius=2;use_chirality=false;use_features=false;use_bond_types=true;"
         "only_nonzero_invariants=false;include_ring_membership=true;"
         "include_redundant_environments=false;output=sparse_binary");
     EXPECT_GT(fp.CountOnBits(), 0u);
@@ -516,7 +517,7 @@ TEST(MorganTest, GeneratedDescriptorsCarryStrictMorganSpec) {
     EXPECT_EQ(definition.source_version, "Morgan-2026.03.1");
     EXPECT_EQ(
         definition.parameters,
-        "radius=1;use_chirality=false;use_bond_types=false;"
+        "radius=1;use_chirality=false;use_features=false;use_bond_types=false;"
         "only_nonzero_invariants=true;include_ring_membership=false;"
         "include_redundant_environments=true;output=descriptors");
 }
@@ -600,6 +601,52 @@ TEST(MorganTest, DescriptorGenerationRejectsCountSimulation) {
     options.count_simulation = true;
 
     EXPECT_THROW(MakeMorganDescriptors(mol, options), std::invalid_argument);
+}
+
+TEST(MorganTest, UseFeaturesDefaultsFalseAndRecordsInSpec) {
+    const auto mol = mol_from_smiles("CCO");
+
+    MorganOptions defaults;
+    EXPECT_FALSE(defaults.use_features);
+
+    MorganOptions features;
+    features.use_features = true;
+    features.num_bits = 128;
+    const auto fp = MakeMorganFingerprint(mol, features);
+    EXPECT_NE(fp.Spec().parameters.find("use_features=true"), std::string::npos);
+
+    const auto ecfp = MakeMorganFingerprint(mol, MorganOptions{});
+    EXPECT_NE(ecfp.Spec().parameters.find("use_features=false"), std::string::npos);
+}
+
+TEST(MorganTest, FeatureInvariantsSeedRawFeatureMaskAtRadiusZero) {
+    // RDKit GetFeatureInvariants("CCN") -> [0, 0, 19]; at radius 0 the FCFP
+    // sparse-count keys are exactly those raw masks (0 and 19). Bits:
+    // Donor=1, Acceptor=2, Aromatic=4, Halogen=8, Basic=16, Acidic=32.
+    const auto mol = mol_from_smiles("CCN");
+    MorganOptions options;
+    options.use_features = true;
+    options.radius = 0;
+
+    const auto fp = MakeMorganSparseCountFingerprint(mol, options);
+    std::vector<std::uint32_t> keys(fp.Indices().begin(), fp.Indices().end());
+    std::sort(keys.begin(), keys.end());
+
+    EXPECT_EQ(keys, std::vector<std::uint32_t>({0u, 19u}));
+}
+
+TEST(MorganTest, FeatureInvariantsDifferFromConnectivityInvariants) {
+    const auto mol = mol_from_smiles("c1ccccc1O");
+    MorganOptions ecfp;
+    MorganOptions fcfp;
+    fcfp.use_features = true;
+
+    const auto ecfp_fp = MakeMorganSparseCountFingerprint(mol, ecfp);
+    const auto fcfp_fp = MakeMorganSparseCountFingerprint(mol, fcfp);
+
+    EXPECT_NE(
+        std::vector<std::uint32_t>(ecfp_fp.Indices().begin(), ecfp_fp.Indices().end()),
+        std::vector<std::uint32_t>(fcfp_fp.Indices().begin(), fcfp_fp.Indices().end()));
 }
 
 } // namespace test

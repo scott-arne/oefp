@@ -568,6 +568,7 @@ Morgan Fingerprints
    - ``radius=2``
    - ``num_bits=2048``
    - ``use_chirality=False``
+   - ``use_features=False``
    - ``use_bond_types=True``
    - ``only_nonzero_invariants=False``
    - ``include_ring_membership=True``
@@ -582,6 +583,15 @@ Morgan Fingerprints
 .. function:: morgan_fingerprint(mol, *, radius=2, num_bits=2048, ...)
 
    Generate an RDKit-compatible folded binary Morgan fingerprint.
+
+   ``use_features=True`` selects FCFP-style pharmacophore feature invariants
+   (Donor, Acceptor, Aromatic, Halogen, Basic, Acidic) instead of the default
+   ECFP connectivity invariants, matching RDKit's feature atom-invariant
+   generator. It composes with ``use_chirality``.
+   ``morgan_fingerprint(mol, radius=2)`` is ECFP4;
+   ``morgan_fingerprint(mol, radius=2, use_features=True)`` is FCFP4. The same
+   option is available on :class:`MorganGenerator` and the other Morgan
+   fingerprint and descriptor entry points.
 
 .. function:: morgan_count_fingerprint(mol, *, radius=2, num_bits=2048, ...)
 
@@ -772,6 +782,12 @@ Conformance Notes
 OEFP's Morgan, Atom Pair, and Topological Torsions generators are implemented in
 OEFP and tested against RDKit for supported options. RDKit is not a runtime
 dependency.
+
+Morgan supports both ECFP-style connectivity invariants (default) and FCFP-style
+pharmacophore-feature invariants with ``use_features=True``, matching RDKit's
+feature atom-invariant generator. The feature option composes with
+``use_chirality`` and applies to dense binary, sparse binary, folded count,
+sparse count, bit mapping, and raw descriptor outputs.
 
 Morgan, Atom Pair, and Topological Torsions outputs support RDKit-compatible
 chirality encoding with ``use_chirality=True``. Morgan chirality is covered for

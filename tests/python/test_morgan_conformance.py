@@ -646,3 +646,148 @@ def test_morgan_batch_compatibility_uses_full_options():
     for mismatched_fp in mismatched_fps:
         with pytest.raises(RuntimeError, match="spec"):
             oefp.OEFPBatch.from_fingerprints([fp_a, mismatched_fp])
+
+
+# ---------------------------------------------------------------------------
+# FCFP (feature-invariant Morgan) conformance.
+#
+# FCFP differs from ECFP only in the per-atom seed invariant: RDKit's six Gobbi
+# pharmacophore features (Donor, Acceptor, Aromatic, Halogen, Basic, Acidic).
+# Parity reference is GetMorganGenerator with the feature atom-invariant gen.
+# ---------------------------------------------------------------------------
+
+# Panel covering every feature type: donor/acceptor (alcohols, amines), aromatic
+# (benzene, pyridine), halogen, basic amine, acidic carboxyl, plus drug-like.
+_FEATURE_SMILES = [
+    "CC(=O)Oc1ccccc1C(=O)O",   # aspirin
+    "Cn1cnc2c1c(=O)n(C)c(=O)n2C",  # caffeine
+    "CC(C)Cc1ccc(cc1)C(C)C(=O)O",  # ibuprofen
+    "c1ccncc1",                # pyridine
+    "NC(=N)NCCCC(N)C(=O)O",    # arginine
+    "CSCCC(N)C(=O)O",          # methionine
+    "Clc1ccccc1Br",            # halobenzene
+    "OCC1OC(O)C(O)C(O)C1O",    # glucose
+]
+
+
+def _rdkit_feature_generator(*, radius: int = 2, num_bits: int = 2048, use_chirality: bool = False):
+    inv = rdFingerprintGenerator.GetMorganFeatureAtomInvGen()
+    return rdFingerprintGenerator.GetMorganGenerator(
+        radius=radius,
+        fpSize=num_bits,
+        includeChirality=use_chirality,
+        atomInvariantsGenerator=inv,
+    )
+
+
+@pytest.mark.parametrize("smiles", _FEATURE_SMILES)
+@pytest.mark.parametrize("radius", [0, 2, 3])
+@pytest.mark.parametrize("num_bits", [1024, 2048])
+def test_morgan_binary_matches_rdkit_with_features(
+    smiles: str, radius: int, num_bits: int
+):
+    import oefp
+
+    fp = oefp.morgan_fingerprint(
+        _openeye_mol(smiles), radius=radius, num_bits=num_bits, use_features=True
+    )
+    expected = set(
+        _rdkit_feature_generator(radius=radius, num_bits=num_bits)
+        .GetFingerprint(_rdkit_mol(smiles))
+        .GetOnBits()
+    )
+    assert fp.num_bits == num_bits
+    assert _oefp_on_bits(fp) == expected
+
+
+@pytest.mark.parametrize("smiles", _FEATURE_SMILES)
+@pytest.mark.parametrize("radius", [2, 3])
+def test_morgan_count_matches_rdkit_with_features(smiles: str, radius: int):
+    import oefp
+
+    fp = oefp.morgan_count_fingerprint(
+        _openeye_mol(smiles), radius=radius, num_bits=2048, use_features=True
+    )
+    expected = {
+        int(k): int(v)
+        for k, v in _rdkit_feature_generator(radius=radius, num_bits=2048)
+        .GetCountFingerprint(_rdkit_mol(smiles))
+        .GetNonzeroElements()
+        .items()
+    }
+    actual = {int(i): int(c) for i, c in zip(fp.indices, fp.counts)}
+    assert actual == expected
+
+
+@pytest.mark.parametrize("smiles", _FEATURE_SMILES)
+@pytest.mark.parametrize("radius", [2, 3])
+def test_morgan_sparse_binary_matches_rdkit_with_features(smiles: str, radius: int):
+    import oefp
+
+    fp = oefp.morgan_sparse_fingerprint(
+        _openeye_mol(smiles), radius=radius, use_features=True
+    )
+    # RDKit sparse on-bits are signed 32-bit IDs; mask to unsigned to match
+    # OEFP (consistent with the file's _rdkit_sparse_on_bits helper).
+    expected = {
+        int(bit) & 0xFFFFFFFF
+        for bit in _rdkit_feature_generator(radius=radius)
+        .GetSparseFingerprint(_rdkit_mol(smiles))
+        .GetOnBits()
+    }
+    assert _oefp_sparse_on_bits(fp) == expected
+
+
+@pytest.mark.parametrize("smiles", _FEATURE_SMILES)
+@pytest.mark.parametrize("radius", [2, 3])
+def test_morgan_sparse_count_matches_rdkit_with_features(smiles: str, radius: int):
+    import oefp
+
+    fp = oefp.morgan_sparse_count_fingerprint(
+        _openeye_mol(smiles), radius=radius, use_features=True
+    )
+    expected = {
+        int(k): int(v)
+        for k, v in _rdkit_feature_generator(radius=radius)
+        .GetSparseCountFingerprint(_rdkit_mol(smiles))
+        .GetNonzeroElements()
+        .items()
+    }
+    actual = {int(i): int(c) for i, c in zip(fp.indices, fp.counts)}
+    assert actual == expected
+
+
+def test_morgan_features_combine_with_chirality():
+    import oefp
+
+    # A fully substituted stereocenter (no [C@H] token) so OpenEye and RDKit
+    # agree on the heavy/hydrogen atom set: an explicit-H SMILES would make
+    # OpenEye retain a real H atom that RDKit treats as implicit, diverging the
+    # fingerprints for reasons unrelated to feature invariants. Chirality
+    # genuinely changes the fingerprint here, so this exercises FCFP+chirality.
+    smiles = "C[C@](N)(O)C(=O)O"
+    gen = _rdkit_feature_generator(radius=2, use_chirality=True)
+    expected = {
+        int(k): int(v)
+        for k, v in gen.GetSparseCountFingerprint(_rdkit_mol(smiles))
+        .GetNonzeroElements()
+        .items()
+    }
+    fp = oefp.morgan_sparse_count_fingerprint(
+        _openeye_mol(smiles), radius=2, use_features=True, use_chirality=True
+    )
+    actual = {int(i): int(c) for i, c in zip(fp.indices, fp.counts)}
+    assert actual == expected
+
+
+@pytest.mark.parametrize("smiles", _FEATURE_SMILES)
+def test_morgan_use_features_false_matches_ecfp(smiles: str):
+    # Regression: use_features=False must be byte-identical to the default
+    # connectivity-invariant Morgan (ECFP).
+    import oefp
+
+    default = oefp.morgan_fingerprint(_openeye_mol(smiles), radius=2)
+    explicit = oefp.morgan_fingerprint(
+        _openeye_mol(smiles), radius=2, use_features=False
+    )
+    assert _oefp_on_bits(default) == _oefp_on_bits(explicit)

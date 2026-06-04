@@ -231,7 +231,7 @@ def test_morgan_descriptors_expose_raw_integer_keys_for_complex_molecules():
     assert descriptors.spec.source_type == "Morgan"
     assert descriptors.spec.source_version == "Morgan-2026.03.1"
     assert descriptors.spec.parameters == (
-        "radius=1;use_chirality=false;use_bond_types=true;"
+        "radius=1;use_chirality=false;use_features=false;use_bond_types=true;"
         "only_nonzero_invariants=false;include_ring_membership=true;"
         "include_redundant_environments=false;output=descriptors"
     )

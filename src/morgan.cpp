@@ -201,6 +201,7 @@ std::string canonical_parameters(const MorganOptions& options) {
     params << "radius=" << options.radius
            << ";num_bits=" << options.num_bits
            << ";use_chirality=" << bool_parameter(options.use_chirality)
+           << ";use_features=" << bool_parameter(options.use_features)
            << ";use_bond_types=" << bool_parameter(options.use_bond_types)
            << ";only_nonzero_invariants=" << bool_parameter(options.only_nonzero_invariants)
            << ";include_ring_membership=" << bool_parameter(options.include_ring_membership)
@@ -221,6 +222,7 @@ std::string canonical_sparse_count_parameters(const MorganOptions& options) {
     std::ostringstream params;
     params << "radius=" << options.radius
            << ";use_chirality=" << bool_parameter(options.use_chirality)
+           << ";use_features=" << bool_parameter(options.use_features)
            << ";use_bond_types=" << bool_parameter(options.use_bond_types)
            << ";only_nonzero_invariants=" << bool_parameter(options.only_nonzero_invariants)
            << ";include_ring_membership=" << bool_parameter(options.include_ring_membership)
@@ -234,6 +236,7 @@ std::string canonical_sparse_binary_parameters(const MorganOptions& options) {
     std::ostringstream params;
     params << "radius=" << options.radius
            << ";use_chirality=" << bool_parameter(options.use_chirality)
+           << ";use_features=" << bool_parameter(options.use_features)
            << ";use_bond_types=" << bool_parameter(options.use_bond_types)
            << ";only_nonzero_invariants=" << bool_parameter(options.only_nonzero_invariants)
            << ";include_ring_membership=" << bool_parameter(options.include_ring_membership)
@@ -247,6 +250,7 @@ std::string canonical_descriptor_parameters(const MorganOptions& options) {
     std::ostringstream params;
     params << "radius=" << options.radius
            << ";use_chirality=" << bool_parameter(options.use_chirality)
+           << ";use_features=" << bool_parameter(options.use_features)
            << ";use_bond_types=" << bool_parameter(options.use_bond_types)
            << ";only_nonzero_invariants=" << bool_parameter(options.only_nonzero_invariants)
            << ";include_ring_membership=" << bool_parameter(options.include_ring_membership)
@@ -399,6 +403,63 @@ void apply_rdkit_halogen_oxide_normalization(
         --begin.formal_charge_adjustment;
         ++end.formal_charge_adjustment;
     }
+}
+
+// RDKit's GetFeatureInvariants uses a fixed six-feature Gobbi SMARTS set. The
+// FCFP atom seed is the OR of the matched feature bits, used directly (unhashed).
+// Bit order matches RDKit: Donor, Acceptor, Aromatic, Halogen, Basic, Acidic.
+struct FeaturePattern {
+    std::uint32_t bit;
+    const char* smarts;
+};
+
+const FeaturePattern FEATURE_PATTERNS[] = {
+    {1u, "[$([N;!H0;v3,v4&+1]),$([O,S;H1;+0]),n&H1&+0]"},
+    {2u, "[$([O,S;H1;v2;!$(*-*=[O,N,P,S])]),$([O,S;H0;v2]),$([O,S;-]),$([N;v3;!$(N-*=[O,N,P,S])]),n&H0&+0,$([o,s;+0;!$([o,s]:n);!$([o,s]:c:n)])]"},
+    {4u, "[a]"},
+    {8u, "[F,Cl,Br,I]"},
+    {16u, "[#7;+,$([N;H2&+0][$([C,a]);!$([C,a](=O))]),$([N;H1&+0]([$([C,a]);!$([C,a](=O))])[$([C,a]);!$([C,a](=O))]),$([N;H0&+0]([C;!$(C(=O))])([C;!$(C(=O))])[C;!$(C(=O))])]"},
+    {32u, "[$([C,S](=[O,S,P])-[O;H1,-1])]"},
+};
+
+// Compute a per-compact-index pharmacophore feature mask for the molecule.
+//
+// OEPrepareSearch requires a mutable molecule, so matching runs against a local
+// copy. The copy preserves OpenEye atom indices, so matched target indices map
+// back through graph.atom_id_to_compact exactly as the rest of build_graph does.
+std::vector<std::uint32_t> compute_feature_invariants(
+    const OEChem::OEMolBase& mol,
+    const MoleculeGraph& graph) {
+    std::vector<std::uint32_t> masks(graph.atoms.size(), 0u);
+    OEChem::OEGraphMol search_mol(mol);
+    for (const auto& pattern : FEATURE_PATTERNS) {
+        OEChem::OESubSearch subsearch(pattern.smarts);
+        if (!subsearch) {
+            throw std::runtime_error(
+                std::string("Invalid OEFP feature SMARTS: ") + pattern.smarts);
+        }
+        // Feature aromaticity is perceived on the search molecule by
+        // OEPrepareSearch; this is intentionally independent of the IsAromatic()
+        // reads in the connectivity-invariant path, and matches RDKit's feature
+        // invariant model. Do not couple the two perceptions.
+        OEChem::OEPrepareSearch(search_mol, subsearch);
+        for (OESystem::OEIter<OEChem::OEMatchBase> match = subsearch.Match(search_mol, true);
+             match;
+             ++match) {
+            for (OESystem::OEIter<OEChem::OEMatchPair<OEChem::OEAtomBase>> mp =
+                     match->GetAtoms();
+                 mp; ++mp) {
+                const auto target_idx = mp->target->GetIdx();
+                if (target_idx < graph.atom_id_to_compact.size()) {
+                    const auto compact = graph.atom_id_to_compact[target_idx];
+                    if (compact < masks.size()) {
+                        masks[compact] |= pattern.bit;
+                    }
+                }
+            }
+        }
+    }
+    return masks;
 }
 
 std::uint32_t atom_invariant(const AtomRecord& atom_record, const MorganOptions& options) {
@@ -609,9 +670,16 @@ void enumerate_events_into(
 
     const auto invariant_start = Clock::now();
     std::vector<std::uint32_t> atom_invariants(graph.atoms.size(), 0u);
+    std::vector<std::uint32_t> feature_masks;
+    if (options.use_features) {
+        feature_masks = compute_feature_invariants(mol, graph);
+    }
     for (const auto& atom_record : graph.atoms) {
         if (atom_record.atom != nullptr) {
-            atom_invariants[atom_record.compact_index] = atom_invariant(atom_record, options);
+            atom_invariants[atom_record.compact_index] =
+                options.use_features
+                    ? feature_masks[atom_record.compact_index]
+                    : atom_invariant(atom_record, options);
         }
     }
 

@@ -18,6 +18,7 @@ struct MorganOptions {
     std::uint32_t radius = 2;
     std::uint32_t num_bits = 2048;
     bool use_chirality = false;
+    bool use_features = false;
     bool use_bond_types = true;
     bool only_nonzero_invariants = false;
     bool include_ring_membership = true;

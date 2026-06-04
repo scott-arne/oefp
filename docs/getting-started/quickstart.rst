@@ -336,6 +336,11 @@ Generate a Morgan or Circular Fingerprint
 Use OEFP when you need RDKit-compatible Morgan output from an OpenEye molecule.
 Use OEGraphSim when you want OpenEye's native circular fingerprint.
 
+``radius`` is the circular radius, so the diameter is ``2 * radius`` and
+``radius=2`` corresponds to ECFP4. Pass ``use_features=True`` for FCFP-style
+pharmacophore feature invariants instead of the default ECFP connectivity
+invariants, making ``radius=2`` an FCFP4 fingerprint.
+
 .. code-block:: python
 
    # RDKit
