@@ -83,21 +83,10 @@ def test_sparse_cdist_matches_scalar_compare():
     np.testing.assert_allclose(values, expected)
 
 
-def _sparse_panel_mols():
-    from openeye import oechem
-
-    mols = []
-    for smiles in ("CCO", "c1ccccc1", "CC(=O)O", "CCN"):
-        mol = oechem.OEGraphMol()
-        assert oechem.OESmilesToMol(mol, smiles)
-        mols.append(mol)
-    return mols
-
-
-def test_sparse_batch_from_molecules_matches_from_fingerprints():
+def test_sparse_batch_from_molecules_matches_from_fingerprints(panel_mols):
     import oefp
 
-    mols = _sparse_panel_mols()
+    mols = panel_mols
     direct = oefp.OEFPSparseBatch.from_molecules(mols, oefp.morgan_sparse_fingerprint, radius=2)
     manual = oefp.OEFPSparseBatch.from_fingerprints(
         [oefp.morgan_sparse_fingerprint(m, radius=2) for m in mols]
@@ -108,10 +97,10 @@ def test_sparse_batch_from_molecules_matches_from_fingerprints():
     np.testing.assert_array_equal(direct.offsets, manual.offsets)
 
 
-def test_sparse_batch_from_molecules_forwards_options():
+def test_sparse_batch_from_molecules_forwards_options(panel_mols):
     import oefp
 
-    mols = _sparse_panel_mols()
+    mols = panel_mols
     ecfp = oefp.OEFPSparseBatch.from_molecules(mols, oefp.morgan_sparse_fingerprint, radius=2)
     fcfp = oefp.OEFPSparseBatch.from_molecules(
         mols, oefp.morgan_sparse_fingerprint, radius=2, use_features=True
@@ -130,9 +119,9 @@ def test_sparse_batch_from_molecules_empty_returns_empty_batch():
     assert batch.size == 0
 
 
-def test_sparse_batch_from_molecules_rejects_wrong_element_type():
+def test_sparse_batch_from_molecules_rejects_wrong_element_type(panel_mols):
     import oefp
 
-    mols = _sparse_panel_mols()
-    with pytest.raises(TypeError, match="OEFPSparse"):
+    mols = panel_mols
+    with pytest.raises(TypeError, match="must return OEFPSparse"):
         oefp.OEFPSparseBatch.from_molecules(mols, oefp.morgan_fingerprint)

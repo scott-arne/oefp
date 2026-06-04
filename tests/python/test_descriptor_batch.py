@@ -147,22 +147,11 @@ def test_descriptor_batch_wrong_mode_access_and_compare_raise_clear_type_error()
         oefp.pdist(batch, oefp.Metric.tanimoto())
 
 
-def _descriptor_panel_mols():
-    from openeye import oechem
-
-    mols = []
-    for smiles in ("CCO", "c1ccccc1", "CC(=O)O", "CCN"):
-        mol = oechem.OEGraphMol()
-        assert oechem.OESmilesToMol(mol, smiles)
-        mols.append(mol)
-    return mols
-
-
-def test_descriptor_batch_from_molecules_matches_from_descriptors():
+def test_descriptor_batch_from_molecules_matches_from_descriptors(panel_mols):
     import numpy as np
     import oefp
 
-    mols = _descriptor_panel_mols()
+    mols = panel_mols
     direct = oefp.DescriptorBatch.from_molecules(mols, oefp.morgan_descriptors, radius=2)
     manual = oefp.DescriptorBatch.from_descriptors(
         [oefp.morgan_descriptors(m, radius=2) for m in mols]
@@ -175,10 +164,10 @@ def test_descriptor_batch_from_molecules_matches_from_descriptors():
     np.testing.assert_array_equal(direct.offsets, manual.offsets)
 
 
-def test_descriptor_batch_from_molecules_forwards_options():
+def test_descriptor_batch_from_molecules_forwards_options(panel_mols):
     import oefp
 
-    mols = _descriptor_panel_mols()
+    mols = panel_mols
     r2 = oefp.DescriptorBatch.from_molecules(mols, oefp.morgan_descriptors, radius=2)
     r3 = oefp.DescriptorBatch.from_molecules(mols, oefp.morgan_descriptors, radius=3)
 
@@ -193,9 +182,9 @@ def test_descriptor_batch_from_molecules_empty_returns_empty_batch():
     assert batch.size == 0
 
 
-def test_descriptor_batch_from_molecules_rejects_wrong_element_type():
+def test_descriptor_batch_from_molecules_rejects_wrong_element_type(panel_mols):
     import oefp
 
-    mols = _descriptor_panel_mols()
-    with pytest.raises(TypeError, match="DescriptorSet"):
+    mols = panel_mols
+    with pytest.raises(TypeError, match="must return DescriptorSet"):
         oefp.DescriptorBatch.from_molecules(mols, oefp.morgan_fingerprint)

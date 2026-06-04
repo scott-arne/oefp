@@ -23,3 +23,16 @@ def ethanol_mol():
     mol = oechem.OEGraphMol()
     oechem.OESmilesToMol(mol, "CCO")
     return mol
+
+
+@pytest.fixture
+def panel_mols():
+    """Create a feature-diverse four-molecule panel for batch tests."""
+    from openeye import oechem
+
+    mols = []
+    for smiles in ("CCO", "c1ccccc1", "CC(=O)O", "CCN"):
+        mol = oechem.OEGraphMol()
+        assert oechem.OESmilesToMol(mol, smiles)
+        mols.append(mol)
+    return mols
