@@ -1,3 +1,6 @@
+import pytest
+
+
 def test_descriptor_batch_columns_and_subset():
     import numpy as np
     import oefp
@@ -142,3 +145,57 @@ def test_descriptor_batch_wrong_mode_access_and_compare_raise_clear_type_error()
         oefp.cdist(batch, batch, oefp.Metric.tanimoto())
     with pytest.raises(TypeError, match="schema-backed descriptors"):
         oefp.pdist(batch, oefp.Metric.tanimoto())
+
+
+def _descriptor_panel_mols():
+    from openeye import oechem
+
+    mols = []
+    for smiles in ("CCO", "c1ccccc1", "CC(=O)O", "CCN"):
+        mol = oechem.OEGraphMol()
+        assert oechem.OESmilesToMol(mol, smiles)
+        mols.append(mol)
+    return mols
+
+
+def test_descriptor_batch_from_molecules_matches_from_descriptors():
+    import numpy as np
+    import oefp
+
+    mols = _descriptor_panel_mols()
+    direct = oefp.DescriptorBatch.from_molecules(mols, oefp.morgan_descriptors, radius=2)
+    manual = oefp.DescriptorBatch.from_descriptors(
+        [oefp.morgan_descriptors(m, radius=2) for m in mols]
+    )
+
+    assert direct.size == manual.size
+    assert direct.value_type == manual.value_type
+    assert direct.integer_keys == manual.integer_keys
+    np.testing.assert_array_equal(direct.counts, manual.counts)
+    np.testing.assert_array_equal(direct.offsets, manual.offsets)
+
+
+def test_descriptor_batch_from_molecules_forwards_options():
+    import oefp
+
+    mols = _descriptor_panel_mols()
+    r2 = oefp.DescriptorBatch.from_molecules(mols, oefp.morgan_descriptors, radius=2)
+    r3 = oefp.DescriptorBatch.from_molecules(mols, oefp.morgan_descriptors, radius=3)
+
+    # A larger radius produces more environment keys for this panel.
+    assert r3.entry_count != r2.entry_count
+
+
+def test_descriptor_batch_from_molecules_empty_returns_empty_batch():
+    import oefp
+
+    batch = oefp.DescriptorBatch.from_molecules([], oefp.morgan_descriptors)
+    assert batch.size == 0
+
+
+def test_descriptor_batch_from_molecules_rejects_wrong_element_type():
+    import oefp
+
+    mols = _descriptor_panel_mols()
+    with pytest.raises(TypeError, match="DescriptorSet"):
+        oefp.DescriptorBatch.from_molecules(mols, oefp.morgan_fingerprint)

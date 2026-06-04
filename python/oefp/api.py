@@ -1285,6 +1285,34 @@ class DescriptorBatch:
             native_descriptors.push_back(descriptor_set._native)
         return cls._from_native(_native._NativeDescriptorBatch.FromDescriptorSets(native_descriptors))
 
+    @classmethod
+    def from_molecules(
+        cls,
+        molecules: Iterable[Any],
+        generator: Callable[..., DescriptorSet],
+        /,
+        **options: Any,
+    ) -> DescriptorBatch:
+        """Build a descriptor batch directly from molecules using a generator.
+
+        :param molecules: Iterable of OpenEye molecules.
+        :param generator: Callable mapping one molecule to one :class:`DescriptorSet`,
+            e.g. :func:`morgan_descriptors`. Called as ``generator(mol, **options)``.
+        :param options: Keyword options forwarded to ``generator`` for each molecule.
+        :returns: A descriptor batch.
+        :raises TypeError: When ``generator`` returns a non-:class:`DescriptorSet` value.
+        """
+        descriptors = []
+        for mol in molecules:
+            descriptor = generator(mol, **options)
+            if not isinstance(descriptor, DescriptorSet):
+                raise TypeError(
+                    "DescriptorBatch.from_molecules generator must return DescriptorSet, "
+                    f"got {type(descriptor).__name__}."
+                )
+            descriptors.append(descriptor)
+        return cls.from_descriptors(descriptors)
+
     @property
     def schema(self) -> DescriptorSchema:
         """Descriptor schema for schema-backed batches."""
