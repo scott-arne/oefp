@@ -64,6 +64,18 @@ batch = oefp.OEFPBatch.from_fingerprints(fps)
 distances = oefp.pdist(batch, oefp.Metric.jaccard())
 ```
 
+Build a batch directly from molecules in one call:
+
+```python
+batch = oefp.OEFPBatch.from_molecules(mols, oefp.morgan_fingerprint, radius=2)
+distances = oefp.pdist(batch, oefp.Metric.jaccard())
+```
+
+`from_molecules` is available on `OEFPBatch`, `OEFPCountBatch`,
+`OEFPSparseBatch`, and `DescriptorBatch`; pass the matching generator
+(`morgan_count_fingerprint`, `morgan_sparse_fingerprint`, `morgan_descriptors`,
+the Atom Pair / Topological Torsions functions, …) and any keyword options.
+
 Generate sparse and counted fingerprints:
 
 ```python

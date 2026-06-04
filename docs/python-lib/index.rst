@@ -156,6 +156,14 @@ Batch Containers
 
       Create a batch from ``OEFP`` objects with matching specifications.
 
+   .. method:: OEFPBatch.from_molecules(molecules, generator, **options)
+
+      Build a batch directly from an iterable of OpenEye molecules. ``generator``
+      is a per-molecule fingerprint function (e.g. :func:`morgan_fingerprint`)
+      called as ``generator(mol, **options)``. Also available on
+      ``OEFPCountBatch``, ``OEFPSparseBatch``, and ``DescriptorBatch`` with the
+      matching generator (counted, sparse, or descriptor).
+
    .. attribute:: words
 
       Read-only 2D NumPy view of row-major ``uint64`` words.
