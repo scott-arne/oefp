@@ -45,3 +45,62 @@ def test_cdist_shape_and_values():
     assert values[0, 1] == pytest.approx(0.0)
     assert values[1, 0] == pytest.approx(0.0)
     assert values[1, 1] == pytest.approx(0.5)
+
+
+def _panel_mols():
+    from openeye import oechem
+
+    mols = []
+    for smiles in ("CCO", "c1ccccc1", "CC(=O)O", "CCN"):
+        mol = oechem.OEGraphMol()
+        assert oechem.OESmilesToMol(mol, smiles)
+        mols.append(mol)
+    return mols
+
+
+def test_oefp_batch_from_molecules_matches_from_fingerprints():
+    import oefp
+
+    mols = _panel_mols()
+    direct = oefp.OEFPBatch.from_molecules(mols, oefp.morgan_fingerprint, radius=2)
+    manual = oefp.OEFPBatch.from_fingerprints(
+        [oefp.morgan_fingerprint(m, radius=2) for m in mols]
+    )
+
+    assert direct.size == manual.size
+    np.testing.assert_array_equal(direct.words, manual.words)
+    np.testing.assert_array_equal(direct.popcounts, manual.popcounts)
+
+
+def test_oefp_batch_from_molecules_forwards_options():
+    import oefp
+
+    mols = _panel_mols()
+    ecfp = oefp.OEFPBatch.from_molecules(mols, oefp.morgan_fingerprint, radius=2)
+    fcfp = oefp.OEFPBatch.from_molecules(
+        mols, oefp.morgan_fingerprint, radius=2, use_features=True
+    )
+
+    assert not np.array_equal(ecfp.words, fcfp.words)
+
+
+def test_oefp_batch_from_molecules_empty_returns_empty_batch():
+    import oefp
+
+    calls = []
+
+    def spy(mol):
+        calls.append(mol)
+        return oefp.morgan_fingerprint(mol)
+
+    batch = oefp.OEFPBatch.from_molecules([], spy)
+    assert batch.size == 0
+    assert calls == []
+
+
+def test_oefp_batch_from_molecules_rejects_wrong_element_type():
+    import oefp
+
+    mols = _panel_mols()
+    with pytest.raises(TypeError, match="OEFP"):
+        oefp.OEFPBatch.from_molecules(mols, oefp.morgan_count_fingerprint)

@@ -5,7 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 from importlib import resources
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from functools import lru_cache
 from numbers import Integral
@@ -1583,6 +1583,34 @@ class OEFPBatch:
         for fp in fingerprints:
             native_fps.push_back(fp._native)
         return cls._from_native(_native._NativeOEFPBatch.FromFingerprints(native_fps))
+
+    @classmethod
+    def from_molecules(
+        cls,
+        molecules: Iterable[Any],
+        generator: Callable[..., OEFP],
+        /,
+        **options: Any,
+    ) -> OEFPBatch:
+        """Build a batch directly from molecules using a fingerprint generator.
+
+        :param molecules: Iterable of OpenEye molecules.
+        :param generator: Callable mapping one molecule to one :class:`OEFP`,
+            e.g. :func:`morgan_fingerprint`. Called as ``generator(mol, **options)``.
+        :param options: Keyword options forwarded to ``generator`` for each molecule.
+        :returns: A dense binary batch.
+        :raises TypeError: When ``generator`` returns a non-:class:`OEFP` value.
+        """
+        fingerprints = []
+        for mol in molecules:
+            fingerprint = generator(mol, **options)
+            if not isinstance(fingerprint, OEFP):
+                raise TypeError(
+                    "OEFPBatch.from_molecules generator must return OEFP, "
+                    f"got {type(fingerprint).__name__}."
+                )
+            fingerprints.append(fingerprint)
+        return cls.from_fingerprints(fingerprints)
 
     @property
     def words(self) -> np.ndarray:
