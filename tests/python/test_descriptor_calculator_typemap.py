@@ -15,6 +15,12 @@ These tests are therefore a permanent guard and a documented reproduction of the
 lazy-sequence lifetime contract rather than a deterministic crash detector.
 """
 
+import os
+import signal
+import subprocess
+import sys
+from pathlib import Path
+
 import pytest
 
 pytest.importorskip("openeye.oechem", reason="OpenEye Toolkits not installed")
@@ -95,3 +101,80 @@ def test_calculate_batch_bad_element_still_raises():
 
     with pytest.raises(TypeError, match="OEMolBase"):
         calc.CalculateBatch([_mol("CCO"), object()])
+
+
+# Child program driving CalculateBatch with a sequence that reports a length no
+# allocation can satisfy. Kept in a subprocess because an unguarded typemap lets
+# std::vector::reserve throw std::length_error out of the SWIG wrapper, which
+# aborts the interpreter (SIGABRT / exit 134) and would otherwise kill the whole
+# pytest run instead of surfacing as a distinguishable failure.
+_OVERSIZED_CHILD = """
+import sys
+
+from oefp import _native
+
+
+class OversizedSequence:
+    \"\"\"Sequence whose __len__ overflows any allocation the typemap attempts.\"\"\"
+
+    def __len__(self):
+        return sys.maxsize
+
+    def __getitem__(self, index):
+        raise IndexError(index)
+
+
+entries = _native.DescriptorSourceEntryVector()
+entries.push_back(_native.DescriptorSourceEntry(_native.OpenEyePropertyDescriptorSource()))
+calc = _native._NativeDescriptorCalculator(entries)
+
+try:
+    calc.CalculateBatch(OversizedSequence())
+except (TypeError, ValueError, MemoryError, RuntimeError, OverflowError) as exc:
+    print("CAUGHT", type(exc).__name__)
+    sys.exit(0)
+except BaseException as exc:  # noqa: BLE001 - report any other Python-level error
+    print("OTHER", type(exc).__name__)
+    sys.exit(0)
+print("NO_EXCEPTION")
+sys.exit(1)
+"""
+
+
+def test_calculate_batch_oversized_sequence_does_not_abort():
+    """An oversized __len__ must raise a Python error, never abort the process.
+
+    The conversion-time reservation runs outside the GIL-release try/catch that
+    guards the C++ call, so a bad length previously reached ``std::vector::reserve``
+    and threw ``std::length_error`` straight out of the SWIG wrapper, aborting the
+    interpreter (``libc++abi: terminating due to uncaught exception``, exit 134).
+    The typemap now validates the length and guards the reservation, so the child
+    must fail with a catchable Python exception rather than a process abort.
+    """
+    repo_python = Path(__file__).resolve().parents[2] / "python"
+    env = dict(os.environ)
+    env["PYTHONPATH"] = os.pathsep.join(
+        [str(repo_python), env["PYTHONPATH"]] if env.get("PYTHONPATH") else [str(repo_python)]
+    )
+
+    result = subprocess.run(
+        [sys.executable, "-c", _OVERSIZED_CHILD],
+        capture_output=True,
+        text=True,
+        env=env,
+    )
+
+    combined = result.stdout + result.stderr
+
+    # Core property: the child did not abort via SIGABRT (exit 134 / -6) and did
+    # not terminate through an uncaught C++ exception.
+    assert result.returncode != -signal.SIGABRT, combined
+    assert result.returncode != 134, combined
+    assert "libc++abi" not in combined, combined
+    assert "terminating due to uncaught exception" not in combined, combined
+
+    # A catchable Python exception was raised (the child prints CAUGHT/OTHER and
+    # exits 0) rather than silently succeeding on a nonsense length.
+    assert result.returncode == 0, combined
+    assert "NO_EXCEPTION" not in combined, combined
+    assert ("CAUGHT" in combined) or ("OTHER" in combined), combined

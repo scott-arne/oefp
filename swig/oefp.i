@@ -369,8 +369,23 @@ OE_CROSS_RUNTIME_REF_TYPEMAPS(OEChem::OEQMol,       _oefp_is_oeqmol,       "Expe
     }
     Py_ssize_t seq_len = PySequence_Size($input);
     if (seq_len < 0) SWIG_fail;
-    mols_tmp.reserve(static_cast<std::size_t>(seq_len));
-    mols_keepalive.reserve(static_cast<std::size_t>(seq_len));
+    // A malicious or malformed sequence can report a length far larger than any
+    // allocation could satisfy (for example a custom sequence whose __len__
+    // returns sys.maxsize). Validate against the vectors' max_size() and guard
+    // the reservations so an oversized or failed allocation surfaces as a clean
+    // Python exception rather than an uncaught C++ exception that aborts the
+    // interpreter. This runs before the element loop while both vectors are
+    // empty, so the fail label's freearg has nothing to clean up.
+    if (static_cast<std::size_t>(seq_len) > mols_tmp.max_size() ||
+        static_cast<std::size_t>(seq_len) > mols_keepalive.max_size()) {
+        SWIG_exception_fail(SWIG_ValueError, "Molecule sequence is too large.");
+    }
+    try {
+        mols_tmp.reserve(static_cast<std::size_t>(seq_len));
+        mols_keepalive.reserve(static_cast<std::size_t>(seq_len));
+    } catch (const std::exception& e) {
+        SWIG_exception_fail(SWIG_MemoryError, e.what());
+    }
     for (Py_ssize_t idx = 0; idx < seq_len; ++idx) {
         PyObject* item = PySequence_GetItem($input, idx);
         if (!item) {
