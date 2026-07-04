@@ -25,6 +25,7 @@ add_executable(oefp_tests
     test_descriptor_value.cpp
     test_fingerprint.cpp
     test_metric.cpp
+    test_molecular_properties.cpp
     test_mordred.cpp
     test_mordred_schema.cpp
     test_morgan.cpp

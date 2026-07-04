@@ -156,6 +156,7 @@ set(OEFP_SOURCES
     src/descriptor_value.cpp
     src/fingerprint.cpp
     src/metric.cpp
+    src/molecular_properties.cpp
     src/mordred.cpp
     src/mordred_schema.cpp
     src/morgan.cpp

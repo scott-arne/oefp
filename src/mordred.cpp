@@ -1,5 +1,7 @@
 #include "oefp/mordred.h"
 
+#include "oefp/molecular_properties.h"
+
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -8162,8 +8164,8 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
     set_int(builder, "nBase", values.basic_groups);
     set_int(builder, "nAromAtom", values.aromatic_atoms);
     set_int(builder, "nAromBond", values.aromatic_bonds);
-    set_int(builder, "nAtom", all_atoms);
-    set_int(builder, "nHeavyAtom", values.heavy_atoms);
+    set_int(builder, "nAtom", static_cast<std::uint32_t>(TotalAtomCount(mol)));
+    set_int(builder, "nHeavyAtom", static_cast<std::uint32_t>(HeavyAtomCount(mol)));
     set_int(builder, "nSpiro", values.spiro_atoms);
     set_int(builder, "nBridgehead", values.bridgehead_atoms);
     set_int(builder, "nHetero", values.hetero_atoms);
@@ -8414,11 +8416,8 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
     set_optional_float(builder, "fMF", framework_ratio);
     set_float(builder, "TopoPSA(NO)", values.topo_psa_no);
     set_float(builder, "TopoPSA", values.topo_psa);
-    set_float(builder, "MW", values.exact_weight);
-    set_float(
-        builder,
-        "AMW",
-        all_atoms == 0u ? 0.0 : values.exact_weight / static_cast<double>(all_atoms));
+    set_float(builder, "MW", ExactMolecularWeight(mol));
+    set_float(builder, "AMW", AverageMolecularWeight(mol));
     set_bool(
         builder,
         "Lipinski",
