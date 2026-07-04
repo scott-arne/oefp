@@ -206,6 +206,28 @@ TEST(DescriptorArrowTest, PreservesSchemaForZeroRowBatches) {
     EXPECT_EQ(restored.Schema().Definition(3).name, "Class");
 }
 
+TEST(DescriptorArrowTest, PreservesCanonicalIdThroughRecordBatch) {
+    DescriptorSchemaBuilder builder;
+    DescriptorDefinition mw{"MW", DescriptorValueKind::Float, "mordred:constitutional"};
+    mw.canonical_id = "quantity:exact_molecular_weight";
+    builder.Add(mw);
+    builder.Add(DescriptorDefinition{"nAtom", DescriptorValueKind::Int, "mordred:atom_count"});
+    const auto schema = builder.Build();
+
+    DescriptorSetBuilder row(schema);
+    row.Set("MW", DescriptorValue::Float(46.069));
+    row.Set("nAtom", DescriptorValue::Int(9));
+    const auto batch = DescriptorBatch::FromDescriptorSets({row.Build("CCO")});
+
+    const auto record_batch = ToArrowRecordBatch(batch);
+    DescriptorBatch restored = DescriptorBatch::Empty(schema);
+    ASSERT_NO_THROW(restored = FromArrowRecordBatch(record_batch));
+
+    const auto index = restored.Schema().IndexOf("MW");
+    EXPECT_EQ(restored.Schema().Definition(index).canonical_id, "quantity:exact_molecular_weight");
+    EXPECT_EQ(restored.Schema().SchemaId(), batch.Schema().SchemaId());
+}
+
 TEST(DescriptorArrowTest, RoundTripsThroughIpcFile) {
     const TempDescriptorFile path(".arrow");
     const auto batch = scalar_batch_with_missing_values();

@@ -239,6 +239,8 @@ std::string schema_to_json(const DescriptorSchema& schema) {
         append_json_string_field(json, "units", definition.units);
         json += ',';
         append_json_string_field(json, "description", definition.description);
+        json += ',';
+        append_json_string_field(json, "canonical_id", definition.canonical_id);
         json += ",\"prerequisites\":";
         json += std::to_string(definition.prerequisites);
         json += ",\"shape\":";
@@ -322,6 +324,12 @@ private:
         Expect(',');
         definition.description = ParseNamedString("description");
         Expect(',');
+        // canonical_id was added after the initial format release; tolerate older
+        // metadata that predates the field by leaving it empty when absent.
+        if (PeekKey() == "canonical_id") {
+            definition.canonical_id = ParseNamedString("canonical_id");
+            Expect(',');
+        }
         ExpectString("prerequisites");
         Expect(':');
         definition.prerequisites = static_cast<DescriptorPrerequisites>(ParseUnsigned());
@@ -417,6 +425,21 @@ private:
         if (actual != expected) {
             throw std::invalid_argument("Descriptor schema metadata contains unexpected JSON.");
         }
+    }
+
+    // Return the next quoted key name without consuming input, or an empty
+    // string when the next token is not a quoted string. Used to tolerate
+    // optional fields that may be absent in older metadata.
+    std::string PeekKey() {
+        const auto saved_offset = offset_;
+        SkipWhitespace();
+        if (offset_ >= json_.size() || json_[offset_] != '"') {
+            offset_ = saved_offset;
+            return {};
+        }
+        const auto key = ParseString();
+        offset_ = saved_offset;
+        return key;
     }
 
     bool ConsumeNull() {
