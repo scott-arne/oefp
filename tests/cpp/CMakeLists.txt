@@ -18,6 +18,7 @@ add_executable(oefp_tests
     test_descriptor.cpp
     test_descriptor_arrow.cpp
     test_descriptor_batch.cpp
+    test_descriptor_calculator.cpp
     test_descriptor_compare.cpp
     test_descriptor_schema.cpp
     test_descriptor_selection.cpp
