@@ -81,6 +81,13 @@ struct DescriptorDefinition {
     /// coordinates implicitly.
     DescriptorPrerequisites prerequisites = kDescriptorPrerequisiteNone;
     std::optional<DescriptorShape> shape;
+    /// \brief Curated cross-source identity for deduplication.
+    ///
+    /// A non-empty namespaced string (e.g. "quantity:exact_molecular_weight")
+    /// marks descriptors that run the same computation and therefore produce
+    /// provably identical values. Empty means the descriptor has no known
+    /// cross-source equivalent and is never deduplicated.
+    std::string canonical_id;
 };
 
 class DescriptorSchema {

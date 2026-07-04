@@ -8,7 +8,7 @@ TEST(MordredSchemaTest, FullSchemaContainsAllDescriptors) {
     const auto schema = MordredDescriptorSchema();
 
     EXPECT_EQ(schema->Size(), 1826u);
-    EXPECT_EQ(schema->SchemaId(), "3ad3d49398681f3d");
+    EXPECT_EQ(schema->SchemaId(), "f30d5132e9b0ac99");
     EXPECT_EQ(schema->Definition(0).name, "ABC");
     EXPECT_EQ(schema->Definition(1825).name, "mZagreb2");
     EXPECT_TRUE(schema->Contains("ABC"));

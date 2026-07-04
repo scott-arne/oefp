@@ -110,6 +110,8 @@ std::string schema_id_for(const std::vector<DescriptorDefinition>& definitions) 
         serialized.push_back('|');
         append_field(serialized, definition.description);
         serialized.push_back('|');
+        append_field(serialized, definition.canonical_id);
+        serialized.push_back('|');
         append_uint(serialized, definition.prerequisites);
         serialized.push_back('|');
         if (definition.shape.has_value()) {

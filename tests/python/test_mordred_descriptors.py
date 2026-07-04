@@ -1513,7 +1513,7 @@ def test_mordred_reference_fixture_contains_full_schema_and_panel():
     definitions_by_name = {definition["name"]: definition for definition in definitions}
     names = [definition["name"] for definition in definitions]
 
-    assert payload["schema_id"] == "3ad3d49398681f3d"
+    assert payload["schema_id"] == "f30d5132e9b0ac99"
     assert payload["source"] == {
         "descriptor_source": "local-mordred-1.2.0",
         "ignore_3D": False,

@@ -139,6 +139,11 @@ class DescriptorDefinition:
     :param description: Optional human-readable descriptor description.
     :param prerequisites: Bitmap of input prerequisites needed to compute
         this descriptor.
+    :param canonical_id: Optional curated cross-source identity. A non-empty
+        namespaced string (e.g. ``"quantity:exact_molecular_weight"``) marks
+        descriptors that run the same computation and therefore produce
+        provably identical values. Empty means the descriptor has no known
+        cross-source equivalent and is never deduplicated.
     """
 
     name: str
@@ -151,6 +156,7 @@ class DescriptorDefinition:
     units: str = ""
     description: str = ""
     prerequisites: int = 0
+    canonical_id: str = ""
 
     def __post_init__(self) -> None:
         normalized = _normalized_descriptor_kind(self.value_type)
@@ -165,6 +171,7 @@ class DescriptorDefinition:
         object.__setattr__(self, "units", str(self.units))
         object.__setattr__(self, "description", str(self.description))
         object.__setattr__(self, "prerequisites", prerequisites)
+        object.__setattr__(self, "canonical_id", str(self.canonical_id))
 
     def _metadata(self) -> dict[str, str | int]:
         return {
@@ -177,6 +184,7 @@ class DescriptorDefinition:
             "parameters": self.parameters,
             "units": self.units,
             "description": self.description,
+            "canonical_id": self.canonical_id,
             "prerequisites": self.prerequisites,
         }
 
@@ -193,6 +201,7 @@ class DescriptorDefinition:
             units=str(metadata.get("units", "")),
             description=str(metadata.get("description", "")),
             prerequisites=int(metadata.get("prerequisites", 0)),
+            canonical_id=str(metadata.get("canonical_id", "")),
         )
 
 
@@ -430,6 +439,7 @@ def _mordred_definition_from_fixture(definition: Mapping[str, Any]) -> Descripto
         units=str(definition.get("units", "")),
         description=str(definition.get("description", "")),
         prerequisites=int(definition.get("prerequisites", 0)),
+        canonical_id=str(definition.get("canonical_id", "")),
     )
 
 

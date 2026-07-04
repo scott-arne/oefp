@@ -34,3 +34,14 @@ def test_descriptor_schema_equality_includes_definition_metadata():
     assert base != different_group
     assert base.schema_id != different_group.schema_id
     assert base != different_type
+
+
+def test_canonical_id_changes_schema_id_and_round_trips():
+    from oefp import DescriptorDefinition, DescriptorSchema
+
+    plain = DescriptorSchema([DescriptorDefinition("MW", "float", group="g")])
+    tagged = DescriptorSchema(
+        [DescriptorDefinition("MW", "float", group="g", canonical_id="quantity:exact_molecular_weight")]
+    )
+    assert plain.schema_id != tagged.schema_id
+    assert tagged.definitions[0].canonical_id == "quantity:exact_molecular_weight"

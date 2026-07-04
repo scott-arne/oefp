@@ -21,6 +21,20 @@ SOURCE_VERSION = f"Mordred-{EXPECTED_MORDRED_VERSION}"
 DESCRIPTOR_PREREQUISITE_NONE = 0
 DESCRIPTOR_PREREQUISITE_COORDINATES_3D = 1 << 2
 
+# Curated cross-source identities for Mordred descriptors that run the same
+# computation as descriptors from other sources and therefore produce provably
+# identical values. Descriptors absent from this map have no known equivalent
+# and receive an empty canonical_id (never deduplicated).
+MORDRED_CANONICAL_IDS = {
+    "MW": "quantity:exact_molecular_weight",
+    "AMW": "quantity:average_molecular_weight",
+    "nHeavyAtom": "quantity:heavy_atom_count",
+    "nAtom": "quantity:total_atom_count",
+    "TopoPSA": "quantity:topological_psa",
+    "nHBDon": "quantity:num_hbond_donors_lipinski",
+    "nHBAcc": "quantity:num_hbond_acceptors",
+}
+
 SMILES_PANEL = [
     "CCO",
     "c1ccncc1",
@@ -51,8 +65,62 @@ SMILES_PANEL = [
 ]
 
 
+def _install_distutils_version_shim() -> None:
+    """Provide ``distutils.version.StrictVersion`` on interpreters without distutils.
+
+    ``distutils`` was removed from the standard library in Python 3.12, but the
+    local Mordred checkout still imports ``distutils.version.StrictVersion`` to
+    gate a handful of descriptors by release. Every version string Mordred
+    compares is plain dotted-numeric (``1.0.0``, ``1.1.0``, ``1.1.2``,
+    ``1.2.0``), so a tuple-based comparator reproduces the original ordering
+    exactly. The shim is installed only when the real module is absent.
+    """
+    if "distutils.version" in sys.modules:
+        return
+    try:
+        import distutils.version  # type: ignore[import-not-found]  # noqa: F401
+
+        return
+    except ModuleNotFoundError:
+        pass
+
+    class StrictVersion:
+        def __init__(self, value: str) -> None:
+            self.version = tuple(int(part) for part in str(value).split("."))
+
+        def _key(self, other: Any) -> tuple[int, ...]:
+            return other.version if isinstance(other, StrictVersion) else StrictVersion(other).version
+
+        def __eq__(self, other: Any) -> bool:
+            return self.version == self._key(other)
+
+        def __lt__(self, other: Any) -> bool:
+            return self.version < self._key(other)
+
+        def __le__(self, other: Any) -> bool:
+            return self.version <= self._key(other)
+
+        def __gt__(self, other: Any) -> bool:
+            return self.version > self._key(other)
+
+        def __ge__(self, other: Any) -> bool:
+            return self.version >= self._key(other)
+
+        def __hash__(self) -> int:
+            return hash(self.version)
+
+    distutils_module = types.ModuleType("distutils")
+    version_module = types.ModuleType("distutils.version")
+    version_module.StrictVersion = StrictVersion  # type: ignore[attr-defined]
+    distutils_module.version = version_module  # type: ignore[attr-defined]
+    sys.modules["distutils"] = distutils_module
+    sys.modules["distutils.version"] = version_module
+
+
 def _apply_compatibility_shims() -> None:
     """Apply compatibility patches required by the local Mordred checkout."""
+    _install_distutils_version_shim()
+
     import numpy as np
 
     setattr(np, "float", float)
@@ -187,6 +255,8 @@ def _schema_id(definitions: list[dict[str, Any]]) -> str:
         serialized += "|"
         serialized = append_field(serialized, definition["description"])
         serialized += "|"
+        serialized = append_field(serialized, definition.get("canonical_id", ""))
+        serialized += "|"
         serialized += str(int(definition.get("prerequisites", DESCRIPTOR_PREREQUISITE_NONE)))
         serialized += "|-\n"
 
@@ -212,6 +282,7 @@ def _reference_payload(mordred_source: Path, descriptor_source: str) -> dict[str
             "parameters": _descriptor_parameters(descriptor),
             "units": "",
             "description": _descriptor_description(descriptor),
+            "canonical_id": MORDRED_CANONICAL_IDS.get(str(descriptor), ""),
             "prerequisites": (
                 DESCRIPTOR_PREREQUISITE_COORDINATES_3D
                 if getattr(descriptor, "require_3D", False)
@@ -277,6 +348,7 @@ def _write_cpp_schema(payload: dict[str, Any], output: Path) -> None:
         "    const char* source_type;",
         "    const char* parameters;",
         "    const char* description;",
+        "    const char* canonical_id;",
         "    DescriptorPrerequisites prerequisites;",
         "};",
         "",
@@ -291,6 +363,7 @@ def _write_cpp_schema(payload: dict[str, Any], output: Path) -> None:
             f"{_cpp_string(definition['source_type'])}, "
             f"{_cpp_string(definition['parameters'])}, "
             f"{_cpp_string(definition['description'])}, "
+            f"{_cpp_string(definition.get('canonical_id', ''))}, "
             f"{int(definition.get('prerequisites', DESCRIPTOR_PREREQUISITE_NONE))}u"
             "},"
         )
@@ -314,6 +387,7 @@ def _write_cpp_schema(payload: dict[str, Any], output: Path) -> None:
             f"            definition.source_version = \"{SOURCE_VERSION}\";",
             "            definition.parameters = item.parameters;",
             "            definition.description = item.description;",
+            "            definition.canonical_id = item.canonical_id;",
             "            definition.prerequisites = item.prerequisites;",
             "            definitions.push_back(std::move(definition));",
             "        }",

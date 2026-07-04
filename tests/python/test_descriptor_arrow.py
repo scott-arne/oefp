@@ -80,3 +80,14 @@ def test_descriptor_batch_arrow_preserves_nulls_types_and_row_ids(tmp_path):
     from_disk = oefp.DescriptorBatch.read_parquet(path)
     assert from_disk.row_ids == ("ethanol", "missing")
     assert from_disk.int_column("AllNull").tolist() == [None, None]
+
+
+def test_canonical_id_round_trips_through_arrow():
+    import oefp
+
+    schema = oefp.DescriptorSchema(
+        [oefp.DescriptorDefinition("MW", "float", canonical_id="quantity:exact_molecular_weight")]
+    )
+    batch = oefp.DescriptorBatch.from_descriptors([oefp.DescriptorSet(schema, {"MW": 46.069})])
+    restored = oefp.DescriptorBatch.from_arrow(batch.to_arrow())
+    assert restored.schema.definitions[0].canonical_id == "quantity:exact_molecular_weight"
