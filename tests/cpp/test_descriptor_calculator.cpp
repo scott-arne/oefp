@@ -1,7 +1,9 @@
 #include "oefp/descriptor_calculator.h"
+#include "oefp/descriptor_batch.h"
 #include "oefp/descriptor_source.h"
 
 #include <gtest/gtest.h>
+#include <oechem.h>
 
 #include <memory>
 #include <stdexcept>
@@ -82,4 +84,33 @@ TEST(DescriptorCalculatorTest, FullySelectedEmptyIsValid) {
                          DescriptorSelection::Names({}));  // selects nothing
     DescriptorCalculator calc(std::move(entries));
     EXPECT_EQ(calc.Schema().Size(), 0u);
+}
+
+TEST(DescriptorCalculatorTest, ComputeMergesKeptColumns) {
+    std::vector<DescriptorSourceEntry> entries;
+    entries.emplace_back(std::make_shared<MordredDescriptorSource>());
+    entries.emplace_back(std::make_shared<OpenEyePropertyDescriptorSource>());
+    DescriptorCalculator calc(std::move(entries));
+    OEChem::OEGraphMol mol;
+    ASSERT_TRUE(OEChem::OESmilesToMol(mol, "CCO"));
+    const auto row = calc.Compute(mol);
+    EXPECT_EQ(row.Schema().SchemaId(), calc.Schema().SchemaId());
+    EXPECT_TRUE(row.Has("MW"));       // Mordred-first keeps its tagged column
+    EXPECT_TRUE(row.Has("XLogP"));    // OpenEye-unique untagged column survives dedup
+}
+
+TEST(DescriptorCalculatorTest, CalculateBatchEqualsPerRowComputeInOrder) {
+    std::vector<DescriptorSourceEntry> entries;
+    entries.emplace_back(std::make_shared<MordredDescriptorSource>());
+    DescriptorCalculator calc(std::move(entries));
+    OEChem::OEGraphMol a, b;
+    ASSERT_TRUE(OEChem::OESmilesToMol(a, "CCO"));
+    ASSERT_TRUE(OEChem::OESmilesToMol(b, "c1ccccc1"));
+    const OEChem::OEMolBase& base_a = a;
+    const OEChem::OEMolBase& base_b = b;
+    std::vector<const OEChem::OEMolBase*> mols{&base_a, &base_b};
+    const auto batch = calc.CalculateBatch(mols);
+    ASSERT_EQ(batch.Size(), 2u);
+    EXPECT_DOUBLE_EQ(batch.FloatColumn("MW")[0], calc.Compute(a).Float("MW"));
+    EXPECT_DOUBLE_EQ(batch.FloatColumn("MW")[1], calc.Compute(b).Float("MW"));
 }

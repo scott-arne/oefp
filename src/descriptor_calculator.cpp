@@ -1,10 +1,14 @@
 #include "oefp/descriptor_calculator.h"
 
+#include "thread_pool.h"
+
+#include <cstddef>
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
+#include <vector>
 
 namespace OEFP {
 
@@ -78,13 +82,39 @@ std::shared_ptr<const DescriptorSchema> DescriptorCalculator::SchemaPtr() const 
     return schema_;
 }
 
-DescriptorSet DescriptorCalculator::Compute(const OEChem::OEMolBase& /*mol*/) const {
-    throw std::logic_error("not implemented");
+DescriptorSet DescriptorCalculator::Compute(const OEChem::OEMolBase& mol) const {
+    DescriptorSetBuilder builder(schema_);
+    for (const SourcePlan& plan : plans_) {
+        const DescriptorSet row = plan.source->Compute(mol);
+        for (const auto& [src_idx, merged_slot] : plan.kept) {
+            // Copy only present source values; missing values stay missing.
+            if (row.Has(src_idx)) {
+                builder.Set(schema_->Definition(merged_slot).name, row.Value(src_idx));
+            }
+        }
+    }
+    return builder.Build();
 }
 
 DescriptorBatch DescriptorCalculator::CalculateBatch(
-    const std::vector<const OEChem::OEMolBase*>& /*mols*/) const {
-    throw std::logic_error("not implemented");
+    const std::vector<const OEChem::OEMolBase*>& mols) const {
+    // Compute rows in parallel; each row is written at a disjoint index and
+    // every source's Compute is a pure function of its molecule, so no locking
+    // is required for the per-row work.
+    std::vector<DescriptorSet> rows(mols.size());
+    detail::ParallelFor(0, mols.size(), 1, 0, [&](std::size_t begin, std::size_t end) {
+        for (std::size_t i = begin; i < end; ++i) {
+            rows[i] = Compute(*mols[i]);
+        }
+    });
+
+    // Assemble serially to preserve input order and because Append mutates
+    // shared batch state.
+    auto batch = DescriptorBatch::Empty(schema_);
+    for (const auto& r : rows) {
+        batch.Append(r);
+    }
+    return batch;
 }
 
 } // namespace OEFP
