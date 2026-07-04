@@ -348,19 +348,36 @@ OE_CROSS_RUNTIME_REF_TYPEMAPS(OEChem::OEQMol,       _oefp_is_oeqmol,       "Expe
 // Accepts a Python sequence of openeye.oechem molecule objects and collects
 // borrowed const OEMolBase* pointers into a temporary vector that outlives the
 // wrapped call. Each element is converted with the same cross-runtime idiom as
-// the per-molecule const OEMolBase& typemap. The pointers are owned by the
-// Python molecule objects, which stay alive for the duration of the call, so
-// borrowing is safe (CalculateBatch only reads them).
-%typemap(in) const std::vector< const OEChem::OEMolBase* >& (std::vector< const OEChem::OEMolBase* > mols_tmp) {
+// the per-molecule const OEMolBase& typemap.
+//
+// CalculateBatch releases the GIL and dereferences these borrowed pointers from
+// worker threads, so every referenced Python molecule must stay alive until the
+// call returns. A plain list or tuple keeps its own strong reference to each
+// element, but PySequence_Check also admits lazy/custom sequences whose
+// __getitem__ mints a fresh molecule proxy per call and retains no reference to
+// it. For such a sequence the only strong reference is the one PySequence_GetItem
+// returns, so dropping it immediately would destroy the proxy (and its C++
+// molecule) before CalculateBatch runs. The mols_keepalive local therefore holds
+// on to that reference for every converted element, and the matching freearg
+// typemap releases them only after $action completes. Holding strong references
+// across the call is what makes borrowing the raw pointers safe even for lazy
+// sequences.
+%typemap(in) const std::vector< const OEChem::OEMolBase* >&
+        (std::vector< const OEChem::OEMolBase* > mols_tmp, std::vector< PyObject* > mols_keepalive) {
     if (!PySequence_Check($input)) {
         SWIG_exception_fail(SWIG_TypeError, "Expected a sequence of OEMolBase-derived objects.");
     }
     Py_ssize_t seq_len = PySequence_Size($input);
     if (seq_len < 0) SWIG_fail;
     mols_tmp.reserve(static_cast<std::size_t>(seq_len));
+    mols_keepalive.reserve(static_cast<std::size_t>(seq_len));
     for (Py_ssize_t idx = 0; idx < seq_len; ++idx) {
         PyObject* item = PySequence_GetItem($input, idx);
-        if (!item) SWIG_fail;
+        if (!item) {
+            for (PyObject* kept : mols_keepalive) Py_DECREF(kept);
+            mols_keepalive.clear();
+            SWIG_fail;
+        }
         void* argp = 0;
         int res = SWIG_ConvertPtr(item, &argp, $descriptor(OEChem::OEMolBase *), 0);
         if (!SWIG_IsOK(res)) {
@@ -371,12 +388,26 @@ OE_CROSS_RUNTIME_REF_TYPEMAPS(OEChem::OEQMol,       _oefp_is_oeqmol,       "Expe
         }
         if (!SWIG_IsOK(res) || !argp) {
             Py_DECREF(item);
+            for (PyObject* kept : mols_keepalive) Py_DECREF(kept);
+            mols_keepalive.clear();
             SWIG_exception_fail(SWIG_TypeError, "Expected a sequence of OEMolBase-derived objects.");
         }
         mols_tmp.push_back(reinterpret_cast< const OEChem::OEMolBase* >(argp));
-        Py_DECREF(item);
+        // Transfer ownership of the reference PySequence_GetItem returned into
+        // mols_keepalive; the freearg typemap releases it after the C++ call.
+        mols_keepalive.push_back(item);
     }
     $1 = &mols_tmp;
+}
+
+// Release the strong references retained by the in typemap. SWIG emits freearg
+// after $action on the success path and again at the fail label; the error
+// branches above clear mols_keepalive before failing, so a fail-path freearg
+// iterates an empty vector and cannot double-DECREF. The local is referenced
+// with the $argnum suffix (the SWIG-library convention) so it resolves to the
+// same mangled variable the in typemap declared for this argument.
+%typemap(freearg) const std::vector< const OEChem::OEMolBase* >& {
+    for (PyObject* kept : mols_keepalive$argnum) Py_DECREF(kept);
 }
 
 %typemap(typecheck, precedence=SWIG_TYPECHECK_VECTOR) const std::vector< const OEChem::OEMolBase* >& {
