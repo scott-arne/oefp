@@ -4,6 +4,8 @@
 
 %{
 #include "oefp/oefp.h"
+#include "oefp/descriptor_source.h"
+#include "oefp/descriptor_calculator.h"
 #include <oechem.h>
 #include <oegrid.h>
 %}
@@ -342,6 +344,45 @@ OE_CROSS_RUNTIME_REF_TYPEMAPS(OEChem::OEMol,        _oefp_is_oemol,        "Expe
 OE_CROSS_RUNTIME_REF_TYPEMAPS(OEChem::OEGraphMol,   _oefp_is_oegraphmol,   "Expected OEGraphMol object.")
 OE_CROSS_RUNTIME_REF_TYPEMAPS(OEChem::OEQMol,       _oefp_is_oeqmol,       "Expected OEQMol object.")
 
+// ---- Vector of borrowed molecule pointers (DescriptorCalculator::CalculateBatch) ----
+// Accepts a Python sequence of openeye.oechem molecule objects and collects
+// borrowed const OEMolBase* pointers into a temporary vector that outlives the
+// wrapped call. Each element is converted with the same cross-runtime idiom as
+// the per-molecule const OEMolBase& typemap. The pointers are owned by the
+// Python molecule objects, which stay alive for the duration of the call, so
+// borrowing is safe (CalculateBatch only reads them).
+%typemap(in) const std::vector< const OEChem::OEMolBase* >& (std::vector< const OEChem::OEMolBase* > mols_tmp) {
+    if (!PySequence_Check($input)) {
+        SWIG_exception_fail(SWIG_TypeError, "Expected a sequence of OEMolBase-derived objects.");
+    }
+    Py_ssize_t seq_len = PySequence_Size($input);
+    if (seq_len < 0) SWIG_fail;
+    mols_tmp.reserve(static_cast<std::size_t>(seq_len));
+    for (Py_ssize_t idx = 0; idx < seq_len; ++idx) {
+        PyObject* item = PySequence_GetItem($input, idx);
+        if (!item) SWIG_fail;
+        void* argp = 0;
+        int res = SWIG_ConvertPtr(item, &argp, $descriptor(OEChem::OEMolBase *), 0);
+        if (!SWIG_IsOK(res)) {
+            if (_oefp_is_oemolbase(item)) {
+                argp = _oefp_extract_swig_ptr(item);
+                if (argp) res = SWIG_OK;
+            }
+        }
+        if (!SWIG_IsOK(res) || !argp) {
+            Py_DECREF(item);
+            SWIG_exception_fail(SWIG_TypeError, "Expected a sequence of OEMolBase-derived objects.");
+        }
+        mols_tmp.push_back(reinterpret_cast< const OEChem::OEMolBase* >(argp));
+        Py_DECREF(item);
+    }
+    $1 = &mols_tmp;
+}
+
+%typemap(typecheck, precedence=SWIG_TYPECHECK_VECTOR) const std::vector< const OEChem::OEMolBase* >& {
+    $1 = PySequence_Check($input) ? 1 : 0;
+}
+
 // ---- Atom / bond / conformer / residue / match (OEChem) ----
 OE_CROSS_RUNTIME_REF_TYPEMAPS(OEChem::OEAtomBase,   _oefp_is_oeatombase,   "Expected OEAtomBase-derived object.")
 OE_CROSS_RUNTIME_REF_TYPEMAPS(OEChem::OEBondBase,   _oefp_is_oebondbase,   "Expected OEBondBase-derived object.")
@@ -402,8 +443,17 @@ OE_CROSS_RUNTIME_REF_TYPEMAPS(OEDocking::OEReceptor, _oefp_is_oereceptor, "Expec
 // ============================================================================
 %include "std_string.i"
 %include "std_vector.i"
+%include "std_shared_ptr.i"
 %include "stdint.i"
 %include "exception.i"
+
+// Descriptor sources are handled through shared_ptr so Python can hold and pass
+// them (and their derived types) by value into DescriptorSourceEntry, which
+// stores a std::shared_ptr<const DescriptorSource>. Declared before the source
+// header is %include'd, as SWIG requires.
+%shared_ptr(OEFP::DescriptorSource)
+%shared_ptr(OEFP::MordredDescriptorSource)
+%shared_ptr(OEFP::OpenEyePropertyDescriptorSource)
 
 namespace std {
 %template(StringVector) vector< std::string >;
@@ -442,6 +492,7 @@ namespace std {
 %rename(_NativeOEFPSparseBatch) OEFP::OEFPSparseBatch;
 %rename(_NativeDescriptorSet) OEFP::DescriptorSet;
 %rename(_NativeDescriptorBatch) OEFP::DescriptorBatch;
+%rename(_NativeDescriptorCalculator) OEFP::DescriptorCalculator;
 %rename(_NativeMetric) OEFP::Metric;
 %rename(_NativeAtomPairGenerator) OEFP::AtomPairGenerator;
 %rename(_NativeMorganGenerator) OEFP::MorganGenerator;
@@ -508,6 +559,8 @@ OEFP_GIL_RELEASE_EXCEPTION(OEFP::MakeMorganSparseFingerprintWithMapping)
 OEFP_GIL_RELEASE_EXCEPTION(OEFP::MorganGenerator::Fingerprint)
 OEFP_GIL_RELEASE_EXCEPTION(OEFP::ProfileMorganFingerprint)
 OEFP_GIL_RELEASE_EXCEPTION(OEFP::MakeMordredDescriptors)
+OEFP_GIL_RELEASE_EXCEPTION(OEFP::DescriptorCalculator::Compute)
+OEFP_GIL_RELEASE_EXCEPTION(OEFP::DescriptorCalculator::CalculateBatch)
 
 %include "oefp/fingerprint.h"
 %include "oefp/count.h"
@@ -518,6 +571,64 @@ OEFP_GIL_RELEASE_EXCEPTION(OEFP::MakeMordredDescriptors)
 %include "oefp/descriptor_selection.h"
 %include "oefp/descriptor.h"
 %include "oefp/descriptor_batch.h"
+
+// DescriptorSourceEntry has no default constructor, so suppress the sized
+// vector constructor and resize(size) wrappers std_vector.i would otherwise
+// generate (they require a default-constructible element type).
+%std_nodefconst_type(::OEFP::DescriptorSourceEntry)
+
+// The DescriptorCalculator(std::vector<DescriptorSourceEntry>) constructor
+// writes its element type unqualified. Because a class named OEFP::OEFP shares
+// its name with the enclosing OEFP namespace, SWIG mis-renders that unqualified
+// name as OEFP::OEFP::DescriptorSourceEntry in the generated wrapper, which does
+// not compile. Suppress the header constructor and re-expose it with a fully
+// qualified vector parameter that unifies with the DescriptorSourceEntryVector
+// template below.
+%ignore OEFP::DescriptorCalculator::DescriptorCalculator;
+%include "oefp/descriptor_source.h"
+%include "oefp/descriptor_calculator.h"
+
+// A class named OEFP::OEFP shares its name with the enclosing OEFP namespace.
+// This confuses SWIG 4.4.1's scoped-name resolution inside the namespace: it
+// suppresses the synthesized shared_ptr<Derived> -> shared_ptr<const Base>
+// upcast that %shared_ptr would normally generate, so a concrete source proxy
+// (MordredDescriptorSource / OpenEyePropertyDescriptorSource) cannot be handed
+// to the DescriptorSourceEntry constructor that takes a
+// std::shared_ptr<const DescriptorSource>. Provide explicit per-concrete-type
+// constructor overloads; the leading "::" qualification sidesteps the same
+// name-resolution bug, and shared_ptr<Derived> converts to
+// shared_ptr<const Base> by the ordinary C++ conversion.
+%extend OEFP::DescriptorSourceEntry {
+    DescriptorSourceEntry(std::shared_ptr< ::OEFP::MordredDescriptorSource > source) {
+        return new OEFP::DescriptorSourceEntry(std::move(source));
+    }
+    DescriptorSourceEntry(
+        std::shared_ptr< ::OEFP::MordredDescriptorSource > source,
+        ::OEFP::DescriptorSelection selection) {
+        return new OEFP::DescriptorSourceEntry(std::move(source), std::move(selection));
+    }
+    DescriptorSourceEntry(std::shared_ptr< ::OEFP::OpenEyePropertyDescriptorSource > source) {
+        return new OEFP::DescriptorSourceEntry(std::move(source));
+    }
+    DescriptorSourceEntry(
+        std::shared_ptr< ::OEFP::OpenEyePropertyDescriptorSource > source,
+        ::OEFP::DescriptorSelection selection) {
+        return new OEFP::DescriptorSourceEntry(std::move(source), std::move(selection));
+    }
+}
+namespace std {
+%template(DescriptorSourceEntryVector) vector< ::OEFP::DescriptorSourceEntry >;
+}
+// Cancel the constructor ignore set above so the %extend replacement below is
+// wrapped. The ignore only needed to keep SWIG from generating the header's
+// unqualified-parameter constructor (which mis-renders as OEFP::OEFP::...).
+%rename("%s") OEFP::DescriptorCalculator::DescriptorCalculator;
+%extend OEFP::DescriptorCalculator {
+    DescriptorCalculator(const std::vector< ::OEFP::DescriptorSourceEntry >& entries) {
+        return new OEFP::DescriptorCalculator(entries);
+    }
+}
+
 %include "oefp/descriptor_arrow.h"
 %include "oefp/atom_pair.h"
 %include "oefp/topological_torsions.h"
