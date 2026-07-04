@@ -501,12 +501,88 @@ OE_CROSS_RUNTIME_REF_TYPEMAPS(OEDocking::OEReceptor, _oefp_is_oereceptor, "Expec
 %shared_ptr(OEFP::MordredDescriptorSource)
 %shared_ptr(OEFP::OpenEyePropertyDescriptorSource)
 
+// SWIG's python/std_common.i registers numeric "value" traits
+// (swig::traits<T> with value_category plus traits_from / traits_asval) only
+// for the *fundamental* primitive spellings (long long, unsigned long long,
+// unsigned char, double, unsigned int, ...), keyed by a fragment named
+// SWIG_Traits_frag(<spelling>). When std::vector is instantiated over a
+// *typedef* spelling such as std::int64_t or std::uint64_t, std_vector.i's
+// %traits_swigtype fallback instead registers a pointer_category traits
+// fragment under the typedef's own name, so vector elements marshal to Python
+// as SwigPyObject pointer proxies (and leak) rather than as int values.
+// UInt32Vector / DoubleVector / StringVector work only because their %template
+// spelling already matches a fundamental value-traits fragment.
+//
+// Pre-register value traits for the exact typedef spellings *before* the
+// %template declarations. Fragment names are unique, so the earlier definition
+// wins over std_vector.i's pointer fallback. Conversions delegate to the
+// fundamental SWIG_From / SWIG_AsVal helpers via a lossless cast, which keeps
+// them correct whether std::int64_t maps to long or long long on a platform.
+%fragment(SWIG_Traits_frag(std::int64_t), "header",
+          fragment=SWIG_From_frag(long long),
+          fragment=SWIG_AsVal_frag(long long),
+          fragment="StdTraits") {
+namespace swig {
+  template <> struct traits< std::int64_t > {
+    typedef value_category category;
+    static const char* type_name() { return "std::int64_t"; }
+  };
+  template <> struct traits_asval< std::int64_t > {
+    typedef std::int64_t value_type;
+    static int asval(PyObject *obj, value_type *val) {
+      long long v = 0;
+      int res = SWIG_AsVal(long long)(obj, &v);
+      if (SWIG_IsOK(res) && val) *val = static_cast< value_type >(v);
+      return res;
+    }
+  };
+  template <> struct traits_from< std::int64_t > {
+    typedef std::int64_t value_type;
+    static PyObject *from(const value_type& val) {
+      return SWIG_From(long long)(static_cast< long long >(val));
+    }
+  };
+}
+}
+
+%fragment(SWIG_Traits_frag(std::uint64_t), "header",
+          fragment=SWIG_From_frag(unsigned long long),
+          fragment=SWIG_AsVal_frag(unsigned long long),
+          fragment="StdTraits") {
+namespace swig {
+  template <> struct traits< std::uint64_t > {
+    typedef value_category category;
+    static const char* type_name() { return "std::uint64_t"; }
+  };
+  template <> struct traits_asval< std::uint64_t > {
+    typedef std::uint64_t value_type;
+    static int asval(PyObject *obj, value_type *val) {
+      unsigned long long v = 0;
+      int res = SWIG_AsVal(unsigned long long)(obj, &v);
+      if (SWIG_IsOK(res) && val) *val = static_cast< value_type >(v);
+      return res;
+    }
+  };
+  template <> struct traits_from< std::uint64_t > {
+    typedef std::uint64_t value_type;
+    static PyObject *from(const value_type& val) {
+      return SWIG_From(unsigned long long)(static_cast< unsigned long long >(val));
+    }
+  };
+}
+}
+
 namespace std {
 %template(StringVector) vector< std::string >;
 %template(UInt32Vector) vector< unsigned int >;
 %template(Int64Vector) vector< std::int64_t >;
 %template(UInt64Vector) vector< std::uint64_t >;
 %template(DoubleVector) vector< double >;
+// std::uint8_t is unsigned char on every platform, for which SWIG already
+// registers fundamental value traits, so this template marshals element
+// values (DescriptorBatch::BoolColumn / ColumnValidity return
+// std::vector<std::uint8_t>).
+%template(UInt8Vector) vector< unsigned char >;
 }
 
 // ============================================================================
