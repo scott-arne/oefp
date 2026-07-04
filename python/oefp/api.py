@@ -226,6 +226,12 @@ class DescriptorSchema:
             return NotImplemented
         return not result
 
+    def __repr__(self) -> str:
+        return f"DescriptorSchema(columns={len(self._definitions)})"
+
+    def __len__(self) -> int:
+        return len(self._definitions)
+
     @property
     def definitions(self) -> tuple[DescriptorDefinition, ...]:
         """Descriptor definitions in schema order."""
@@ -774,6 +780,12 @@ class OEFP:
             native.SetBit(int(bit))
         return cls._from_native(native)
 
+    def __repr__(self) -> str:
+        return (
+            f"OEFP(num_bits={self.num_bits}, popcount={self.popcount}, "
+            f"source_type={self.spec.source_type!r})"
+        )
+
     @property
     def words(self) -> np.ndarray:
         """Read-only view of the native uint64 word storage."""
@@ -814,6 +826,14 @@ class OEFPCount:
     @classmethod
     def _from_native(cls, native: Any) -> OEFPCount:
         return cls(native, _token=_NATIVE_TOKEN)
+
+    def __repr__(self) -> str:
+        # num_bits is the (possibly unfolded) identifier domain rather than a fold
+        # size, so the occupancy counts are the relevant per-molecule data.
+        return (
+            f"OEFPCount(nonzero_count={self.nonzero_count}, "
+            f"total_count={self.total_count}, source_type={self.spec.source_type!r})"
+        )
 
     @property
     def indices(self) -> np.ndarray:
@@ -871,6 +891,14 @@ class OEFPCount64:
     def _from_native(cls, native: Any) -> OEFPCount64:
         return cls(native, _token=_NATIVE_TOKEN)
 
+    def __repr__(self) -> str:
+        # num_bits is the raw identifier domain rather than a fold size, so the
+        # occupancy counts are the relevant per-molecule data.
+        return (
+            f"OEFPCount64(nonzero_count={self.nonzero_count}, "
+            f"total_count={self.total_count}, source_type={self.spec.source_type!r})"
+        )
+
     @property
     def indices(self) -> np.ndarray:
         """Read-only view of sorted nonzero uint64 count indices."""
@@ -926,6 +954,11 @@ class OEFPSparse:
     @classmethod
     def _from_native(cls, native: Any) -> OEFPSparse:
         return cls(native, _token=_NATIVE_TOKEN)
+
+    def __repr__(self) -> str:
+        # num_bits is the unfolded identifier domain (often the full uint64
+        # space), not a fold size, so popcount is the relevant per-molecule data.
+        return f"OEFPSparse(popcount={self.popcount}, source_type={self.spec.source_type!r})"
 
     @property
     def indices(self) -> np.ndarray:
@@ -984,6 +1017,17 @@ class DescriptorSet:
     @classmethod
     def _from_native(cls, native: Any) -> DescriptorSet:
         return cls(native, _token=_NATIVE_TOKEN)
+
+    def __repr__(self) -> str:
+        if self._native is None:
+            columns = len(self._schema.definitions) if self._schema is not None else 0
+            if self._row_id:
+                return f"DescriptorSet(columns={columns}, row_id={self._row_id!r})"
+            return f"DescriptorSet(columns={columns})"
+        return (
+            f"DescriptorSet(value_type={self.value_type!r}, size={self.size}, "
+            f"total_count={self.total_count})"
+        )
 
     @staticmethod
     def _normalized_values(
@@ -1313,6 +1357,15 @@ class DescriptorBatch:
             descriptors.append(descriptor)
         return cls.from_descriptors(descriptors)
 
+    def __repr__(self) -> str:
+        if self._native is None:
+            columns = len(self._schema.definitions) if self._schema is not None else 0
+            return f"DescriptorBatch(size={self.size}, columns={columns})"
+        return f"DescriptorBatch(size={self.size}, value_type={self.value_type!r})"
+
+    def __len__(self) -> int:
+        return self.size
+
     @property
     def schema(self) -> DescriptorSchema:
         """Descriptor schema for schema-backed batches."""
@@ -1640,6 +1693,15 @@ class OEFPBatch:
             fingerprints.append(fingerprint)
         return cls.from_fingerprints(fingerprints)
 
+    def __repr__(self) -> str:
+        return (
+            f"OEFPBatch(size={self.size}, num_bits={self.num_bits}, "
+            f"source_type={self.spec.source_type!r})"
+        )
+
+    def __len__(self) -> int:
+        return self.size
+
     @property
     def words(self) -> np.ndarray:
         """Read-only view of the row-major uint64 word matrix."""
@@ -1725,6 +1787,17 @@ class OEFPCountBatch:
                 )
             fingerprints.append(fingerprint)
         return cls.from_fingerprints(fingerprints)
+
+    def __repr__(self) -> str:
+        # num_bits is the (possibly unfolded) identifier domain rather than a fold
+        # size, so entry_count is the relevant occupancy data.
+        return (
+            f"OEFPCountBatch(size={self.size}, entry_count={self.entry_count}, "
+            f"source_type={self.spec.source_type!r})"
+        )
+
+    def __len__(self) -> int:
+        return self.size
 
     @property
     def indices(self) -> np.ndarray:
@@ -1827,6 +1900,17 @@ class OEFPSparseBatch:
             fingerprints.append(fingerprint)
         return cls.from_fingerprints(fingerprints)
 
+    def __repr__(self) -> str:
+        # num_bits is the unfolded identifier domain rather than a fold size, so
+        # entry_count is the relevant occupancy data.
+        return (
+            f"OEFPSparseBatch(size={self.size}, entry_count={self.entry_count}, "
+            f"source_type={self.spec.source_type!r})"
+        )
+
+    def __len__(self) -> int:
+        return self.size
+
     @property
     def indices(self) -> np.ndarray:
         """Read-only view of flattened sparse uint32 indices."""
@@ -1885,6 +1969,14 @@ class Metric:
     @classmethod
     def _from_native(cls, native: Any) -> Metric:
         return cls(native, _token=_NATIVE_TOKEN)
+
+    def __repr__(self) -> str:
+        if self.name == "tversky":
+            return (
+                f"Metric(name={self.name!r}, type={self.type!r}, "
+                f"alpha={self.alpha}, beta={self.beta})"
+            )
+        return f"Metric(name={self.name!r}, type={self.type!r})"
 
     @property
     def name(self) -> str:
@@ -2078,6 +2170,10 @@ class MorganGenerator:
         """Generate a folded dense binary Morgan fingerprint."""
         return OEFP._from_native(self._native.Fingerprint(mol))
 
+    def __repr__(self) -> str:
+        options = self._native.Options()
+        return f"MorganGenerator(radius={options.radius}, num_bits={options.num_bits})"
+
 
 class TopologicalAtomPairGenerator:
     """Reusable generator for folded binary topological Atom Pair fingerprints."""
@@ -2107,6 +2203,13 @@ class TopologicalAtomPairGenerator:
         """Generate a folded dense binary topological Atom Pair fingerprint."""
         return OEFP._from_native(self._native.Fingerprint(mol))
 
+    def __repr__(self) -> str:
+        options = self._native.Options()
+        return (
+            f"{type(self).__name__}(min_distance={options.min_distance}, "
+            f"max_distance={options.max_distance}, num_bits={options.num_bits})"
+        )
+
 
 class TopologicalTorsionsGenerator:
     """Reusable generator for folded binary Topological Torsions fingerprints."""
@@ -2132,6 +2235,13 @@ class TopologicalTorsionsGenerator:
     def fingerprint(self, mol: Any) -> OEFP:
         """Generate a folded dense binary Topological Torsions fingerprint."""
         return OEFP._from_native(self._native.Fingerprint(mol))
+
+    def __repr__(self) -> str:
+        options = self._native.Options()
+        return (
+            f"TopologicalTorsionsGenerator(torsion_atom_count={options.torsion_atom_count}, "
+            f"num_bits={options.num_bits})"
+        )
 
 
 class AtomPairGenerator(TopologicalAtomPairGenerator):
