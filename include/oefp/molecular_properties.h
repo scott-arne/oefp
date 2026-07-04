@@ -43,6 +43,16 @@ std::uint64_t HeavyAtomCount(const OEChem::OEMolBase& mol);
 /// \returns Count of heavy atoms and all hydrogens.
 std::uint64_t TotalAtomCount(const OEChem::OEMolBase& mol);
 
+/// \brief Round a topological polar surface area value to two decimals.
+///
+/// Reproduces Mordred's ``TopoPSA`` rounding of ``std::round(value * 100) /
+/// 100``. Sharing this helper keeps Mordred's ``TopoPSA`` and the OpenEye
+/// ``TopologicalPSA`` column identical by construction.
+///
+/// \param value Raw polar surface area from ``OEGet2dPSA``.
+/// \returns Value rounded to two decimal places.
+double RoundTopologicalPsa(double value);
+
 } // namespace OEFP
 
 #endif // OEFP_MOLECULAR_PROPERTIES_H

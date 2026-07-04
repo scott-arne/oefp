@@ -988,7 +988,9 @@ std::uint32_t explicit_hydrogen_neighbor_count(const OEChem::OEAtomBase& atom) {
 }
 
 double round_tpsa(double value) {
-    return std::round(value * 100.0) / 100.0;
+    // Delegates to the shared helper so Mordred's TopoPSA and the OpenEye
+    // TopologicalPSA column round identically by construction.
+    return RoundTopologicalPsa(value);
 }
 
 std::uint32_t carbon_neighbor_count(const OEChem::OEAtomBase& atom) {

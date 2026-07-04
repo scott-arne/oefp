@@ -1,5 +1,6 @@
 #include "oefp/molecular_properties.h"
 
+#include <cmath>
 #include <cstdint>
 
 #include <oesystem.h>
@@ -70,6 +71,10 @@ std::uint64_t TotalAtomCount(const OEChem::OEMolBase& mol) {
         hydrogens += static_cast<std::uint32_t>(atom->GetTotalHCount());
     }
     return heavy_atoms + hydrogens;
+}
+
+double RoundTopologicalPsa(double value) {
+    return std::round(value * 100.0) / 100.0;
 }
 
 } // namespace OEFP

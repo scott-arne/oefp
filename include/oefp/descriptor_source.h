@@ -42,6 +42,19 @@ public:
     DescriptorSet Compute(const OEChem::OEMolBase& mol) const override;
 };
 
+/// \brief Descriptor source producing OpenEye-native molecular properties.
+///
+/// The schema pairs seven tagged columns that share computation with Mordred
+/// (so they carry a curated ``canonical_id`` and deduplicate against the
+/// matching Mordred column) with four genuinely OpenEye-unique columns. The
+/// unique columns use a distinct method from any Mordred column, carry an empty
+/// ``canonical_id``, and are therefore never deduplicated.
+class OpenEyePropertyDescriptorSource : public DescriptorSource {
+public:
+    std::shared_ptr<const DescriptorSchema> Schema() const override;
+    DescriptorSet Compute(const OEChem::OEMolBase& mol) const override;
+};
+
 } // namespace OEFP
 
 #endif // OEFP_DESCRIPTOR_SOURCE_H
