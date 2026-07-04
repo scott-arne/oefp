@@ -85,6 +85,11 @@ std::shared_ptr<const DescriptorSchema> DescriptorCalculator::SchemaPtr() const 
 DescriptorSet DescriptorCalculator::Compute(const OEChem::OEMolBase& mol) const {
     DescriptorSetBuilder builder(schema_);
     for (const SourcePlan& plan : plans_) {
+        if (plan.kept.empty()) {
+            // A source selected or deduplicated down to nothing contributes no
+            // columns; skip its Compute so it is a genuine no-op at compute time.
+            continue;
+        }
         const DescriptorSet row = plan.source->Compute(mol);
         for (const auto& [src_idx, merged_slot] : plan.kept) {
             // Copy only present source values; missing values stay missing.
@@ -98,6 +103,14 @@ DescriptorSet DescriptorCalculator::Compute(const OEChem::OEMolBase& mol) const 
 
 DescriptorBatch DescriptorCalculator::CalculateBatch(
     const std::vector<const OEChem::OEMolBase*>& mols) const {
+    // Reject null molecules up front: worker threads dereference each pointer,
+    // so a null here would be undefined behavior rather than a typed error.
+    for (const auto* mol : mols) {
+        if (mol == nullptr) {
+            throw std::invalid_argument(
+                "DescriptorCalculator::CalculateBatch molecule pointers must not be null.");
+        }
+    }
     // Compute rows in parallel; each row is written at a disjoint index and
     // every source's Compute is a pure function of its molecule, so no locking
     // is required for the per-row work.

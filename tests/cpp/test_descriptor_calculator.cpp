@@ -47,6 +47,18 @@ public:
 private:
     std::shared_ptr<const DescriptorSchema> schema_;
 };
+// A source with a non-empty schema whose Compute always throws; used to prove
+// that an empty-plan source is never computed.
+class ThrowingSource : public DescriptorSource {
+public:
+    explicit ThrowingSource(std::shared_ptr<const DescriptorSchema> schema) : schema_(std::move(schema)) {}
+    std::shared_ptr<const DescriptorSchema> Schema() const override { return schema_; }
+    DescriptorSet Compute(const OEChem::OEMolBase&) const override {
+        throw std::runtime_error("should not be computed");
+    }
+private:
+    std::shared_ptr<const DescriptorSchema> schema_;
+};
 std::shared_ptr<const DescriptorSchema> single_column(const char* name) {
     DescriptorSchemaBuilder b;
     b.Add(DescriptorDefinition{name, DescriptorValueKind::Float});
@@ -113,4 +125,40 @@ TEST(DescriptorCalculatorTest, CalculateBatchEqualsPerRowComputeInOrder) {
     ASSERT_EQ(batch.Size(), 2u);
     EXPECT_DOUBLE_EQ(batch.FloatColumn("MW")[0], calc.Compute(a).Float("MW"));
     EXPECT_DOUBLE_EQ(batch.FloatColumn("MW")[1], calc.Compute(b).Float("MW"));
+}
+
+TEST(DescriptorCalculatorTest, CalculateBatchRejectsNullMoleculePointer) {
+    std::vector<DescriptorSourceEntry> entries;
+    entries.emplace_back(std::make_shared<MordredDescriptorSource>());
+    DescriptorCalculator calc(std::move(entries));
+    std::vector<const OEChem::OEMolBase*> mols{nullptr};
+    EXPECT_THROW(calc.CalculateBatch(mols), std::invalid_argument);
+}
+
+TEST(DescriptorCalculatorTest, EmptySelectedSourceIsNotComputed) {
+    std::vector<DescriptorSourceEntry> entries;
+    // Throwing source is selected away to an empty plan, so its Compute must be skipped.
+    entries.emplace_back(std::make_shared<ThrowingSource>(single_column("Boom")),
+                         DescriptorSelection::Names({}));
+    // A real source gives the calculator a non-empty schema to merge into.
+    entries.emplace_back(std::make_shared<MordredDescriptorSource>());
+    DescriptorCalculator calc(std::move(entries));
+    EXPECT_FALSE(calc.Schema().Contains("Boom"));
+    OEChem::OEGraphMol mol;
+    ASSERT_TRUE(OEChem::OESmilesToMol(mol, "CCO"));
+    EXPECT_NO_THROW(calc.Compute(mol));
+}
+
+TEST(DescriptorCalculatorTest, CalculateBatchAllowsDuplicateMoleculePointer) {
+    std::vector<DescriptorSourceEntry> entries;
+    entries.emplace_back(std::make_shared<MordredDescriptorSource>());
+    DescriptorCalculator calc(std::move(entries));
+    OEChem::OEGraphMol a;
+    ASSERT_TRUE(OEChem::OESmilesToMol(a, "CCO"));
+    const OEChem::OEMolBase& base_a = a;
+    std::vector<const OEChem::OEMolBase*> mols{&base_a, &base_a};
+    const auto batch = calc.CalculateBatch(mols);
+    ASSERT_EQ(batch.Size(), 2u);
+    EXPECT_DOUBLE_EQ(batch.FloatColumn("MW")[0], calc.Compute(a).Float("MW"));
+    EXPECT_DOUBLE_EQ(batch.FloatColumn("MW")[1], calc.Compute(a).Float("MW"));
 }
