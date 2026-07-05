@@ -1,6 +1,8 @@
 #ifndef OEFP_DESCRIPTOR_SOURCE_H
 #define OEFP_DESCRIPTOR_SOURCE_H
 
+#include "oefp/column_request.h"
+#include "oefp/compute_context.h"
 #include "oefp/descriptor.h"
 #include "oefp/descriptor_schema.h"
 
@@ -15,6 +17,13 @@ namespace OEFP {
 /// A descriptor source pairs an immutable descriptor schema with a computation
 /// that fills a row of that schema for a single molecule. Concrete sources wrap
 /// a particular descriptor family (for example Mordred-compatible descriptors).
+///
+/// \note A subclass that overrides any \c Compute overload hides the base's
+///     other \c Compute overloads on the concrete type (C++ name hiding). A
+///     subclass that wants direct concrete-type access to all overloads should
+///     bring them in with \c using \c DescriptorSource::Compute;. The calculator
+///     invokes sources through a \c DescriptorSource& reference, so the base
+///     overloads are always reachable there regardless of name hiding.
 class DescriptorSource {
 public:
     virtual ~DescriptorSource() = default;
@@ -33,6 +42,25 @@ public:
     /// \param mol Molecule to describe.
     /// \returns Schema-backed descriptor row for the molecule.
     virtual DescriptorSet Compute(const OEChem::OEMolBase& mol) const = 0;
+
+    /// \brief Optional override enabling shared-intermediate memoization and
+    ///     column pruning. Base default ignores ctx and request and calls
+    ///     Compute(mol) — a correct, unoptimized fallback.
+    ///
+    /// \param mol Molecule to describe.
+    /// \param ctx Per-molecule cache of shared computation intermediates.
+    /// \param request Which columns of this source's schema to compute.
+    /// \returns Schema-backed descriptor row for the molecule.
+    virtual DescriptorSet Compute(const OEChem::OEMolBase& mol,
+                                  ComputeContext& ctx,
+                                  const ColumnRequest& request) const;
+
+    /// \brief Convenience: compute all columns with a caller-provided context.
+    ///
+    /// \param mol Molecule to describe.
+    /// \param ctx Per-molecule cache of shared computation intermediates.
+    /// \returns Schema-backed descriptor row for the molecule.
+    DescriptorSet Compute(const OEChem::OEMolBase& mol, ComputeContext& ctx) const;
 };
 
 /// \brief Descriptor source producing Mordred-compatible descriptors.

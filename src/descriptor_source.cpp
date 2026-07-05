@@ -13,6 +13,17 @@
 
 namespace OEFP {
 
+DescriptorSet DescriptorSource::Compute(const OEChem::OEMolBase& mol,
+                                        ComputeContext&,
+                                        const ColumnRequest&) const {
+    return Compute(mol);
+}
+
+DescriptorSet DescriptorSource::Compute(const OEChem::OEMolBase& mol,
+                                        ComputeContext& ctx) const {
+    return Compute(mol, ctx, ColumnRequest::All());
+}
+
 std::shared_ptr<const DescriptorSchema> MordredDescriptorSource::Schema() const {
     return MordredDescriptorSchema();
 }

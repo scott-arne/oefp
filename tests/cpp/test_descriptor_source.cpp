@@ -1,4 +1,6 @@
 #include "oefp/descriptor_source.h"
+#include "oefp/column_request.h"
+#include "oefp/compute_context.h"
 #include "oefp/molecular_properties.h"
 #include "oefp/mordred.h"
 
@@ -60,4 +62,35 @@ TEST(OpenEyePropertyDescriptorSourceTest, UntaggedColumnsMatchOpenEyeToolkit) {
               static_cast<std::int64_t>(OEMolProp::OEGetRotatableBondCount(mol)));
     EXPECT_EQ(row.Int("AromaticRingCount"),
               static_cast<std::int64_t>(OEMolProp::OEGetAromaticRingCount(mol)));
+}
+
+namespace {
+// A minimal source that only overrides the pure Compute(mol) — proves the
+// base context/request overload falls back correctly.
+class LegacyOnlySource : public OEFP::DescriptorSource {
+public:
+    std::shared_ptr<const OEFP::DescriptorSchema> Schema() const override {
+        OEFP::DescriptorSchemaBuilder b;
+        b.Add(OEFP::DescriptorDefinition{"X", OEFP::DescriptorValueKind::Float});
+        return b.Build();
+    }
+    OEFP::DescriptorSet Compute(const OEChem::OEMolBase&) const override {
+        return OEFP::DescriptorSetBuilder(Schema()).Build();
+    }
+};
+}  // namespace
+
+TEST(DescriptorSourceTest, ContextRequestFallsBackToLegacyCompute) {
+    OEChem::OEGraphMol mol;
+    ASSERT_TRUE(OEChem::OESmilesToMol(mol, "CCO"));
+    LegacyOnlySource source;
+    // Call through a DescriptorSource& — this is how the calculator holds and
+    // invokes sources (shared_ptr<const DescriptorSource>). A concrete subclass
+    // that declares only Compute(mol) HIDES the base's other Compute overloads
+    // by C++ name-hiding, so the context/request overload must be reached via
+    // the base type, not the concrete type.
+    const OEFP::DescriptorSource& base = source;
+    OEFP::ComputeContext ctx(mol);
+    const auto row = base.Compute(mol, ctx, OEFP::ColumnRequest::All());
+    EXPECT_EQ(row.Schema().SchemaId(), source.Schema()->SchemaId());  // fell back to Compute(mol)
 }
