@@ -166,7 +166,9 @@ Drift Rule and Verification
 
       This test compares per-source raw outputs for every tagged
       ``canonical_id`` pair on a fixed molecule panel and asserts
-      bit-for-bit (or floating-point tolerance) equality.
+      exact equality (``==``): because tagged descriptors are identical by
+      construction (shared computation), any numerical difference is treated
+      as a failed identity, not tolerated.
 
    2. When ``canonical_id`` tags change (additions, removals, or name changes),
       run the SureChEMBL identity sweep to verify the new tags at scale:
