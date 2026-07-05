@@ -76,6 +76,7 @@ Quick Links
    :caption: Developer Guide
 
    developer-guide/cicd
+   developer-guide/descriptor-deduplication
 
 Indices and Tables
 ==================

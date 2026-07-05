@@ -142,6 +142,63 @@ Descriptor calculation never generates 2D or 3D coordinates implicitly. When a
 descriptor requires coordinates that the input molecule does not already have,
 that descriptor value remains missing (`None` in Python).
 
+Compute merged, deduplicated descriptors from multiple sources:
+
+```python
+from openeye import oechem
+import oefp
+
+# Build a descriptor calculator from Mordred and OpenEye property sources.
+calc = oefp.DescriptorCalculator([
+    oefp.MordredDescriptorSource(),
+    oefp.OpenEyePropertyDescriptorSource(),
+])
+
+# The schema deduplicates: MW is kept (Mordred wins), OpenEye's
+# MolecularWeight is dropped (same canonical_id), XLogP survives
+# (no Mordred equivalent), and HBA is kept from whichever source
+# registered it first.
+print(len(calc.schema.names))
+print("MW" in calc.schema.names)
+print("XLogP" in calc.schema.names)
+
+# Build molecules.
+smiles = ["c1ccccc1", "c1ccc(O)cc1", "CC(=O)O"]
+mols = []
+for smi in smiles:
+    mol = oechem.OEGraphMol()
+    oechem.OESmilesToMol(mol, smi)
+    mols.append(mol)
+
+# Compute a batch.
+batch = calc.calculate_batch(mols)
+print(batch.size)
+print(list(batch.schema.names)[:5])
+```
+
+Work with `DescriptorBatch` sugar:
+
+```python
+# Iterate rows as {name: value} dictionaries.
+for row in batch:
+    print(row["MW"], row["XLogP"])
+
+# Or get the first row.
+print(batch[0]["MW"])
+
+# Convert to column-oriented form.
+columns = batch.to_dict()
+print(columns["MW"])  # [value1, value2, value3, ...]
+
+# Convert to row-oriented list of dicts.
+rows = batch.to_records()
+print(rows[0])
+
+# Vertically concatenate two batches with the same schema.
+combined = batch + batch
+print(combined.size)
+```
+
 ### C++
 
 ```cpp
