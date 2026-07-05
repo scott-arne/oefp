@@ -217,4 +217,4 @@ Additional Resources
 - :doc:`../getting-started/quickstart` - General descriptor calculation examples
 - :doc:`cicd` - SureChEMBL identity sweep and other CI checks
 - Source code: ``python/oefp/api.py`` (DescriptorCalculator),
-  ``src/descriptors/descriptor_source.hpp``, ``src/descriptors/descriptor_calculator.hpp``
+  ``include/oefp/descriptor_source.h``, ``include/oefp/descriptor_calculator.h``
