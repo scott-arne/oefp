@@ -186,7 +186,6 @@ def test_canonical_id_round_trips_through_arrow():
 
 
 def test_from_arrow_rejects_empty_schema_metadata_with_physical_columns():
-    import json
     import pytest
 
     import oefp
