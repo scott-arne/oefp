@@ -297,7 +297,11 @@ class DescriptorSchema:
         raw_definitions = json.loads(metadata.decode("utf-8"))
         if not isinstance(raw_definitions, list):
             raise ValueError("Descriptor schema metadata must contain a list.")
-        return cls([DescriptorDefinition._from_metadata(item) for item in raw_definitions])
+        # Reconstruct symmetrically with serialization: a zero-column schema is a
+        # supported (empty calculator) state, so bypass the public empty check.
+        return cls._allow_empty(
+            [DescriptorDefinition._from_metadata(item) for item in raw_definitions]
+        )
 
     @classmethod
     def _allow_empty(cls, definitions: Sequence[DescriptorDefinition]) -> DescriptorSchema:
@@ -1426,6 +1430,21 @@ class DescriptorBatch:
         for row in self._schema_rows():
             yield {name: row[name] for name in names}
 
+    def keys(self) -> NoReturn:
+        """Refuse the mapping protocol so ``dict(batch)`` fails clearly.
+
+        ``dict()`` checks for ``keys()`` before the iterable-of-pairs path, so
+        this makes ``dict(batch)`` raise regardless of column count (a two-column
+        batch would otherwise be misread as a single ``(key, value)`` pair). Use
+        :meth:`to_dict` for column form or :meth:`to_records` for row form.
+
+        :raises TypeError: Always, to reject ``dict(DescriptorBatch)``.
+        """
+        raise TypeError(
+            "dict(DescriptorBatch) is unsupported; use to_dict() (columns) "
+            "or to_records() (rows)."
+        )
+
     def __getitem__(self, key: int | slice) -> dict[str, Any] | DescriptorBatch:
         """Return a single row dict or a sliced descriptor batch.
 
@@ -1590,11 +1609,16 @@ class DescriptorBatch:
             raise ValueError("Arrow table is missing OEFP descriptor schema metadata.")
         schema = DescriptorSchema._from_metadata(metadata[_DESCRIPTOR_SCHEMA_METADATA_KEY])
         if _ROW_IDS_METADATA_KEY in metadata:
-            row_ids = tuple(json.loads(metadata[_ROW_IDS_METADATA_KEY].decode("utf-8")))
+            row_ids: tuple[str, ...] = tuple(
+                json.loads(metadata[_ROW_IDS_METADATA_KEY].decode("utf-8"))
+            )
+            # A zero-column Arrow table always reports ``num_rows == 0``, so the
+            # persisted row ids are the authoritative row count for empty schemas.
+            row_count = len(row_ids)
         else:
-            row_ids = ("",) * int(table.num_rows)
+            row_count = int(table.num_rows)
+            row_ids = ("",) * row_count
         columns = {name: table.column(name).to_pylist() for name in schema.names}
-        row_count = int(table.num_rows)
         rows = [
             {name: columns[name][row_index] for name in schema.names}
             for row_index in range(row_count)

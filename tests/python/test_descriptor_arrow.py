@@ -82,6 +82,45 @@ def test_descriptor_batch_arrow_preserves_nulls_types_and_row_ids(tmp_path):
     assert from_disk.int_column("AllNull").tolist() == [None, None]
 
 
+def test_empty_schema_batch_round_trips_through_arrow_and_parquet(tmp_path):
+    import oefp
+
+    # A zero-column batch with N>0 rows is a supported state (empty calculator).
+    schema = oefp.DescriptorSchema._allow_empty([])
+    batch = oefp.DescriptorBatch(
+        schema=schema, rows=[{}, {}, {}], row_ids=["a", "b", "c"]
+    )
+    assert batch.size == 3
+
+    table = batch.to_arrow()
+    restored = oefp.DescriptorBatch.from_arrow(table)
+    assert len(restored.schema) == 0
+    assert restored.size == 3
+    assert restored.row_ids == ("a", "b", "c")
+    assert list(restored) == [{}, {}, {}]
+
+    path = tmp_path / "empty.parquet"
+    batch.write_parquet(path)
+    from_disk = oefp.DescriptorBatch.read_parquet(path)
+    assert len(from_disk.schema) == 0
+    assert from_disk.size == 3
+    assert from_disk.row_ids == ("a", "b", "c")
+
+
+def test_empty_calculator_batch_round_trips_through_arrow(panel_mols):
+    import oefp
+
+    calc = oefp.DescriptorCalculator([])
+    batch = calc.calculate_batch(panel_mols)
+    assert len(batch.schema) == 0
+    assert batch.size == len(panel_mols)
+
+    restored = oefp.DescriptorBatch.from_arrow(batch.to_arrow())
+    assert len(restored.schema) == 0
+    assert restored.size == len(panel_mols)
+    assert list(restored) == [{} for _ in panel_mols]
+
+
 def test_canonical_id_round_trips_through_arrow():
     import oefp
 
