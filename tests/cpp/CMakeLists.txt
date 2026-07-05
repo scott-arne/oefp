@@ -13,6 +13,7 @@ add_executable(oefp_tests
     test_atom_pair.cpp
     test_batch.cpp
     test_compare.cpp
+    test_compute_context.cpp
     test_count.cpp
     test_count_batch.cpp
     test_descriptor.cpp
