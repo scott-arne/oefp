@@ -154,13 +154,15 @@ calc = oefp.DescriptorCalculator([
     oefp.OpenEyePropertyDescriptorSource(),
 ])
 
-# The schema deduplicates: MW is kept (Mordred wins), OpenEye's
-# MolecularWeight is dropped (same canonical_id), XLogP survives
-# (no Mordred equivalent), and HBA is kept from whichever source
-# registered it first.
+# The schema deduplicates by canonical_id with first-wins by registration
+# order. Mordred is registered first, so its MW and nHBAcc are kept and
+# OpenEye's MolecularWeight and HBA are dropped (same canonical_id). XLogP
+# survives because it has no Mordred equivalent.
 print(len(calc.schema.names))
-print("MW" in calc.schema.names)
-print("XLogP" in calc.schema.names)
+print("MW" in calc.schema.names)         # True (Mordred kept)
+print("MolecularWeight" in calc.schema.names)  # False (OpenEye duplicate dropped)
+print("HBA" in calc.schema.names)        # False (dedup: Mordred nHBAcc wins)
+print("XLogP" in calc.schema.names)      # True (OpenEye-unique survives)
 
 # Build molecules.
 smiles = ["c1ccccc1", "c1ccc(O)cc1", "CC(=O)O"]

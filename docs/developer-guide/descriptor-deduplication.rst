@@ -119,7 +119,7 @@ The calculator exposes:
   molecule.
 - **calculate_batch(molecules)**: Compute a schema-backed ``DescriptorBatch``
   for an iterable of molecules. This method releases the GIL and computes
-  descriptor rows in parallel using OpenMP.
+  descriptor rows in parallel using OEFP's native thread pool.
 
 Within-Source Naming Smell
 ---------------------------
@@ -173,13 +173,15 @@ Drift Rule and Verification
 
       .. code-block:: bash
 
-         OEFP_SURECHEMBL_PARQUET=/path/to/compounds.parquet \
-         PYTHONPATH=python python -m pytest tests/python/surechembl_identity_sweep.py -m surechembl -q
+         OEFP_SURECHEMBL_PARQUET=/path/to/compounds.parquet OEFP_SURECHEMBL_MISSED=1 \
+         PYTHONPATH=python python -m pytest tests/python/surechembl_identity_sweep.py -m surechembl -q -s
 
       The sweep compares tagged descriptor pairs across ~50k diverse molecules
-      and reports any divergences (misassigned identity) or potential missed
-      identities (untagged pairs that are numerically identical across the
-      entire sample).
+      and always asserts there are no divergences (misassigned identity). The
+      ``OEFP_SURECHEMBL_MISSED=1`` flag shown above additionally reports
+      potential missed identities (untagged pairs that are numerically
+      identical across the entire sample) as advisory candidates (printed with
+      ``-s``); it does not fail the run.
 
    These two-tier checks (panel audit + large-scale sweep) together reduce the
    risk of incorrect ``canonical_id`` assignment breaking production
