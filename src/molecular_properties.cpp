@@ -6,7 +6,6 @@
 #include <oesystem.h>
 
 namespace OEFP {
-namespace {
 
 bool is_hydrogen(const OEChem::OEAtomBase& atom) {
     return atom.GetAtomicNum() == 1u;
@@ -25,8 +24,6 @@ double atom_exact_mass(const OEChem::OEAtomBase& atom) {
     }
     return default_isotopic_mass(atomic_number);
 }
-
-} // namespace
 
 double ExactMolecularWeight(const OEChem::OEMolBase& mol) {
     double exact_weight = 0.0;

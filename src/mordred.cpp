@@ -641,10 +641,6 @@ constexpr std::array<double, 104> kMordredMcGowanVolumeValues{{
     56.81, 55.56,
 }};
 
-bool is_hydrogen(const OEChem::OEAtomBase& atom) {
-    return atom.GetAtomicNum() == 1u;
-}
-
 std::optional<double> lookup_atomic_property(
     const std::vector<AtomicPropertyValue>& values,
     std::uint32_t atomic_number) {
@@ -952,20 +948,6 @@ bool is_halogen(std::uint32_t atomic_number) {
 bool is_mordred_molecular_id_halogen(std::uint32_t atomic_number) {
     return atomic_number == 9u || atomic_number == 17u || atomic_number == 35u
            || atomic_number == 53u || atomic_number == 85u || atomic_number == 117u;
-}
-
-double default_isotopic_mass(std::uint32_t atomic_number) {
-    const auto mass_number = OEChem::OEGetDefaultMass(atomic_number);
-    return OEChem::OEGetIsotopicWeight(atomic_number, mass_number);
-}
-
-double atom_exact_mass(const OEChem::OEAtomBase& atom) {
-    const auto atomic_number = static_cast<std::uint32_t>(atom.GetAtomicNum());
-    const auto isotope = static_cast<std::uint32_t>(atom.GetIsotope());
-    if (isotope != 0u) {
-        return OEChem::OEGetIsotopicWeight(atomic_number, isotope);
-    }
-    return default_isotopic_mass(atomic_number);
 }
 
 std::optional<double> atom_mol_wt_mass(const OEChem::OEAtomBase& atom) {

@@ -7,6 +7,15 @@
 
 namespace OEFP {
 
+/// \brief Return whether an atom is a hydrogen (atomic number 1).
+bool is_hydrogen(const OEChem::OEAtomBase& atom);
+
+/// \brief Return the default (most-abundant-isotope) isotopic mass for an element.
+double default_isotopic_mass(std::uint32_t atomic_number);
+
+/// \brief Return an atom's exact isotopic mass (respecting an explicit isotope).
+double atom_exact_mass(const OEChem::OEAtomBase& atom);
+
 /// \brief Return the exact (monoisotopic) molecular weight of a molecule.
 ///
 /// The weight sums each atom's exact isotopic mass. For heavy atoms the
