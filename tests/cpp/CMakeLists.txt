@@ -12,6 +12,7 @@ add_executable(oefp_tests
     test_annotation.cpp
     test_atom_pair.cpp
     test_batch.cpp
+    test_column_request.cpp
     test_compare.cpp
     test_compute_context.cpp
     test_count.cpp

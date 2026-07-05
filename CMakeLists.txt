@@ -145,6 +145,7 @@ set(OEFP_SOURCES
     src/annotation.cpp
     src/atom_pair.cpp
     src/batch.cpp
+    src/column_request.cpp
     src/compare.cpp
     src/compute_context.cpp
     src/count.cpp
