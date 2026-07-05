@@ -20,6 +20,8 @@ _PARQUET = Path(os.environ.get("OEFP_SURECHEMBL_PARQUET", "/Users/johnss51/Downl
 _SAMPLE = int(os.environ.get("OEFP_SURECHEMBL_SAMPLE", "50000"))
 _MISSED = os.environ.get("OEFP_SURECHEMBL_MISSED", "0") == "1"
 
+assert _SAMPLE > 0, f"OEFP_SURECHEMBL_SAMPLE must be positive, got {_SAMPLE}"
+
 
 @pytest.mark.surechembl
 @pytest.mark.skipif(not _PARQUET.exists(), reason=f"SureChEMBL parquet not found at {_PARQUET}")
@@ -109,6 +111,12 @@ def test_surechembl_identity_sweep():
             break
 
     print(f"sampled={smiles_seen} skipped={skipped} tagged_pairs={sum(1 for m in tagged.values() if len(m) >= 2)}")
+
+    # sample-floor: fail if no valid molecules were processed (false-green guard)
+    assert smiles_seen > 0, (
+        f"no valid molecules were processed (smiles_seen={smiles_seen}, skipped={skipped}) — "
+        f"check OEFP_SURECHEMBL_PARQUET={_PARQUET} exists, has 'smiles' column, and contains parseable SMILES"
+    )
 
     # report missed-identity candidates (advisory, not asserted)
     if _MISSED:
