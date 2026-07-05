@@ -1,6 +1,7 @@
 #include "oefp/mordred.h"
 
 #include "oefp/molecular_properties.h"
+#include "oefp/mordred_intermediates.h"
 
 #include <algorithm>
 #include <array>
@@ -26,6 +27,12 @@
 
 namespace OEFP {
 namespace {
+
+// The single-argument compute_gasteiger_atom_charges overload lives at OEFP
+// namespace scope (declared in mordred_intermediates.h). Re-introduce it here so
+// the two-argument internal overload below does not hide it for the one-argument
+// call sites inside this anonymous namespace.
+using OEFP::compute_gasteiger_atom_charges;
 
 struct MordredFirstBatchValues {
     std::uint32_t acidic_groups = 0u;
@@ -94,18 +101,6 @@ struct MordredAdditivePropertyValues {
 struct MordredLabuteAsaValues {
     double total = 0.0;
     std::vector<double> atom_contributions;
-    std::vector<unsigned int> atom_ids;
-};
-
-struct MordredCrippenAtomContributions {
-    std::vector<double> logp;
-    std::vector<double> mr;
-    std::vector<unsigned int> atom_ids;
-};
-
-struct MordredGasteigerAtomCharges {
-    std::vector<double> charges;
-    std::vector<double> hydrogen_charges;
     std::vector<unsigned int> atom_ids;
 };
 
@@ -1325,6 +1320,8 @@ std::pair<double, double> compute_crippen_descriptors(const OEChem::OEMolBase& m
     return {logp, mr};
 }
 
+} // namespace
+
 std::optional<MordredCrippenAtomContributions> compute_crippen_atom_contributions(
     const OEChem::OEMolBase& mol) {
     OEChem::OEGraphMol crippen_mol(mol);
@@ -1391,6 +1388,8 @@ std::optional<MordredCrippenAtomContributions> compute_crippen_atom_contribution
     }
     return contributions;
 }
+
+namespace {
 
 const std::vector<MordredGasteigerParameters>& gasteiger_parameters() {
     static const std::vector<MordredGasteigerParameters> parameters{
@@ -1879,9 +1878,13 @@ MordredGasteigerAtomCharges compute_gasteiger_atom_charges(
         std::move(atom_ids)};
 }
 
+} // namespace
+
 MordredGasteigerAtomCharges compute_gasteiger_atom_charges(const OEChem::OEMolBase& mol) {
     return compute_gasteiger_atom_charges(mol, true);
 }
+
+namespace {
 
 std::uint32_t count_mordred_acids(const OEChem::OEMolBase& mol) {
     static const std::vector<const char*> smarts_patterns{
@@ -3042,18 +3045,6 @@ MordredWalkCountValues compute_walk_count_values(const OEChem::OEMolBase& mol) {
     return values;
 }
 
-struct PathCountNeighbor {
-    std::size_t atom_index;
-    double bond_order;
-};
-
-struct MordredHeavyAtomGraph {
-    std::vector<const OEChem::OEAtomBase*> atoms;
-    std::vector<std::vector<PathCountNeighbor>> adjacency;
-    std::vector<std::pair<std::size_t, std::size_t>> bonds;
-    std::vector<std::vector<std::size_t>> bond_neighbors;
-};
-
 struct MordredInformationContentValues {
     std::array<std::optional<double>, 6> ic;
     std::array<std::optional<double>, 6> tic;
@@ -3108,6 +3099,8 @@ double mordred_bond_order(const OEChem::OEBondBase& bond) {
     return static_cast<double>(bond.GetOrder());
 }
 
+} // namespace
+
 MordredHeavyAtomGraph build_mordred_heavy_atom_graph(const OEChem::OEMolBase& mol) {
     MordredHeavyAtomGraph graph;
     std::unordered_map<unsigned int, std::size_t> heavy_atom_indices;
@@ -3152,6 +3145,8 @@ MordredHeavyAtomGraph build_mordred_heavy_atom_graph(const OEChem::OEMolBase& mo
     }
     return graph;
 }
+
+namespace {
 
 InformationContentGraph build_information_content_graph(const OEChem::OEMolBase& mol) {
     InformationContentGraph graph;
@@ -5199,6 +5194,8 @@ double compute_bertz_ct(const MordredHeavyAtomGraph& graph) {
     return connection_ie + atom_type_ie;
 }
 
+} // namespace
+
 std::vector<std::vector<std::int64_t>> compute_mordred_heavy_atom_distances(
     const MordredHeavyAtomGraph& graph) {
     const auto atom_count = graph.adjacency.size();
@@ -5226,6 +5223,8 @@ std::vector<std::vector<std::int64_t>> compute_mordred_heavy_atom_distances(
 
     return distances;
 }
+
+namespace {
 
 std::optional<std::vector<double>> compute_explicit_gasteiger_charge_values(
     const OEChem::OEMolBase& explicit_mol,
