@@ -1,6 +1,7 @@
 #ifndef OEFP_DESCRIPTOR_CALCULATOR_H
 #define OEFP_DESCRIPTOR_CALCULATOR_H
 
+#include "oefp/column_request.h"
 #include "oefp/descriptor.h"
 #include "oefp/descriptor_batch.h"
 #include "oefp/descriptor_schema.h"
@@ -87,6 +88,8 @@ private:
         std::shared_ptr<const DescriptorSource> source;
         /// \brief Pairs of (source column index, merged schema slot) that survive.
         std::vector<std::pair<std::size_t, std::size_t>> kept;
+        /// \brief Request naming exactly this source's surviving columns.
+        ColumnRequest request = ColumnRequest::All();
     };
 
     std::vector<SourcePlan> plans_;

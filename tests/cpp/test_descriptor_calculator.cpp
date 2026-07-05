@@ -143,6 +143,25 @@ TEST(DescriptorCalculatorTest, SharedContextMatchesStandaloneSourceValues) {
     EXPECT_DOUBLE_EQ(merged.Float("XLogP"), openeye_row.Float("XLogP"));
 }
 
+TEST(DescriptorCalculatorTest, PassesPerSourceRequestAndKeepsValues) {
+    // A narrowed selection makes the calculator build a Subset request naming
+    // only the surviving source columns. Sources still ignore the request this
+    // phase, so the kept values must equal the unpruned single-source values;
+    // this locks that request-passing is value-safe before any source prunes.
+    std::vector<DescriptorSourceEntry> entries;
+    entries.emplace_back(std::make_shared<MordredDescriptorSource>(),
+                         DescriptorSelection::Names({"MW", "nAtom"}));
+    DescriptorCalculator calc(std::move(entries));
+    OEChem::OEGraphMol mol;
+    ASSERT_TRUE(OEChem::OESmilesToMol(mol, "CCO"));
+    const auto row = calc.Compute(mol);
+    // Compare against the unpruned single-source value.
+    MordredDescriptorSource src;
+    const DescriptorSet standalone = src.Compute(mol);
+    EXPECT_DOUBLE_EQ(row.Float("MW"), standalone.Float("MW"));
+    EXPECT_EQ(row.Int("nAtom"), standalone.Int("nAtom"));
+}
+
 TEST(DescriptorCalculatorTest, CalculateBatchEqualsPerRowComputeInOrder) {
     std::vector<DescriptorSourceEntry> entries;
     entries.emplace_back(std::make_shared<MordredDescriptorSource>());

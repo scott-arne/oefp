@@ -70,6 +70,16 @@ DescriptorCalculator::DescriptorCalculator(std::vector<DescriptorSourceEntry> en
                 seen.insert(def.canonical_id);
             }
         }
+        // Name exactly the surviving source columns so a source can prune the
+        // rest. Sources ignore the request until later phases, so this is a
+        // value-safe no-op today: everything is still computed and the kept
+        // columns copied as before.
+        std::vector<std::size_t> kept_source_indices;
+        kept_source_indices.reserve(plan.kept.size());
+        for (const auto& [src_idx, merged_slot] : plan.kept) {
+            kept_source_indices.push_back(src_idx);
+        }
+        plan.request = ColumnRequest::Subset(std::move(kept_source_indices));
         plans_.push_back(std::move(plan));
     }
 
@@ -98,7 +108,7 @@ DescriptorSet DescriptorCalculator::Compute(const OEChem::OEMolBase& mol) const 
             // columns; skip its Compute so it is a genuine no-op at compute time.
             continue;
         }
-        const DescriptorSet row = plan.source->Compute(mol, ctx, ColumnRequest::All());
+        const DescriptorSet row = plan.source->Compute(mol, ctx, plan.request);
         for (const auto& [src_idx, merged_slot] : plan.kept) {
             // Copy only present source values; missing values stay missing.
             if (row.Has(src_idx)) {
