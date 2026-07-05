@@ -1617,6 +1617,12 @@ class DescriptorBatch:
         if len(schema.names) == 0:
             # A zero-column Arrow table always reports ``num_rows == 0``, so the
             # persisted row ids are the only authoritative row count available.
+            # Validate that the physical table genuinely has zero descriptor columns.
+            if table.num_columns != 0:
+                raise ValueError(
+                    "Arrow schema metadata indicates an empty schema but the physical "
+                    "table has descriptor columns; the metadata may be stale or tampered."
+                )
             row_count = len(row_ids)
         else:
             # For non-empty schemas the physical column length is authoritative.

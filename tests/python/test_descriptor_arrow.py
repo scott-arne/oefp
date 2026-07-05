@@ -183,3 +183,24 @@ def test_canonical_id_round_trips_through_arrow():
     batch = oefp.DescriptorBatch.from_descriptors([oefp.DescriptorSet(schema, {"MW": 46.069})])
     restored = oefp.DescriptorBatch.from_arrow(batch.to_arrow())
     assert restored.schema.definitions[0].canonical_id == "quantity:exact_molecular_weight"
+
+
+def test_from_arrow_rejects_empty_schema_metadata_with_physical_columns():
+    import json
+    import pytest
+
+    import oefp
+    from oefp.api import _DESCRIPTOR_SCHEMA_METADATA_KEY
+
+    # Take a non-empty batch's Arrow table (which has real descriptor columns),
+    # replace its OEFP schema metadata with an empty schema while preserving
+    # row_ids. from_arrow should reject this tampered/stale metadata instead of
+    # silently deserializing as empty {} rows (data loss).
+    table = _two_row_batch().to_arrow()
+    metadata = dict(table.schema.metadata or {})
+    empty_schema = oefp.DescriptorSchema._allow_empty([])
+    metadata[_DESCRIPTOR_SCHEMA_METADATA_KEY] = empty_schema._metadata().encode("utf-8")
+    tampered = table.replace_schema_metadata(metadata)
+
+    with pytest.raises(ValueError, match="empty.*schema.*physical.*column"):
+        oefp.DescriptorBatch.from_arrow(tampered)
