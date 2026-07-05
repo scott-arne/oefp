@@ -1,5 +1,7 @@
 #include "oefp/descriptor_calculator.h"
 
+#include "oefp/column_request.h"
+#include "oefp/compute_context.h"
 #include "thread_pool.h"
 
 #include <cstddef>
@@ -84,13 +86,19 @@ std::shared_ptr<const DescriptorSchema> DescriptorCalculator::SchemaPtr() const 
 
 DescriptorSet DescriptorCalculator::Compute(const OEChem::OEMolBase& mol) const {
     DescriptorSetBuilder builder(schema_);
+    // One context per molecule, shared across every source, so cross-source
+    // intermediates (ring perception, heavy-atom graph, ...) are computed once
+    // and reused across Mordred and OpenEye. The context is a local here and is
+    // never shared across molecules or threads: CalculateBatch invokes Compute
+    // per row, so each parallel worker builds its own context.
+    ComputeContext ctx(mol);
     for (const SourcePlan& plan : plans_) {
         if (plan.kept.empty()) {
             // A source selected or deduplicated down to nothing contributes no
             // columns; skip its Compute so it is a genuine no-op at compute time.
             continue;
         }
-        const DescriptorSet row = plan.source->Compute(mol);
+        const DescriptorSet row = plan.source->Compute(mol, ctx, ColumnRequest::All());
         for (const auto& [src_idx, merged_slot] : plan.kept) {
             // Copy only present source values; missing values stay missing.
             if (row.Has(src_idx)) {

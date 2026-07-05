@@ -111,6 +111,38 @@ TEST(DescriptorCalculatorTest, ComputeMergesKeptColumns) {
     EXPECT_TRUE(row.Has("XLogP"));    // OpenEye-unique untagged column survives dedup
 }
 
+TEST(DescriptorCalculatorTest, SharedContextMatchesStandaloneSourceValues) {
+    // Regression guard for the per-molecule shared ComputeContext: the merged
+    // Mordred+OpenEye row must be byte-identical to values the individual
+    // sources produce standalone (each with its own fresh context). This proves
+    // threading one context across sources does not change any result.
+    MordredDescriptorSource mordred;
+    OpenEyePropertyDescriptorSource openeye;
+
+    OEChem::OEGraphMol mol;
+    ASSERT_TRUE(OEChem::OESmilesToMol(mol, "CC(=O)Oc1ccccc1C(=O)O"));  // aspirin
+
+    // Standalone values (each source builds its own per-molecule context).
+    const DescriptorSet mordred_row = mordred.Compute(mol);
+    const DescriptorSet openeye_row = openeye.Compute(mol);
+    ASSERT_TRUE(mordred_row.Has("MW"));
+    ASSERT_TRUE(mordred_row.Has("TopoPSA"));
+    ASSERT_TRUE(openeye_row.Has("XLogP"));
+
+    std::vector<DescriptorSourceEntry> entries;
+    entries.emplace_back(std::make_shared<MordredDescriptorSource>());
+    entries.emplace_back(std::make_shared<OpenEyePropertyDescriptorSource>());
+    DescriptorCalculator calc(std::move(entries));
+    const DescriptorSet merged = calc.Compute(mol);
+
+    ASSERT_TRUE(merged.Has("MW"));     // Mordred-owned
+    ASSERT_TRUE(merged.Has("TopoPSA"));  // Mordred-owned
+    ASSERT_TRUE(merged.Has("XLogP"));  // OpenEye-unique
+    EXPECT_DOUBLE_EQ(merged.Float("MW"), mordred_row.Float("MW"));
+    EXPECT_DOUBLE_EQ(merged.Float("TopoPSA"), mordred_row.Float("TopoPSA"));
+    EXPECT_DOUBLE_EQ(merged.Float("XLogP"), openeye_row.Float("XLogP"));
+}
+
 TEST(DescriptorCalculatorTest, CalculateBatchEqualsPerRowComputeInOrder) {
     std::vector<DescriptorSourceEntry> entries;
     entries.emplace_back(std::make_shared<MordredDescriptorSource>());
