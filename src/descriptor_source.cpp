@@ -32,6 +32,12 @@ DescriptorSet MordredDescriptorSource::Compute(const OEChem::OEMolBase& mol) con
     return MakeMordredDescriptors(mol);
 }
 
+DescriptorSet MordredDescriptorSource::Compute(const OEChem::OEMolBase& mol,
+                                               ComputeContext& ctx,
+                                               const ColumnRequest& request) const {
+    return MakeMordredDescriptors(mol, ctx, request);
+}
+
 namespace {
 
 struct StaticOpenEyeDefinition {

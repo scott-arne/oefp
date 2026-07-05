@@ -1,6 +1,8 @@
 #ifndef OEFP_MORDRED_H
 #define OEFP_MORDRED_H
 
+#include "oefp/column_request.h"
+#include "oefp/compute_context.h"
 #include "oefp/descriptor.h"
 
 #include <oechem.h>
@@ -34,6 +36,26 @@ std::shared_ptr<const DescriptorSchema> MordredDescriptorSchema();
 /// \param mol Molecule to describe.
 /// \returns Schema-backed Mordred-compatible descriptor row.
 DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol);
+
+/// \brief Compute Mordred descriptors reusing shared intermediates from ``ctx``.
+///
+/// Behaves exactly like the single-argument overload but pulls the heavy-atom
+/// graph, heavy-atom distance matrix, Gasteiger charges, and Crippen
+/// contributions from ``ctx`` so those intermediates are memoized and shared
+/// across descriptor sources rather than recomputed here.
+///
+/// \note ``ctx`` must have been constructed from the same molecule passed as
+///     ``mol``; the two are consumed as one molecule.
+/// \note In this phase ``request`` is accepted but all columns are computed;
+///     column pruning is introduced in a later phase.
+///
+/// \param mol Molecule to describe.
+/// \param ctx Per-molecule cache of shared computation intermediates.
+/// \param request Which columns of the Mordred schema to compute.
+/// \returns Schema-backed Mordred-compatible descriptor row.
+DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol,
+                                     ComputeContext& ctx,
+                                     const ColumnRequest& request);
 
 } // namespace OEFP
 

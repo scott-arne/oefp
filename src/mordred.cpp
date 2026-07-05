@@ -4835,7 +4835,7 @@ bool has_mordred_gasteiger_parameters(std::uint32_t atomic_number) {
 }
 
 std::optional<std::vector<double>> compute_bcut_gasteiger_charge_values(
-    const OEChem::OEMolBase& mol,
+    const MordredGasteigerAtomCharges& charges,
     const MordredHeavyAtomGraph& graph) {
     for (const auto* atom : graph.atoms) {
         if (atom == nullptr
@@ -4845,7 +4845,8 @@ std::optional<std::vector<double>> compute_bcut_gasteiger_charge_values(
         }
     }
 
-    const auto charges = compute_gasteiger_atom_charges(mol);
+    // ``charges`` are the context's Gasteiger charges, identical to the former
+    // local compute_gasteiger_atom_charges(mol) (implicit-hydrogen suppression).
     if (charges.charges.size() != charges.hydrogen_charges.size()
         || charges.charges.size() != charges.atom_ids.size()) {
         return std::nullopt;
@@ -4909,11 +4910,11 @@ std::optional<double> mordred_bcut_atom_property(
 }
 
 std::optional<std::vector<double>> compute_bcut_atom_property_values(
-    const OEChem::OEMolBase& mol,
+    const MordredGasteigerAtomCharges& gasteiger_charges,
     const MordredHeavyAtomGraph& graph,
     MordredBCUTPropertyKind property_kind) {
     if (property_kind == MordredBCUTPropertyKind::GasteigerCharge) {
-        return compute_bcut_gasteiger_charge_values(mol, graph);
+        return compute_bcut_gasteiger_charge_values(gasteiger_charges, graph);
     }
 
     std::vector<double> values;
@@ -4929,7 +4930,7 @@ std::optional<std::vector<double>> compute_bcut_atom_property_values(
 }
 
 MordredBCUTValues compute_bcut_property_values(
-    const OEChem::OEMolBase& mol,
+    const MordredGasteigerAtomCharges& gasteiger_charges,
     const MordredHeavyAtomGraph& graph,
     const MordredBCUTProperty& property) {
     MordredBCUTValues values;
@@ -4938,7 +4939,8 @@ MordredBCUTValues compute_bcut_property_values(
         return values;
     }
 
-    const auto atom_properties = compute_bcut_atom_property_values(mol, graph, property.kind);
+    const auto atom_properties =
+        compute_bcut_atom_property_values(gasteiger_charges, graph, property.kind);
     if (!atom_properties.has_value()) {
         return values;
     }
@@ -4977,12 +4979,12 @@ MordredBCUTValues compute_bcut_property_values(
 }
 
 std::vector<MordredBCUTValues> compute_bcut_values(
-    const OEChem::OEMolBase& mol,
+    const MordredGasteigerAtomCharges& gasteiger_charges,
     const MordredHeavyAtomGraph& graph) {
     std::vector<MordredBCUTValues> values;
     values.reserve(mordred_bcut_properties().size());
     for (const auto& property : mordred_bcut_properties()) {
-        values.push_back(compute_bcut_property_values(mol, graph, property));
+        values.push_back(compute_bcut_property_values(gasteiger_charges, graph, property));
     }
     return values;
 }
@@ -7028,19 +7030,25 @@ bool labute_values_align_with_gasteiger_atom_charges(
 
 template <std::size_t BinCount>
 std::optional<std::array<double, BinCount>> compute_crippen_vsa_values(
-    const OEChem::OEMolBase& mol,
+    const MordredCrippenAtomContributions& crippen_contributions,
     const MordredLabuteAsaValues& labute_values,
     const std::array<double, BinCount>& bins,
     const std::vector<double> MordredCrippenAtomContributions::*contribution_member) {
-    const auto crippen_contributions = compute_crippen_atom_contributions(mol);
-    if (!crippen_contributions.has_value()
-        || !labute_values_align_with_crippen_atom_contributions(
+    // The context yields an empty MordredCrippenAtomContributions where the old
+    // compute_crippen_atom_contributions returned std::nullopt (a molecule with a
+    // non-finite Crippen contribution). Such molecules have at least one heavy
+    // atom, so the empty (size-zero) contributions fail the alignment check below
+    // against the non-empty Labute values, yielding the same missing columns the
+    // old nullopt path produced. A genuinely atom-free molecule aligns (0 == 0)
+    // in both paths and still yields all-zero bins, so the alignment check alone
+    // preserves the previous behavior exactly.
+    if (!labute_values_align_with_crippen_atom_contributions(
             labute_values,
-            *crippen_contributions)) {
+            crippen_contributions)) {
         return std::nullopt;
     }
 
-    const auto& property_contributions = (*crippen_contributions).*contribution_member;
+    const auto& property_contributions = crippen_contributions.*contribution_member;
     if (property_contributions.size() != labute_values.atom_contributions.size()) {
         return std::nullopt;
     }
@@ -7064,7 +7072,7 @@ std::optional<std::array<double, BinCount>> compute_crippen_vsa_values(
 }
 
 std::optional<std::array<double, 9>> compute_smr_vsa_values(
-    const OEChem::OEMolBase& mol,
+    const MordredCrippenAtomContributions& crippen_contributions,
     const MordredLabuteAsaValues& labute_values) {
     static constexpr std::array<double, 9> mr_bins{{
         1.29,
@@ -7079,14 +7087,14 @@ std::optional<std::array<double, 9>> compute_smr_vsa_values(
     }};
 
     return compute_crippen_vsa_values(
-        mol,
+        crippen_contributions,
         labute_values,
         mr_bins,
         &MordredCrippenAtomContributions::mr);
 }
 
 std::optional<std::array<double, 11>> compute_slogp_vsa_values(
-    const OEChem::OEMolBase& mol,
+    const MordredCrippenAtomContributions& crippen_contributions,
     const MordredLabuteAsaValues& labute_values) {
     static constexpr std::array<double, 11> logp_bins{{
         -0.4,
@@ -7103,13 +7111,15 @@ std::optional<std::array<double, 11>> compute_slogp_vsa_values(
     }};
 
     return compute_crippen_vsa_values(
-        mol,
+        crippen_contributions,
         labute_values,
         logp_bins,
         &MordredCrippenAtomContributions::logp);
 }
 
-std::optional<std::array<double, 14>> compute_peoe_vsa_values(const OEChem::OEMolBase& mol) {
+std::optional<std::array<double, 14>> compute_peoe_vsa_values(
+    const OEChem::OEMolBase& mol,
+    const MordredGasteigerAtomCharges& charges) {
     static constexpr std::array<double, 13> charge_bins{{
         -0.3,
         -0.25,
@@ -7126,8 +7136,9 @@ std::optional<std::array<double, 14>> compute_peoe_vsa_values(const OEChem::OEMo
         0.30,
     }};
 
+    // ``charges`` are the context's Gasteiger charges, identical to the former
+    // local compute_gasteiger_atom_charges(mol) (implicit-hydrogen suppression).
     const auto labute_values = compute_peoe_labute_asa_values(mol);
-    const auto charges = compute_gasteiger_atom_charges(mol);
     if (!labute_values_align_with_gasteiger_atom_charges(labute_values, charges)) {
         return std::nullopt;
     }
@@ -8051,18 +8062,27 @@ void set_eta_values(DescriptorSetBuilder& builder, const MordredEtaValues& value
 
 } // namespace
 
-DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
+DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol,
+                                     ComputeContext& ctx,
+                                     const ColumnRequest& /*request*/) {
+    // Phase 1: request is accepted for interface compatibility but all columns
+    // are computed; column pruning arrives in a later phase.
     const auto values = compute_first_batch_values(mol);
     const auto additive_values = compute_additive_property_values(mol);
     const auto walk_count_values = compute_walk_count_values(mol);
-    const auto heavy_atom_graph = build_mordred_heavy_atom_graph(mol);
+    // Shared, memoized intermediates come from the context instead of being
+    // recomputed here. The context is constructed from the same molecule, so
+    // these are byte-identical to the former local recomputation.
+    const auto& heavy_atom_graph = ctx.HeavyAtomGraph();
+    const auto& gasteiger_charges = ctx.GasteigerAtomCharges();
+    const auto& crippen_contributions = ctx.CrippenContributions();
     const auto path_count_values = compute_path_count_values(heavy_atom_graph);
     const auto chi_path_values = compute_chi_path_values(heavy_atom_graph);
     const auto chi_non_path_values = compute_chi_non_path_values(heavy_atom_graph);
     const auto zagreb_values = compute_zagreb_values(heavy_atom_graph);
     const auto vertex_adjacency_information =
         compute_vertex_adjacency_information(heavy_atom_graph);
-    const auto heavy_atom_distances = compute_mordred_heavy_atom_distances(heavy_atom_graph);
+    const auto& heavy_atom_distances = ctx.HeavyAtomDistances();
     const auto balaban_j = compute_balaban_j(heavy_atom_graph, heavy_atom_distances);
     const auto bertz_ct = compute_bertz_ct(heavy_atom_graph);
     const auto topological_charge_values =
@@ -8084,7 +8104,7 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
                 property.lookup,
                 property.carbon_reference));
     }
-    const auto bcut_values = compute_bcut_values(mol, heavy_atom_graph);
+    const auto bcut_values = compute_bcut_values(gasteiger_charges, heavy_atom_graph);
     const auto molecular_distance_edge_values =
         compute_molecular_distance_edge_values(heavy_atom_graph, heavy_atom_distances);
     const auto abc_index_values =
@@ -8101,14 +8121,14 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
     const auto estate_values = compute_mordred_estate_values(mol);
     const auto filter_it_log_s = compute_filter_it_log_s(mol);
     const auto labute_asa_values = compute_labute_asa_values(mol);
-    const auto peoe_vsa_values = compute_peoe_vsa_values(mol);
+    const auto peoe_vsa_values = compute_peoe_vsa_values(mol, gasteiger_charges);
     const auto smr_vsa_values =
         labute_asa_values.has_value()
-            ? compute_smr_vsa_values(mol, *labute_asa_values)
+            ? compute_smr_vsa_values(crippen_contributions, *labute_asa_values)
             : std::optional<std::array<double, 9>>{};
     const auto slogp_vsa_values =
         labute_asa_values.has_value()
-            ? compute_slogp_vsa_values(mol, *labute_asa_values)
+            ? compute_slogp_vsa_values(crippen_contributions, *labute_asa_values)
             : std::optional<std::array<double, 11>>{};
     const auto vsa_estate_values =
         labute_asa_values.has_value()
@@ -8416,6 +8436,11 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
     set_optional_float(builder, "FilterItLogS", filter_it_log_s);
 
     return builder.Build();
+}
+
+DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
+    ComputeContext ctx(mol);
+    return MakeMordredDescriptors(mol, ctx, ColumnRequest::All());
 }
 
 namespace test {
