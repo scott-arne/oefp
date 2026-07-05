@@ -5,7 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 from importlib import resources
-from collections.abc import Callable, Iterable, Mapping, Sequence
+from collections.abc import Callable, Iterable, Iterator, Mapping, Sequence
 from dataclasses import dataclass
 from functools import lru_cache
 from numbers import Integral
@@ -299,6 +299,31 @@ class DescriptorSchema:
             raise ValueError("Descriptor schema metadata must contain a list.")
         return cls([DescriptorDefinition._from_metadata(item) for item in raw_definitions])
 
+    @classmethod
+    def _allow_empty(cls, definitions: Sequence[DescriptorDefinition]) -> DescriptorSchema:
+        """Construct a schema that may be empty (calculator merged-schema path only).
+
+        The public constructor rejects an empty schema, but a
+        :class:`DescriptorCalculator` may legitimately resolve to zero columns
+        (no sources, or every column selected or deduplicated away). This
+        bypasses only the empty check; non-empty names and uniqueness are still
+        enforced.
+
+        :param definitions: Descriptor column definitions in storage order.
+        :returns: Descriptor schema that may contain zero definitions.
+        :raises ValueError: When descriptor names are empty or duplicated.
+        """
+        obj = cls.__new__(cls)
+        normalized = tuple(definitions)
+        names = tuple(definition.name for definition in normalized)
+        if any(not name for name in names):
+            raise ValueError("Descriptor schema names must be non-empty.")
+        if len(set(names)) != len(names):
+            raise ValueError("Descriptor schema names must be unique.")
+        obj._definitions = normalized
+        obj._index_by_name = {name: index for index, name in enumerate(names)}
+        return obj
+
 
 def _value_type_name(value: Any) -> str:
     if value == _native.FingerprintValueType_Binary:
@@ -375,6 +400,18 @@ def _native_descriptor_value_type(value_type: str) -> Any:
     if value_type == "string":
         return _native.DescriptorValueType_String
     raise ValueError(f"Unknown descriptor value type: {value_type!r}.")
+
+
+def _descriptor_kind_name(value_kind: Any) -> str:
+    if value_kind == _native.DescriptorValueKind_Bool:
+        return "bool"
+    if value_kind == _native.DescriptorValueKind_Int:
+        return "int"
+    if value_kind == _native.DescriptorValueKind_Float:
+        return "float"
+    if value_kind == _native.DescriptorValueKind_String:
+        return "string"
+    raise ValueError(f"Unsupported descriptor value kind: {value_kind!r}.")
 
 
 def _descriptor_spec(native_spec: Any) -> DescriptorSpec:
@@ -1375,6 +1412,74 @@ class DescriptorBatch:
 
     def __len__(self) -> int:
         return self.size
+
+    def __iter__(self) -> Iterator[dict[str, Any]]:
+        """Iterate schema-backed rows as ``{name: value}`` dictionaries.
+
+        Each row contains every schema column, with ``None`` marking missing
+        values. ``dict(batch)`` is intentionally not supported; use
+        :meth:`to_dict` for a column-oriented mapping.
+
+        :returns: Iterator over per-row descriptor dictionaries.
+        """
+        names = self.schema.names
+        for row in self._schema_rows():
+            yield {name: row[name] for name in names}
+
+    def __getitem__(self, key: int | slice) -> dict[str, Any] | DescriptorBatch:
+        """Return a single row dict or a sliced descriptor batch.
+
+        :param key: Integer row index (negative indices allowed) or a slice.
+        :returns: A ``{name: value}`` row dict for an integer key, or a new
+            :class:`DescriptorBatch` for a slice key.
+        """
+        if isinstance(key, slice):
+            rows = self._schema_rows()[key]
+            return DescriptorBatch(schema=self.schema, rows=rows, row_ids=self._row_ids[key])
+        names = self.schema.names
+        row = self._schema_rows()[key]
+        return {name: row[name] for name in names}
+
+    def to_records(self) -> list[dict[str, Any]]:
+        """Return all rows as a list of ``{name: value}`` dictionaries.
+
+        :returns: List of per-row descriptor dictionaries.
+        """
+        return list(self)
+
+    def to_list(self) -> list[dict[str, Any]]:
+        """Return all rows as a list of ``{name: value}`` dictionaries.
+
+        :returns: List of per-row descriptor dictionaries.
+        """
+        return list(self)
+
+    def to_dict(self) -> dict[str, list[Any]]:
+        """Return a column-oriented ``{name: [values...]}`` mapping.
+
+        This is the counterpart to the row-oriented iteration protocol;
+        ``dict(batch)`` is intentionally unsupported in favor of this method.
+
+        :returns: Mapping of descriptor name to its column of values.
+        """
+        names = self.schema.names
+        rows = self._schema_rows()
+        return {name: [row[name] for row in rows] for name in names}
+
+    def __add__(self, other: object) -> DescriptorBatch:
+        """Vertically concatenate two schema-backed batches.
+
+        :param other: Another :class:`DescriptorBatch` with an identical schema.
+        :returns: A new batch containing the rows of both operands.
+        :raises ValueError: When the two batches have different schemas.
+        """
+        if not isinstance(other, DescriptorBatch):
+            return NotImplemented
+        if self.schema.schema_id != other.schema.schema_id:
+            raise ValueError("Cannot concatenate DescriptorBatches with different schemas.")
+        rows = list(self._schema_rows()) + list(other._schema_rows())
+        row_ids = tuple(self._row_ids) + tuple(other._row_ids)
+        return DescriptorBatch(schema=self.schema, rows=rows, row_ids=row_ids)
 
     @property
     def schema(self) -> DescriptorSchema:
@@ -3075,6 +3180,146 @@ def mordred_descriptors(mol: Any) -> DescriptorSet:
         for definition in schema.definitions
     }
     return DescriptorSet(schema, values)
+
+
+def _descriptor_definition_from_native(native_definition: Any) -> DescriptorDefinition:
+    """Build a Python descriptor definition from a native schema definition."""
+    return DescriptorDefinition(
+        str(native_definition.name),
+        _descriptor_kind_name(native_definition.value_kind),
+        group=str(native_definition.group),
+        source_name=str(native_definition.source_name),
+        source_type=str(native_definition.source_type),
+        source_version=str(native_definition.source_version),
+        parameters=str(native_definition.parameters),
+        units=str(native_definition.units),
+        description=str(native_definition.description),
+        prerequisites=int(native_definition.prerequisites),
+        canonical_id=str(native_definition.canonical_id),
+    )
+
+
+def _schema_from_native(native_schema: Any) -> DescriptorSchema:
+    """Build a Python descriptor schema from a native merged schema.
+
+    Uses :meth:`DescriptorSchema._allow_empty` so a calculator that resolves to
+    zero columns still yields a valid (empty) schema.
+    """
+    definitions = [
+        _descriptor_definition_from_native(native_schema.Definition(index))
+        for index in range(native_schema.Size())
+    ]
+    return DescriptorSchema._allow_empty(definitions)
+
+
+def _batch_column_values(native_batch: Any, definition: DescriptorDefinition) -> list[Any]:
+    """Extract one column of Python values, placing ``None`` for missing entries."""
+    validity = list(native_batch.ColumnValidity(definition.name))
+    raw: list[Any]
+    if definition.value_type == "bool":
+        raw = [bool(value) for value in native_batch.BoolColumn(definition.name)]
+    elif definition.value_type == "int":
+        raw = [int(value) for value in native_batch.IntColumn(definition.name)]
+    elif definition.value_type == "float":
+        raw = [float(value) for value in native_batch.FloatColumn(definition.name)]
+    elif definition.value_type == "string":
+        raw = list(native_batch.StringColumn(definition.name))
+    else:
+        raise ValueError(f"Unsupported descriptor value type: {definition.value_type!r}.")
+    return [value if present else None for value, present in zip(raw, validity, strict=True)]
+
+
+class MordredDescriptorSource:
+    """Descriptor source for the curated Mordred descriptor family."""
+
+    def __init__(self) -> None:
+        self._native = _native.MordredDescriptorSource()
+
+
+class OpenEyePropertyDescriptorSource:
+    """Descriptor source for OpenEye molecular-property descriptors."""
+
+    def __init__(self) -> None:
+        self._native = _native.OpenEyePropertyDescriptorSource()
+
+
+DescriptorSource = MordredDescriptorSource | OpenEyePropertyDescriptorSource
+
+
+class DescriptorCalculator:
+    """Compute merged, deduplicated descriptors from one or more sources.
+
+    Sources are resolved in order; when two sources expose the same curated
+    ``canonical_id`` the first source wins and later duplicates are dropped.
+
+    :param sources: Sequence whose items are either a bare descriptor source
+        wrapper or a ``(source, names)`` tuple, where ``names`` is a sequence of
+        descriptor names to keep from that source (or ``None`` to keep all).
+    """
+
+    def __init__(
+        self,
+        sources: Sequence[
+            DescriptorSource | tuple[DescriptorSource, Sequence[str] | None]
+        ],
+    ) -> None:
+        entries = _native.DescriptorSourceEntryVector()
+        for item in sources:
+            if isinstance(item, tuple):
+                source, names = item
+            else:
+                source, names = item, None
+            if names is None:
+                entry = _native.DescriptorSourceEntry(source._native)
+            else:
+                selection = _native.DescriptorSelection.Names(
+                    _native.StringVector(list(names))
+                )
+                entry = _native.DescriptorSourceEntry(source._native, selection)
+            entries.push_back(entry)
+        self._native = _native._NativeDescriptorCalculator(entries)
+
+    @property
+    def schema(self) -> DescriptorSchema:
+        """Merged, deduplicated descriptor schema for all resolved columns."""
+        return _schema_from_native(self._native.Schema())
+
+    def compute(self, mol: Any) -> DescriptorSet:
+        """Compute one schema-backed descriptor row for a molecule.
+
+        :param mol: OpenEye molecule to describe.
+        :returns: Descriptor row backed by :attr:`schema`.
+        """
+        schema = self.schema
+        native = self._native.Compute(mol)
+        values = {
+            definition.name: _mordred_value_from_native(native, definition)
+            for definition in schema.definitions
+        }
+        return DescriptorSet(schema, values)
+
+    def calculate_batch(self, molecules: Iterable[Any]) -> DescriptorBatch:
+        """Compute a schema-backed descriptor batch for many molecules.
+
+        :param molecules: Iterable of OpenEye molecules.
+        :returns: Descriptor batch backed by :attr:`schema`.
+        """
+        schema = self.schema
+        native = self._native.CalculateBatch(list(molecules))
+        row_ids = list(native.RowIds())
+        row_count = int(native.Size())
+        if not schema.definitions:
+            rows: list[dict[str, Any]] = [{} for _ in range(row_count)]
+            return DescriptorBatch(schema=schema, rows=rows, row_ids=row_ids)
+        columns = {
+            definition.name: _batch_column_values(native, definition)
+            for definition in schema.definitions
+        }
+        rows = [
+            {name: columns[name][row_index] for name in schema.names}
+            for row_index in range(row_count)
+        ]
+        return DescriptorBatch(schema=schema, rows=rows, row_ids=row_ids)
 
 
 def morgan_fingerprint_with_mapping(
