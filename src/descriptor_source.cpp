@@ -91,12 +91,24 @@ std::shared_ptr<const DescriptorSchema> OpenEyePropertyDescriptorSource::Schema(
 }
 
 DescriptorSet OpenEyePropertyDescriptorSource::Compute(const OEChem::OEMolBase& mol) const {
+    // Delegate through a fresh per-molecule context so there is a single
+    // implementation; the context supplies the shared ring-perceived molecule.
+    ComputeContext ctx(mol);
+    return Compute(mol, ctx, ColumnRequest::All());
+}
+
+DescriptorSet OpenEyePropertyDescriptorSource::Compute(const OEChem::OEMolBase& mol,
+                                                       ComputeContext& ctx,
+                                                       const ColumnRequest&) const {
     DescriptorSetBuilder builder(Schema());
 
     // Tagged columns identical by construction with Mordred. Weights and atom
     // counts reuse the shared helpers on the input molecule; TopoPSA/HBD/HBA
-    // replicate Mordred's working-molecule preparation so the OpenEye calls see
-    // the same perceived graph Mordred feeds them.
+    // pull the ring-perceived working molecule from the shared context so the
+    // OpenEye calls see the same perceived graph Mordred feeds them. The
+    // context prep (OEGraphMol copy + OEFindRingAtomsAndBonds +
+    // OEAssignHybridization) is byte-identical to the former inline block, so
+    // these tagged values are unchanged.
     builder.Set("MolecularWeight", DescriptorValue::Float(ExactMolecularWeight(mol)));
     builder.Set("AverageMolecularWeight", DescriptorValue::Float(AverageMolecularWeight(mol)));
     builder.Set(
@@ -106,9 +118,7 @@ DescriptorSet OpenEyePropertyDescriptorSource::Compute(const OEChem::OEMolBase& 
         "TotalAtomCount",
         DescriptorValue::Int(static_cast<std::int64_t>(TotalAtomCount(mol))));
 
-    OEChem::OEGraphMol working_mol(mol);
-    OEChem::OEFindRingAtomsAndBonds(working_mol);
-    OEChem::OEAssignHybridization(working_mol);
+    const OEChem::OEGraphMol& working_mol = ctx.RingPerceivedMol();
     float psa = 0.0f;
     if (OEMolProp::OEGet2dPSA(working_mol, psa, nullptr, true)) {
         builder.Set(

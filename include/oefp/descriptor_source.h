@@ -86,8 +86,15 @@ public:
 /// ``canonical_id``, and are therefore never deduplicated.
 class OpenEyePropertyDescriptorSource : public DescriptorSource {
 public:
+    // Bring the base convenience overloads into scope so overriding the
+    // context/request method below does not hide Compute(mol) or Compute(mol, ctx).
+    using DescriptorSource::Compute;
+
     std::shared_ptr<const DescriptorSchema> Schema() const override;
     DescriptorSet Compute(const OEChem::OEMolBase& mol) const override;
+    DescriptorSet Compute(const OEChem::OEMolBase& mol,
+                          ComputeContext& ctx,
+                          const ColumnRequest& request) const override;
 };
 
 } // namespace OEFP
