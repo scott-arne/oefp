@@ -41,6 +41,9 @@ dev = [
 testpaths = ["tests/python"]
 python_files = ["test_*.py"]
 addopts = "-v"
+markers = [
+    "surechembl: opt-in large-scale canonical-identity sweep (needs local SureChEMBL parquet)",
+]
 
 [tool.ruff.lint.per-file-ignores]
 "python/oefp/__init__.py" = ["E402"]

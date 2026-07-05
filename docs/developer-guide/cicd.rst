@@ -37,6 +37,31 @@ generator options. It is also used by the generation benchmark:
 The benchmark measures reusable generator calls on prebuilt molecules. It does
 not include SMILES parsing time.
 
+SureChEMBL Canonical-Identity Sweep
+------------------------------------
+
+The optional SureChEMBL sweep tests canonical-identity assignment heuristics
+across ~50k diverse molecules. It requires a local parquet file and is not
+part of the default test suite:
+
+.. code-block:: bash
+
+   OEFP_SURECHEMBL_PARQUET=/path/compounds.parquet \
+   PYTHONPATH=python python -m pytest tests/python/surechembl_identity_sweep.py -m surechembl -q
+
+The sweep compares per-source outputs for:
+
+- **Misassigned identity**: tagged column pairs (shared ``canonical_id``) that
+  diverge on any molecule. Divergences trigger an assertion failure.
+- **Missed identity** (optional): untagged cross-source pairs that are
+  numerically identical across the whole sample. Gated by
+  ``OEFP_SURECHEMBL_MISSED=1``. Candidates are printed but do not fail.
+
+Set ``OEFP_SURECHEMBL_SAMPLE`` to control sample size (default 50000).
+
+This is a heuristic check, not proof. Unparseable molecules are counted and
+skipped.
+
 OECluster Guardrail
 -------------------
 
