@@ -121,6 +121,59 @@ def test_empty_calculator_batch_round_trips_through_arrow(panel_mols):
     assert list(restored) == [{} for _ in panel_mols]
 
 
+def _tamper_row_ids_metadata(table, row_ids):
+    import json
+
+    from oefp.api import _ROW_IDS_METADATA_KEY
+
+    metadata = dict(table.schema.metadata or {})
+    metadata[_ROW_IDS_METADATA_KEY] = json.dumps(list(row_ids)).encode("utf-8")
+    return table.replace_schema_metadata(metadata)
+
+
+def _two_row_batch():
+    import oefp
+
+    schema = oefp.DescriptorSchema(
+        [
+            oefp.DescriptorDefinition("MW", "float"),
+            oefp.DescriptorDefinition("nAtom", "int"),
+        ]
+    )
+    return oefp.DescriptorBatch.from_descriptors(
+        [
+            oefp.DescriptorSet(schema, {"MW": 46.069, "nAtom": 9}, row_id="ethanol"),
+            oefp.DescriptorSet(schema, {"MW": 18.015, "nAtom": 3}, row_id="water"),
+        ]
+    )
+
+
+def test_from_arrow_rejects_short_row_ids_metadata_for_non_empty_schema():
+    import pytest
+
+    import oefp
+
+    # Row-id metadata shorter than the columns must fail fast rather than
+    # silently discarding the trailing descriptor rows.
+    table = _tamper_row_ids_metadata(_two_row_batch().to_arrow(), ["ethanol"])
+    with pytest.raises(ValueError):
+        oefp.DescriptorBatch.from_arrow(table)
+
+
+def test_from_arrow_rejects_long_row_ids_metadata_for_non_empty_schema():
+    import pytest
+
+    import oefp
+
+    # Row-id metadata longer than the columns must fail fast rather than
+    # indexing past the column arrays with an IndexError.
+    table = _tamper_row_ids_metadata(
+        _two_row_batch().to_arrow(), ["ethanol", "water", "extra"]
+    )
+    with pytest.raises(ValueError):
+        oefp.DescriptorBatch.from_arrow(table)
+
+
 def test_canonical_id_round_trips_through_arrow():
     import oefp
 

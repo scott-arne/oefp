@@ -1608,16 +1608,28 @@ class DescriptorBatch:
         if _DESCRIPTOR_SCHEMA_METADATA_KEY not in metadata:
             raise ValueError("Arrow table is missing OEFP descriptor schema metadata.")
         schema = DescriptorSchema._from_metadata(metadata[_DESCRIPTOR_SCHEMA_METADATA_KEY])
-        if _ROW_IDS_METADATA_KEY in metadata:
-            row_ids: tuple[str, ...] = tuple(
-                json.loads(metadata[_ROW_IDS_METADATA_KEY].decode("utf-8"))
-            )
+        has_row_ids = _ROW_IDS_METADATA_KEY in metadata
+        row_ids: tuple[str, ...] = (
+            tuple(json.loads(metadata[_ROW_IDS_METADATA_KEY].decode("utf-8")))
+            if has_row_ids
+            else ()
+        )
+        if len(schema.names) == 0:
             # A zero-column Arrow table always reports ``num_rows == 0``, so the
-            # persisted row ids are the authoritative row count for empty schemas.
+            # persisted row ids are the only authoritative row count available.
             row_count = len(row_ids)
         else:
+            # For non-empty schemas the physical column length is authoritative.
+            # Any row-id metadata must agree with it; a mismatch signals stale
+            # metadata that would otherwise truncate rows or index out of range.
             row_count = int(table.num_rows)
-            row_ids = ("",) * row_count
+            if has_row_ids and len(row_ids) != row_count:
+                raise ValueError(
+                    "Arrow row-id metadata length does not match the descriptor "
+                    "table row count."
+                )
+            if not has_row_ids:
+                row_ids = ("",) * row_count
         columns = {name: table.column(name).to_pylist() for name in schema.names}
         rows = [
             {name: columns[name][row_index] for name in schema.names}
