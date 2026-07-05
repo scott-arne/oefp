@@ -67,8 +67,15 @@ def test_surechembl_identity_sweep():
         for smiles in record_batch.column("smiles").to_pylist():
             if smiles_seen >= _SAMPLE:
                 break
+            if not isinstance(smiles, str) or not smiles.strip():
+                skipped += 1
+                continue
             mol = oechem.OEGraphMol()
-            if not oechem.OESmilesToMol(mol, smiles):
+            try:
+                parsed = oechem.OESmilesToMol(mol, smiles)
+            except (TypeError, ValueError):
+                parsed = False
+            if not parsed:
                 skipped += 1
                 continue
             smiles_seen += 1
