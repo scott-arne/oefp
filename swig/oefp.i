@@ -6,6 +6,7 @@
 #include "oefp/oefp.h"
 #include "oefp/descriptor_source.h"
 #include "oefp/descriptor_calculator.h"
+#include "oefp/rdkit_descriptors.h"
 #include <oechem.h>
 #include <oegrid.h>
 %}
@@ -773,6 +774,21 @@ namespace std {
 %include "oefp/descriptor_arrow.h"
 %include "oefp/atom_pair.h"
 %include "oefp/topological_torsions.h"
+%include "oefp/mordred.h"
+// rdkit_descriptors.h: SWIG's OEFP::OEFP collision misqualifies return types
+// as OEFP::OEFP::DescriptorSchema (breaks compile). Ignore the header's free
+// functions and provide inline wrappers in global scope with explicit qualification.
+%ignore OEFP::RDKitDescriptorSchema;
+%ignore OEFP::MakeRDKitDescriptors;
+%include "oefp/rdkit_descriptors.h"
+%inline %{
+std::shared_ptr<const ::OEFP::DescriptorSchema> RDKitDescriptorSchema() {
+    return ::OEFP::RDKitDescriptorSchema();
+}
+::OEFP::DescriptorSet MakeRDKitDescriptors(const OEChem::OEMolBase& mol) {
+    return ::OEFP::MakeRDKitDescriptors(mol);
+}
+%}
 
 namespace std {
 %template(OEFPVector) vector< ::OEFP::OEFP >;
@@ -784,18 +800,6 @@ namespace std {
 %include "oefp/batch.h"
 %include "oefp/count_batch.h"
 %include "oefp/sparse_batch.h"
-%include "oefp/mordred.h"
-// rdkit_descriptors.h is %include'd but SWIG has trouble with it due to the
-// OEFP::OEFP name collision causing misqualified return types. Work around by
-// suppressing the original declarations and re-declaring with explicit qualification.
-%ignore OEFP::RDKitDescriptorSchema;
-%ignore OEFP::MakeRDKitDescriptors;
-%include "oefp/rdkit_descriptors.h"
-// Re-declare with explicit qualification so SWIG generates correct wrappers.
-namespace OEFP {
-std::shared_ptr< ::OEFP::DescriptorSchema const > RDKitDescriptorSchema();
-::OEFP::DescriptorSet MakeRDKitDescriptors(const OEChem::OEMolBase& mol);
-}
 %include "oefp/morgan.h"
 %include "oefp/metric.h"
 %include "oefp/compare.h"

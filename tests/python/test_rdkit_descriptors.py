@@ -51,3 +51,19 @@ def test_rdkit_schema_size_matches_fixture():
 
 def test_packaged_rdkit_reference_matches_test_fixture():
     assert _package_reference_payload() == _payload()
+
+
+def test_rdkit_descriptors_free_function_returns_full_width_row():
+    import oefp
+
+    row = oefp.rdkit_descriptors(_openeye_mol("CCO"))
+    assert len(row.schema.names) == 214
+    # Skeleton stub: every value is currently missing (families land in later tasks).
+    assert all(row[name] is None for name in row.schema.names)
+
+
+def test_rdkit_native_free_functions_are_exported():
+    from oefp import _native
+
+    assert hasattr(_native, "MakeRDKitDescriptors")
+    assert hasattr(_native, "RDKitDescriptorSchema")
