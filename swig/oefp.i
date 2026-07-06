@@ -781,6 +781,11 @@ namespace std {
 %ignore OEFP::RDKitDescriptorSchema;
 %ignore OEFP::MakeRDKitDescriptors;
 %include "oefp/rdkit_descriptors.h"
+// The GIL-release on OEFP::MakeRDKitDescriptors above (line 686) targets the
+// namespaced function, which is %ignore'd and never wrapped. Apply the GIL macro
+// to the global trampoline (MakeRDKitDescriptors unqualified) so the EXPORTED
+// function releases the GIL during computation. Must appear before %inline.
+OEFP_GIL_RELEASE_EXCEPTION(MakeRDKitDescriptors)
 %inline %{
 std::shared_ptr<const ::OEFP::DescriptorSchema> RDKitDescriptorSchema() {
     return ::OEFP::RDKitDescriptorSchema();

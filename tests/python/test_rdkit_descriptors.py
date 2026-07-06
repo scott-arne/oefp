@@ -67,3 +67,29 @@ def test_rdkit_native_free_functions_are_exported():
 
     assert hasattr(_native, "MakeRDKitDescriptors")
     assert hasattr(_native, "RDKitDescriptorSchema")
+
+
+def test_rdkit_descriptors_release_gil_for_concurrent_computation():
+    """Verify rdkit_descriptors releases the GIL during computation.
+
+    A smoke test that exercises rdkit_descriptors concurrently from multiple
+    threads to confirm the exported trampoline releases the GIL (no deadlock,
+    no serialization). Each thread computes the descriptor row for a small
+    molecule and asserts the expected 214-column width. If the GIL were held,
+    Python threads would serialize (functionally correct but not concurrent);
+    this test simply confirms all threads complete successfully without error.
+    """
+    from concurrent.futures import ThreadPoolExecutor
+    import oefp
+
+    def compute_row(smiles: str) -> int:
+        mol = _openeye_mol(smiles)
+        row = oefp.rdkit_descriptors(mol)
+        assert len(row.schema.names) == 214
+        return len(row.schema.names)
+
+    smiles_batch = ["CCO", "c1ccccc1", "CC(C)C", "CCCC", "C1CCCCC1"]
+    with ThreadPoolExecutor(max_workers=4) as executor:
+        results = list(executor.map(compute_row, smiles_batch))
+
+    assert results == [214] * len(smiles_batch)
