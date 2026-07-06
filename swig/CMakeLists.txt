@@ -40,5 +40,6 @@ install(CODE [[
 install(FILES
     ${CMAKE_SOURCE_DIR}/python/oefp/py.typed
     ${CMAKE_SOURCE_DIR}/python/oefp/mordred_references.json
+    ${CMAKE_SOURCE_DIR}/python/oefp/rdkit_references.json
     DESTINATION oefp
 )
