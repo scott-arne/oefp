@@ -121,6 +121,38 @@ The calculator exposes:
   for an iterable of molecules. This method releases the GIL and computes
   descriptor rows in parallel using OEFP's native thread pool.
 
+Shared Compute Context and Pruning
+----------------------------------
+
+Both ``compute`` and ``calculate_batch`` share a per-molecule **compute
+context** while producing a row. The context memoizes molecule-level
+intermediates — ring-perceived working molecule, heavy-atom graph and distance
+matrix, and Gasteiger/Crippen atom contributions — so any intermediate needed by
+more than one descriptor (within a single source or across sources) is computed
+**once** per molecule rather than repeatedly.
+
+On top of the shared context, the calculator **prunes** computation to the
+columns that actually survive selection and deduplication. When a source is
+registered with a name selection, or loses columns to a first-wins
+``canonical_id`` collision, the calculator asks that source to compute only the
+surviving columns. Descriptor groups whose outputs are all dropped are never
+run.
+
+.. important::
+
+   Pruning is **strictly subtractive and value-invariant**. Pruning changes
+   *which* descriptor groups run, never *how* a surviving column is computed. A
+   pruned calculator's value for any requested column is byte-identical to the
+   value the same calculator would produce with nothing pruned — the shared
+   intermediates and per-column algorithms are identical either way. Pruning is
+   therefore a pure performance optimization: it can only make computation
+   faster, never change a result.
+
+The shared context and pruning are internal C++ optimizations of the descriptor
+compute path. There is **no Python API change**: ``compute`` and
+``calculate_batch`` accept the same arguments and return the same schema-backed
+results as before — only faster.
+
 Within-Source Naming Smell
 ---------------------------
 

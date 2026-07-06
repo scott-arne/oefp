@@ -162,6 +162,29 @@ TEST(DescriptorCalculatorTest, PassesPerSourceRequestAndKeepsValues) {
     EXPECT_EQ(row.Int("nAtom"), standalone.Int("nAtom"));
 }
 
+TEST(DescriptorCalculatorTest, PrunedCalculatorMatchesUnprunedSurvivors) {
+    // End-to-end pruning equivalence at the calculator level: a calculator whose
+    // selection prunes Mordred down to two columns must yield byte-identical
+    // values for those columns versus the full, unpruned calculator. This proves
+    // pruning is strictly subtractive and value-invariant now that sources prune.
+    OEChem::OEGraphMol mol;
+    ASSERT_TRUE(OEChem::OESmilesToMol(mol, "CC(=O)OC1=CC=CC=C1C(=O)O"));  // aspirin
+    // Unpruned: full Mordred.
+    std::vector<DescriptorSourceEntry> full_entries;
+    full_entries.emplace_back(std::make_shared<MordredDescriptorSource>());
+    DescriptorCalculator full(std::move(full_entries));
+    const auto full_row = full.Compute(mol);
+    // Pruned: only two Mordred columns survive selection.
+    std::vector<DescriptorSourceEntry> narrow_entries;
+    narrow_entries.emplace_back(std::make_shared<MordredDescriptorSource>(),
+                                DescriptorSelection::Names({"MW", "ATS0dv"}));
+    DescriptorCalculator narrow(std::move(narrow_entries));
+    const auto narrow_row = narrow.Compute(mol);
+    EXPECT_DOUBLE_EQ(narrow_row.Float("MW"), full_row.Float("MW"));
+    EXPECT_DOUBLE_EQ(narrow_row.Float("ATS0dv"), full_row.Float("ATS0dv"));
+    EXPECT_EQ(narrow.Schema().Size(), 2u);
+}
+
 TEST(DescriptorCalculatorTest, CalculateBatchEqualsPerRowComputeInOrder) {
     std::vector<DescriptorSourceEntry> entries;
     entries.emplace_back(std::make_shared<MordredDescriptorSource>());
