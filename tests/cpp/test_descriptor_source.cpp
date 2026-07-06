@@ -64,6 +64,21 @@ TEST(OpenEyePropertyDescriptorSourceTest, UntaggedColumnsMatchOpenEyeToolkit) {
               static_cast<std::int64_t>(OEMolProp::OEGetAromaticRingCount(mol)));
 }
 
+TEST(DescriptorSourceTest, OpenEyePrunesToRequestedColumns) {
+    OEChem::OEGraphMol mol;
+    ASSERT_TRUE(OEChem::OESmilesToMol(mol, "CC(=O)OC1=CC=CC=C1C(=O)O"));
+    OpenEyePropertyDescriptorSource oe;
+    const auto schema = oe.Schema();
+    ComputeContext ctx(mol);
+    const auto full = oe.Compute(mol, ctx, ColumnRequest::All());
+    ComputeContext ctx2(mol);
+    const auto sub = oe.Compute(mol, ctx2, ColumnRequest::Subset({schema->IndexOf("XLogP")}));
+    EXPECT_TRUE(sub.Has(schema->IndexOf("XLogP")));
+    EXPECT_FALSE(sub.Has(schema->IndexOf("MolecularWeight")));
+    EXPECT_FALSE(sub.Has(schema->IndexOf("TopologicalPSA")));
+    EXPECT_DOUBLE_EQ(sub.Float("XLogP"), full.Float("XLogP"));
+}
+
 namespace {
 // A minimal source that only overrides the pure Compute(mol) — proves the
 // base context/request overload falls back correctly.

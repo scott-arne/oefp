@@ -99,56 +99,97 @@ DescriptorSet OpenEyePropertyDescriptorSource::Compute(const OEChem::OEMolBase& 
 
 DescriptorSet OpenEyePropertyDescriptorSource::Compute(const OEChem::OEMolBase& mol,
                                                        ComputeContext& ctx,
-                                                       const ColumnRequest&) const {
-    DescriptorSetBuilder builder(Schema());
+                                                       const ColumnRequest& request) const {
+    const auto schema = Schema();
+    DescriptorSetBuilder builder(schema);
+
+    // Each column computes (and emits) only when the request wants it. Pruning
+    // changes WHICH columns run, never HOW a column is computed, so a requested
+    // column's value is byte-identical to the All() value. The underlying
+    // OpenEye/shared-helper calls are inside the guards so skipping a column
+    // skips its work too.
+    const auto wants = [&](const char* name) {
+        return request.Wants(schema->IndexOf(name));
+    };
 
     // Tagged columns identical by construction with Mordred. Weights and atom
-    // counts reuse the shared helpers on the input molecule; TopoPSA/HBD/HBA
-    // pull the ring-perceived working molecule from the shared context so the
-    // OpenEye calls see the same perceived graph Mordred feeds them. The
-    // context prep (OEGraphMol copy + OEFindRingAtomsAndBonds +
-    // OEAssignHybridization) is byte-identical to the former inline block, so
-    // these tagged values are unchanged.
-    builder.Set("MolecularWeight", DescriptorValue::Float(ExactMolecularWeight(mol)));
-    builder.Set("AverageMolecularWeight", DescriptorValue::Float(AverageMolecularWeight(mol)));
-    builder.Set(
-        "HeavyAtomCount",
-        DescriptorValue::Int(static_cast<std::int64_t>(HeavyAtomCount(mol))));
-    builder.Set(
-        "TotalAtomCount",
-        DescriptorValue::Int(static_cast<std::int64_t>(TotalAtomCount(mol))));
-
-    const OEChem::OEGraphMol& working_mol = ctx.RingPerceivedMol();
-    float psa = 0.0f;
-    if (OEMolProp::OEGet2dPSA(working_mol, psa, nullptr, true)) {
-        builder.Set(
-            "TopologicalPSA",
-            DescriptorValue::Float(RoundTopologicalPsa(static_cast<double>(psa))));
+    // counts reuse the shared helpers on the input molecule.
+    if (wants("MolecularWeight")) {
+        builder.Set("MolecularWeight", DescriptorValue::Float(ExactMolecularWeight(mol)));
     }
-    builder.Set(
-        "LipinskiHBD",
-        DescriptorValue::Int(
-            static_cast<std::int64_t>(OEMolProp::OEGetLipinskiDonorCount(working_mol))));
-    builder.Set(
-        "HBA",
-        DescriptorValue::Int(
-            static_cast<std::int64_t>(OEMolProp::OEGetHBondAcceptorCount(working_mol))));
+    if (wants("AverageMolecularWeight")) {
+        builder.Set("AverageMolecularWeight", DescriptorValue::Float(AverageMolecularWeight(mol)));
+    }
+    if (wants("HeavyAtomCount")) {
+        builder.Set(
+            "HeavyAtomCount",
+            DescriptorValue::Int(static_cast<std::int64_t>(HeavyAtomCount(mol))));
+    }
+    if (wants("TotalAtomCount")) {
+        builder.Set(
+            "TotalAtomCount",
+            DescriptorValue::Int(static_cast<std::int64_t>(TotalAtomCount(mol))));
+    }
+
+    // TopoPSA/HBD/HBA pull the ring-perceived working molecule from the shared
+    // context so the OpenEye calls see the same perceived graph Mordred feeds
+    // them. The context prep (OEGraphMol copy + OEFindRingAtomsAndBonds +
+    // OEAssignHybridization) is byte-identical to the former inline block, so
+    // these tagged values are unchanged. The fetch is conditional: it happens
+    // only when at least one ring-perception-consuming column is wanted, so
+    // pruning to columns that do not need it avoids the shared computation.
+    const bool wants_topological_psa = wants("TopologicalPSA");
+    const bool wants_lipinski_hbd = wants("LipinskiHBD");
+    const bool wants_hba = wants("HBA");
+    if (wants_topological_psa || wants_lipinski_hbd || wants_hba) {
+        const OEChem::OEGraphMol& working_mol = ctx.RingPerceivedMol();
+        if (wants_topological_psa) {
+            float psa = 0.0f;
+            if (OEMolProp::OEGet2dPSA(working_mol, psa, nullptr, true)) {
+                builder.Set(
+                    "TopologicalPSA",
+                    DescriptorValue::Float(RoundTopologicalPsa(static_cast<double>(psa))));
+            }
+        }
+        if (wants_lipinski_hbd) {
+            builder.Set(
+                "LipinskiHBD",
+                DescriptorValue::Int(
+                    static_cast<std::int64_t>(OEMolProp::OEGetLipinskiDonorCount(working_mol))));
+        }
+        if (wants_hba) {
+            builder.Set(
+                "HBA",
+                DescriptorValue::Int(
+                    static_cast<std::int64_t>(OEMolProp::OEGetHBondAcceptorCount(working_mol))));
+        }
+    }
 
     // Untagged, genuinely OpenEye-unique columns computed directly on the input
     // molecule (matching the OpenEye-toolkit conformance oracle).
-    float xlogp = 0.0f;
-    if (OEMolProp::OEGetXLogP(mol, xlogp)) {
-        builder.Set("XLogP", DescriptorValue::Float(static_cast<double>(xlogp)));
+    if (wants("XLogP")) {
+        float xlogp = 0.0f;
+        if (OEMolProp::OEGetXLogP(mol, xlogp)) {
+            builder.Set("XLogP", DescriptorValue::Float(static_cast<double>(xlogp)));
+        }
     }
-    builder.Set(
-        "FractionCsp3",
-        DescriptorValue::Float(static_cast<double>(OEMolProp::OEGetFractionCsp3(mol))));
-    builder.Set(
-        "AromaticRingCount",
-        DescriptorValue::Int(static_cast<std::int64_t>(OEMolProp::OEGetAromaticRingCount(mol))));
-    builder.Set(
-        "RotatableBondCount",
-        DescriptorValue::Int(static_cast<std::int64_t>(OEMolProp::OEGetRotatableBondCount(mol))));
+    if (wants("FractionCsp3")) {
+        builder.Set(
+            "FractionCsp3",
+            DescriptorValue::Float(static_cast<double>(OEMolProp::OEGetFractionCsp3(mol))));
+    }
+    if (wants("AromaticRingCount")) {
+        builder.Set(
+            "AromaticRingCount",
+            DescriptorValue::Int(
+                static_cast<std::int64_t>(OEMolProp::OEGetAromaticRingCount(mol))));
+    }
+    if (wants("RotatableBondCount")) {
+        builder.Set(
+            "RotatableBondCount",
+            DescriptorValue::Int(
+                static_cast<std::int64_t>(OEMolProp::OEGetRotatableBondCount(mol))));
+    }
 
     return builder.Build();
 }
