@@ -14,6 +14,8 @@ import os
 from pathlib import Path
 from typing import Any
 
+EXPECTED_RDKIT_VERSION = "2026.03.3"
+
 # Reused verbatim from generate_mordred_references.py for cross-source panel
 # comparability, then extended with fragment/VSA coverage molecules.
 SMILES_PANEL = [
@@ -181,12 +183,21 @@ def _json_value(value: Any) -> Any:
     return number
 
 
-def _reference_payload(descriptor_source_id: str) -> dict[str, Any]:
+def _reference_payload(descriptor_source_id: str, allow_version_mismatch: bool = False) -> dict[str, Any]:
     from rdkit import Chem
     from rdkit.Chem import Descriptors
 
     desc_list = list(Descriptors._descList)  # [(name, fn), ...]
     version = _rdkit_version()
+
+    # Guard against unexpected RDKit version to preserve deterministic output
+    if version != EXPECTED_RDKIT_VERSION:
+        msg = f"Expected RDKit {EXPECTED_RDKIT_VERSION}, imported {version!r}."
+        if allow_version_mismatch:
+            print(f"WARNING: {msg}")
+        else:
+            raise RuntimeError(msg)
+
     source_version = f"RDKit-{version}"
     panel = SMILES_PANEL + RDKIT_COVERAGE_SUPPLEMENT
 
@@ -367,9 +378,11 @@ def main() -> None:
                         default=os.environ.get("OEFP_RDKIT_SOURCE_ID", "rdkit-2026.03.3"))
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--cpp-output", type=Path)
+    parser.add_argument("--allow-rdkit-version-mismatch", action="store_true",
+                        help="Downgrade version mismatch from error to warning")
     args = parser.parse_args()
 
-    payload = _reference_payload(args.descriptor_source)
+    payload = _reference_payload(args.descriptor_source, args.allow_rdkit_version_mismatch)
     # 217 in RDKit _descList minus 3 always-zero VSA bins = 214 schema descriptors
     if len(payload["definitions"]) != 214:
         raise RuntimeError(f"Expected 214 RDKit definitions, got {len(payload['definitions'])}.")
