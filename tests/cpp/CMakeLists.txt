@@ -35,6 +35,7 @@ add_executable(oefp_tests
     test_mordred_schema.cpp
     test_morgan.cpp
     test_openeye_interop.cpp
+    test_rdkit_descriptors.cpp
     test_rdkit_schema.cpp
     test_sparse.cpp
     test_sparse_batch.cpp

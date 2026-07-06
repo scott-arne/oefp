@@ -35,6 +35,10 @@ _MORDRED_REFERENCE_RESOURCE = "mordred_references.json"
 _MORDRED_REFERENCE_FIXTURE = (
     Path(__file__).resolve().parents[2] / "tests" / "python" / "mordred_references.json"
 )
+_RDKIT_REFERENCE_RESOURCE = "rdkit_references.json"
+_RDKIT_REFERENCE_FIXTURE = (
+    Path(__file__).resolve().parents[2] / "tests" / "python" / "rdkit_references.json"
+)
 
 
 def _normalized_descriptor_prerequisites(value: int) -> int:
@@ -493,6 +497,47 @@ def mordred_schema() -> DescriptorSchema:
     payload = _mordred_reference_payload()
     return DescriptorSchema(
         [_mordred_definition_from_fixture(item) for item in payload["definitions"]]
+    )
+
+
+def _rdkit_reference_payload() -> dict[str, Any]:
+    resource = resources.files("oefp").joinpath(_RDKIT_REFERENCE_RESOURCE)
+    if resource.is_file():
+        with resource.open(encoding="utf-8") as handle:
+            payload = json.load(handle)
+    else:
+        with _RDKIT_REFERENCE_FIXTURE.open(encoding="utf-8") as handle:
+            payload = json.load(handle)
+    if not isinstance(payload, dict) or not isinstance(payload.get("definitions"), list):
+        raise ValueError("RDKit reference fixture does not contain definitions.")
+    return payload
+
+
+def _rdkit_definition_from_fixture(definition: Mapping[str, Any]) -> DescriptorDefinition:
+    return DescriptorDefinition(
+        str(definition["name"]),
+        str(definition["value_kind"]),
+        group=str(definition.get("group", "")),
+        source_name=str(definition.get("source_name", "")),
+        source_type=str(definition.get("source_type", "")),
+        source_version=str(definition.get("source_version", "")),
+        parameters=str(definition.get("parameters", "")),
+        units=str(definition.get("units", "")),
+        description=str(definition.get("description", "")),
+        prerequisites=int(definition.get("prerequisites", 0)),
+        canonical_id=str(definition.get("canonical_id", "")),
+    )
+
+
+@lru_cache(maxsize=1)
+def rdkit_schema() -> DescriptorSchema:
+    """Return the full RDKit 2D descriptor schema.
+
+    :returns: Descriptor schema matching the committed RDKit 2023.09.6 fixture.
+    """
+    payload = _rdkit_reference_payload()
+    return DescriptorSchema(
+        [_rdkit_definition_from_fixture(item) for item in payload["definitions"]]
     )
 
 
@@ -3224,6 +3269,35 @@ def mordred_descriptors(mol: Any) -> DescriptorSet:
     return DescriptorSet(schema, values)
 
 
+def _rdkit_value_from_native(native: Any, definition: DescriptorDefinition) -> Any:
+    if not native.Has(definition.name):
+        return None
+    if definition.value_type == "bool":
+        return bool(native.Bool(definition.name))
+    if definition.value_type == "int":
+        return int(native.Int(definition.name))
+    if definition.value_type == "float":
+        return float(native.Float(definition.name))
+    if definition.value_type == "string":
+        return str(native.String(definition.name))
+    return None
+
+
+def rdkit_descriptors(mol: Any) -> DescriptorSet:
+    """Generate schema-backed RDKit-compatible 2D descriptors.
+
+    :param mol: OpenEye molecule to describe.
+    :returns: Descriptor row backed by :func:`rdkit_schema`.
+    """
+    native = _native.MakeRDKitDescriptors(mol)
+    schema = rdkit_schema()
+    values = {
+        definition.name: _rdkit_value_from_native(native, definition)
+        for definition in schema.definitions
+    }
+    return DescriptorSet(schema, values)
+
+
 def _descriptor_definition_from_native(native_definition: Any) -> DescriptorDefinition:
     """Build a Python descriptor definition from a native schema definition."""
     return DescriptorDefinition(
@@ -3285,7 +3359,16 @@ class OpenEyePropertyDescriptorSource:
         self._native = _native.OpenEyePropertyDescriptorSource()
 
 
-DescriptorSource = MordredDescriptorSource | OpenEyePropertyDescriptorSource
+class RDKitDescriptorSource:
+    """Descriptor source reproducing RDKit 2D descriptors natively."""
+
+    def __init__(self) -> None:
+        self._native = _native.RDKitDescriptorSource()
+
+
+DescriptorSource = (
+    MordredDescriptorSource | OpenEyePropertyDescriptorSource | RDKitDescriptorSource
+)
 
 
 class DescriptorCalculator:

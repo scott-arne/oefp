@@ -97,6 +97,25 @@ public:
                           const ColumnRequest& request) const override;
 };
 
+/// \brief Descriptor source reproducing RDKit 2D descriptors natively.
+///
+/// Values reproduce RDKit's numbers within a per-descriptor tolerance tier;
+/// computation is native (OpenEye Toolkits), with RDKit used only as a
+/// test-time conformance oracle. Most columns carry an empty ``canonical_id``
+/// and coexist with conceptually similar Mordred/OpenEye columns; a small
+/// curated set shares a ``canonical_id`` where the computation is provably
+/// identical.
+class RDKitDescriptorSource : public DescriptorSource {
+public:
+    using DescriptorSource::Compute;
+
+    std::shared_ptr<const DescriptorSchema> Schema() const override;
+    DescriptorSet Compute(const OEChem::OEMolBase& mol) const override;
+    DescriptorSet Compute(const OEChem::OEMolBase& mol,
+                          ComputeContext& ctx,
+                          const ColumnRequest& request) const override;
+};
+
 } // namespace OEFP
 
 #endif // OEFP_DESCRIPTOR_SOURCE_H

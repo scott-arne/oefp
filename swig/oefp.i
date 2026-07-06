@@ -500,6 +500,7 @@ OE_CROSS_RUNTIME_REF_TYPEMAPS(OEDocking::OEReceptor, _oefp_is_oereceptor, "Expec
 %shared_ptr(OEFP::DescriptorSource)
 %shared_ptr(OEFP::MordredDescriptorSource)
 %shared_ptr(OEFP::OpenEyePropertyDescriptorSource)
+%shared_ptr(OEFP::RDKitDescriptorSource)
 
 // SWIG's python/std_common.i registers numeric "value" traits
 // (swig::traits<T> with value_category plus traits_from / traits_asval) only
@@ -681,6 +682,7 @@ OEFP_GIL_RELEASE_EXCEPTION(OEFP::MakeMorganSparseFingerprintWithMapping)
 OEFP_GIL_RELEASE_EXCEPTION(OEFP::MorganGenerator::Fingerprint)
 OEFP_GIL_RELEASE_EXCEPTION(OEFP::ProfileMorganFingerprint)
 OEFP_GIL_RELEASE_EXCEPTION(OEFP::MakeMordredDescriptors)
+OEFP_GIL_RELEASE_EXCEPTION(OEFP::MakeRDKitDescriptors)
 OEFP_GIL_RELEASE_EXCEPTION(OEFP::DescriptorCalculator::Compute)
 OEFP_GIL_RELEASE_EXCEPTION(OEFP::DescriptorCalculator::CalculateBatch)
 
@@ -707,6 +709,15 @@ OEFP_GIL_RELEASE_EXCEPTION(OEFP::DescriptorCalculator::CalculateBatch)
 // qualified vector parameter that unifies with the DescriptorSourceEntryVector
 // template below.
 %ignore OEFP::DescriptorCalculator::DescriptorCalculator;
+// Ignore the context/request Compute overloads; Python only needs the
+// single-molecule overload (the source classes route internally).
+%ignore OEFP::DescriptorSource::Compute(const OEChem::OEMolBase&, ComputeContext&, const ColumnRequest&) const;
+%ignore OEFP::DescriptorSource::Compute(const OEChem::OEMolBase&, ComputeContext&) const;
+// Ignore the context/request overloads of descriptor-making functions; only
+// the single-molecule overload is needed in Python (the source classes handle
+// the context/request routing internally).
+%ignore OEFP::MakeMordredDescriptors(const OEChem::OEMolBase&, ComputeContext&, const ColumnRequest&);
+%ignore OEFP::MakeRDKitDescriptors(const OEChem::OEMolBase&, ComputeContext&, const ColumnRequest&);
 %include "oefp/descriptor_source.h"
 %include "oefp/descriptor_calculator.h"
 
@@ -734,6 +745,14 @@ OEFP_GIL_RELEASE_EXCEPTION(OEFP::DescriptorCalculator::CalculateBatch)
     }
     DescriptorSourceEntry(
         std::shared_ptr< ::OEFP::OpenEyePropertyDescriptorSource > source,
+        ::OEFP::DescriptorSelection selection) {
+        return new OEFP::DescriptorSourceEntry(std::move(source), std::move(selection));
+    }
+    DescriptorSourceEntry(std::shared_ptr< ::OEFP::RDKitDescriptorSource > source) {
+        return new OEFP::DescriptorSourceEntry(std::move(source));
+    }
+    DescriptorSourceEntry(
+        std::shared_ptr< ::OEFP::RDKitDescriptorSource > source,
         ::OEFP::DescriptorSelection selection) {
         return new OEFP::DescriptorSourceEntry(std::move(source), std::move(selection));
     }
@@ -766,6 +785,17 @@ namespace std {
 %include "oefp/count_batch.h"
 %include "oefp/sparse_batch.h"
 %include "oefp/mordred.h"
+// rdkit_descriptors.h is %include'd but SWIG has trouble with it due to the
+// OEFP::OEFP name collision causing misqualified return types. Work around by
+// suppressing the original declarations and re-declaring with explicit qualification.
+%ignore OEFP::RDKitDescriptorSchema;
+%ignore OEFP::MakeRDKitDescriptors;
+%include "oefp/rdkit_descriptors.h"
+// Re-declare with explicit qualification so SWIG generates correct wrappers.
+namespace OEFP {
+std::shared_ptr< ::OEFP::DescriptorSchema const > RDKitDescriptorSchema();
+::OEFP::DescriptorSet MakeRDKitDescriptors(const OEChem::OEMolBase& mol);
+}
 %include "oefp/morgan.h"
 %include "oefp/metric.h"
 %include "oefp/compare.h"
