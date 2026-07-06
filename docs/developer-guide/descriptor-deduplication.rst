@@ -137,8 +137,11 @@ On top of the shared context, the calculator **prunes** computation to the
 columns that actually survive selection and deduplication. When a source is
 registered with a name selection, or loses columns to a first-wins
 ``canonical_id`` collision, the calculator asks that source to compute only the
-surviving columns. Descriptor groups whose outputs are all dropped are never
-run.
+surviving columns. A descriptor group whose emitted columns are all dropped is
+skipped — unless a surviving group depends on its intermediate results, in which
+case it still runs (populating that shared intermediate) but emits none of its
+own columns. This dependency closure is what preserves value-invariance under
+pruning.
 
 .. important::
 

@@ -180,8 +180,12 @@ TEST(DescriptorCalculatorTest, PrunedCalculatorMatchesUnprunedSurvivors) {
                                 DescriptorSelection::Names({"MW", "ATS0dv"}));
     DescriptorCalculator narrow(std::move(narrow_entries));
     const auto narrow_row = narrow.Compute(mol);
-    EXPECT_DOUBLE_EQ(narrow_row.Float("MW"), full_row.Float("MW"));
-    EXPECT_DOUBLE_EQ(narrow_row.Float("ATS0dv"), full_row.Float("ATS0dv"));
+    // Byte-identical value-invariance: compare DescriptorValue directly (operator==),
+    // not EXPECT_DOUBLE_EQ which would tolerate small ULP drift.
+    ASSERT_TRUE(narrow_row.Has("MW"));
+    ASSERT_TRUE(narrow_row.Has("ATS0dv"));
+    EXPECT_EQ(narrow_row.Value("MW"), full_row.Value("MW"));
+    EXPECT_EQ(narrow_row.Value("ATS0dv"), full_row.Value("ATS0dv"));
     EXPECT_EQ(narrow.Schema().Size(), 2u);
 }
 
