@@ -127,9 +127,11 @@ Shared Compute Context and Pruning
 Both ``compute`` and ``calculate_batch`` share a per-molecule **compute
 context** while producing a row. The context memoizes molecule-level
 intermediates — ring-perceived working molecule, heavy-atom graph and distance
-matrix, and Gasteiger/Crippen atom contributions — so any intermediate needed by
-more than one descriptor (within a single source or across sources) is computed
-**once** per molecule rather than repeatedly.
+matrix, and Gasteiger/Crippen atom contributions — so each is computed **once**
+per molecule and reused wherever it is needed rather than recomputed. The
+ring-perceived molecule is shared across all sources (both Mordred and the
+OpenEye property source consume it); the other intermediates are Mordred-specific
+and are reused across Mordred's descriptor groups.
 
 On top of the shared context, the calculator **prunes** computation to the
 columns that actually survive selection and deduplication. When a source is
