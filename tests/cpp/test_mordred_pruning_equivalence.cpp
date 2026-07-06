@@ -28,10 +28,8 @@ std::vector<std::size_t> indices_for(const std::vector<std::string>& names) {
 // Assert that computing only the requested columns yields byte-identical values
 // for every requested column compared with computing the full schema, and that
 // pruning is subtractive: a spread of non-requested columns stays missing.
-void expect_subset_matches_all(const char* smiles, const std::vector<std::string>& names) {
-    OEChem::OEGraphMol mol;
-    ASSERT_TRUE(OEChem::OESmilesToMol(mol, smiles)) << smiles;
-
+void expect_subset_matches_all_for_mol(
+    const OEChem::OEMolBase& mol, const std::vector<std::string>& names) {
     ComputeContext ctx_all(mol);
     const auto full = MakeMordredDescriptors(mol, ctx_all, ColumnRequest::All());
 
@@ -57,6 +55,42 @@ void expect_subset_matches_all(const char* smiles, const std::vector<std::string
         }
         EXPECT_FALSE(sub.Has(i)) << "unrequested column " << i << " should be missing";
     }
+}
+
+void expect_subset_matches_all(const char* smiles, const std::vector<std::string>& names) {
+    OEChem::OEGraphMol mol;
+    ASSERT_TRUE(OEChem::OESmilesToMol(mol, smiles)) << smiles;
+    expect_subset_matches_all_for_mol(mol, names);
+}
+
+// Build a molecule that reports a real 3D conformer so the Mordred 3D groups
+// (MoRSE, LowCount3D, CPSASurface) emit values. Omega is not linked into the
+// test build, so we set explicit atom coordinates directly. Hydrogens are made
+// explicit and given coordinates BEFORE returning: build_mordred_3d_context
+// requires every atom (including hydrogens) to carry 3D coordinates both on the
+// input molecule and on its internal explicit-hydrogen copy, and that copy is
+// produced with OEAddExplicitHydrogens(mol, false, /*set3D=*/false), which would
+// leave newly added hydrogens without coordinates. Making them explicit here
+// first turns that internal call into a coordinate-preserving no-op.
+void build_3d_mol(OEChem::OEGraphMol& mol, const char* smiles) {
+    ASSERT_TRUE(OEChem::OESmilesToMol(mol, smiles)) << smiles;
+    OEChem::OEAddExplicitHydrogens(mol, false, false);
+
+    // Assign a spread-out coordinate to every atom. Exact geometry is
+    // irrelevant to this test; only that the molecule reports dimension 3 with a
+    // coordinate on each atom so build_mordred_3d_context succeeds. Distinct,
+    // non-collinear coordinates keep the resulting 3D descriptors finite.
+    unsigned int i = 0u;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom, ++i) {
+        const double coords[3] = {
+            static_cast<double>(i) * 1.5,
+            static_cast<double>((i * 7u) % 5u) * 1.1,
+            static_cast<double>((i * 3u) % 4u) * 0.9,
+        };
+        ASSERT_TRUE(mol.SetCoords(atom, coords));
+    }
+    mol.SetDimension(3u);
+    ASSERT_EQ(mol.GetDimension(), 3u);
 }
 
 }  // namespace
@@ -173,4 +207,46 @@ TEST(MordredPruningEquivalenceTest, WideMultiGroupMix) {
     expect_column_matches_across_panel(
         {"MW", "nAtom", "ATS0dv", "WPath", "SLogP", "Kier1", "ETA_alpha", "SMR_VSA1",
          "BCUTdv-1h", "SpAbs_Dzv", "GGI1", "nRing", "MWC01", "IC0", "ABC"});
+}
+
+// The 3D groups (MoRSE, LowCount3D, CPSASurface) reach ThreeDContext through a
+// declared dependency edge. On the 2D panel above, their columns are missing in
+// both All() and Subset, so the equivalence there holds trivially and never
+// exercises that edge: dropping the {ThreeDContext} edge would keep every 2D
+// guard green. This scenario closes that gap. It computes on a molecule with a
+// real 3D conformer so build_mordred_3d_context succeeds and the 3D groups emit
+// values, then proves Subset==All for 3D-group columns.
+//
+// ThreeDContext emits no columns of its own, so requesting only a MoRSE or
+// LowCount3D column (without any ThreeDContext column, because there are none)
+// forces the request closure to pull ThreeDContext in as a dependency. If that
+// edge were missing, ThreeDContext would not run under the pruned request, the
+// 3D context artifact would be empty, and the requested 3D value would be
+// missing while All() still has it -- surfacing as Subset != All here.
+TEST(MordredPruningEquivalenceTest, ThreeDGroupDependencyEdgesAreExercised) {
+    OEChem::OEGraphMol mol;
+    build_3d_mol(mol, "CCO");
+    ASSERT_EQ(mol.GetDimension(), 3u);
+
+    // Precondition: the 3D-group columns must actually be PRESENT under All() on
+    // this molecule. If they are missing, build_mordred_3d_context did not
+    // succeed and the equivalence below would hold vacuously.
+    ComputeContext ctx_all(mol);
+    const auto full = MakeMordredDescriptors(mol, ctx_all, ColumnRequest::All());
+    const auto schema = MordredDescriptorSchema();
+    for (const auto* name : {"GeomDiameter", "Mor01", "PNSA1"}) {
+        EXPECT_TRUE(full.Has(schema->IndexOf(name)))
+            << name << " must be present under All() on a 3D molecule; if missing, "
+                       "build_mordred_3d_context failed and the 3D edge is untested";
+    }
+
+    // Each request targets a single 3D group's column without requesting any
+    // ThreeDContext column (it has none), so the value can only be correct if
+    // the ThreeDContext dependency ran in the pruned closure.
+    expect_subset_matches_all_for_mol(mol, {"GeomDiameter"});  // LowCount3D
+    expect_subset_matches_all_for_mol(mol, {"Mor01"});         // MoRSE
+    expect_subset_matches_all_for_mol(mol, {"PNSA1"});         // CPSASurface
+
+    // A combined request across all three 3D groups plus a 2D anchor column.
+    expect_subset_matches_all_for_mol(mol, {"GeomDiameter", "Mor01", "PNSA1", "MW"});
 }
