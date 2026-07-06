@@ -295,17 +295,28 @@ def _schema_id(definitions: list[dict[str, Any]]) -> str:
         return f"{text}{len(value.encode('utf-8'))}:{value}"
     serialized = "oefp-descriptor-schema-v1\n"
     for d in definitions:
-        serialized = append_field(serialized, d["name"]); serialized += "|"
-        serialized += d["value_kind"]; serialized += "|"
-        serialized = append_field(serialized, d["group"]); serialized += "|"
-        serialized = append_field(serialized, d["source_name"]); serialized += "|"
-        serialized = append_field(serialized, d["source_type"]); serialized += "|"
-        serialized = append_field(serialized, d["source_version"]); serialized += "|"
-        serialized = append_field(serialized, d["parameters"]); serialized += "|"
-        serialized = append_field(serialized, d.get("units", "")); serialized += "|"
-        serialized = append_field(serialized, d["description"]); serialized += "|"
-        serialized = append_field(serialized, d.get("canonical_id", "")); serialized += "|"
-        serialized += str(int(d.get("prerequisites", 0))); serialized += "|-\n"
+        serialized = append_field(serialized, d["name"])
+        serialized += "|"
+        serialized += d["value_kind"]
+        serialized += "|"
+        serialized = append_field(serialized, d["group"])
+        serialized += "|"
+        serialized = append_field(serialized, d["source_name"])
+        serialized += "|"
+        serialized = append_field(serialized, d["source_type"])
+        serialized += "|"
+        serialized = append_field(serialized, d["source_version"])
+        serialized += "|"
+        serialized = append_field(serialized, d["parameters"])
+        serialized += "|"
+        serialized = append_field(serialized, d.get("units", ""))
+        serialized += "|"
+        serialized = append_field(serialized, d["description"])
+        serialized += "|"
+        serialized = append_field(serialized, d.get("canonical_id", ""))
+        serialized += "|"
+        serialized += str(int(d.get("prerequisites", 0)))
+        serialized += "|-\n"
     value = 14695981039346656037
     for byte in serialized.encode("utf-8"):
         value ^= byte
