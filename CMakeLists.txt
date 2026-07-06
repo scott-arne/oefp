@@ -165,6 +165,8 @@ set(OEFP_SOURCES
     src/mordred_schema.cpp
     src/morgan.cpp
     src/openeye.cpp
+    src/rdkit_descriptors.cpp
+    src/rdkit_schema.cpp
     src/sparse.cpp
     src/sparse_batch.cpp
     src/stereo.cpp
