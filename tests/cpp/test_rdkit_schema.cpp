@@ -4,8 +4,10 @@
 
 using namespace OEFP;
 
-TEST(RDKitSchemaTest, HasAll217Descriptors) {
-    EXPECT_EQ(RDKitDescriptorSchema()->Size(), 217u);
+// 217 RDKit _descList descriptors minus 3 always-zero VSA bins (SMR_VSA8,
+// SlogP_VSA9, EState_VSA11) = 214 schema descriptors.
+TEST(RDKitSchemaTest, HasAll214Descriptors) {
+    EXPECT_EQ(RDKitDescriptorSchema()->Size(), 214u);
 }
 
 TEST(RDKitSchemaTest, SourceNameIsRDKit) {
@@ -30,4 +32,12 @@ TEST(RDKitSchemaTest, NoCoordinatePrerequisites) {
     for (std::size_t i = 0; i < schema->Size(); ++i) {
         EXPECT_EQ(schema->Definition(i).prerequisites, kDescriptorPrerequisiteNone) << i;
     }
+}
+
+// Verify that structurally always-zero VSA bins are excluded from the schema.
+TEST(RDKitSchemaTest, ExcludesAlwaysZeroVsaBins) {
+    const auto schema = RDKitDescriptorSchema();
+    EXPECT_FALSE(schema->Contains("SMR_VSA8"));
+    EXPECT_FALSE(schema->Contains("SlogP_VSA9"));
+    EXPECT_FALSE(schema->Contains("EState_VSA11"));
 }

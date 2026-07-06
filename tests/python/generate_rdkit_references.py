@@ -48,30 +48,30 @@ RDKIT_COVERAGE_SUPPLEMENT = [
     # Fragment coverage (fr_*)
     "CSC",                                      # fr_C_S sulfide
     "CC=O",                                     # fr_aldehyde
-    "CCONC",                                    # fr_HOCCN
+    "OCCN1CCCCC1",                              # fr_HOCCN
     "C=NC",                                     # fr_Imine
     "CNO",                                      # fr_N_O
-    "CCN(C)C",                                  # fr_Ndealkylation2
+    "CN1CCCCC1",                                # fr_Ndealkylation2
     "CS",                                       # fr_SH thiol
     "CC(=O)NC(=O)C",                            # fr_imide
     "CCNC(=O)OC",                               # fr_alkyl_carbamate
     "CC=CCO",                                   # fr_allylic_oxid
-    "N=C(N)N",                                  # fr_amidine
+    "CC(=N)N",                                  # fr_amidine (not guanidine)
     "Cc1ccccc1",                                # fr_aryl_methyl
-    "N=[N+]=[N-]",                              # fr_azide
+    "CCN=[N+]=[N-]",                            # fr_azide (alkyl azide)
     "O=C1NC(=O)NC(=O)C1",                       # fr_barbitur
-    "c1ccc2c(c1)C(=NC)NC2",                     # fr_benzodiazepine
-    "C=[N+]=[N-]",                              # fr_diazo
+    "O=C1CN=C(c2ccccc2)c2ccccc2N1",             # fr_benzodiazepine (7-ring core)
+    "[CH2-][N+]#N",                             # fr_diazo
     "C1=CNC=CC1",                               # fr_dihydropyridine
     "C1OC1",                                    # fr_epoxide
     "c1ccoc1",                                  # fr_furan
-    "NC(=N)N",                                  # fr_guanido
+    "N=C(N)N",                                  # fr_guanido (guanidine)
     "NN",                                       # fr_hdrzine
     "C=NN",                                     # fr_hdrzone
     "c1cnc[nH]1",                               # fr_imidazole
     "N=C=O",                                    # fr_isocyan
     "N=C=S",                                    # fr_isothiocyan
-    "C1CC(=O)NC1",                              # fr_lactam
+    "O=C1CCN1",                                 # fr_lactam (beta-lactam)
     "C1COC(=O)C1",                              # fr_lactone
     "C1CNCCO1",                                 # fr_morpholine
     "CN=O",                                     # fr_nitroso
@@ -88,6 +88,11 @@ RDKIT_COVERAGE_SUPPLEMENT = [
     "c1ccsc1",                                  # fr_thiophene
     "NC(=O)N",                                  # fr_urea
 ]
+
+# RDKit descriptors excluded from the schema because they are structurally
+# always zero (empty VSA bins; RDKit's fixed bin boundaries never populate these
+# ranges). Excluded per user decision 2026-07-06.
+RDKIT_EXCLUDED_DESCRIPTORS = {"SMR_VSA8", "SlogP_VSA9", "EState_VSA11"}
 
 # Curated cross-source identities. A name maps to a shared canonical_id ONLY
 # after Task 4 verifies byte-identical output vs the existing source over the
@@ -185,6 +190,9 @@ def _reference_payload(descriptor_source_id: str) -> dict[str, Any]:
     source_version = f"RDKit-{version}"
     panel = SMILES_PANEL + RDKIT_COVERAGE_SUPPLEMENT
 
+    # Filter out excluded descriptors from both definitions and per-row values
+    desc_list = [(name, fn) for name, fn in desc_list if name not in RDKIT_EXCLUDED_DESCRIPTORS]
+
     definitions = []
     for name, _fn in desc_list:
         definitions.append({
@@ -222,6 +230,7 @@ def _reference_payload(descriptor_source_id: str) -> dict[str, Any]:
         "source": {"descriptor_source": descriptor_source_id, "name": "RDKit",
                    "version": source_version},
         "smiles_panel": panel,
+        "excluded_descriptors": list(sorted(RDKIT_EXCLUDED_DESCRIPTORS)),
         "definitions": definitions,
         "reference_rows": rows,
     }
@@ -239,33 +248,23 @@ def _assert_coverage(definitions: list[dict[str, Any]], rows: list[dict[str, Any
                 return True
         return False
 
-    # Known empty bins in RDKit (gaps in VSA bin-range definitions, and fr_*
-    # SMARTS that are overly specific or never match real molecules).
-    KNOWN_EMPTY_BINS = {"SMR_VSA8", "EState_VSA11", "SlogP_VSA9"}
-
-    # Hard assertions: every non-empty VSA bin must fire at least once.
+    # Hard assertion: every VSA bin in the schema must fire at least once.
+    # (Always-zero bins are excluded from the schema at enumeration time.)
     for name in names:
         if "VSA" in name:
-            if name in KNOWN_EMPTY_BINS:
-                continue
             if not nonzero_somewhere(name):
                 raise AssertionError(
                     f"VSA coverage gap: {name} is zero; add a molecule that "
                     f"activates this bin to RDKIT_COVERAGE_SUPPLEMENT.")
 
-    # For fr_* descriptors: assert coverage only for core common fragments that
-    # should definitely appear across a drug-like panel. Many RDKit fr_* patterns
-    # are overly specific SMARTS that rarely/never match real structures.
-    CORE_FRAGMENTS = {
-        "fr_benzene", "fr_phenol", "fr_ester", "fr_ether", "fr_halogen",
-        "fr_ketone", "fr_aldehyde", "fr_carbalic_acid", "fr_COO", "fr_NH0",
-        "fr_NH1", "fr_NH2", "fr_Ar_N", "fr_nitro", "fr_sulfone",
-    }
+    # Hard assertion: every fr_* descriptor must fire at least once.
+    # All RDKit fr_* patterns are chemically calculable; expand the panel to
+    # cover any that don't yet have an activator molecule.
     for name in names:
-        if name.startswith("fr_") and name in CORE_FRAGMENTS:
+        if name.startswith("fr_"):
             if not nonzero_somewhere(name):
                 raise AssertionError(
-                    f"Core fragment gap: {name} is zero; add a molecule to "
+                    f"Fragment coverage gap: {name} is zero; add a molecule to "
                     f"RDKIT_COVERAGE_SUPPLEMENT that activates it.")
 
     # Soft warnings: any descriptor all-zero/all-constant across the panel.
@@ -371,11 +370,12 @@ def main() -> None:
     args = parser.parse_args()
 
     payload = _reference_payload(args.descriptor_source)
-    if len(payload["definitions"]) != 217:
-        raise RuntimeError(f"Expected 217 RDKit definitions, got {len(payload['definitions'])}.")
+    # 217 in RDKit _descList minus 3 always-zero VSA bins = 214 schema descriptors
+    if len(payload["definitions"]) != 214:
+        raise RuntimeError(f"Expected 214 RDKit definitions, got {len(payload['definitions'])}.")
     for row in payload["reference_rows"]:
-        if len(row["values"]) != 217:
-            raise RuntimeError(f"Expected 217 values for {row['smiles']}.")
+        if len(row["values"]) != 214:
+            raise RuntimeError(f"Expected 214 values for {row['smiles']}.")
 
     args.output.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n",
                            encoding="utf-8")

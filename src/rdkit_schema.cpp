@@ -20,7 +20,7 @@ struct StaticRDKitDefinition {
     DescriptorPrerequisites prerequisites;
 };
 
-constexpr std::array<StaticRDKitDefinition, 217> kRDKitDefinitions{{
+constexpr std::array<StaticRDKitDefinition, 214> kRDKitDefinitions{{
     {"MaxAbsEStateIndex", DescriptorValueKind::Float, "rdkit:EState", "EState", "", "MaxAbsEStateIndex", "", 0u},
     {"MaxEStateIndex", DescriptorValueKind::Float, "rdkit:EState", "EState", "", "MaxEStateIndex", "", 0u},
     {"MinAbsEStateIndex", DescriptorValueKind::Float, "rdkit:EState", "EState", "", "MinAbsEStateIndex", "", 0u},
@@ -90,7 +90,6 @@ constexpr std::array<StaticRDKitDefinition, 217> kRDKitDefinitions{{
     {"SMR_VSA5", DescriptorValueKind::Float, "rdkit:VSA", "VSA", "", "SMR_VSA5", "", 0u},
     {"SMR_VSA6", DescriptorValueKind::Float, "rdkit:VSA", "VSA", "", "SMR_VSA6", "", 0u},
     {"SMR_VSA7", DescriptorValueKind::Float, "rdkit:VSA", "VSA", "", "SMR_VSA7", "", 0u},
-    {"SMR_VSA8", DescriptorValueKind::Float, "rdkit:VSA", "VSA", "", "SMR_VSA8", "", 0u},
     {"SMR_VSA9", DescriptorValueKind::Float, "rdkit:VSA", "VSA", "", "SMR_VSA9", "", 0u},
     {"SlogP_VSA1", DescriptorValueKind::Float, "rdkit:VSA", "VSA", "", "SlogP_VSA1", "", 0u},
     {"SlogP_VSA10", DescriptorValueKind::Float, "rdkit:VSA", "VSA", "", "SlogP_VSA10", "", 0u},
@@ -103,11 +102,9 @@ constexpr std::array<StaticRDKitDefinition, 217> kRDKitDefinitions{{
     {"SlogP_VSA6", DescriptorValueKind::Float, "rdkit:VSA", "VSA", "", "SlogP_VSA6", "", 0u},
     {"SlogP_VSA7", DescriptorValueKind::Float, "rdkit:VSA", "VSA", "", "SlogP_VSA7", "", 0u},
     {"SlogP_VSA8", DescriptorValueKind::Float, "rdkit:VSA", "VSA", "", "SlogP_VSA8", "", 0u},
-    {"SlogP_VSA9", DescriptorValueKind::Float, "rdkit:VSA", "VSA", "", "SlogP_VSA9", "", 0u},
     {"TPSA", DescriptorValueKind::Float, "rdkit:SurfacePolarity", "SurfacePolarity", "", "TPSA", "", 0u},
     {"EState_VSA1", DescriptorValueKind::Float, "rdkit:VSA", "VSA", "", "EState_VSA1", "", 0u},
     {"EState_VSA10", DescriptorValueKind::Float, "rdkit:VSA", "VSA", "", "EState_VSA10", "", 0u},
-    {"EState_VSA11", DescriptorValueKind::Float, "rdkit:VSA", "VSA", "", "EState_VSA11", "", 0u},
     {"EState_VSA2", DescriptorValueKind::Float, "rdkit:VSA", "VSA", "", "EState_VSA2", "", 0u},
     {"EState_VSA3", DescriptorValueKind::Float, "rdkit:VSA", "VSA", "", "EState_VSA3", "", 0u},
     {"EState_VSA4", DescriptorValueKind::Float, "rdkit:VSA", "VSA", "", "EState_VSA4", "", 0u},
