@@ -2017,11 +2017,15 @@ void count_carbon_type(MordredFirstBatchValues& values, const OEChem::OEAtomBase
     }
 }
 
-MordredFirstBatchValues compute_first_batch_values(const OEChem::OEMolBase& mol) {
-    OEChem::OEGraphMol working_mol(mol);
-    OEChem::OEFindRingAtomsAndBonds(working_mol);
-    OEChem::OEAssignHybridization(working_mol);
-
+/// \brief Compute the first-batch counts from a ring-perceived working molecule.
+///
+/// ``working_mol`` must already carry ring-atom/bond perception and assigned
+/// hybridization (``OEFindRingAtomsAndBonds`` + ``OEAssignHybridization``).
+/// Callers pass :cpp:func:`ComputeContext::RingPerceivedMol`, whose preparation
+/// is byte-identical to the perception this function previously performed
+/// inline, so the shared ring perception is reused across descriptor sources
+/// without changing any value.
+MordredFirstBatchValues compute_first_batch_values(const OEChem::OEMolBase& working_mol) {
     MordredFirstBatchValues values;
     OEChem::OEIsBridgeHead is_bridgehead(working_mol);
     values.acidic_groups = count_mordred_acids(working_mol);
@@ -7654,16 +7658,44 @@ MordredAdditivePropertyValues compute_additive_property_values(const OEChem::OEM
     return values;
 }
 
-void set_int(DescriptorSetBuilder& builder, const std::string& name, std::uint32_t value) {
+/// \brief Gate each descriptor column write by a :cpp:class:`ColumnRequest`.
+///
+/// Wraps a :cpp:class:`DescriptorSetBuilder` and forwards ``Set`` only when the
+/// request wants the named column's schema index. A pruned request therefore
+/// emits exactly its requested columns, while ``All()`` emits every column
+/// byte-identically to the ungated builder. This is the single choke point for
+/// request-gated emission: every ``set_*`` helper writes through it, so column
+/// pruning never changes how a value is computed, only whether it is stored.
+class RequestGatedBuilder {
+public:
+    RequestGatedBuilder(
+        DescriptorSetBuilder& builder,
+        const DescriptorSchema& schema,
+        const ColumnRequest& request)
+        : builder_(builder), schema_(schema), request_(request) {}
+
+    void Set(const std::string& name, DescriptorValue value) {
+        if (request_.Wants(schema_.IndexOf(name))) {
+            builder_.Set(name, std::move(value));
+        }
+    }
+
+private:
+    DescriptorSetBuilder& builder_;
+    const DescriptorSchema& schema_;
+    const ColumnRequest& request_;
+};
+
+void set_int(RequestGatedBuilder& builder, const std::string& name, std::uint32_t value) {
     builder.Set(name, DescriptorValue::Int(static_cast<std::int64_t>(value)));
 }
 
-void set_float(DescriptorSetBuilder& builder, const std::string& name, double value) {
+void set_float(RequestGatedBuilder& builder, const std::string& name, double value) {
     builder.Set(name, DescriptorValue::Float(value));
 }
 
 void set_optional_float(
-    DescriptorSetBuilder& builder,
+    RequestGatedBuilder& builder,
     const std::string& name,
     std::optional<double> value) {
     if (value.has_value()) {
@@ -7671,12 +7703,12 @@ void set_optional_float(
     }
 }
 
-void set_bool(DescriptorSetBuilder& builder, const std::string& name, bool value) {
+void set_bool(RequestGatedBuilder& builder, const std::string& name, bool value) {
     builder.Set(name, DescriptorValue::Bool(value));
 }
 
 void set_geometrical_index_values(
-    DescriptorSetBuilder& builder,
+    RequestGatedBuilder& builder,
     const MordredGeometricalIndexValues& values) {
     set_float(builder, "GeomDiameter", values.diameter);
     set_float(builder, "GeomRadius", values.radius);
@@ -7685,7 +7717,7 @@ void set_geometrical_index_values(
 }
 
 void set_gravitational_index_values(
-    DescriptorSetBuilder& builder,
+    RequestGatedBuilder& builder,
     const MordredGravitationalIndexValues& values) {
     set_optional_float(builder, "GRAV", values.heavy);
     set_optional_float(builder, "GRAVH", values.all);
@@ -7694,7 +7726,7 @@ void set_gravitational_index_values(
 }
 
 void set_moment_of_inertia_values(
-    DescriptorSetBuilder& builder,
+    RequestGatedBuilder& builder,
     const MordredMomentOfInertiaValues& values) {
     set_float(builder, "MOMI-X", values.axes[0]);
     set_float(builder, "MOMI-Y", values.axes[1]);
@@ -7702,7 +7734,7 @@ void set_moment_of_inertia_values(
 }
 
 void set_low_count_3d_values(
-    DescriptorSetBuilder& builder,
+    RequestGatedBuilder& builder,
     const MordredLowCount3DValues& values) {
     if (values.geometrical.has_value()) {
         set_geometrical_index_values(builder, *values.geometrical);
@@ -7721,7 +7753,7 @@ std::string mordred_morse_descriptor_name(std::size_t distance_index, const char
 }
 
 void set_mordred_morse_values(
-    DescriptorSetBuilder& builder,
+    RequestGatedBuilder& builder,
     const std::vector<MordredMoRSEValues>& values) {
     for (const auto& property_values : values) {
         for (std::size_t distance_index = 1u; distance_index <= 32u; ++distance_index) {
@@ -7733,7 +7765,7 @@ void set_mordred_morse_values(
     }
 }
 
-void set_chi_path_values(DescriptorSetBuilder& builder, const MordredChiPathValues& values) {
+void set_chi_path_values(RequestGatedBuilder& builder, const MordredChiPathValues& values) {
     for (std::size_t order = 0u; order < 8u; ++order) {
         const auto order_text = std::to_string(order);
         set_optional_float(builder, "Xp-" + order_text + "d", values.xp_d[order]);
@@ -7744,7 +7776,7 @@ void set_chi_path_values(DescriptorSetBuilder& builder, const MordredChiPathValu
 }
 
 void set_chi_non_path_values(
-    DescriptorSetBuilder& builder,
+    RequestGatedBuilder& builder,
     const MordredChiNonPathValues& values) {
     for (std::size_t order = 3u; order <= 7u; ++order) {
         const auto order_text = std::to_string(order);
@@ -7764,7 +7796,7 @@ void set_chi_non_path_values(
 }
 
 void set_information_content_values(
-    DescriptorSetBuilder& builder,
+    RequestGatedBuilder& builder,
     const MordredInformationContentValues& values) {
     for (std::size_t order = 0u; order <= 5u; ++order) {
         const auto order_text = std::to_string(order);
@@ -7778,27 +7810,27 @@ void set_information_content_values(
     }
 }
 
-void set_zagreb_values(DescriptorSetBuilder& builder, const MordredZagrebValues& values) {
+void set_zagreb_values(RequestGatedBuilder& builder, const MordredZagrebValues& values) {
     set_float(builder, "Zagreb1", values.zagreb1);
     set_float(builder, "Zagreb2", values.zagreb2);
     set_optional_float(builder, "mZagreb1", values.modified_zagreb1);
     set_float(builder, "mZagreb2", values.modified_zagreb2);
 }
 
-void set_abc_index_values(DescriptorSetBuilder& builder, const MordredABCIndexValues& values) {
+void set_abc_index_values(RequestGatedBuilder& builder, const MordredABCIndexValues& values) {
     set_float(builder, "ABC", values.abc);
     set_float(builder, "ABCGG", values.abcgg);
 }
 
 void set_cpsa_charge_values(
-    DescriptorSetBuilder& builder,
+    RequestGatedBuilder& builder,
     const MordredCPSAChargeValues& values) {
     set_float(builder, "RNCG", values.rncg);
     set_float(builder, "RPCG", values.rpcg);
 }
 
 void set_cpsa_surface_values(
-    DescriptorSetBuilder& builder,
+    RequestGatedBuilder& builder,
     const MordredCPSASurfaceValues& values) {
     for (std::size_t version = 1u; version <= 5u; ++version) {
         const auto version_text = std::to_string(version);
@@ -7819,7 +7851,7 @@ void set_cpsa_surface_values(
 }
 
 void set_autocorrelation_values(
-    DescriptorSetBuilder& builder,
+    RequestGatedBuilder& builder,
     const std::vector<MordredAutocorrelationValues>& value_sets) {
     for (const auto& values : value_sets) {
         for (std::size_t lag = 0u; lag < values.ats.size(); ++lag) {
@@ -7837,7 +7869,7 @@ void set_autocorrelation_values(
 }
 
 void set_molecular_distance_edge_values(
-    DescriptorSetBuilder& builder,
+    RequestGatedBuilder& builder,
     const MordredMolecularDistanceEdgeValues& values) {
     const auto set_family =
         [&builder](
@@ -7866,13 +7898,13 @@ void set_molecular_distance_edge_values(
     set_family("MDEN", 3u, values.nitrogen);
 }
 
-void set_wiener_values(DescriptorSetBuilder& builder, const MordredWienerValues& values) {
+void set_wiener_values(RequestGatedBuilder& builder, const MordredWienerValues& values) {
     builder.Set("WPath", DescriptorValue::Int(values.wpath));
     builder.Set("WPol", DescriptorValue::Int(values.wpol));
 }
 
 void set_topological_index_values(
-    DescriptorSetBuilder& builder,
+    RequestGatedBuilder& builder,
     const MordredTopologicalIndexValues& values) {
     if (values.diameter.has_value()) {
         builder.Set("Diameter", DescriptorValue::Int(*values.diameter));
@@ -7885,7 +7917,7 @@ void set_topological_index_values(
 }
 
 void set_topological_charge_values(
-    DescriptorSetBuilder& builder,
+    RequestGatedBuilder& builder,
     const MordredTopologicalChargeValues& values) {
     for (std::size_t order = 1u; order <= 10u; ++order) {
         const auto order_text = std::to_string(order);
@@ -7896,7 +7928,7 @@ void set_topological_charge_values(
 }
 
 void set_molecular_id_pair(
-    DescriptorSetBuilder& builder,
+    RequestGatedBuilder& builder,
     const std::string& qualifier,
     double value,
     std::size_t atom_count) {
@@ -7905,7 +7937,7 @@ void set_molecular_id_pair(
 }
 
 void set_molecular_id_values(
-    DescriptorSetBuilder& builder,
+    RequestGatedBuilder& builder,
     const MordredMolecularIdValues& values) {
     set_molecular_id_pair(builder, "", values.any, values.atom_count);
     set_molecular_id_pair(builder, "_h", values.hetero, values.atom_count);
@@ -7916,7 +7948,7 @@ void set_molecular_id_values(
 }
 
 void set_adjacency_matrix_eigenvalue_values(
-    DescriptorSetBuilder& builder,
+    RequestGatedBuilder& builder,
     const MordredMatrixEigenvalueValues& values) {
     set_float(builder, "SpAbs_A", values.spectral_absolute);
     set_float(builder, "SpMax_A", values.spectral_max);
@@ -7933,7 +7965,7 @@ void set_adjacency_matrix_eigenvalue_values(
 }
 
 void set_distance_matrix_eigenvalue_values(
-    DescriptorSetBuilder& builder,
+    RequestGatedBuilder& builder,
     const MordredMatrixEigenvalueValues& values) {
     set_float(builder, "SpAbs_D", values.spectral_absolute);
     set_float(builder, "SpMax_D", values.spectral_max);
@@ -7950,7 +7982,7 @@ void set_distance_matrix_eigenvalue_values(
 }
 
 void set_detour_matrix_values(
-    DescriptorSetBuilder& builder,
+    RequestGatedBuilder& builder,
     const MordredDetourMatrixValues& values) {
     set_float(builder, "SpAbs_Dt", values.matrix.spectral_absolute);
     set_float(builder, "SpMax_Dt", values.matrix.spectral_max);
@@ -7973,7 +8005,7 @@ std::string barysz_descriptor_name(const std::string& method, const char* suffix
 }
 
 void set_barysz_matrix_values(
-    DescriptorSetBuilder& builder,
+    RequestGatedBuilder& builder,
     const MordredMatrixEigenvalueValues& values,
     const char* suffix) {
     set_float(builder, barysz_descriptor_name("SpAbs", suffix), values.spectral_absolute);
@@ -8009,7 +8041,7 @@ void set_barysz_matrix_values(
         values.randic_eigenvector_log);
 }
 
-void set_bcut_values(DescriptorSetBuilder& builder, const std::vector<MordredBCUTValues>& values) {
+void set_bcut_values(RequestGatedBuilder& builder, const std::vector<MordredBCUTValues>& values) {
     for (const auto& value : values) {
         const std::string prefix = std::string("BCUT") + value.suffix + "-1";
         set_optional_float(builder, prefix + "h", value.high);
@@ -8017,12 +8049,12 @@ void set_bcut_values(DescriptorSetBuilder& builder, const std::vector<MordredBCU
     }
 }
 
-void set_eccentric_connectivity_index(DescriptorSetBuilder& builder, std::int64_t value) {
+void set_eccentric_connectivity_index(RequestGatedBuilder& builder, std::int64_t value) {
     builder.Set("ECIndex", DescriptorValue::Int(value));
 }
 
 void set_ring_count_summary(
-    DescriptorSetBuilder& builder,
+    RequestGatedBuilder& builder,
     const MordredRingCountSummary& values,
     const std::string& qualifier,
     std::size_t minimum_order = 3u) {
@@ -8036,7 +8068,7 @@ void set_ring_count_summary(
     set_int(builder, "nG12" + qualifier + "Ring", values.greater_or_equal_12);
 }
 
-void set_ring_count_values(DescriptorSetBuilder& builder, const MordredRingCountValues& values) {
+void set_ring_count_values(RequestGatedBuilder& builder, const MordredRingCountValues& values) {
     set_ring_count_summary(builder, values.all, "");
     set_ring_count_summary(builder, values.hetero, "H");
     set_ring_count_summary(builder, values.aromatic, "a");
@@ -8045,7 +8077,7 @@ void set_ring_count_values(DescriptorSetBuilder& builder, const MordredRingCount
     set_ring_count_summary(builder, values.aliphatic_hetero, "AH");
 }
 
-void set_fused_ring_count_values(DescriptorSetBuilder& builder, const MordredRingCountValues& values) {
+void set_fused_ring_count_values(RequestGatedBuilder& builder, const MordredRingCountValues& values) {
     set_ring_count_summary(builder, values.all, "F", 4u);
     set_ring_count_summary(builder, values.hetero, "FH", 4u);
     set_ring_count_summary(builder, values.aromatic, "Fa", 4u);
@@ -8054,388 +8086,1021 @@ void set_fused_ring_count_values(DescriptorSetBuilder& builder, const MordredRin
     set_ring_count_summary(builder, values.aliphatic_hetero, "FAH", 4u);
 }
 
-void set_eta_values(DescriptorSetBuilder& builder, const MordredEtaValues& values) {
+void set_eta_values(RequestGatedBuilder& builder, const MordredEtaValues& values) {
     for (const auto& value : values) {
         set_optional_float(builder, value.name, value.value);
     }
+}
+
+// ===========================================================================
+// Mordred group registry
+// ---------------------------------------------------------------------------
+// MakeMordredDescriptors is a data-driven registry of compute groups. Each
+// group runs the same computation the former linear body performed, but only
+// when a wanted column (or another group that runs) needs it. Two output
+// channels keep pruning strictly subtractive and value-invariant:
+//
+//   * Descriptor columns are emitted through the request-gated RequestGatedBuilder,
+//     so a group emits only its wanted columns; All() emits every column exactly
+//     as before.
+//   * Group-to-group intermediates (a value one group derives and another group
+//     consumes, distinct from the ComputeContext-memoized intermediates) live in
+//     MordredGroupArtifacts. A group always populates its artifact when it runs,
+//     regardless of the request, so a dependency-only group still feeds its
+//     dependents.
+//
+// The driver computes the run-set (groups with a wanted column, transitively
+// closed over dependency_groups), orders it topologically, and runs each group.
+// Because DescriptorSetBuilder::Set is keyed by schema index, run order affects
+// only artifact availability, never the emitted values.
+//
+// ---------------------------------------------------------------------------
+// Group inventory (id -> emitted schema columns -> ctx reads -> group deps)
+// ---------------------------------------------------------------------------
+// The emitted-column set of each group is exactly the columns its set_* calls
+// fill. Most groups map one-to-one to a schema "group" field value; the splits
+// and merges are noted. ctx reads are ComputeContext-memoized intermediates
+// (no dependency edge needed). Group deps are artifacts consumed from another
+// group. The 41 emitting groups partition all 1826 schema columns exactly once;
+// ThreeDContext is a non-emitting producer of the shared 3D context artifact.
+//
+//   FirstBatch      : AcidBase,Aromatic,AtomCount,BondCount,CarbonTypes,
+//                     FragmentComplexity,HydrogenBond,RotatableBond,SLogP,
+//                     TopoPSA,Lipinski schema groups + nAtom/nHeavyAtom.
+//                     reads ctx.RingPerceivedMol. producer (FirstBatchValues).
+//   Weight          : Weight (MW, AMW). reads mol.
+//   PathCount       : PathCount. reads ctx.HeavyAtomGraph. producer (PathCountValues).
+//   KappaShape      : KappaShapeIndex (Kier1..3). deps FirstBatch, PathCount.
+//   ChiPath         : Chi (Xp*/AXp*). reads ctx.HeavyAtomGraph.
+//   ChiNonPath      : Chi (Xch*/Xc*/Xpc*). reads ctx.HeavyAtomGraph.
+//   Zagreb          : ZagrebIndex. reads ctx.HeavyAtomGraph.
+//   VertexAdjacency : VertexAdjacencyInformation. reads ctx.HeavyAtomGraph.
+//   BalabanJ        : BalabanJ. reads ctx.HeavyAtomGraph, HeavyAtomDistances.
+//   BertzCT         : BertzCT. reads ctx.HeavyAtomGraph.
+//   TopologicalCharge: TopologicalCharge. reads ctx.HeavyAtomGraph, HeavyAtomDistances.
+//   MolecularId     : MolecularId. reads ctx.HeavyAtomGraph.
+//   AdjacencyMatrix : AdjacencyMatrix. reads ctx.HeavyAtomGraph.
+//   DistanceMatrix  : DistanceMatrix. reads ctx.HeavyAtomGraph, HeavyAtomDistances.
+//   DetourMatrix    : DetourMatrix. reads ctx.HeavyAtomGraph.
+//   BaryszMatrix    : BaryszMatrix. reads ctx.HeavyAtomGraph.
+//   BCUT            : BCUT. reads ctx.GasteigerAtomCharges, HeavyAtomGraph.
+//   MolecularDistanceEdge: MolecularDistanceEdge. reads ctx.HeavyAtomGraph, HeavyAtomDistances.
+//   ABCIndex        : ABCIndex. reads ctx.HeavyAtomGraph, HeavyAtomDistances.
+//   CPSACharge      : CPSA subset {RNCG,RPCG}. reads mol.
+//   Autocorrelation : Autocorrelation. reads mol.
+//   InformationContent: InformationContent. reads mol.
+//   Wiener          : WienerIndex. reads ctx.HeavyAtomDistances.
+//   TopologicalIndex: TopologicalIndex. reads ctx.HeavyAtomDistances.
+//   EccentricConnectivity: EccentricConnectivityIndex. reads ctx.HeavyAtomGraph, HeavyAtomDistances.
+//   RingCount       : RingCount. reads mol. producer (RingCountValueSets).
+//   ETA             : ExtendedTopochemicalAtom. reads mol. dep RingCount.
+//   EState          : EState. reads mol.
+//   FilterItLogS    : LogS. reads mol.
+//   Framework       : Framework (fMF). reads ctx.HeavyAtomGraph.
+//   WalkCount       : WalkCount. reads mol.
+//   Additive        : Constitutional,McGowanVolume,Polarizability,VdwVolumeABC. reads mol.
+//   LabuteASA       : MoeType subset {LabuteASA}. reads mol. producer (LabuteAsaValues).
+//   PEOE_VSA        : MoeType subset {PEOE_VSA*}. reads mol, ctx.GasteigerAtomCharges.
+//   SMR_VSA         : MoeType subset {SMR_VSA*}. reads ctx.CrippenContributions. dep LabuteASA.
+//   SlogP_VSA       : MoeType subset {SlogP_VSA*}. reads ctx.CrippenContributions. dep LabuteASA.
+//   VSA_EState      : MoeType subset {VSA_EState*}. reads mol. dep LabuteASA.
+//   EState_VSA      : MoeType subset {EState_VSA*}. reads mol. dep LabuteASA.
+//   ThreeDContext   : (no columns). reads mol. producer (optional 3D context).
+//   LowCount3D      : GeometricalIndex,GravitationalIndex,MomentOfInertia,PBF. dep ThreeDContext.
+//   MoRSE           : MoRSE. dep ThreeDContext.
+//   CPSASurface     : CPSA subset (all but RNCG/RPCG). reads mol. dep ThreeDContext.
+// ===========================================================================
+
+/// \brief Group-to-group intermediates, populated whenever a producing group
+///     runs regardless of the request.
+///
+/// Distinct from the ComputeContext-memoized intermediates (heavy-atom graph,
+/// distances, charges, Crippen, ring-perceived mol), these are values one group
+/// derives and another consumes. Each slot is populated by its producer group's
+/// ``run`` and read by its dependents.
+struct MordredGroupArtifacts {
+    std::optional<MordredFirstBatchValues> first_batch;
+    std::optional<MordredPathCountValues> path_count;
+    std::optional<MordredRingCountValueSets> ring_count;
+    // A disengaged optional after the producer runs means the value is genuinely
+    // absent (e.g. no Crippen contributions, no 3D coordinates); the dependency
+    // closure guarantees the producer ran, so consumers treat "empty" as absent.
+    std::optional<MordredLabuteAsaValues> labute_asa;
+    std::optional<Mordred3DContext> three_d_context;
+};
+
+enum class MordredGroupId {
+    FirstBatch,
+    Weight,
+    PathCount,
+    KappaShape,
+    ChiPath,
+    ChiNonPath,
+    Zagreb,
+    VertexAdjacency,
+    BalabanJ,
+    BertzCT,
+    TopologicalCharge,
+    MolecularId,
+    AdjacencyMatrix,
+    DistanceMatrix,
+    DetourMatrix,
+    BaryszMatrix,
+    BCUT,
+    MolecularDistanceEdge,
+    ABCIndex,
+    CPSACharge,
+    Autocorrelation,
+    InformationContent,
+    Wiener,
+    TopologicalIndex,
+    EccentricConnectivity,
+    RingCount,
+    ETA,
+    EState,
+    FilterItLogS,
+    Framework,
+    WalkCount,
+    Additive,
+    LabuteASA,
+    PEOE_VSA,
+    SMR_VSA,
+    SlogP_VSA,
+    VSA_EState,
+    EState_VSA,
+    ThreeDContext,
+    LowCount3D,
+    MoRSE,
+    CPSASurface,
+    Count_,
+};
+
+/// \brief One compute group: the columns it fills, the groups it depends on,
+///     and the computation that fills the artifact and emits columns.
+struct MordredGroup {
+    MordredGroupId id;
+    std::vector<std::size_t> emitted_columns;       // schema indices this group fills
+    std::vector<MordredGroupId> dependency_groups;  // groups whose artifacts it reads
+    std::function<void(const OEChem::OEMolBase&, ComputeContext&,
+                       MordredGroupArtifacts&, const ColumnRequest&,
+                       RequestGatedBuilder&)>
+        run;
+};
+
+/// \brief Resolve a list of schema column names to indices once.
+std::vector<std::size_t> mordred_column_indices(
+    const DescriptorSchema& schema,
+    const std::vector<std::string>& names) {
+    std::vector<std::size_t> indices;
+    indices.reserve(names.size());
+    for (const auto& name : names) {
+        indices.push_back(schema.IndexOf(name));
+    }
+    return indices;
+}
+
+/// \brief All schema indices whose definition carries the given group field.
+std::vector<std::size_t> mordred_schema_group_indices(
+    const DescriptorSchema& schema,
+    const std::string& group) {
+    return schema.IndicesForGroup(group);
+}
+
+/// \brief Concatenate several schema groups' indices.
+std::vector<std::size_t> mordred_schema_group_indices(
+    const DescriptorSchema& schema,
+    const std::vector<std::string>& groups) {
+    std::vector<std::size_t> indices;
+    for (const auto& group : groups) {
+        const auto group_indices = schema.IndicesForGroup(group);
+        indices.insert(indices.end(), group_indices.begin(), group_indices.end());
+    }
+    return indices;
+}
+
+/// \brief Column names for the VSA-style MoeType families, resolved once.
+std::vector<std::string> mordred_indexed_names(
+    const std::string& prefix,
+    std::size_t first,
+    std::size_t last) {
+    std::vector<std::string> names;
+    names.reserve(last - first + 1u);
+    for (std::size_t index = first; index <= last; ++index) {
+        names.push_back(prefix + std::to_string(index));
+    }
+    return names;
+}
+
+const std::vector<MordredGroup>& mordred_group_registry() {
+    static const std::vector<MordredGroup> registry = [] {
+        const auto schema = MordredDescriptorSchema();
+        const DescriptorSchema& s = *schema;
+        std::vector<MordredGroup> groups;
+
+        // FirstBatch: several schema groups plus nAtom/nHeavyAtom (AtomCount).
+        groups.push_back(MordredGroup{
+            MordredGroupId::FirstBatch,
+            mordred_schema_group_indices(
+                s,
+                {"mordred:AcidBase", "mordred:Aromatic", "mordred:AtomCount",
+                 "mordred:BondCount", "mordred:CarbonTypes", "mordred:FragmentComplexity",
+                 "mordred:HydrogenBond", "mordred:RotatableBond", "mordred:SLogP",
+                 "mordred:TopoPSA", "mordred:Lipinski"}),
+            {},
+            [](const OEChem::OEMolBase& mol, ComputeContext& ctx,
+               MordredGroupArtifacts& artifacts, const ColumnRequest&,
+               RequestGatedBuilder& builder) {
+                // Ring-perceived prep is byte-identical to the shared context mol.
+                const auto values = compute_first_batch_values(ctx.RingPerceivedMol());
+                const auto all_atoms = values.heavy_atoms + values.hydrogens;
+                const auto all_bonds = values.heavy_bonds + values.hydrogens;
+                const auto all_single_bonds = values.single_heavy_bonds + values.hydrogens;
+                const auto kekulized_aromatic_double_bonds = values.aromatic_bonds / 2u;
+                const auto kekulized_aromatic_single_bonds =
+                    values.aromatic_bonds - kekulized_aromatic_double_bonds;
+                const auto kekulized_single_bonds =
+                    values.single_heavy_bonds + kekulized_aromatic_single_bonds
+                    + values.hydrogens;
+                const auto kekulized_double_bonds =
+                    values.double_heavy_bonds + kekulized_aromatic_double_bonds;
+
+                set_int(builder, "nAcid", values.acidic_groups);
+                set_int(builder, "nBase", values.basic_groups);
+                set_int(builder, "nAromAtom", values.aromatic_atoms);
+                set_int(builder, "nAromBond", values.aromatic_bonds);
+                set_int(builder, "nAtom", static_cast<std::uint32_t>(TotalAtomCount(mol)));
+                set_int(builder, "nHeavyAtom", static_cast<std::uint32_t>(HeavyAtomCount(mol)));
+                set_int(builder, "nSpiro", values.spiro_atoms);
+                set_int(builder, "nBridgehead", values.bridgehead_atoms);
+                set_int(builder, "nHetero", values.hetero_atoms);
+                set_int(builder, "nH", values.hydrogens);
+                set_int(builder, "nB", values.boron);
+                set_int(builder, "nC", values.carbon);
+                set_int(builder, "nN", values.nitrogen);
+                set_int(builder, "nO", values.oxygen);
+                set_int(builder, "nS", values.sulfur);
+                set_int(builder, "nP", values.phosphorus);
+                set_int(builder, "nF", values.fluorine);
+                set_int(builder, "nCl", values.chlorine);
+                set_int(builder, "nBr", values.bromine);
+                set_int(builder, "nI", values.iodine);
+                set_int(builder, "nX", values.halogens);
+                set_int(builder, "nBonds", all_bonds);
+                set_int(builder, "nBondsO", values.heavy_bonds);
+                set_int(builder, "nBondsS", all_single_bonds);
+                set_int(builder, "nBondsD", values.double_heavy_bonds);
+                set_int(builder, "nBondsT", values.triple_heavy_bonds);
+                set_int(builder, "nBondsA", values.aromatic_bonds);
+                set_int(builder, "nBondsM", values.multiple_heavy_bonds);
+                set_int(builder, "nBondsKS", kekulized_single_bonds);
+                set_int(builder, "nBondsKD", kekulized_double_bonds);
+                set_int(builder, "C1SP1", values.sp1_carbons_by_carbon_degree[1]);
+                set_int(builder, "C2SP1", values.sp1_carbons_by_carbon_degree[2]);
+                set_int(builder, "C1SP2", values.sp2_carbons_by_carbon_degree[1]);
+                set_int(builder, "C2SP2", values.sp2_carbons_by_carbon_degree[2]);
+                set_int(builder, "C3SP2", values.sp2_carbons_by_carbon_degree[3]);
+                set_int(builder, "C1SP3", values.sp3_carbons_by_carbon_degree[1]);
+                set_int(builder, "C2SP3", values.sp3_carbons_by_carbon_degree[2]);
+                set_int(builder, "C3SP3", values.sp3_carbons_by_carbon_degree[3]);
+                set_int(builder, "C4SP3", values.sp3_carbons_by_carbon_degree[4]);
+                const auto sp2_sp3_carbons = values.sp2_carbons + values.sp3_carbons;
+                if (sp2_sp3_carbons != 0u) {
+                    set_float(
+                        builder, "HybRatio",
+                        static_cast<double>(values.sp3_carbons)
+                            / static_cast<double>(sp2_sp3_carbons));
+                }
+                set_float(
+                    builder, "FCSP3",
+                    values.carbon == 0u
+                        ? 0.0
+                        : static_cast<double>(values.sp3_carbons)
+                              / static_cast<double>(values.carbon));
+                set_float(builder, "fragCpx", compute_fragment_complexity(values));
+                set_int(builder, "nHBAcc", values.hbond_acceptors);
+                set_int(builder, "nHBDon", values.hbond_donors);
+                set_int(builder, "nRot", values.rotatable_bonds);
+                if (values.heavy_bonds != 0u) {
+                    set_float(
+                        builder, "RotRatio",
+                        static_cast<double>(values.rotatable_bonds)
+                            / static_cast<double>(values.heavy_bonds));
+                }
+                set_float(builder, "SLogP", values.crippen_logp);
+                set_float(builder, "SMR", values.crippen_mr);
+                set_float(builder, "TopoPSA(NO)", values.topo_psa_no);
+                set_float(builder, "TopoPSA", values.topo_psa);
+                set_bool(
+                    builder, "Lipinski",
+                    values.hbond_donors <= 5u && values.hbond_acceptors <= 10u
+                        && values.exact_weight <= 500.0 && values.crippen_logp <= 5.0);
+                set_bool(
+                    builder, "GhoseFilter",
+                    values.exact_weight >= 160.0 && values.exact_weight <= 480.0
+                        && all_atoms >= 20u && all_atoms <= 70u
+                        && values.crippen_logp >= -0.4 && values.crippen_logp <= 5.6
+                        && values.crippen_mr >= 40.0 && values.crippen_mr <= 130.0);
+                artifacts.first_batch = values;
+            }});
+
+        groups.push_back(MordredGroup{
+            MordredGroupId::Weight,
+            mordred_schema_group_indices(s, "mordred:Weight"),
+            {},
+            [](const OEChem::OEMolBase& mol, ComputeContext&, MordredGroupArtifacts&,
+               const ColumnRequest&, RequestGatedBuilder& builder) {
+                set_float(builder, "MW", ExactMolecularWeight(mol));
+                set_float(builder, "AMW", AverageMolecularWeight(mol));
+            }});
+
+        groups.push_back(MordredGroup{
+            MordredGroupId::PathCount,
+            mordred_schema_group_indices(s, "mordred:PathCount"),
+            {},
+            [](const OEChem::OEMolBase&, ComputeContext& ctx, MordredGroupArtifacts& artifacts,
+               const ColumnRequest&, RequestGatedBuilder& builder) {
+                const auto path_count_values = compute_path_count_values(ctx.HeavyAtomGraph());
+                set_int(builder, "MPC2", path_count_values.mpc[2]);
+                set_int(builder, "MPC3", path_count_values.mpc[3]);
+                set_int(builder, "MPC4", path_count_values.mpc[4]);
+                set_int(builder, "MPC5", path_count_values.mpc[5]);
+                set_int(builder, "MPC6", path_count_values.mpc[6]);
+                set_int(builder, "MPC7", path_count_values.mpc[7]);
+                set_int(builder, "MPC8", path_count_values.mpc[8]);
+                set_int(builder, "MPC9", path_count_values.mpc[9]);
+                set_int(builder, "MPC10", path_count_values.mpc[10]);
+                set_int(builder, "TMPC10", path_count_values.total_mpc10);
+                set_float(builder, "piPC1", std::log(path_count_values.pi_mpc[1] + 1.0));
+                set_float(builder, "piPC2", std::log(path_count_values.pi_mpc[2] + 1.0));
+                set_float(builder, "piPC3", std::log(path_count_values.pi_mpc[3] + 1.0));
+                set_float(builder, "piPC4", std::log(path_count_values.pi_mpc[4] + 1.0));
+                set_float(builder, "piPC5", std::log(path_count_values.pi_mpc[5] + 1.0));
+                set_float(builder, "piPC6", std::log(path_count_values.pi_mpc[6] + 1.0));
+                set_float(builder, "piPC7", std::log(path_count_values.pi_mpc[7] + 1.0));
+                set_float(builder, "piPC8", std::log(path_count_values.pi_mpc[8] + 1.0));
+                set_float(builder, "piPC9", std::log(path_count_values.pi_mpc[9] + 1.0));
+                set_float(builder, "piPC10", std::log(path_count_values.pi_mpc[10] + 1.0));
+                set_float(builder, "TpiPC10", std::log(path_count_values.total_pi_mpc10 + 1.0));
+                artifacts.path_count = path_count_values;
+            }});
+
+        groups.push_back(MordredGroup{
+            MordredGroupId::KappaShape,
+            mordred_schema_group_indices(s, "mordred:KappaShapeIndex"),
+            {MordredGroupId::FirstBatch, MordredGroupId::PathCount},
+            [](const OEChem::OEMolBase&, ComputeContext&, MordredGroupArtifacts& artifacts,
+               const ColumnRequest&, RequestGatedBuilder& builder) {
+                const auto& first_batch = *artifacts.first_batch;
+                const auto& path_count_values = *artifacts.path_count;
+                set_optional_float(
+                    builder, "Kier1",
+                    kappa_shape_index(first_batch.heavy_atoms, path_count_values, 1u));
+                set_optional_float(
+                    builder, "Kier2",
+                    kappa_shape_index(first_batch.heavy_atoms, path_count_values, 2u));
+                set_optional_float(
+                    builder, "Kier3",
+                    kappa_shape_index(first_batch.heavy_atoms, path_count_values, 3u));
+            }});
+
+        groups.push_back(MordredGroup{
+            MordredGroupId::ChiPath,
+            mordred_column_indices(
+                s, {"Xp-0d", "Xp-1d", "Xp-2d", "Xp-3d", "Xp-4d", "Xp-5d", "Xp-6d", "Xp-7d",
+                    "AXp-0d", "AXp-1d", "AXp-2d", "AXp-3d", "AXp-4d", "AXp-5d", "AXp-6d",
+                    "AXp-7d", "Xp-0dv", "Xp-1dv", "Xp-2dv", "Xp-3dv", "Xp-4dv", "Xp-5dv",
+                    "Xp-6dv", "Xp-7dv", "AXp-0dv", "AXp-1dv", "AXp-2dv", "AXp-3dv", "AXp-4dv",
+                    "AXp-5dv", "AXp-6dv", "AXp-7dv"}),
+            {},
+            [](const OEChem::OEMolBase&, ComputeContext& ctx, MordredGroupArtifacts&,
+               const ColumnRequest&, RequestGatedBuilder& builder) {
+                set_chi_path_values(builder, compute_chi_path_values(ctx.HeavyAtomGraph()));
+            }});
+
+        groups.push_back(MordredGroup{
+            MordredGroupId::ChiNonPath,
+            mordred_column_indices(
+                s, {"Xch-3d", "Xch-4d", "Xch-5d", "Xch-6d", "Xch-7d", "Xch-3dv", "Xch-4dv",
+                    "Xch-5dv", "Xch-6dv", "Xch-7dv", "Xc-3d", "Xc-4d", "Xc-5d", "Xc-6d",
+                    "Xc-3dv", "Xc-4dv", "Xc-5dv", "Xc-6dv", "Xpc-4d", "Xpc-5d", "Xpc-6d",
+                    "Xpc-4dv", "Xpc-5dv", "Xpc-6dv"}),
+            {},
+            [](const OEChem::OEMolBase&, ComputeContext& ctx, MordredGroupArtifacts&,
+               const ColumnRequest&, RequestGatedBuilder& builder) {
+                set_chi_non_path_values(
+                    builder, compute_chi_non_path_values(ctx.HeavyAtomGraph()));
+            }});
+
+        groups.push_back(MordredGroup{
+            MordredGroupId::Zagreb,
+            mordred_schema_group_indices(s, "mordred:ZagrebIndex"),
+            {},
+            [](const OEChem::OEMolBase&, ComputeContext& ctx, MordredGroupArtifacts&,
+               const ColumnRequest&, RequestGatedBuilder& builder) {
+                set_zagreb_values(builder, compute_zagreb_values(ctx.HeavyAtomGraph()));
+            }});
+
+        groups.push_back(MordredGroup{
+            MordredGroupId::VertexAdjacency,
+            mordred_schema_group_indices(s, "mordred:VertexAdjacencyInformation"),
+            {},
+            [](const OEChem::OEMolBase&, ComputeContext& ctx, MordredGroupArtifacts&,
+               const ColumnRequest&, RequestGatedBuilder& builder) {
+                set_optional_float(
+                    builder, "VAdjMat",
+                    compute_vertex_adjacency_information(ctx.HeavyAtomGraph()));
+            }});
+
+        groups.push_back(MordredGroup{
+            MordredGroupId::BalabanJ,
+            mordred_schema_group_indices(s, "mordred:BalabanJ"),
+            {},
+            [](const OEChem::OEMolBase&, ComputeContext& ctx, MordredGroupArtifacts&,
+               const ColumnRequest&, RequestGatedBuilder& builder) {
+                set_optional_float(
+                    builder, "BalabanJ",
+                    compute_balaban_j(ctx.HeavyAtomGraph(), ctx.HeavyAtomDistances()));
+            }});
+
+        groups.push_back(MordredGroup{
+            MordredGroupId::BertzCT,
+            mordred_schema_group_indices(s, "mordred:BertzCT"),
+            {},
+            [](const OEChem::OEMolBase&, ComputeContext& ctx, MordredGroupArtifacts&,
+               const ColumnRequest&, RequestGatedBuilder& builder) {
+                set_float(builder, "BertzCT", compute_bertz_ct(ctx.HeavyAtomGraph()));
+            }});
+
+        groups.push_back(MordredGroup{
+            MordredGroupId::TopologicalCharge,
+            mordred_schema_group_indices(s, "mordred:TopologicalCharge"),
+            {},
+            [](const OEChem::OEMolBase&, ComputeContext& ctx, MordredGroupArtifacts&,
+               const ColumnRequest&, RequestGatedBuilder& builder) {
+                set_topological_charge_values(
+                    builder,
+                    compute_topological_charge_values(
+                        ctx.HeavyAtomGraph(), ctx.HeavyAtomDistances()));
+            }});
+
+        groups.push_back(MordredGroup{
+            MordredGroupId::MolecularId,
+            mordred_schema_group_indices(s, "mordred:MolecularId"),
+            {},
+            [](const OEChem::OEMolBase&, ComputeContext& ctx, MordredGroupArtifacts&,
+               const ColumnRequest&, RequestGatedBuilder& builder) {
+                const auto molecular_id_values =
+                    compute_molecular_id_values(ctx.HeavyAtomGraph());
+                if (molecular_id_values.has_value()) {
+                    set_molecular_id_values(builder, *molecular_id_values);
+                }
+            }});
+
+        groups.push_back(MordredGroup{
+            MordredGroupId::AdjacencyMatrix,
+            mordred_schema_group_indices(s, "mordred:AdjacencyMatrix"),
+            {},
+            [](const OEChem::OEMolBase&, ComputeContext& ctx, MordredGroupArtifacts&,
+               const ColumnRequest&, RequestGatedBuilder& builder) {
+                const auto values =
+                    compute_adjacency_matrix_eigenvalue_values(ctx.HeavyAtomGraph());
+                if (values.has_value()) {
+                    set_adjacency_matrix_eigenvalue_values(builder, *values);
+                }
+            }});
+
+        groups.push_back(MordredGroup{
+            MordredGroupId::DistanceMatrix,
+            mordred_schema_group_indices(s, "mordred:DistanceMatrix"),
+            {},
+            [](const OEChem::OEMolBase&, ComputeContext& ctx, MordredGroupArtifacts&,
+               const ColumnRequest&, RequestGatedBuilder& builder) {
+                const auto values = compute_distance_matrix_eigenvalue_values(
+                    ctx.HeavyAtomGraph(), ctx.HeavyAtomDistances());
+                if (values.has_value()) {
+                    set_distance_matrix_eigenvalue_values(builder, *values);
+                }
+            }});
+
+        groups.push_back(MordredGroup{
+            MordredGroupId::DetourMatrix,
+            mordred_schema_group_indices(s, "mordred:DetourMatrix"),
+            {},
+            [](const OEChem::OEMolBase&, ComputeContext& ctx, MordredGroupArtifacts&,
+               const ColumnRequest&, RequestGatedBuilder& builder) {
+                const auto values = compute_detour_matrix_values(ctx.HeavyAtomGraph());
+                if (values.has_value()) {
+                    set_detour_matrix_values(builder, *values);
+                }
+            }});
+
+        groups.push_back(MordredGroup{
+            MordredGroupId::BaryszMatrix,
+            mordred_schema_group_indices(s, "mordred:BaryszMatrix"),
+            {},
+            [](const OEChem::OEMolBase&, ComputeContext& ctx, MordredGroupArtifacts&,
+               const ColumnRequest&, RequestGatedBuilder& builder) {
+                const auto& heavy_atom_graph = ctx.HeavyAtomGraph();
+                for (const auto& property : mordred_barysz_matrix_properties()) {
+                    const auto values = compute_barysz_matrix_values(
+                        heavy_atom_graph, property.lookup, property.carbon_reference);
+                    if (values.has_value()) {
+                        set_barysz_matrix_values(builder, *values, property.suffix);
+                    }
+                }
+            }});
+
+        groups.push_back(MordredGroup{
+            MordredGroupId::BCUT,
+            mordred_schema_group_indices(s, "mordred:BCUT"),
+            {},
+            [](const OEChem::OEMolBase&, ComputeContext& ctx, MordredGroupArtifacts&,
+               const ColumnRequest&, RequestGatedBuilder& builder) {
+                set_bcut_values(
+                    builder,
+                    compute_bcut_values(ctx.GasteigerAtomCharges(), ctx.HeavyAtomGraph()));
+            }});
+
+        groups.push_back(MordredGroup{
+            MordredGroupId::MolecularDistanceEdge,
+            mordred_schema_group_indices(s, "mordred:MolecularDistanceEdge"),
+            {},
+            [](const OEChem::OEMolBase&, ComputeContext& ctx, MordredGroupArtifacts&,
+               const ColumnRequest&, RequestGatedBuilder& builder) {
+                set_molecular_distance_edge_values(
+                    builder,
+                    compute_molecular_distance_edge_values(
+                        ctx.HeavyAtomGraph(), ctx.HeavyAtomDistances()));
+            }});
+
+        groups.push_back(MordredGroup{
+            MordredGroupId::ABCIndex,
+            mordred_schema_group_indices(s, "mordred:ABCIndex"),
+            {},
+            [](const OEChem::OEMolBase&, ComputeContext& ctx, MordredGroupArtifacts&,
+               const ColumnRequest&, RequestGatedBuilder& builder) {
+                set_abc_index_values(
+                    builder,
+                    compute_abc_index_values(ctx.HeavyAtomGraph(), ctx.HeavyAtomDistances()));
+            }});
+
+        groups.push_back(MordredGroup{
+            MordredGroupId::CPSACharge,
+            mordred_column_indices(s, {"RNCG", "RPCG"}),
+            {},
+            [](const OEChem::OEMolBase& mol, ComputeContext&, MordredGroupArtifacts&,
+               const ColumnRequest&, RequestGatedBuilder& builder) {
+                const auto values = compute_cpsa_charge_values(mol);
+                if (values.has_value()) {
+                    set_cpsa_charge_values(builder, *values);
+                }
+            }});
+
+        groups.push_back(MordredGroup{
+            MordredGroupId::Autocorrelation,
+            mordred_schema_group_indices(s, "mordred:Autocorrelation"),
+            {},
+            [](const OEChem::OEMolBase& mol, ComputeContext&, MordredGroupArtifacts&,
+               const ColumnRequest&, RequestGatedBuilder& builder) {
+                set_autocorrelation_values(builder, compute_autocorrelation_values(mol));
+            }});
+
+        groups.push_back(MordredGroup{
+            MordredGroupId::InformationContent,
+            mordred_schema_group_indices(s, "mordred:InformationContent"),
+            {},
+            [](const OEChem::OEMolBase& mol, ComputeContext&, MordredGroupArtifacts&,
+               const ColumnRequest&, RequestGatedBuilder& builder) {
+                set_information_content_values(
+                    builder, compute_information_content_values(mol));
+            }});
+
+        groups.push_back(MordredGroup{
+            MordredGroupId::Wiener,
+            mordred_schema_group_indices(s, "mordred:WienerIndex"),
+            {},
+            [](const OEChem::OEMolBase&, ComputeContext& ctx, MordredGroupArtifacts&,
+               const ColumnRequest&, RequestGatedBuilder& builder) {
+                set_wiener_values(builder, compute_wiener_values(ctx.HeavyAtomDistances()));
+            }});
+
+        groups.push_back(MordredGroup{
+            MordredGroupId::TopologicalIndex,
+            mordred_schema_group_indices(s, "mordred:TopologicalIndex"),
+            {},
+            [](const OEChem::OEMolBase&, ComputeContext& ctx, MordredGroupArtifacts&,
+               const ColumnRequest&, RequestGatedBuilder& builder) {
+                set_topological_index_values(
+                    builder, compute_topological_index_values(ctx.HeavyAtomDistances()));
+            }});
+
+        groups.push_back(MordredGroup{
+            MordredGroupId::EccentricConnectivity,
+            mordred_schema_group_indices(s, "mordred:EccentricConnectivityIndex"),
+            {},
+            [](const OEChem::OEMolBase&, ComputeContext& ctx, MordredGroupArtifacts&,
+               const ColumnRequest&, RequestGatedBuilder& builder) {
+                set_eccentric_connectivity_index(
+                    builder,
+                    compute_eccentric_connectivity_index(
+                        ctx.HeavyAtomGraph(), ctx.HeavyAtomDistances()));
+            }});
+
+        groups.push_back(MordredGroup{
+            MordredGroupId::RingCount,
+            mordred_schema_group_indices(s, "mordred:RingCount"),
+            {},
+            [](const OEChem::OEMolBase& mol, ComputeContext&, MordredGroupArtifacts& artifacts,
+               const ColumnRequest&, RequestGatedBuilder& builder) {
+                const auto ring_count_values = compute_ring_count_value_sets(mol);
+                set_ring_count_values(builder, ring_count_values.base);
+                set_fused_ring_count_values(builder, ring_count_values.fused);
+                artifacts.ring_count = ring_count_values;
+            }});
+
+        groups.push_back(MordredGroup{
+            MordredGroupId::ETA,
+            mordred_schema_group_indices(s, "mordred:ExtendedTopochemicalAtom"),
+            {MordredGroupId::RingCount},
+            [](const OEChem::OEMolBase& mol, ComputeContext&, MordredGroupArtifacts& artifacts,
+               const ColumnRequest&, RequestGatedBuilder& builder) {
+                const auto eta_values =
+                    compute_eta_values(mol, artifacts.ring_count->base.all.total);
+                if (eta_values.has_value()) {
+                    set_eta_values(builder, *eta_values);
+                }
+            }});
+
+        groups.push_back(MordredGroup{
+            MordredGroupId::EState,
+            mordred_schema_group_indices(s, "mordred:EState"),
+            {},
+            [](const OEChem::OEMolBase& mol, ComputeContext&, MordredGroupArtifacts&,
+               const ColumnRequest&, RequestGatedBuilder& builder) {
+                const auto estate_values = compute_mordred_estate_values(mol);
+                for (std::size_t index = 0u; index < mordred_estate_patterns().size();
+                     ++index) {
+                    set_int(
+                        builder, mordred_estate_patterns()[index].descriptor_name,
+                        estate_values.counts[index]);
+                }
+                for (std::size_t index = 0u; index < mordred_estate_patterns().size();
+                     ++index) {
+                    std::string descriptor_name =
+                        mordred_estate_patterns()[index].descriptor_name;
+                    descriptor_name[0] = 'S';
+                    set_float(builder, descriptor_name, estate_values.sums[index]);
+                }
+                for (std::size_t index = 0u; index < mordred_estate_patterns().size();
+                     ++index) {
+                    std::string descriptor_name =
+                        mordred_estate_patterns()[index].descriptor_name;
+                    descriptor_name = "MAX" + descriptor_name.substr(1);
+                    set_optional_float(builder, descriptor_name, estate_values.maxima[index]);
+                }
+                for (std::size_t index = 0u; index < mordred_estate_patterns().size();
+                     ++index) {
+                    std::string descriptor_name =
+                        mordred_estate_patterns()[index].descriptor_name;
+                    descriptor_name = "MIN" + descriptor_name.substr(1);
+                    set_optional_float(builder, descriptor_name, estate_values.minima[index]);
+                }
+            }});
+
+        groups.push_back(MordredGroup{
+            MordredGroupId::FilterItLogS,
+            mordred_schema_group_indices(s, "mordred:LogS"),
+            {},
+            [](const OEChem::OEMolBase& mol, ComputeContext&, MordredGroupArtifacts&,
+               const ColumnRequest&, RequestGatedBuilder& builder) {
+                set_optional_float(builder, "FilterItLogS", compute_filter_it_log_s(mol));
+            }});
+
+        groups.push_back(MordredGroup{
+            MordredGroupId::Framework,
+            mordred_schema_group_indices(s, "mordred:Framework"),
+            {},
+            [](const OEChem::OEMolBase& mol, ComputeContext& ctx, MordredGroupArtifacts&,
+               const ColumnRequest&, RequestGatedBuilder& builder) {
+                const auto framework_atom_count = count_atoms(explicit_hydrogen_copy(mol));
+                set_optional_float(
+                    builder, "fMF",
+                    compute_framework_ratio(ctx.HeavyAtomGraph(), framework_atom_count));
+            }});
+
+        groups.push_back(MordredGroup{
+            MordredGroupId::WalkCount,
+            mordred_schema_group_indices(s, "mordred:WalkCount"),
+            {},
+            [](const OEChem::OEMolBase& mol, ComputeContext&, MordredGroupArtifacts&,
+               const ColumnRequest&, RequestGatedBuilder& builder) {
+                const auto walk_count_values = compute_walk_count_values(mol);
+                set_float(builder, "MWC01", walk_count_values.mwc[1]);
+                set_float(builder, "MWC02", walk_count_values.mwc[2]);
+                set_float(builder, "MWC03", walk_count_values.mwc[3]);
+                set_float(builder, "MWC04", walk_count_values.mwc[4]);
+                set_float(builder, "MWC05", walk_count_values.mwc[5]);
+                set_float(builder, "MWC06", walk_count_values.mwc[6]);
+                set_float(builder, "MWC07", walk_count_values.mwc[7]);
+                set_float(builder, "MWC08", walk_count_values.mwc[8]);
+                set_float(builder, "MWC09", walk_count_values.mwc[9]);
+                set_float(builder, "MWC10", walk_count_values.mwc[10]);
+                set_float(builder, "TMWC10", walk_count_values.total_mwc10);
+                set_float(builder, "SRW02", walk_count_values.srw[2]);
+                set_float(builder, "SRW03", walk_count_values.srw[3]);
+                set_float(builder, "SRW04", walk_count_values.srw[4]);
+                set_float(builder, "SRW05", walk_count_values.srw[5]);
+                set_float(builder, "SRW06", walk_count_values.srw[6]);
+                set_float(builder, "SRW07", walk_count_values.srw[7]);
+                set_float(builder, "SRW08", walk_count_values.srw[8]);
+                set_float(builder, "SRW09", walk_count_values.srw[9]);
+                set_float(builder, "SRW10", walk_count_values.srw[10]);
+                set_float(builder, "TSRW10", walk_count_values.total_srw10);
+            }});
+
+        groups.push_back(MordredGroup{
+            MordredGroupId::Additive,
+            mordred_schema_group_indices(
+                s,
+                {"mordred:Constitutional", "mordred:McGowanVolume", "mordred:Polarizability",
+                 "mordred:VdwVolumeABC"}),
+            {},
+            [](const OEChem::OEMolBase& mol, ComputeContext&, MordredGroupArtifacts&,
+               const ColumnRequest&, RequestGatedBuilder& builder) {
+                const auto additive_values = compute_additive_property_values(mol);
+                set_optional_float(builder, "SZ", additive_values.sz);
+                set_optional_float(builder, "Sm", additive_values.sm);
+                set_optional_float(builder, "Sv", additive_values.sv);
+                set_optional_float(builder, "Sse", additive_values.sse);
+                set_optional_float(builder, "Spe", additive_values.spe);
+                set_optional_float(builder, "Sare", additive_values.sare);
+                set_optional_float(builder, "Sp", additive_values.sp);
+                set_optional_float(builder, "Si", additive_values.si);
+                set_optional_float(builder, "MZ", additive_values.m_z);
+                set_optional_float(builder, "Mm", additive_values.mm);
+                set_optional_float(builder, "Mv", additive_values.mv);
+                set_optional_float(builder, "Mse", additive_values.mse);
+                set_optional_float(builder, "Mpe", additive_values.mpe);
+                set_optional_float(builder, "Mare", additive_values.mare);
+                set_optional_float(builder, "Mp", additive_values.mp);
+                set_optional_float(builder, "Mi", additive_values.mi);
+                set_optional_float(builder, "VMcGowan", additive_values.v_mcgowan);
+                set_optional_float(builder, "apol", additive_values.apol);
+                set_optional_float(builder, "bpol", additive_values.bpol);
+                set_optional_float(builder, "Vabc", additive_values.vabc);
+            }});
+
+        groups.push_back(MordredGroup{
+            MordredGroupId::LabuteASA,
+            mordred_column_indices(s, {"LabuteASA"}),
+            {},
+            [](const OEChem::OEMolBase& mol, ComputeContext&, MordredGroupArtifacts& artifacts,
+               const ColumnRequest&, RequestGatedBuilder& builder) {
+                const auto labute_asa_values = compute_labute_asa_values(mol);
+                set_optional_float(
+                    builder, "LabuteASA",
+                    labute_asa_values.has_value()
+                        ? std::optional<double>{labute_asa_values->total}
+                        : std::nullopt);
+                artifacts.labute_asa = labute_asa_values;
+            }});
+
+        groups.push_back(MordredGroup{
+            MordredGroupId::PEOE_VSA,
+            mordred_column_indices(s, mordred_indexed_names("PEOE_VSA", 1u, 13u)),
+            {},
+            [](const OEChem::OEMolBase& mol, ComputeContext& ctx, MordredGroupArtifacts&,
+               const ColumnRequest&, RequestGatedBuilder& builder) {
+                const auto peoe_vsa_values =
+                    compute_peoe_vsa_values(mol, ctx.GasteigerAtomCharges());
+                if (peoe_vsa_values.has_value()) {
+                    for (std::size_t index = 0u; index < peoe_vsa_values->size() - 1u;
+                         ++index) {
+                        set_float(
+                            builder, "PEOE_VSA" + std::to_string(index + 1u),
+                            (*peoe_vsa_values)[index]);
+                    }
+                }
+            }});
+
+        groups.push_back(MordredGroup{
+            MordredGroupId::SMR_VSA,
+            mordred_column_indices(s, mordred_indexed_names("SMR_VSA", 1u, 9u)),
+            {MordredGroupId::LabuteASA},
+            [](const OEChem::OEMolBase&, ComputeContext& ctx, MordredGroupArtifacts& artifacts,
+               const ColumnRequest&, RequestGatedBuilder& builder) {
+                if (!artifacts.labute_asa.has_value()) {
+                    return;
+                }
+                const auto values = compute_smr_vsa_values(
+                    ctx.CrippenContributions(), *artifacts.labute_asa);
+                if (values.has_value()) {
+                    for (std::size_t index = 0u; index < values->size(); ++index) {
+                        set_float(
+                            builder, "SMR_VSA" + std::to_string(index + 1u),
+                            (*values)[index]);
+                    }
+                }
+            }});
+
+        groups.push_back(MordredGroup{
+            MordredGroupId::SlogP_VSA,
+            mordred_column_indices(s, mordred_indexed_names("SlogP_VSA", 1u, 11u)),
+            {MordredGroupId::LabuteASA},
+            [](const OEChem::OEMolBase&, ComputeContext& ctx, MordredGroupArtifacts& artifacts,
+               const ColumnRequest&, RequestGatedBuilder& builder) {
+                if (!artifacts.labute_asa.has_value()) {
+                    return;
+                }
+                const auto values = compute_slogp_vsa_values(
+                    ctx.CrippenContributions(), *artifacts.labute_asa);
+                if (values.has_value()) {
+                    for (std::size_t index = 0u; index < values->size(); ++index) {
+                        set_float(
+                            builder, "SlogP_VSA" + std::to_string(index + 1u),
+                            (*values)[index]);
+                    }
+                }
+            }});
+
+        groups.push_back(MordredGroup{
+            MordredGroupId::VSA_EState,
+            mordred_column_indices(s, mordred_indexed_names("VSA_EState", 1u, 9u)),
+            {MordredGroupId::LabuteASA},
+            [](const OEChem::OEMolBase& mol, ComputeContext&, MordredGroupArtifacts& artifacts,
+               const ColumnRequest&, RequestGatedBuilder& builder) {
+                if (!artifacts.labute_asa.has_value()) {
+                    return;
+                }
+                const auto values = compute_vsa_estate_values(mol, *artifacts.labute_asa);
+                if (values.has_value()) {
+                    for (std::size_t index = 0u; index < values->size(); ++index) {
+                        set_float(
+                            builder, "VSA_EState" + std::to_string(index + 1u),
+                            (*values)[index]);
+                    }
+                }
+            }});
+
+        groups.push_back(MordredGroup{
+            MordredGroupId::EState_VSA,
+            mordred_column_indices(s, mordred_indexed_names("EState_VSA", 1u, 10u)),
+            {MordredGroupId::LabuteASA},
+            [](const OEChem::OEMolBase& mol, ComputeContext&, MordredGroupArtifacts& artifacts,
+               const ColumnRequest&, RequestGatedBuilder& builder) {
+                if (!artifacts.labute_asa.has_value()) {
+                    return;
+                }
+                const auto values = compute_estate_vsa_values(mol, *artifacts.labute_asa);
+                if (values.has_value()) {
+                    for (std::size_t index = 0u; index < values->size(); ++index) {
+                        set_float(
+                            builder, "EState_VSA" + std::to_string(index + 1u),
+                            (*values)[index]);
+                    }
+                }
+            }});
+
+        // ThreeDContext produces no columns; it builds the optional 3D context
+        // that the 3D-dependent groups consume.
+        groups.push_back(MordredGroup{
+            MordredGroupId::ThreeDContext,
+            {},
+            {},
+            [](const OEChem::OEMolBase& mol, ComputeContext&, MordredGroupArtifacts& artifacts,
+               const ColumnRequest&, RequestGatedBuilder&) {
+                artifacts.three_d_context = build_mordred_3d_context(mol);
+            }});
+
+        groups.push_back(MordredGroup{
+            MordredGroupId::LowCount3D,
+            mordred_schema_group_indices(
+                s,
+                {"mordred:GeometricalIndex", "mordred:GravitationalIndex",
+                 "mordred:MomentOfInertia", "mordred:PBF"}),
+            {MordredGroupId::ThreeDContext},
+            [](const OEChem::OEMolBase&, ComputeContext&, MordredGroupArtifacts& artifacts,
+               const ColumnRequest&, RequestGatedBuilder& builder) {
+                const auto values =
+                    compute_low_count_3d_values(artifacts.three_d_context);
+                if (values.has_value()) {
+                    set_low_count_3d_values(builder, *values);
+                }
+            }});
+
+        groups.push_back(MordredGroup{
+            MordredGroupId::MoRSE,
+            mordred_schema_group_indices(s, "mordred:MoRSE"),
+            {MordredGroupId::ThreeDContext},
+            [](const OEChem::OEMolBase&, ComputeContext&, MordredGroupArtifacts& artifacts,
+               const ColumnRequest&, RequestGatedBuilder& builder) {
+                set_mordred_morse_values(
+                    builder, compute_mordred_morse_values(artifacts.three_d_context));
+            }});
+
+        groups.push_back(MordredGroup{
+            MordredGroupId::CPSASurface,
+            mordred_column_indices(
+                s,
+                {"PNSA1", "PNSA2", "PNSA3", "PNSA4", "PNSA5", "PPSA1", "PPSA2", "PPSA3",
+                 "PPSA4", "PPSA5", "DPSA1", "DPSA2", "DPSA3", "DPSA4", "DPSA5", "FNSA1",
+                 "FNSA2", "FNSA3", "FNSA4", "FNSA5", "FPSA1", "FPSA2", "FPSA3", "FPSA4",
+                 "FPSA5", "WNSA1", "WNSA2", "WNSA3", "WNSA4", "WNSA5", "WPSA1", "WPSA2",
+                 "WPSA3", "WPSA4", "WPSA5", "RNCS", "RPCS", "TASA", "TPSA", "RASA", "RPSA"}),
+            {MordredGroupId::ThreeDContext},
+            [](const OEChem::OEMolBase& mol, ComputeContext&, MordredGroupArtifacts& artifacts,
+               const ColumnRequest&, RequestGatedBuilder& builder) {
+                const auto values =
+                    compute_cpsa_surface_values(mol, artifacts.three_d_context);
+                if (values.has_value()) {
+                    set_cpsa_surface_values(builder, *values);
+                }
+            }});
+
+        return groups;
+    }();
+    return registry;
+}
+
+/// \brief Map from group id to its index in the registry vector.
+const std::array<std::size_t, static_cast<std::size_t>(MordredGroupId::Count_)>&
+mordred_group_index_by_id() {
+    static const auto index_by_id = [] {
+        std::array<std::size_t, static_cast<std::size_t>(MordredGroupId::Count_)> map{};
+        const auto& registry = mordred_group_registry();
+        for (std::size_t index = 0u; index < registry.size(); ++index) {
+            map[static_cast<std::size_t>(registry[index].id)] = index;
+        }
+        return map;
+    }();
+    return index_by_id;
 }
 
 } // namespace
 
 DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol,
                                      ComputeContext& ctx,
-                                     const ColumnRequest& /*request*/) {
-    // Phase 1: request is accepted for interface compatibility but all columns
-    // are computed; column pruning arrives in a later phase.
-    const auto values = compute_first_batch_values(mol);
-    const auto additive_values = compute_additive_property_values(mol);
-    const auto walk_count_values = compute_walk_count_values(mol);
-    // Shared, memoized intermediates come from the context instead of being
-    // recomputed here. The context is constructed from the same molecule, so
-    // these are byte-identical to the former local recomputation.
-    const auto& heavy_atom_graph = ctx.HeavyAtomGraph();
-    const auto& gasteiger_charges = ctx.GasteigerAtomCharges();
-    const auto& crippen_contributions = ctx.CrippenContributions();
-    const auto path_count_values = compute_path_count_values(heavy_atom_graph);
-    const auto chi_path_values = compute_chi_path_values(heavy_atom_graph);
-    const auto chi_non_path_values = compute_chi_non_path_values(heavy_atom_graph);
-    const auto zagreb_values = compute_zagreb_values(heavy_atom_graph);
-    const auto vertex_adjacency_information =
-        compute_vertex_adjacency_information(heavy_atom_graph);
-    const auto& heavy_atom_distances = ctx.HeavyAtomDistances();
-    const auto balaban_j = compute_balaban_j(heavy_atom_graph, heavy_atom_distances);
-    const auto bertz_ct = compute_bertz_ct(heavy_atom_graph);
-    const auto topological_charge_values =
-        compute_topological_charge_values(heavy_atom_graph, heavy_atom_distances);
-    const auto molecular_id_values = compute_molecular_id_values(heavy_atom_graph);
-    const auto adjacency_matrix_eigenvalue_values =
-        compute_adjacency_matrix_eigenvalue_values(heavy_atom_graph);
-    const auto distance_matrix_eigenvalue_values =
-        compute_distance_matrix_eigenvalue_values(heavy_atom_graph, heavy_atom_distances);
-    const auto detour_matrix_values = compute_detour_matrix_values(heavy_atom_graph);
-    std::vector<std::pair<const char*, std::optional<MordredMatrixEigenvalueValues>>>
-        barysz_matrix_values;
-    barysz_matrix_values.reserve(mordred_barysz_matrix_properties().size());
-    for (const auto& property : mordred_barysz_matrix_properties()) {
-        barysz_matrix_values.emplace_back(
-            property.suffix,
-            compute_barysz_matrix_values(
-                heavy_atom_graph,
-                property.lookup,
-                property.carbon_reference));
-    }
-    const auto bcut_values = compute_bcut_values(gasteiger_charges, heavy_atom_graph);
-    const auto molecular_distance_edge_values =
-        compute_molecular_distance_edge_values(heavy_atom_graph, heavy_atom_distances);
-    const auto abc_index_values =
-        compute_abc_index_values(heavy_atom_graph, heavy_atom_distances);
-    const auto cpsa_charge_values = compute_cpsa_charge_values(mol);
-    const auto autocorrelation_values = compute_autocorrelation_values(mol);
-    const auto information_content_values = compute_information_content_values(mol);
-    const auto wiener_values = compute_wiener_values(heavy_atom_distances);
-    const auto topological_index_values = compute_topological_index_values(heavy_atom_distances);
-    const auto ec_index =
-        compute_eccentric_connectivity_index(heavy_atom_graph, heavy_atom_distances);
-    const auto ring_count_values = compute_ring_count_value_sets(mol);
-    const auto eta_values = compute_eta_values(mol, ring_count_values.base.all.total);
-    const auto estate_values = compute_mordred_estate_values(mol);
-    const auto filter_it_log_s = compute_filter_it_log_s(mol);
-    const auto labute_asa_values = compute_labute_asa_values(mol);
-    const auto peoe_vsa_values = compute_peoe_vsa_values(mol, gasteiger_charges);
-    const auto smr_vsa_values =
-        labute_asa_values.has_value()
-            ? compute_smr_vsa_values(crippen_contributions, *labute_asa_values)
-            : std::optional<std::array<double, 9>>{};
-    const auto slogp_vsa_values =
-        labute_asa_values.has_value()
-            ? compute_slogp_vsa_values(crippen_contributions, *labute_asa_values)
-            : std::optional<std::array<double, 11>>{};
-    const auto vsa_estate_values =
-        labute_asa_values.has_value()
-            ? compute_vsa_estate_values(mol, *labute_asa_values)
-            : std::optional<std::array<double, 9>>{};
-    const auto estate_vsa_values =
-        labute_asa_values.has_value()
-            ? compute_estate_vsa_values(mol, *labute_asa_values)
-            : std::optional<std::array<double, 10>>{};
-    const auto three_d_context = build_mordred_3d_context(mol);
-    const auto low_count_3d_values = compute_low_count_3d_values(three_d_context);
-    const auto morse_values = compute_mordred_morse_values(three_d_context);
-    const auto cpsa_surface_values = compute_cpsa_surface_values(mol, three_d_context);
-    DescriptorSetBuilder builder(
-        MordredDescriptorSchema(),
-        available_mordred_prerequisites(mol));
+                                     const ColumnRequest& request) {
+    const auto schema = MordredDescriptorSchema();
+    const auto& registry = mordred_group_registry();
+    const auto& index_by_id = mordred_group_index_by_id();
 
-    const auto all_atoms = values.heavy_atoms + values.hydrogens;
-    const auto all_bonds = values.heavy_bonds + values.hydrogens;
-    const auto all_single_bonds = values.single_heavy_bonds + values.hydrogens;
-    const auto framework_atom_count = count_atoms(explicit_hydrogen_copy(mol));
-    const auto framework_ratio = compute_framework_ratio(heavy_atom_graph, framework_atom_count);
-
-    // Mordred's kekulized bond counts use RDKit's alternating aromatic form.
-    // For the supported count subset, this parity approximation matches the
-    // copied Mordred references and keeps aromatic descriptors deterministic.
-    const auto kekulized_aromatic_double_bonds = values.aromatic_bonds / 2u;
-    const auto kekulized_aromatic_single_bonds =
-        values.aromatic_bonds - kekulized_aromatic_double_bonds;
-    const auto kekulized_single_bonds =
-        values.single_heavy_bonds + kekulized_aromatic_single_bonds + values.hydrogens;
-    const auto kekulized_double_bonds =
-        values.double_heavy_bonds + kekulized_aromatic_double_bonds;
-
-    set_int(builder, "nAcid", values.acidic_groups);
-    set_int(builder, "nBase", values.basic_groups);
-    set_int(builder, "nAromAtom", values.aromatic_atoms);
-    set_int(builder, "nAromBond", values.aromatic_bonds);
-    set_int(builder, "nAtom", static_cast<std::uint32_t>(TotalAtomCount(mol)));
-    set_int(builder, "nHeavyAtom", static_cast<std::uint32_t>(HeavyAtomCount(mol)));
-    set_int(builder, "nSpiro", values.spiro_atoms);
-    set_int(builder, "nBridgehead", values.bridgehead_atoms);
-    set_int(builder, "nHetero", values.hetero_atoms);
-    set_int(builder, "nH", values.hydrogens);
-    set_int(builder, "nB", values.boron);
-    set_int(builder, "nC", values.carbon);
-    set_int(builder, "nN", values.nitrogen);
-    set_int(builder, "nO", values.oxygen);
-    set_int(builder, "nS", values.sulfur);
-    set_int(builder, "nP", values.phosphorus);
-    set_int(builder, "nF", values.fluorine);
-    set_int(builder, "nCl", values.chlorine);
-    set_int(builder, "nBr", values.bromine);
-    set_int(builder, "nI", values.iodine);
-    set_int(builder, "nX", values.halogens);
-    set_int(builder, "nBonds", all_bonds);
-    set_int(builder, "nBondsO", values.heavy_bonds);
-    set_int(builder, "nBondsS", all_single_bonds);
-    set_int(builder, "nBondsD", values.double_heavy_bonds);
-    set_int(builder, "nBondsT", values.triple_heavy_bonds);
-    set_int(builder, "nBondsA", values.aromatic_bonds);
-    set_int(builder, "nBondsM", values.multiple_heavy_bonds);
-    set_int(builder, "nBondsKS", kekulized_single_bonds);
-    set_int(builder, "nBondsKD", kekulized_double_bonds);
-    set_int(builder, "C1SP1", values.sp1_carbons_by_carbon_degree[1]);
-    set_int(builder, "C2SP1", values.sp1_carbons_by_carbon_degree[2]);
-    set_int(builder, "C1SP2", values.sp2_carbons_by_carbon_degree[1]);
-    set_int(builder, "C2SP2", values.sp2_carbons_by_carbon_degree[2]);
-    set_int(builder, "C3SP2", values.sp2_carbons_by_carbon_degree[3]);
-    set_int(builder, "C1SP3", values.sp3_carbons_by_carbon_degree[1]);
-    set_int(builder, "C2SP3", values.sp3_carbons_by_carbon_degree[2]);
-    set_int(builder, "C3SP3", values.sp3_carbons_by_carbon_degree[3]);
-    set_int(builder, "C4SP3", values.sp3_carbons_by_carbon_degree[4]);
-
-    const auto sp2_sp3_carbons = values.sp2_carbons + values.sp3_carbons;
-    if (sp2_sp3_carbons != 0u) {
-        set_float(
-            builder,
-            "HybRatio",
-            static_cast<double>(values.sp3_carbons) / static_cast<double>(sp2_sp3_carbons));
-    }
-    set_float(
-        builder,
-        "FCSP3",
-        values.carbon == 0u
-            ? 0.0
-            : static_cast<double>(values.sp3_carbons) / static_cast<double>(values.carbon));
-    set_float(builder, "fragCpx", compute_fragment_complexity(values));
-    set_int(builder, "nHBAcc", values.hbond_acceptors);
-    set_int(builder, "nHBDon", values.hbond_donors);
-    for (std::size_t index = 0u; index < mordred_estate_patterns().size(); ++index) {
-        set_int(
-            builder,
-            mordred_estate_patterns()[index].descriptor_name,
-            estate_values.counts[index]);
-    }
-    for (std::size_t index = 0u; index < mordred_estate_patterns().size(); ++index) {
-        std::string descriptor_name = mordred_estate_patterns()[index].descriptor_name;
-        descriptor_name[0] = 'S';
-        set_float(builder, descriptor_name, estate_values.sums[index]);
-    }
-    for (std::size_t index = 0u; index < mordred_estate_patterns().size(); ++index) {
-        std::string descriptor_name = mordred_estate_patterns()[index].descriptor_name;
-        descriptor_name = "MAX" + descriptor_name.substr(1);
-        set_optional_float(builder, descriptor_name, estate_values.maxima[index]);
-    }
-    for (std::size_t index = 0u; index < mordred_estate_patterns().size(); ++index) {
-        std::string descriptor_name = mordred_estate_patterns()[index].descriptor_name;
-        descriptor_name = "MIN" + descriptor_name.substr(1);
-        set_optional_float(builder, descriptor_name, estate_values.minima[index]);
-    }
-
-    set_int(builder, "nRot", values.rotatable_bonds);
-    if (values.heavy_bonds != 0u) {
-        set_float(
-            builder,
-            "RotRatio",
-            static_cast<double>(values.rotatable_bonds) / static_cast<double>(values.heavy_bonds));
-    }
-    set_float(builder, "SLogP", values.crippen_logp);
-    set_float(builder, "SMR", values.crippen_mr);
-    set_optional_float(
-        builder,
-        "LabuteASA",
-        labute_asa_values.has_value() ? std::optional<double>{labute_asa_values->total}
-                                      : std::nullopt);
-    if (peoe_vsa_values.has_value()) {
-        for (std::size_t index = 0u; index < peoe_vsa_values->size() - 1u; ++index) {
-            set_float(
-                builder,
-                "PEOE_VSA" + std::to_string(index + 1u),
-                (*peoe_vsa_values)[index]);
+    // 1. Seed the run-set with groups that have a wanted emitted column.
+    std::vector<bool> in_run_set(registry.size(), false);
+    std::vector<std::size_t> pending;
+    for (std::size_t index = 0u; index < registry.size(); ++index) {
+        const auto& group = registry[index];
+        const bool wanted = std::any_of(
+            group.emitted_columns.begin(), group.emitted_columns.end(),
+            [&request](std::size_t column) { return request.Wants(column); });
+        if (wanted) {
+            in_run_set[index] = true;
+            pending.push_back(index);
         }
     }
-    if (smr_vsa_values.has_value()) {
-        for (std::size_t index = 0u; index < smr_vsa_values->size(); ++index) {
-            set_float(
-                builder,
-                "SMR_VSA" + std::to_string(index + 1u),
-                (*smr_vsa_values)[index]);
-        }
-    }
-    if (slogp_vsa_values.has_value()) {
-        for (std::size_t index = 0u; index < slogp_vsa_values->size(); ++index) {
-            set_float(
-                builder,
-                "SlogP_VSA" + std::to_string(index + 1u),
-                (*slogp_vsa_values)[index]);
-        }
-    }
-    if (estate_vsa_values.has_value()) {
-        for (std::size_t index = 0u; index < estate_vsa_values->size(); ++index) {
-            set_float(
-                builder,
-                "EState_VSA" + std::to_string(index + 1u),
-                (*estate_vsa_values)[index]);
-        }
-    }
-    if (vsa_estate_values.has_value()) {
-        for (std::size_t index = 0u; index < vsa_estate_values->size(); ++index) {
-            set_float(
-                builder,
-                "VSA_EState" + std::to_string(index + 1u),
-                (*vsa_estate_values)[index]);
-        }
-    }
-    if (low_count_3d_values.has_value()) {
-        set_low_count_3d_values(builder, *low_count_3d_values);
-    }
-    set_mordred_morse_values(builder, morse_values);
-    set_optional_float(builder, "SZ", additive_values.sz);
-    set_optional_float(builder, "Sm", additive_values.sm);
-    set_optional_float(builder, "Sv", additive_values.sv);
-    set_optional_float(builder, "Sse", additive_values.sse);
-    set_optional_float(builder, "Spe", additive_values.spe);
-    set_optional_float(builder, "Sare", additive_values.sare);
-    set_optional_float(builder, "Sp", additive_values.sp);
-    set_optional_float(builder, "Si", additive_values.si);
-    set_optional_float(builder, "MZ", additive_values.m_z);
-    set_optional_float(builder, "Mm", additive_values.mm);
-    set_optional_float(builder, "Mv", additive_values.mv);
-    set_optional_float(builder, "Mse", additive_values.mse);
-    set_optional_float(builder, "Mpe", additive_values.mpe);
-    set_optional_float(builder, "Mare", additive_values.mare);
-    set_optional_float(builder, "Mp", additive_values.mp);
-    set_optional_float(builder, "Mi", additive_values.mi);
-    set_optional_float(builder, "VMcGowan", additive_values.v_mcgowan);
-    set_optional_float(builder, "apol", additive_values.apol);
-    set_optional_float(builder, "bpol", additive_values.bpol);
-    set_optional_float(builder, "Vabc", additive_values.vabc);
-    set_float(builder, "MWC01", walk_count_values.mwc[1]);
-    set_float(builder, "MWC02", walk_count_values.mwc[2]);
-    set_float(builder, "MWC03", walk_count_values.mwc[3]);
-    set_float(builder, "MWC04", walk_count_values.mwc[4]);
-    set_float(builder, "MWC05", walk_count_values.mwc[5]);
-    set_float(builder, "MWC06", walk_count_values.mwc[6]);
-    set_float(builder, "MWC07", walk_count_values.mwc[7]);
-    set_float(builder, "MWC08", walk_count_values.mwc[8]);
-    set_float(builder, "MWC09", walk_count_values.mwc[9]);
-    set_float(builder, "MWC10", walk_count_values.mwc[10]);
-    set_float(builder, "TMWC10", walk_count_values.total_mwc10);
-    set_float(builder, "SRW02", walk_count_values.srw[2]);
-    set_float(builder, "SRW03", walk_count_values.srw[3]);
-    set_float(builder, "SRW04", walk_count_values.srw[4]);
-    set_float(builder, "SRW05", walk_count_values.srw[5]);
-    set_float(builder, "SRW06", walk_count_values.srw[6]);
-    set_float(builder, "SRW07", walk_count_values.srw[7]);
-    set_float(builder, "SRW08", walk_count_values.srw[8]);
-    set_float(builder, "SRW09", walk_count_values.srw[9]);
-    set_float(builder, "SRW10", walk_count_values.srw[10]);
-    set_float(builder, "TSRW10", walk_count_values.total_srw10);
-    set_int(builder, "MPC2", path_count_values.mpc[2]);
-    set_int(builder, "MPC3", path_count_values.mpc[3]);
-    set_int(builder, "MPC4", path_count_values.mpc[4]);
-    set_int(builder, "MPC5", path_count_values.mpc[5]);
-    set_int(builder, "MPC6", path_count_values.mpc[6]);
-    set_int(builder, "MPC7", path_count_values.mpc[7]);
-    set_int(builder, "MPC8", path_count_values.mpc[8]);
-    set_int(builder, "MPC9", path_count_values.mpc[9]);
-    set_int(builder, "MPC10", path_count_values.mpc[10]);
-    set_int(builder, "TMPC10", path_count_values.total_mpc10);
-    set_float(builder, "piPC1", std::log(path_count_values.pi_mpc[1] + 1.0));
-    set_float(builder, "piPC2", std::log(path_count_values.pi_mpc[2] + 1.0));
-    set_float(builder, "piPC3", std::log(path_count_values.pi_mpc[3] + 1.0));
-    set_float(builder, "piPC4", std::log(path_count_values.pi_mpc[4] + 1.0));
-    set_float(builder, "piPC5", std::log(path_count_values.pi_mpc[5] + 1.0));
-    set_float(builder, "piPC6", std::log(path_count_values.pi_mpc[6] + 1.0));
-    set_float(builder, "piPC7", std::log(path_count_values.pi_mpc[7] + 1.0));
-    set_float(builder, "piPC8", std::log(path_count_values.pi_mpc[8] + 1.0));
-    set_float(builder, "piPC9", std::log(path_count_values.pi_mpc[9] + 1.0));
-    set_float(builder, "piPC10", std::log(path_count_values.pi_mpc[10] + 1.0));
-    set_float(builder, "TpiPC10", std::log(path_count_values.total_pi_mpc10 + 1.0));
-    set_optional_float(
-        builder,
-        "Kier1",
-        kappa_shape_index(values.heavy_atoms, path_count_values, 1u));
-    set_optional_float(
-        builder,
-        "Kier2",
-        kappa_shape_index(values.heavy_atoms, path_count_values, 2u));
-    set_optional_float(
-        builder,
-        "Kier3",
-        kappa_shape_index(values.heavy_atoms, path_count_values, 3u));
-    set_chi_path_values(builder, chi_path_values);
-    set_chi_non_path_values(builder, chi_non_path_values);
-    set_information_content_values(builder, information_content_values);
-    set_zagreb_values(builder, zagreb_values);
-    set_molecular_distance_edge_values(builder, molecular_distance_edge_values);
-    set_abc_index_values(builder, abc_index_values);
-    if (cpsa_charge_values.has_value()) {
-        set_cpsa_charge_values(builder, *cpsa_charge_values);
-    }
-    if (cpsa_surface_values.has_value()) {
-        set_cpsa_surface_values(builder, *cpsa_surface_values);
-    }
-    set_autocorrelation_values(builder, autocorrelation_values);
-    set_optional_float(builder, "BalabanJ", balaban_j);
-    set_float(builder, "BertzCT", bertz_ct);
-    set_optional_float(builder, "VAdjMat", vertex_adjacency_information);
-    set_wiener_values(builder, wiener_values);
-    set_topological_index_values(builder, topological_index_values);
-    set_topological_charge_values(builder, topological_charge_values);
-    if (molecular_id_values.has_value()) {
-        set_molecular_id_values(builder, *molecular_id_values);
-    }
-    if (adjacency_matrix_eigenvalue_values.has_value()) {
-        set_adjacency_matrix_eigenvalue_values(builder, *adjacency_matrix_eigenvalue_values);
-    }
-    if (distance_matrix_eigenvalue_values.has_value()) {
-        set_distance_matrix_eigenvalue_values(builder, *distance_matrix_eigenvalue_values);
-    }
-    if (detour_matrix_values.has_value()) {
-        set_detour_matrix_values(builder, *detour_matrix_values);
-    }
-    for (const auto& [suffix, property_values] : barysz_matrix_values) {
-        if (property_values.has_value()) {
-            set_barysz_matrix_values(builder, *property_values, suffix);
-        }
-    }
-    set_bcut_values(builder, bcut_values);
-    set_eccentric_connectivity_index(builder, ec_index);
-    set_ring_count_values(builder, ring_count_values.base);
-    set_fused_ring_count_values(builder, ring_count_values.fused);
-    if (eta_values.has_value()) {
-        set_eta_values(builder, *eta_values);
-    }
-    set_optional_float(builder, "fMF", framework_ratio);
-    set_float(builder, "TopoPSA(NO)", values.topo_psa_no);
-    set_float(builder, "TopoPSA", values.topo_psa);
-    set_float(builder, "MW", ExactMolecularWeight(mol));
-    set_float(builder, "AMW", AverageMolecularWeight(mol));
-    set_bool(
-        builder,
-        "Lipinski",
-        values.hbond_donors <= 5u && values.hbond_acceptors <= 10u
-            && values.exact_weight <= 500.0 && values.crippen_logp <= 5.0);
-    set_bool(
-        builder,
-        "GhoseFilter",
-        values.exact_weight >= 160.0 && values.exact_weight <= 480.0
-            && all_atoms >= 20u && all_atoms <= 70u
-            && values.crippen_logp >= -0.4 && values.crippen_logp <= 5.6
-            && values.crippen_mr >= 40.0 && values.crippen_mr <= 130.0);
-    set_optional_float(builder, "FilterItLogS", filter_it_log_s);
 
-    return builder.Build();
+    // 2. Transitively close the run-set over dependency edges: a dependency
+    //    runs (to feed its dependent's artifact) even when no column of it is
+    //    wanted.
+    while (!pending.empty()) {
+        const auto index = pending.back();
+        pending.pop_back();
+        for (const auto dependency : registry[index].dependency_groups) {
+            const auto dependency_index = index_by_id[static_cast<std::size_t>(dependency)];
+            if (!in_run_set[dependency_index]) {
+                in_run_set[dependency_index] = true;
+                pending.push_back(dependency_index);
+            }
+        }
+    }
+
+    // 3. Order the run-set so each group runs after every group it depends on.
+    std::vector<std::size_t> order;
+    order.reserve(registry.size());
+    std::vector<bool> emitted(registry.size(), false);
+    std::function<void(std::size_t)> visit = [&](std::size_t index) {
+        if (emitted[index] || !in_run_set[index]) {
+            return;
+        }
+        emitted[index] = true;
+        for (const auto dependency : registry[index].dependency_groups) {
+            visit(index_by_id[static_cast<std::size_t>(dependency)]);
+        }
+        order.push_back(index);
+    };
+    for (std::size_t index = 0u; index < registry.size(); ++index) {
+        visit(index);
+    }
+
+    // 4. Run each group: it reads ctx intermediates and upstream artifacts,
+    //    populates its own artifact, and emits only request-wanted columns.
+    DescriptorSetBuilder raw_builder(schema, available_mordred_prerequisites(mol));
+    RequestGatedBuilder builder(raw_builder, *schema, request);
+    MordredGroupArtifacts artifacts;
+    for (const auto index : order) {
+        registry[index].run(mol, ctx, artifacts, request, builder);
+    }
+    return raw_builder.Build();
 }
 
 DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
@@ -8451,11 +9116,14 @@ DescriptorSet MakeMordredDetourDescriptorsForTesting(
     const auto heavy_atom_graph = build_mordred_heavy_atom_graph(mol);
     const auto detour_matrix_values =
         compute_detour_matrix_values(heavy_atom_graph, max_search_operations);
-    DescriptorSetBuilder builder(MordredDescriptorSchema());
+    const auto schema = MordredDescriptorSchema();
+    DescriptorSetBuilder raw_builder(schema);
+    const auto request = ColumnRequest::All();
+    RequestGatedBuilder builder(raw_builder, *schema, request);
     if (detour_matrix_values.has_value()) {
         set_detour_matrix_values(builder, *detour_matrix_values);
     }
-    return builder.Build();
+    return raw_builder.Build();
 }
 
 } // namespace test

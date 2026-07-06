@@ -121,19 +121,13 @@ TEST(DescriptorSourceTest, OpenEyeComputesRingPerceptionThroughContextThenReuses
     EXPECT_EQ(oe_row.Int("LipinskiHBD"), oe_plain.Int("LipinskiHBD"));
 }
 
-// DISABLED pending a Mordred-side change that is out of Task 7's scope. This
-// test's premise is that Mordred warms ctx.RingPerceivedMol() so OpenEye's later
-// pull is a cache hit. That does NOT hold in Phase 1: the committed Mordred
-// context path (MakeMordredDescriptors(mol, ctx, request)) routes only four
-// intermediates through ctx — HeavyAtomGraph, HeavyAtomDistances,
-// GasteigerAtomCharges, CrippenContributions — and still performs its own ring
-// perception on private inline OEGraphMols (compute_first_batch_values). OpenEye
-// is therefore the FIRST consumer of ctx.RingPerceivedMol(), so it raises the
-// count (after_mordred 4 -> 5) instead of reusing. Genuine cross-source sharing
-// of the ring-perceived molecule requires routing Mordred's ring perception
-// through ctx.RingPerceivedMol() (deferred to the Task 10 group registry, or a
-// Task 6 follow-up). Re-enable once that lands. See the Task 7 report.
-TEST(DescriptorSourceTest, DISABLED_SecondSourceReusesSharedIntermediate) {
+// Cross-source sharing of the ring-perceived working molecule. Task 10 routed
+// Mordred's first-batch preparation through ctx.RingPerceivedMol() (its inline
+// prep was byte-identical: copy + OEFindRingAtomsAndBonds + OEAssignHybridization),
+// so Mordred now warms that shared intermediate. OpenEye's only shared
+// intermediate is the ring-perceived molecule, so its later pull is a pure cache
+// hit and adds nothing to the compute count.
+TEST(DescriptorSourceTest, SecondSourceReusesSharedIntermediate) {
     OEChem::OEGraphMol mol;
     ASSERT_TRUE(OEChem::OESmilesToMol(mol, "CC(=O)OC1=CC=CC=C1C(=O)O"));
     OEFP::MordredDescriptorSource mordred;
