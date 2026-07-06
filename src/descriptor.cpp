@@ -562,7 +562,10 @@ DescriptorSetBuilder::DescriptorSetBuilder(
 }
 
 void DescriptorSetBuilder::Set(const std::string& name, DescriptorValue value) {
-    const auto index = schema_->IndexOf(name);
+    Set(schema_->IndexOf(name), std::move(value));
+}
+
+void DescriptorSetBuilder::Set(std::size_t index, DescriptorValue value) {
     const auto& definition = schema_->Definition(index);
     if (!DescriptorPrerequisitesSatisfied(definition.prerequisites, available_prerequisites_)) {
         return;

@@ -7675,8 +7675,9 @@ public:
         : builder_(builder), schema_(schema), request_(request) {}
 
     void Set(const std::string& name, DescriptorValue value) {
-        if (request_.Wants(schema_.IndexOf(name))) {
-            builder_.Set(name, std::move(value));
+        const auto index = schema_.IndexOf(name);
+        if (request_.Wants(index)) {
+            builder_.Set(index, std::move(value));
         }
     }
 

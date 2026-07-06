@@ -152,6 +152,17 @@ public:
     ///     match the descriptor definition.
     void Set(const std::string& name, DescriptorValue value);
 
+    /// \brief Set one descriptor value by its resolved schema index.
+    ///
+    /// Behaves exactly like the name overload but skips the name-to-index
+    /// lookup. Prefer this on hot paths where the caller has already resolved
+    /// the index (for example, after a request-membership check).
+    ///
+    /// \throws std::out_of_range: When the index is outside the schema.
+    /// \throws std::invalid_argument: When the value kind or shape does not
+    ///     match the descriptor definition.
+    void Set(std::size_t index, DescriptorValue value);
+
     /// \brief Return prerequisite bits available for this row.
     DescriptorPrerequisites AvailablePrerequisites() const;
 

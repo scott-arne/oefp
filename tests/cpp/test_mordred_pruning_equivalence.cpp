@@ -48,8 +48,9 @@ void expect_subset_matches_all_for_mol(
     }
 
     // Unrequested columns must be MISSING in the pruned row (subtractive
-    // pruning): sample a spread of non-requested indices and assert none is set.
-    for (std::size_t i = 0u; i < schema->Size(); i += 37u) {
+    // pruning): scan every non-requested index and assert none is set, so a
+    // stray emission anywhere in the schema fails the test deterministically.
+    for (std::size_t i = 0u; i < schema->Size(); ++i) {
         if (requested.count(i) != 0u) {
             continue;
         }

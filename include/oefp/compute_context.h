@@ -24,8 +24,8 @@ namespace OEFP {
 /// Ownership invariant: a context is per-molecule-per-thread. It must never be
 /// shared across molecules or threads, and performs no internal locking. The
 /// caches are ``mutable`` so accessors can be ``const`` while still populating
-/// them on demand. Each :cpp:class:`~OEFP::CalculateBatch` worker constructs its
-/// own context per molecule.
+/// them on demand. Each ``CalculateBatch`` worker constructs its own context per
+/// molecule.
 class ComputeContext {
 public:
     /// \brief Construct a context borrowing ``mol`` for its lifetime.
