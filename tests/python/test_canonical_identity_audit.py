@@ -20,15 +20,18 @@ EXPECTED_SHARED_CANONICAL_IDS = frozenset({
     "quantity:num_hbond_acceptors",
 })
 
-# The curated identities the RDKit source itself contributes to the audit.
-# Guarded separately from EXPECTED_SHARED_CANONICAL_IDS because the global
-# completeness set can be satisfied by another source pair (e.g. Mordred+OpenEye
-# both carry heavy_atom_count), which would mask an RDKit-specific tag
-# regression — precisely the dedup wiring this audit exists to protect. The
-# source-aware guard below requires RDKit to both declare and match the id.
-EXPECTED_RDKIT_SHARED = frozenset({
-    "quantity:heavy_atom_count",
-})
+# The curated identities the RDKit source itself contributes to the audit,
+# pinned by descriptor NAME (not just id). Guarded separately from
+# EXPECTED_SHARED_CANONICAL_IDS because the global completeness set can be
+# satisfied by another source pair (e.g. Mordred+OpenEye both carry
+# heavy_atom_count), which would mask an RDKit-specific tag regression —
+# precisely the dedup wiring this audit exists to protect. Pinning by name+id
+# additionally catches a curated id being attached to the WRONG descriptor
+# (e.g. exact_molecular_weight's descriptor carrying heavy_atom_count).
+EXPECTED_RDKIT_CURATED = {
+    "HeavyAtomCount": "quantity:heavy_atom_count",
+}
+EXPECTED_RDKIT_SHARED = frozenset(EXPECTED_RDKIT_CURATED.values())
 
 
 def _canonical_values(calculator, mol):
@@ -36,8 +39,19 @@ def _canonical_values(calculator, mol):
     # missing (unset) value; a missing tagged value is simply not compared.
     row = calculator.compute(mol)
     out = {}
+    seen_ids = set()
     for definition in calculator.schema.definitions:
         if definition.canonical_id:
+            # Keying by canonical_id would silently keep only the last column if
+            # a single source tagged two descriptors with the same id; that
+            # collision is itself a corruption the audit must surface, not hide.
+            # Track by definition (independent of value) so a None first value
+            # cannot let the duplicate slip through.
+            assert definition.canonical_id not in seen_ids, (
+                f"source {definition.source_name} tags multiple descriptors with "
+                f"canonical_id {definition.canonical_id}"
+            )
+            seen_ids.add(definition.canonical_id)
             value = row[definition.name]
             if value is not None:
                 out[definition.canonical_id] = value
@@ -71,20 +85,26 @@ def test_shared_canonical_ids_are_identical(panel_mols):
     calculators = [mordred, openeye, rdkit]
     rdkit_index = calculators.index(rdkit)
 
-    # Source-aware guard: the RDKit source must declare EXACTLY the curated ids it
-    # is expected to contribute — no more, no less. An EXACT-set check (not a
-    # subset check) catches both a silent LOSS of heavy_atom_count and an
-    # unintended re-ADD of a divergent curated id (e.g. exact_molecular_weight,
-    # which the RDKit source deliberately leaves untagged because its H-suppressed
-    # weight diverges from the other sources on stereo bracket-H molecules). The
-    # global completeness set cannot catch either regression, because another
-    # source pair still covers those ids. Intersect with the curated set so a
-    # future NON-curated RDKit-only canonical id does not spuriously fail here.
-    rdkit_schema_ids = {d.canonical_id for d in rdkit.schema.definitions if d.canonical_id}
-    rdkit_curated = rdkit_schema_ids & EXPECTED_SHARED_CANONICAL_IDS
-    assert rdkit_curated == EXPECTED_RDKIT_SHARED, (
-        f"RDKit curated canonical ids changed: got {rdkit_curated}, "
-        f"expected {EXPECTED_RDKIT_SHARED}"
+    # Source-aware guard: the RDKit source must declare EXACTLY the curated
+    # name->id mapping it is expected to contribute — no more, no less. Pinning
+    # the full (name, id) mapping (not just the id set) catches a silent LOSS of
+    # heavy_atom_count (missing key), an unintended re-ADD of a divergent curated
+    # id (extra key, e.g. exact_molecular_weight, which the RDKit source
+    # deliberately leaves untagged because its H-suppressed weight diverges from
+    # the other sources on stereo bracket-H molecules), AND a curated id attached
+    # to the WRONG descriptor (e.g. ExactMolWt carrying heavy_atom_count, which a
+    # plain id-set check would miss because the set is unchanged). The global
+    # completeness set cannot catch any of these, because another source pair
+    # still covers those ids. Restrict to curated ids so a future NON-curated
+    # RDKit-only canonical id does not spuriously fail here.
+    rdkit_curated = {
+        d.name: d.canonical_id
+        for d in rdkit.schema.definitions
+        if d.canonical_id in EXPECTED_SHARED_CANONICAL_IDS
+    }
+    assert rdkit_curated == EXPECTED_RDKIT_CURATED, (
+        f"RDKit curated name->canonical_id mapping changed: got {rdkit_curated}, "
+        f"expected {EXPECTED_RDKIT_CURATED}"
     )
 
     shared_seen = set()
