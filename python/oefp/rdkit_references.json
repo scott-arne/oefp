@@ -122,7 +122,7 @@
       "source_name": "RDKit",
       "source_type": "CountsWeights",
       "source_version": "RDKit-2026.03.3",
-      "tier": "exact",
+      "tier": "tight",
       "units": "",
       "value_kind": "float"
     },

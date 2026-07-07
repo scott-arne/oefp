@@ -37,6 +37,29 @@ double ExactMolecularWeight(const OEChem::OEMolBase& mol);
 /// \returns Average atomic weight, or 0.0 when the molecule has no atoms.
 double AverageMolecularWeight(const OEChem::OEMolBase& mol);
 
+/// \brief Return the standard (average-isotope) molecular weight.
+///
+/// Sums each atom's standard average atomic weight (respecting an explicit
+/// isotope, which uses that isotope's mass instead) and adds the average mass of
+/// every implicit and explicit hydrogen. This reproduces RDKit's ``MolWt``
+/// descriptor. It differs from :cpp:func:`AverageMolecularWeight`, which is
+/// exact-mass divided by atom count (Mordred's ``AMW``).
+///
+/// \param mol Molecule to weigh.
+/// \returns Sum of per-element average masses including bonded hydrogens.
+double StandardMolecularWeight(const OEChem::OEMolBase& mol);
+
+/// \brief Return the standard molecular weight excluding all hydrogen mass.
+///
+/// Computed as :cpp:func:`StandardMolecularWeight` minus the total hydrogen
+/// count (implicit plus explicit) times the average mass of hydrogen. This
+/// reproduces RDKit's ``HeavyAtomMolWt`` descriptor, which subtracts the average
+/// hydrogen mass rather than summing only heavy-atom masses.
+///
+/// \param mol Molecule to weigh.
+/// \returns Standard molecular weight with all hydrogen mass removed.
+double heavy_atom_standard_weight(const OEChem::OEMolBase& mol);
+
 /// \brief Return the number of heavy (non-hydrogen) atoms.
 ///
 /// \param mol Molecule to count.

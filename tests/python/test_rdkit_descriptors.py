@@ -38,7 +38,9 @@ def test_rdkit_source_registers_and_returns_full_width_row():
     calc = oefp.DescriptorCalculator([oefp.RDKitDescriptorSource()])
     assert len(calc.schema.names) == 214
     row = calc.compute(_openeye_mol("CCO"))
-    assert all(row[name] is None for name in calc.schema.names)
+    # CountsWeights is computed (Task 3); un-ported families stay missing.
+    assert row["HeavyAtomCount"] == 3
+    assert row["TPSA"] is None
 
 
 def test_rdkit_schema_size_matches_fixture():
@@ -58,8 +60,9 @@ def test_rdkit_descriptors_free_function_returns_full_width_row():
 
     row = oefp.rdkit_descriptors(_openeye_mol("CCO"))
     assert len(row.schema.names) == 214
-    # Skeleton stub: every value is currently missing (families land in later tasks).
-    assert all(row[name] is None for name in row.schema.names)
+    # CountsWeights is computed (Task 3); un-ported families remain missing.
+    assert row["ExactMolWt"] == pytest.approx(46.0419, rel=1e-4)
+    assert row["MolLogP"] is None
 
 
 def test_rdkit_native_free_functions_are_exported():
@@ -93,3 +96,52 @@ def test_rdkit_descriptors_release_gil_for_concurrent_computation():
         results = list(executor.map(compute_row, smiles_batch))
 
     assert results == [214] * len(smiles_batch)
+
+
+# Families enabled for conformance checking; grows as tasks land. This task
+# enables 21 dependency-free CountsWeights descriptors. `SPS` and `Phi` are
+# CountsWeights members deferred to later tasks (see comments below).
+ENABLED_DESCRIPTOR_NAMES: set[str] = {
+    "MolWt", "HeavyAtomMolWt", "ExactMolWt", "NumValenceElectrons",
+    "NumRadicalElectrons", "FpDensityMorgan1", "FpDensityMorgan2",
+    "FpDensityMorgan3", "FractionCSP3", "HeavyAtomCount", "NHOHCount",
+    "NOCount", "NumAmideBonds", "NumAtomStereoCenters", "NumBridgeheadAtoms",
+    "NumHAcceptors", "NumHDonors", "NumHeteroatoms", "NumRotatableBonds",
+    "NumSpiroAtoms", "NumUnspecifiedAtomStereoCenters",
+    # "SPS" deferred — RDKit SpacialScore needs RDKit-internal potential-stereo +
+    # hybridization models OpenEye doesn't expose; needs a dedicated deep-dive task.
+    # "Phi" added in Task 6 (needs Connectivity Kappa artifacts).
+}
+
+
+def _tier_by_name(payload: dict) -> dict[str, str]:
+    return {d["name"]: d["tier"] for d in payload["definitions"]}
+
+
+def _values_by_name(payload: dict, row: dict) -> dict:
+    names = [d["name"] for d in payload["definitions"]]
+    return dict(zip(names, row["values"], strict=True))
+
+
+def test_enabled_rdkit_descriptors_match_reference_at_tier():
+    import oefp
+
+    payload = _payload()
+    tiers = _tier_by_name(payload)
+    calc = oefp.DescriptorCalculator([oefp.RDKitDescriptorSource()])
+
+    for row in payload["reference_rows"]:
+        expected = _values_by_name(payload, row)
+        actual = calc.compute(_openeye_mol(row["smiles"]))
+        for name in ENABLED_DESCRIPTOR_NAMES:
+            ref = expected[name]
+            got = actual[name]
+            assert got is not None, f"{name} @ {row['smiles']}"
+            if isinstance(ref, dict):
+                continue  # oracle error/missing; not enabled for exact match
+            tol = TIER_TOLERANCE[tiers[name]]
+            if isinstance(ref, bool) or isinstance(ref, int):
+                assert got == ref, f"{name} @ {row['smiles']}: {got} != {ref}"
+            else:
+                assert got == pytest.approx(ref, rel=tol, abs=tol), \
+                    f"{name} @ {row['smiles']} tier={tiers[name]}"

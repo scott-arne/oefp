@@ -46,6 +46,42 @@ double AverageMolecularWeight(const OEChem::OEMolBase& mol) {
                : ExactMolecularWeight(mol) / static_cast<double>(total_atoms);
 }
 
+double StandardMolecularWeight(const OEChem::OEMolBase& mol) {
+    // RDKit's MolWt sums standard average atomic weights per element and adds the
+    // average mass of every bonded hydrogen. An explicit isotope uses that
+    // isotope's exact mass instead of the element average, matching RDKit.
+    const auto hydrogen_average_mass = OEChem::OEGetAverageWeight(1u);
+    double standard_weight = 0.0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        const auto atomic_number = static_cast<std::uint32_t>(atom->GetAtomicNum());
+        const auto isotope = static_cast<std::uint32_t>(atom->GetIsotope());
+        standard_weight += isotope != 0u
+                               ? OEChem::OEGetIsotopicWeight(atomic_number, isotope)
+                               : OEChem::OEGetAverageWeight(atomic_number);
+        if (!is_hydrogen(*atom)) {
+            standard_weight += static_cast<double>(atom->GetTotalHCount())
+                               * hydrogen_average_mass;
+        }
+    }
+    return standard_weight;
+}
+
+double heavy_atom_standard_weight(const OEChem::OEMolBase& mol) {
+    // RDKit's HeavyAtomMolWt is the standard weight with all hydrogen mass
+    // removed. Subtracting the total hydrogen count times the same average
+    // hydrogen mass used above leaves exactly the summed heavy-atom average
+    // masses, so the two helpers stay internally consistent.
+    const auto hydrogen_average_mass = OEChem::OEGetAverageWeight(1u);
+    std::uint64_t total_hydrogens = 0u;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        total_hydrogens += is_hydrogen(*atom)
+                               ? 1u
+                               : static_cast<std::uint32_t>(atom->GetTotalHCount());
+    }
+    return StandardMolecularWeight(mol)
+           - static_cast<double>(total_hydrogens) * hydrogen_average_mass;
+}
+
 std::uint64_t HeavyAtomCount(const OEChem::OEMolBase& mol) {
     std::uint64_t heavy_atoms = 0u;
     for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {

@@ -112,7 +112,12 @@ RDKIT_CANONICAL_IDS: dict[str, str] = {
 RDKIT_TOLERANCE_TIERS: dict[str, str] = {
     # Counts/weights (Task 3): exact — same atomic constants / graph counts.
     "HeavyAtomCount": "exact",
-    "ExactMolWt": "exact",
+    # ExactMolWt re-curated exact->tight (Task 3): OpenEye and RDKit ship slightly
+    # different isotope-mass constants, so the native monoisotopic weight differs
+    # from the oracle by ~3e-8 relative on iodine/sodium molecules (CI, C[Na]).
+    # This is a constant-table difference, not a computation bug; tight (1e-4)
+    # covers it with wide margin while still catching real errors.
+    "ExactMolWt": "tight",
     "NumValenceElectrons": "exact",
     "NumHeteroatoms": "exact",
     "FractionCSP3": "exact",
