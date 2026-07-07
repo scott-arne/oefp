@@ -96,6 +96,11 @@ RDKIT_COVERAGE_SUPPLEMENT = [
     "C1CC23CCC(C1)(CC2)CC3",                     # bridged bicyclo: BH=2 (propellane-safe)
     "[Cu]",                                      # metal radical: NumRadicalElectrons=1 (parity branch)
     "[Fe+2]",                                    # metal skip: NumRadicalElectrons=0 (undefined-valence gate)
+    # CountsWeights regression coverage (stereo bracket-H suppression): OpenEye
+    # keeps the [C@H] hydrogen explicit while RDKit treats it as implicit; these
+    # lock the local H-suppression so weights/valence/Morgan-density match RDKit.
+    "C[C@H](N)C(=O)O",                           # L-alanine: bracket-H + real stereocenter
+    "C[C@@H](O)C(=O)O",                          # lactic acid: bracket-H + stereocenter
 ]
 
 # RDKit descriptors excluded from the schema because they are structurally

@@ -499,10 +499,22 @@ const std::vector<RDKitGroup>& rdkit_group_registry() {
             [](const OEChem::OEMolBase&, ComputeContext& ctx,
                RDKitGroupArtifacts&, const ColumnRequest&,
                RequestGatedBuilder& builder) {
-                // The shared ring-perceived, hybridization-assigned working
-                // molecule carries the ring, hybridization, and chirality state
-                // every count below relies on, and reuses the cached preparation.
-                const OEChem::OEGraphMol& mol = ctx.RingPerceivedMol();
+                // RDKit's oracle treats a stereo bracket hydrogen (e.g. the H in
+                // C[C@H](N)C(=O)O) as implicit, but OpenEye keeps it as an
+                // explicit atom. Counting that stray hydrogen would inflate the
+                // weights, valence-electron count, and Morgan-environment density
+                // relative to RDKit. Suppress redundant explicit hydrogens on a
+                // LOCAL copy so the whole group computes on the implicit-H graph
+                // RDKit uses. The copy is essential: ctx.RingPerceivedMol() returns
+                // a const reference shared with the Mordred source, and must not be
+                // mutated. Re-perceive rings/aromaticity/hybridization after
+                // suppression (FractionCSP3 relies on hybridization) and preserve
+                // stereo parity, so the stereocenter counts still match RDKit.
+                OEChem::OEGraphMol mol(ctx.RingPerceivedMol());
+                OEChem::OESuppressHydrogens(mol);
+                OEChem::OEFindRingAtomsAndBonds(mol);
+                OEChem::OEAssignAromaticFlags(mol);
+                OEChem::OEAssignHybridization(mol);
 
                 set_int(builder, "HeavyAtomCount",
                         static_cast<std::int64_t>(HeavyAtomCount(mol)));
