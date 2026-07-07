@@ -114,9 +114,15 @@ ENABLED_DESCRIPTOR_NAMES: set[str] = {
     "NumAromaticCarbocycles", "NumAromaticHeterocycles", "NumAliphaticCarbocycles",
     "NumAliphaticHeterocycles", "NumSaturatedCarbocycles",
     "NumSaturatedHeterocycles", "NumHeterocycles",
+    # Connectivity (Task 6): 20 float connectivity/shape indices.
+    "Chi0", "Chi1", "Chi0n", "Chi1n", "Chi2n", "Chi3n", "Chi4n",
+    "Chi0v", "Chi1v", "Chi2v", "Chi3v", "Chi4v", "HallKierAlpha",
+    "Kappa1", "Kappa2", "Kappa3", "BertzCT", "BalabanJ", "Ipc", "AvgIpc",
+    # Phi (Task 6): CountsWeights column wired to the Connectivity Kappa
+    # artifacts via the group dependency resolver (first cross-group dependency).
+    "Phi",
     # "SPS" deferred — RDKit SpacialScore needs RDKit-internal potential-stereo +
     # hybridization models OpenEye doesn't expose; needs a dedicated deep-dive task.
-    # "Phi" added in Task 6 (needs Connectivity Kappa artifacts).
 }
 
 

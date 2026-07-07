@@ -157,6 +157,35 @@ RDKIT_TOLERANCE_TIERS: dict[str, str] = {
     "NumSaturatedCarbocycles": "exact",
     "NumSaturatedHeterocycles": "exact",
     "NumHeterocycles": "exact",
+    # Connectivity (Task 6): float connectivity/shape indices. The native port
+    # reproduces RDKit's definitions from the shared heavy-atom graph and matches
+    # the oracle to ~1e-15 across the panel (well inside tight/1e-4), so the Chi
+    # family, HallKierAlpha, the Kappa shape indices, BertzCT and BalabanJ are
+    # tight. Ipc/AvgIpc are tight because their characteristic-polynomial +
+    # log-summation ordering is sensitive to accumulation order; the native
+    # Le Verrier-Faddeev evaluation still tracks the oracle to ~1e-16 here.
+    "Chi0": "tight",
+    "Chi1": "tight",
+    "Chi0n": "tight",
+    "Chi1n": "tight",
+    "Chi2n": "tight",
+    "Chi3n": "tight",
+    "Chi4n": "tight",
+    "Chi0v": "tight",
+    "Chi1v": "tight",
+    "Chi2v": "tight",
+    "Chi3v": "tight",
+    "Chi4v": "tight",
+    "HallKierAlpha": "tight",
+    "Kappa1": "tight",
+    "Kappa2": "tight",
+    "Kappa3": "tight",
+    "BertzCT": "tight",
+    "BalabanJ": "tight",
+    "Ipc": "tight",
+    "AvgIpc": "tight",
+    # Phi (Task 6): CountsWeights column = Kappa1*Kappa2/heavy-count.
+    "Phi": "tight",
     # ... remaining families appended by their tasks.
 }
 

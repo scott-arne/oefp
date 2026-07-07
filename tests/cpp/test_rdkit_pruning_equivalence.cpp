@@ -123,3 +123,33 @@ TEST(RDKitPruningEquivalenceTest, WholeRingCountsGroup) {
          "NumAliphaticHeterocycles", "NumSaturatedCarbocycles", "NumSaturatedHeterocycles",
          "NumHeterocycles"});
 }
+
+// Connectivity representative single column across the panel: requesting only
+// Chi0 must match the full-schema value and leave the other 19 Connectivity
+// members (and every other column) missing, proving the group's emitted_columns
+// list is correct.
+TEST(RDKitPruningEquivalenceTest, ConnectivitySingleColumn) {
+    expect_column_matches_across_panel({"Chi0"});
+}
+
+// The whole Connectivity group requested together across the panel: a divergence
+// on any ring/hetero/branched molecule surfaces a pruning error in the group
+// (e.g. a Chi path or Kappa shape index computed differently under pruning).
+TEST(RDKitPruningEquivalenceTest, WholeConnectivityGroup) {
+    expect_column_matches_across_panel(
+        {"Chi0", "Chi1", "Chi0n", "Chi1n", "Chi2n", "Chi3n", "Chi4n",
+         "Chi0v", "Chi1v", "Chi2v", "Chi3v", "Chi4v", "HallKierAlpha",
+         "Kappa1", "Kappa2", "Kappa3", "BertzCT", "BalabanJ", "Ipc", "AvgIpc"});
+}
+
+// The first real cross-group dependency in the RDKit registry: `Phi` lives in
+// CountsWeights but is computed from the Connectivity group's Kappa artifact.
+// Requesting ONLY {"Phi"} must (a) reproduce the full-schema Phi value exactly,
+// and (b) emit NO Kappa* (or any other Connectivity) column — Connectivity runs
+// only as a dependency to populate the artifact, and its own columns stay
+// unrequested/missing. This exercises the dependency-closure resolver end to
+// end. expect_subset_matches_all already asserts every non-requested column
+// (all 213 others, including Kappa1/Kappa2/Kappa3) is missing in the pruned row.
+TEST(RDKitPruningEquivalenceTest, PhiDependencyClosureAcrossPanel) {
+    expect_column_matches_across_panel({"Phi"});
+}

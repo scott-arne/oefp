@@ -9,12 +9,18 @@
 
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
+#include <iomanip>
+#include <limits>
+#include <map>
 #include <set>
+#include <sstream>
 #include <string>
 #include <unordered_set>
+#include <utility>
 #include <vector>
 
 namespace OEFP {
@@ -434,6 +440,793 @@ double fp_density_morgan(const OEChem::OEMolBase& mol, std::uint32_t radius) {
 // exposed by OpenEye (a best-effort native port deviated by up to 50% on cage
 // systems). A dedicated deep-dive follow-up task will own it.
 
+// ---------------------------------------------------------------------------
+// rdkit:Connectivity family (Task 6): the 20 float connectivity/shape indices
+// plus the Kappa values that feed the CountsWeights `Phi` column.
+//
+// Every descriptor here is computed from the shared heavy-atom graph
+// (ctx.HeavyAtomGraph()), whose adjacency carries bond orders (aromatic bonds
+// are 1.5) and whose atoms are the raw molecule's heavy atoms. RDKit's
+// definitions were reproduced exactly against the oracle across the conformance
+// panel (worst deviation ~1e-15). The subtle bits, each verified:
+//   * ChiN path enumeration matches RDKit's findAllPathsOfLengthN (atom paths
+//     with ring-closure handling and the "don't multiply the closing atom
+//     twice" rule from RDKit github #463).
+//   * HallKierAlpha needs RDKit's hybridization, which differs from OpenEye's on
+//     a few conjugated O/N atoms, so RDKit's setConjugation + setHybridization
+//     is reproduced from graph primitives rather than read from OpenEye.
+//   * BertzCT is byte-identical to Mordred's compute_bertz_ct on the panel, so
+//     it is reused additively; BalabanJ uses RDKit's bond-order-weighted
+//     distances (different from Mordred's), so a family-local helper computes it.
+
+/// \brief RDKit ``PeriodicTable::getDefaultValence`` for ``Z = 0..118``.
+///
+/// A non-negative common valence for main-group elements; ``-1`` for
+/// variable-valence elements (transition metals, etc.). Used by the
+/// conjugation and lone-pair models below, which branch on whether an element
+/// has a defined default valence exactly as RDKit does.
+int rdkit_default_valence(std::uint32_t atomic_number) {
+    static constexpr std::array<int, 119> defaults{{
+        -1, 1, 0, 1, 2, 3, 4, 3, 2, 1, 0, 1, 2, 3, 4, 3, 2, 1, 0, 1, 2,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 3, 4, 3, 2, 1, 0, 1, 2,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 3, 2, 3, 2, 1, 0, 1, 2,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, 2, 3, 2, 1, 0, 1, 2,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+    }};
+    if (atomic_number >= defaults.size()) {
+        return -1;
+    }
+    return defaults[atomic_number];
+}
+
+/// \brief RDKit ``PeriodicTable::getRb0`` covalent radii for ``Z = 0..118``.
+///
+/// Only used by HallKierAlpha's fallback for elements outside its explicit
+/// C/N/O/F/P/S/Cl/Br/I table (``alpha = Rb0(Z)/Rb0(C) - 1``), matching RDKit's
+/// ``calcHallKierAlpha``.
+double rdkit_covalent_radius(std::uint32_t atomic_number) {
+    static constexpr std::array<double, 119> radii{{
+        0.0, 0.33, 0.7, 1.23, 0.9, 0.82, 0.77, 0.7, 0.66, 0.611, 0.7, 1.54,
+        1.36, 1.18, 0.937, 0.89, 1.04, 0.997, 1.74, 2.03, 1.74, 1.44, 1.32,
+        1.22, 1.18, 1.17, 1.17, 1.16, 1.15, 1.17, 1.25, 1.26, 1.188, 1.2, 1.17,
+        1.167, 1.91, 2.16, 1.91, 1.62, 1.45, 1.34, 1.3, 1.27, 1.25, 1.25, 1.28,
+        1.34, 1.48, 1.44, 1.385, 1.4, 1.378, 1.387, 1.98, 2.35, 1.98, 1.69,
+        1.83, 1.82, 1.81, 1.8, 1.8, 1.99, 1.79, 1.76, 1.75, 1.74, 1.73, 1.72,
+        1.94, 1.72, 1.44, 1.34, 1.3, 1.28, 1.26, 1.27, 1.3, 1.34, 1.49, 1.48,
+        1.48, 1.45, 1.46, 1.45, 2.4, 2.0, 1.9, 1.88, 1.79, 1.61, 1.58, 1.55,
+        1.53, 1.07, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+        0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+    }};
+    if (atomic_number >= radii.size()) {
+        return 0.0;
+    }
+    return radii[atomic_number];
+}
+
+/// \brief Per-heavy-atom primitives the connectivity descriptors read.
+///
+/// Precomputed once per heavy atom so the hybridization and delta calculations
+/// share a single pass over the molecule. Field names mirror the RDKit
+/// primitives they stand in for: OpenEye's ``GetDegree`` already counts implicit
+/// hydrogens, so it maps to RDKit's ``getTotalDegree``; ``GetHvyDegree`` maps to
+/// RDKit's ``getDegree``; ``GetValence`` (integer, hydrogens included) maps to
+/// RDKit's total (explicit + implicit) valence.
+struct ConnectivityAtomInfo {
+    std::uint32_t atomic_number = 0;
+    int total_degree = 0;       // heavy neighbors + hydrogens (RDKit totalDegree)
+    int heavy_degree = 0;       // heavy neighbors only (RDKit degree)
+    int total_hydrogens = 0;    // RDKit getTotalNumHs
+    int valence = 0;            // integer valence incl. H (RDKit expl+impl valence)
+    int formal_charge = 0;
+    int radical_electrons = 0;  // RDKit getNumRadicalElectrons
+};
+
+/// \brief Number of unpaired (radical) electrons, mirroring RDKit exactly.
+///
+/// Identical model to :cpp:func:`count_radical_electrons`'s per-atom branch:
+/// main-group elements use the charge-shifted octet shortfall, variable-valence
+/// elements use the odd-electron parity. Duplicated here at atom granularity
+/// because the hybridization and lone-pair models below need the per-atom value.
+int rdkit_atom_radicals(std::uint32_t atomic_number, int formal_charge, int valence) {
+    const auto outer = static_cast<int>(rdkit_outer_electrons(atomic_number));
+    if (outer == 0) {
+        return 0;
+    }
+    if (has_defined_default_valence(atomic_number)) {
+        const auto target = outer < 4 ? outer - formal_charge : 8 - outer + formal_charge;
+        const auto shortfall = target - valence;
+        return shortfall > 0 ? shortfall : 0;
+    }
+    const auto free_electrons = outer - formal_charge - valence;
+    return free_electrons > 0 ? free_electrons % 2 : 0;
+}
+
+/// \brief Reproduce RDKit's ``MolOps::countAtomElec`` for a graph atom.
+///
+/// The pi-donation electron count RDKit's conjugation candidate test consults.
+/// ``heavy_valence`` is the summed heavy-bond order (RDKit ``getExplicitValence``
+/// on the hydrogen-suppressed graph) used only to cap the result at 1 for
+/// atoms bearing a triple-or-higher bond.
+int rdkit_count_atom_elec(const ConnectivityAtomInfo& info, int heavy_valence) {
+    const auto default_valence = rdkit_default_valence(info.atomic_number);
+    if (default_valence <= 1) {
+        return -1;
+    }
+    int degree = info.heavy_degree + info.total_hydrogens;
+    if (degree > 3) {
+        return -1;
+    }
+    const auto outer = static_cast<int>(rdkit_outer_electrons(info.atomic_number));
+    int lone_pairs = outer - default_valence - info.formal_charge;
+    if (lone_pairs < 0) {
+        lone_pairs = 0;
+    }
+    int result = (default_valence - degree) + lone_pairs - info.radical_electrons;
+    if (result > 1) {
+        const auto unsaturations = heavy_valence - info.heavy_degree;
+        if (unsaturations > 1) {
+            result = 1;
+        }
+    }
+    return result;
+}
+
+/// \brief RDKit's ``isAtomConjugCand``: whether an atom may carry conjugation.
+bool rdkit_is_conjugation_candidate(const ConnectivityAtomInfo& info, int heavy_valence) {
+    const auto outer = static_cast<int>(rdkit_outer_electrons(info.atomic_number));
+    const bool row_ok = info.atomic_number <= 10u || (outer != 5 && outer != 6)
+                        || (outer == 6 && info.total_degree < 2);
+    return row_ok && rdkit_count_atom_elec(info, heavy_valence) > 0;
+}
+
+/// \brief RDKit's ``numBondsPlusLonePairs``: the orbital count that sets hybridization.
+int rdkit_num_bonds_plus_lone_pairs(const ConnectivityAtomInfo& info) {
+    const int degree = info.total_degree;
+    if (info.atomic_number <= 1u) {
+        return degree;
+    }
+    const auto outer = static_cast<int>(rdkit_outer_electrons(info.atomic_number));
+    const int total_valence = info.valence;
+    const int free_electrons = outer - (total_valence + info.formal_charge);
+    if (total_valence + outer - info.formal_charge < 8) {
+        const int lone_pairs = (free_electrons - info.radical_electrons) / 2;
+        return degree + lone_pairs + info.radical_electrons;
+    }
+    const int lone_pairs = free_electrons / 2;
+    return degree + lone_pairs;
+}
+
+/// \brief RDKit hybridization classes the Hall-Kier alpha table distinguishes.
+enum class RDKitHybridization { S, SP, SP2, SP3, SP3D, SP3D2, Unspecified };
+
+/// \brief Per-heavy-atom hybridization reproducing RDKit's
+///     ``setConjugation`` + ``setHybridization``.
+///
+/// OpenEye's own hybridization perception disagrees with RDKit on a handful of
+/// conjugated O/N atoms (e.g. the hydroxyl O of a carboxylic acid), which would
+/// shift HallKierAlpha and every Kappa/Phi that depends on it. Reproducing
+/// RDKit's algorithm from the heavy-atom graph removes that dependency and
+/// matches the oracle exactly. Aromatic bonds seed conjugation; the orbital
+/// count (bonds + lone pairs) picks S/SP/SP2/SP3/…; a 4-orbital atom drops to
+/// SP2 only when it has a conjugated bond and total degree <= 3 (RDKit Issue276).
+std::vector<RDKitHybridization> rdkit_hybridizations(
+    const MordredHeavyAtomGraph& graph, const std::vector<ConnectivityAtomInfo>& atoms) {
+    const auto atom_count = graph.atoms.size();
+
+    // heavy_valence[i] = rounded sum of incident heavy-bond orders (aromatic
+    // counts as 1.5, so it rounds toward the Kekule contribution RDKit uses).
+    std::vector<int> heavy_valence(atom_count, 0);
+    for (std::size_t i = 0u; i < atom_count; ++i) {
+        double order_sum = 0.0;
+        for (const auto& neighbor : graph.adjacency[i]) {
+            order_sum += neighbor.bond_order;
+        }
+        heavy_valence[i] = static_cast<int>(std::lround(order_sum));
+    }
+
+    // Seed conjugation from aromatic bonds, then mark conjugated bond pairs
+    // exactly as RDKit's markConjAtomBonds does.
+    std::vector<std::vector<char>> conjugated(atom_count);
+    for (std::size_t i = 0u; i < atom_count; ++i) {
+        conjugated[i].assign(graph.adjacency[i].size(), 0);
+        for (std::size_t k = 0u; k < graph.adjacency[i].size(); ++k) {
+            if (graph.adjacency[i][k].bond_order == 1.5) {
+                conjugated[i][k] = 1;
+            }
+        }
+    }
+    // Conjugation is a property of the shared bond, so mark both directed
+    // adjacency slots. Marking only the originating side would leave a
+    // neighbour (e.g. a carboxylate O) reading its own slot as unconjugated and
+    // mis-hybridizing to SP3.
+    const auto set_conjugated = [&](std::size_t from, std::size_t to) {
+        for (std::size_t k = 0u; k < graph.adjacency[from].size(); ++k) {
+            if (graph.adjacency[from][k].atom_index == to) {
+                conjugated[from][k] = 1;
+            }
+        }
+        for (std::size_t k = 0u; k < graph.adjacency[to].size(); ++k) {
+            if (graph.adjacency[to][k].atom_index == from) {
+                conjugated[to][k] = 1;
+            }
+        }
+    };
+    for (std::size_t i = 0u; i < atom_count; ++i) {
+        if (!rdkit_is_conjugation_candidate(atoms[i], heavy_valence[i])) {
+            continue;
+        }
+        const int substitutions = atoms[i].heavy_degree + atoms[i].total_hydrogens;
+        if (substitutions < 2 || substitutions > 3) {
+            continue;
+        }
+        for (std::size_t a = 0u; a < graph.adjacency[i].size(); ++a) {
+            if (graph.adjacency[i][a].bond_order < 1.5) {
+                continue;
+            }
+            for (std::size_t b = 0u; b < graph.adjacency[i].size(); ++b) {
+                if (a == b) {
+                    continue;
+                }
+                const auto other = graph.adjacency[i][b].atom_index;
+                const int other_subs = atoms[other].heavy_degree + atoms[other].total_hydrogens;
+                if (other_subs > 3) {
+                    continue;
+                }
+                if (rdkit_is_conjugation_candidate(atoms[other], heavy_valence[other])) {
+                    set_conjugated(i, graph.adjacency[i][a].atom_index);
+                    set_conjugated(i, other);
+                }
+            }
+        }
+    }
+
+    std::vector<RDKitHybridization> hybridizations(atom_count, RDKitHybridization::Unspecified);
+    for (std::size_t i = 0u; i < atom_count; ++i) {
+        const int orbitals = atoms[i].atomic_number < 89u
+                                 ? rdkit_num_bonds_plus_lone_pairs(atoms[i])
+                                 : atoms[i].total_degree;
+        const bool has_conjugated_bond =
+            std::any_of(conjugated[i].begin(), conjugated[i].end(), [](char c) { return c != 0; });
+        switch (orbitals) {
+            case 0:
+            case 1:
+                hybridizations[i] = RDKitHybridization::S;
+                break;
+            case 2:
+                hybridizations[i] = RDKitHybridization::SP;
+                break;
+            case 3:
+                hybridizations[i] = RDKitHybridization::SP2;
+                break;
+            case 4:
+                hybridizations[i] = (atoms[i].total_degree > 3 || !has_conjugated_bond)
+                                        ? RDKitHybridization::SP3
+                                        : RDKitHybridization::SP2;
+                break;
+            case 5:
+                hybridizations[i] = RDKitHybridization::SP3D;
+                break;
+            case 6:
+                hybridizations[i] = RDKitHybridization::SP3D2;
+                break;
+            default:
+                hybridizations[i] = RDKitHybridization::Unspecified;
+                break;
+        }
+    }
+    return hybridizations;
+}
+
+/// \brief Hall-Kier alpha contribution for one atom, matching RDKit's ``getAlpha``.
+double rdkit_hall_kier_alpha_contribution(std::uint32_t atomic_number,
+                                          RDKitHybridization hybridization) {
+    const bool sp = hybridization == RDKitHybridization::SP;
+    const bool sp2 = hybridization == RDKitHybridization::SP2;
+    switch (atomic_number) {
+        case 1u:
+            return 0.0;
+        case 6u:
+            return sp ? -0.22 : (sp2 ? -0.13 : 0.0);
+        case 7u:
+            return sp ? -0.29 : (sp2 ? -0.20 : -0.04);
+        case 8u:
+            return sp2 ? -0.20 : -0.04;
+        case 9u:
+            return -0.07;
+        case 15u:
+            return sp2 ? 0.30 : 0.43;
+        case 16u:
+            return sp2 ? 0.22 : 0.35;
+        case 17u:
+            return 0.29;
+        case 35u:
+            return 0.48;
+        case 53u:
+            return 0.73;
+        default: {
+            const auto carbon_radius = rdkit_covalent_radius(6u);
+            if (carbon_radius == 0.0) {
+                return 0.0;
+            }
+            return rdkit_covalent_radius(atomic_number) / carbon_radius - 1.0;
+        }
+    }
+}
+
+/// \brief Kier-Hall valence delta (``v`` variant): ``1/sqrt(delta_v)``.
+///
+/// ``delta_v = Zv - h`` for first-row atoms and ``(Zv - h)/(Z - Zv - 1)`` from
+/// the second row up, where ``Zv`` is the outer-shell electron count and ``h``
+/// the attached-hydrogen count. Returns 0 for a zero delta (the atom is then
+/// skipped from the reciprocal-square-root sum, as RDKit does).
+double rdkit_valence_delta(const ConnectivityAtomInfo& info) {
+    if (info.atomic_number <= 1u) {
+        return 0.0;
+    }
+    const auto outer = static_cast<double>(rdkit_outer_electrons(info.atomic_number));
+    double delta = 0.0;
+    if (info.atomic_number <= 10u) {
+        delta = outer - info.total_hydrogens;
+    } else {
+        const auto denominator =
+            static_cast<double>(info.atomic_number) - outer - 1.0;
+        if (denominator == 0.0) {
+            return 0.0;
+        }
+        delta = (outer - info.total_hydrogens) / denominator;
+    }
+    return delta != 0.0 ? 1.0 / std::sqrt(delta) : 0.0;
+}
+
+/// \brief Sigma-electron delta (``n`` variant): ``1/sqrt(Zv - h)``.
+double rdkit_sigma_delta(const ConnectivityAtomInfo& info) {
+    const auto delta =
+        static_cast<double>(rdkit_outer_electrons(info.atomic_number)) - info.total_hydrogens;
+    return delta != 0.0 ? 1.0 / std::sqrt(delta) : 0.0;
+}
+
+/// \brief Enumerate RDKit's ``findAllPathsOfLengthN`` atom paths (bond length ``n``).
+///
+/// Reproduces RDKit's path finder: paths start at every atom and grow one
+/// neighbor at a time, never revisiting an atom except that the final step may
+/// close a ring (when the target length > 2 and the closing atom is not the
+/// path's second-to-last). Paths are then de-duplicated by their bond set, so a
+/// ring's many rotations/reflections collapse to distinct bond compositions —
+/// matching RDKit's invariant. Returns atom-index paths of ``length + 1`` atoms.
+std::vector<std::vector<std::size_t>> rdkit_atom_paths(
+    const MordredHeavyAtomGraph& graph, std::size_t length) {
+    const auto atom_count = graph.adjacency.size();
+    std::vector<std::vector<std::size_t>> paths;
+    paths.reserve(atom_count);
+    for (std::size_t i = 0u; i < atom_count; ++i) {
+        paths.push_back({i});
+    }
+    for (std::size_t step = 1u; step < length + 1u; ++step) {
+        std::vector<std::vector<std::size_t>> next;
+        for (const auto& path : paths) {
+            const auto end = path.back();
+            for (const auto& neighbor : graph.adjacency[end]) {
+                const auto candidate = neighbor.atom_index;
+                const bool already_in =
+                    std::find(path.begin(), path.end(), candidate) != path.end();
+                if (!already_in) {
+                    auto extended = path;
+                    extended.push_back(candidate);
+                    next.push_back(std::move(extended));
+                } else if (length + 1u > 2u && path.size() == length
+                           && path.size() >= 2u && path[path.size() - 2u] != candidate) {
+                    // Ring-closure step (RDKit github #463): permitted only on
+                    // the last extension and never by doubling back.
+                    auto extended = path;
+                    extended.push_back(candidate);
+                    next.push_back(std::move(extended));
+                }
+            }
+        }
+        paths = std::move(next);
+    }
+
+    // De-duplicate by bond set so ring rotations collapse, matching RDKit.
+    std::vector<std::vector<std::size_t>> unique_paths;
+    std::set<std::set<std::pair<std::size_t, std::size_t>>> seen;
+    for (const auto& path : paths) {
+        std::set<std::pair<std::size_t, std::size_t>> bonds;
+        for (std::size_t k = 0u; k + 1u < path.size(); ++k) {
+            const auto left = std::min(path[k], path[k + 1u]);
+            const auto right = std::max(path[k], path[k + 1u]);
+            bonds.emplace(left, right);
+        }
+        if (seen.insert(bonds).second) {
+            unique_paths.push_back(path);
+        }
+    }
+    return unique_paths;
+}
+
+/// \brief ChiN connectivity index for a per-atom delta table.
+///
+/// Sums, over every RDKit path of ``order`` bonds, the product of the path
+/// atoms' delta values, omitting the closing atom of a ring path (RDKit's
+/// ``p[n] != p[0]`` guard). ``order == 0`` is the atom sum; ``order == 1`` the
+/// bond sum. Covers both the ``n`` (sigma) and ``v`` (valence) variants via the
+/// supplied ``deltas`` vector (already ``1/sqrt`` transformed per atom).
+double rdkit_chi_order(const MordredHeavyAtomGraph& graph, const std::vector<double>& deltas,
+                       std::size_t order) {
+    if (order == 0u) {
+        double total = 0.0;
+        for (const auto delta : deltas) {
+            total += delta;
+        }
+        return total;
+    }
+    if (order == 1u) {
+        double total = 0.0;
+        for (const auto& [begin, end] : graph.bonds) {
+            total += deltas[begin] * deltas[end];
+        }
+        return total;
+    }
+    double total = 0.0;
+    for (const auto& path : rdkit_atom_paths(graph, order)) {
+        double product = 1.0;
+        for (std::size_t i = 0u; i < order; ++i) {
+            product *= deltas[path[i]];
+        }
+        if (path[order] != path[0]) {
+            product *= deltas[path[order]];
+        }
+        total += product;
+    }
+    return total;
+}
+
+/// \brief Chi0/Chi1 using the simple heavy-atom degree (not a valence delta).
+double rdkit_chi_simple(const MordredHeavyAtomGraph& graph, bool order_one) {
+    if (!order_one) {
+        double total = 0.0;
+        for (const auto& neighbors : graph.adjacency) {
+            const auto degree = neighbors.size();
+            if (degree > 0u) {
+                total += 1.0 / std::sqrt(static_cast<double>(degree));
+            }
+        }
+        return total;
+    }
+    double total = 0.0;
+    for (const auto& [begin, end] : graph.bonds) {
+        const auto product = graph.adjacency[begin].size() * graph.adjacency[end].size();
+        if (product > 0u) {
+            total += 1.0 / std::sqrt(static_cast<double>(product));
+        }
+    }
+    return total;
+}
+
+/// \brief Kier Kappa1/2/3 shape indices with the Hall-Kier alpha correction.
+///
+/// Uses path counts ``P1`` (bonds), ``P2``, ``P3`` (RDKit ``findAllPathsOfLengthN``
+/// with 2 and 3 bonds), the heavy-atom count ``A`` and ``alpha`` exactly as
+/// RDKit's ``kappa*Helper``. Kappa3 branches on the parity of ``A``. Each guards
+/// a zero denominator (returning 0), matching RDKit.
+struct RDKitKappaValues {
+    double kappa1 = 0.0;
+    double kappa2 = 0.0;
+    double kappa3 = 0.0;
+};
+
+RDKitKappaValues rdkit_kappa_values(const MordredHeavyAtomGraph& graph, double alpha) {
+    RDKitKappaValues values;
+    const auto atom_count = static_cast<double>(graph.atoms.size());
+    const auto p1 = static_cast<double>(graph.bonds.size());
+    const auto p2 = static_cast<double>(rdkit_atom_paths(graph, 2u).size());
+    const auto p3 = static_cast<double>(rdkit_atom_paths(graph, 3u).size());
+
+    const auto denom1 = p1 + alpha;
+    if (denom1 != 0.0) {
+        values.kappa1 = (atom_count + alpha) * (atom_count + alpha - 1.0)
+                        * (atom_count + alpha - 1.0) / (denom1 * denom1);
+    }
+    const auto denom2 = (p2 + alpha) * (p2 + alpha);
+    if (denom2 != 0.0) {
+        values.kappa2 = (atom_count + alpha - 1.0) * (atom_count + alpha - 2.0)
+                        * (atom_count + alpha - 2.0) / denom2;
+    }
+    const auto denom3 = (p3 + alpha) * (p3 + alpha);
+    if (denom3 != 0.0) {
+        const auto odd = static_cast<long>(graph.atoms.size()) % 2 == 1;
+        const auto leading = odd ? (atom_count + alpha - 1.0) : (atom_count + alpha - 2.0);
+        values.kappa3 = leading * (atom_count + alpha - 3.0) * (atom_count + alpha - 3.0) / denom3;
+    }
+    return values;
+}
+
+/// \brief Shannon entropy (bits) of a value vector, matching RDKit's ``InfoEntropy``.
+double rdkit_info_entropy(const std::vector<double>& values) {
+    double total = 0.0;
+    for (const auto value : values) {
+        total += value;
+    }
+    if (total == 0.0) {
+        return 0.0;
+    }
+    double entropy = 0.0;
+    for (const auto value : values) {
+        const auto probability = value / total;
+        if (probability > 0.0) {
+            entropy += -probability * std::log2(probability);
+        }
+    }
+    return entropy;
+}
+
+/// \brief Bond-order-weighted all-pairs shortest-path distance matrix.
+///
+/// Edge weight ``1/bond_order`` (aromatic bonds weigh 1/1.5), matching RDKit's
+/// ``GetDistanceMatrix(useBO=1)`` that both BalabanJ and BertzCT's symmetry
+/// classes rely on. Disconnected pairs stay at the infinity sentinel.
+std::vector<std::vector<double>> rdkit_bond_order_distances(
+    const MordredHeavyAtomGraph& graph) {
+    const auto atom_count = graph.adjacency.size();
+    constexpr auto kInfinity = std::numeric_limits<double>::infinity();
+    std::vector<std::vector<double>> distances(atom_count,
+                                               std::vector<double>(atom_count, kInfinity));
+    for (std::size_t i = 0u; i < atom_count; ++i) {
+        distances[i][i] = 0.0;
+        for (const auto& neighbor : graph.adjacency[i]) {
+            const auto weight = 1.0 / neighbor.bond_order;
+            distances[i][neighbor.atom_index] =
+                std::min(distances[i][neighbor.atom_index], weight);
+        }
+    }
+    for (std::size_t via = 0u; via < atom_count; ++via) {
+        for (std::size_t begin = 0u; begin < atom_count; ++begin) {
+            for (std::size_t end = 0u; end < atom_count; ++end) {
+                const auto through = distances[begin][via] + distances[via][end];
+                if (through < distances[begin][end]) {
+                    distances[begin][end] = through;
+                }
+            }
+        }
+    }
+    return distances;
+}
+
+/// \brief RDKit's Balaban J index.
+///
+/// Follows RDKit's ``BalabanJ``: distance row-sums come from the
+/// bond-order-weighted distance matrix; ``J = q/(mu+1) * sum(1/sqrt(s_i*s_j))``
+/// over bonds, with ``mu = q - n + 1``. Returns 0 for the degenerate ``mu+1==0``.
+double rdkit_balaban_j(const MordredHeavyAtomGraph& graph) {
+    const auto atom_count = graph.atoms.size();
+    if (atom_count == 0u) {
+        return 0.0;
+    }
+    const auto distances = rdkit_bond_order_distances(graph);
+    std::vector<double> row_sums(atom_count, 0.0);
+    for (std::size_t i = 0u; i < atom_count; ++i) {
+        double sum = 0.0;
+        for (const auto value : distances[i]) {
+            sum += value;
+        }
+        row_sums[i] = sum;
+    }
+    double edge_sum = 0.0;
+    for (const auto& [begin, end] : graph.bonds) {
+        edge_sum += 1.0 / std::sqrt(row_sums[begin] * row_sums[end]);
+    }
+    const auto bond_count = static_cast<double>(graph.bonds.size());
+    const auto mu = static_cast<long>(graph.bonds.size())
+                    - static_cast<long>(atom_count) + 1;
+    if (mu + 1 == 0) {
+        return 0.0;
+    }
+    return bond_count / static_cast<double>(mu + 1) * edge_sum;
+}
+
+/// \brief RDKit's BertzCT graph-complexity index.
+///
+/// Reproduces RDKit's ``BertzCT``: symmetry classes come from the sorted rows
+/// of the bond-order distance matrix (formatted to 4 decimals, capped at the
+/// 100-neighbour cutoff), then two information terms are summed — a
+/// connection-complexity term over hinge/neighbour class triples (and
+/// multiple-bond pairs) and an atom-type term. This matches Mordred's
+/// ``compute_bertz_ct`` byte-for-byte on the conformance panel (both track
+/// RDKit's ``forceDMat=1`` aromatic-bond-order convention); it is duplicated
+/// here rather than shared so the RDKit source stays self-contained and no
+/// Mordred code path is disturbed.
+double rdkit_bertz_ct(const MordredHeavyAtomGraph& graph) {
+    const auto atom_count = graph.atoms.size();
+    if (atom_count < 2u) {
+        return 0.0;
+    }
+
+    // Neighbours sorted by atom index give a deterministic connection order.
+    auto sorted_adjacency = graph.adjacency;
+    for (auto& neighbors : sorted_adjacency) {
+        std::sort(neighbors.begin(), neighbors.end(),
+                  [](const PathCountNeighbor& left, const PathCountNeighbor& right) {
+                      return left.atom_index < right.atom_index;
+                  });
+    }
+
+    // Symmetry classes: distinct sorted distance vectors (4-decimal keys, capped
+    // at the 100-nearest-neighbour cutoff), matching RDKit's _AssignSymmetryClasses.
+    const auto distances = rdkit_bond_order_distances(graph);
+    std::vector<std::vector<std::string>> keys_seen;
+    std::vector<std::uint32_t> symmetry_classes;
+    symmetry_classes.reserve(atom_count);
+    for (const auto& row : distances) {
+        auto sorted_row = row;
+        std::sort(sorted_row.begin(), sorted_row.end());
+        if (sorted_row.size() > 100u) {
+            sorted_row.resize(100u);
+        }
+        std::vector<std::string> key;
+        key.reserve(sorted_row.size());
+        for (const auto distance : sorted_row) {
+            std::ostringstream stream;
+            stream << std::fixed << std::setprecision(4) << distance;
+            key.push_back(stream.str());
+        }
+        const auto found = std::find(keys_seen.begin(), keys_seen.end(), key);
+        if (found == keys_seen.end()) {
+            keys_seen.push_back(std::move(key));
+            symmetry_classes.push_back(static_cast<std::uint32_t>(keys_seen.size()));
+        } else {
+            symmetry_classes.push_back(
+                static_cast<std::uint32_t>(std::distance(keys_seen.begin(), found) + 1));
+        }
+    }
+
+    std::map<unsigned int, double> atom_type_counts;
+    std::map<std::vector<std::uint32_t>, double> connection_counts;
+    for (std::size_t i = 0u; i < atom_count; ++i) {
+        atom_type_counts[graph.atoms[i]->GetAtomicNum()] += 1.0;
+        const auto hinge_class = symmetry_classes[i];
+        const auto& neighbors = sorted_adjacency[i];
+        for (std::size_t left = 0u; left < neighbors.size(); ++left) {
+            const auto left_index = neighbors[left].atom_index;
+            const auto left_class = symmetry_classes[left_index];
+            const auto left_order = neighbors[left].bond_order;
+            if (left_order > 1.0 && left_index > i) {
+                const auto lower = std::min(hinge_class, left_class);
+                const auto upper = std::max(hinge_class, left_class);
+                connection_counts[{lower, upper}] += left_order * (left_order - 1.0) / 2.0;
+            }
+            for (std::size_t right = left + 1u; right < neighbors.size(); ++right) {
+                const auto right_index = neighbors[right].atom_index;
+                const auto right_class = symmetry_classes[right_index];
+                const auto lower = std::min(left_class, right_class);
+                const auto upper = std::max(left_class, right_class);
+                connection_counts[{lower, hinge_class, upper}] +=
+                    left_order * neighbors[right].bond_order;
+            }
+        }
+    }
+    if (connection_counts.empty()) {
+        connection_counts[{0u}] = 1.0;
+    }
+
+    std::vector<double> connection_values;
+    connection_values.reserve(connection_counts.size());
+    double total_connections = 0.0;
+    for (const auto& entry : connection_counts) {
+        connection_values.push_back(entry.second);
+        total_connections += entry.second;
+    }
+    std::vector<double> atom_type_values;
+    atom_type_values.reserve(atom_type_counts.size());
+    for (const auto& entry : atom_type_counts) {
+        atom_type_values.push_back(entry.second);
+    }
+
+    const auto connection_ie =
+        total_connections * (rdkit_info_entropy(connection_values) + std::log2(total_connections));
+    const auto atom_type_ie =
+        static_cast<double>(atom_count) * rdkit_info_entropy(atom_type_values);
+    return connection_ie + atom_type_ie;
+}
+
+/// \brief Le Verrier-Faddeev-Frame characteristic polynomial of the 0/1
+///     adjacency matrix, used by Ipc.
+///
+/// Reproduces RDKit's ``Graphs.CharacteristicPolynomial`` on the
+/// hydrogen-suppressed adjacency matrix. Returns the ``n + 1`` coefficients with
+/// the sign convention RDKit applies (``res[1:] *= -1``).
+std::vector<double> rdkit_characteristic_polynomial(const MordredHeavyAtomGraph& graph) {
+    const auto n = graph.adjacency.size();
+    std::vector<std::vector<double>> adjacency(n, std::vector<double>(n, 0.0));
+    for (std::size_t i = 0u; i < n; ++i) {
+        for (const auto& neighbor : graph.adjacency[i]) {
+            adjacency[i][neighbor.atom_index] = 1.0;
+        }
+    }
+    std::vector<double> coefficients(n + 1u, 0.0);
+    coefficients[0] = 1.0;
+    auto current = adjacency;  // A^1
+    for (std::size_t step = 1u; step <= n; ++step) {
+        double trace = 0.0;
+        for (std::size_t i = 0u; i < n; ++i) {
+            trace += current[i][i];
+        }
+        const auto coefficient = trace / static_cast<double>(step);
+        coefficients[step] = coefficient;
+        // Bn = current - coefficient * I
+        auto bn = current;
+        for (std::size_t i = 0u; i < n; ++i) {
+            bn[i][i] -= coefficient;
+        }
+        // current = adjacency * Bn
+        std::vector<std::vector<double>> product(n, std::vector<double>(n, 0.0));
+        for (std::size_t i = 0u; i < n; ++i) {
+            for (std::size_t k = 0u; k < n; ++k) {
+                const auto a = adjacency[i][k];
+                if (a == 0.0) {
+                    continue;
+                }
+                for (std::size_t j = 0u; j < n; ++j) {
+                    product[i][j] += a * bn[k][j];
+                }
+            }
+        }
+        current = std::move(product);
+    }
+    for (std::size_t step = 1u; step <= n; ++step) {
+        coefficients[step] = -coefficients[step];
+    }
+    return coefficients;
+}
+
+/// \brief Ipc / AvgIpc information content of the characteristic polynomial.
+///
+/// RDKit's ``Ipc``: ``sum(|coeff|) * H(|coeff|)`` (``avg == false``) or the
+/// entropy ``H(|coeff|)`` alone (``avg == true``). The product form grows large
+/// (hundreds of thousands on the panel) but stays well within ``double`` range;
+/// the entropy is computed directly in bits so no intermediate overflows.
+double rdkit_ipc(const MordredHeavyAtomGraph& graph, bool averaged) {
+    if (graph.adjacency.empty()) {
+        return 0.0;
+    }
+    const auto coefficients = rdkit_characteristic_polynomial(graph);
+    std::vector<double> magnitudes;
+    magnitudes.reserve(coefficients.size());
+    for (const auto coefficient : coefficients) {
+        magnitudes.push_back(std::abs(coefficient));
+    }
+    const auto entropy = rdkit_info_entropy(magnitudes);
+    if (averaged) {
+        return entropy;
+    }
+    double total = 0.0;
+    for (const auto magnitude : magnitudes) {
+        total += magnitude;
+    }
+    return total * entropy;
+}
+
+/// \brief Gather the per-heavy-atom primitives the Connectivity family needs.
+std::vector<ConnectivityAtomInfo> rdkit_connectivity_atom_info(
+    const MordredHeavyAtomGraph& graph) {
+    std::vector<ConnectivityAtomInfo> atoms;
+    atoms.reserve(graph.atoms.size());
+    for (std::size_t i = 0u; i < graph.atoms.size(); ++i) {
+        const auto* atom = graph.atoms[i];
+        ConnectivityAtomInfo info;
+        info.atomic_number = static_cast<std::uint32_t>(atom->GetAtomicNum());
+        info.total_degree = static_cast<int>(atom->GetDegree());
+        info.heavy_degree = static_cast<int>(graph.adjacency[i].size());
+        info.total_hydrogens = static_cast<int>(atom->GetTotalHCount());
+        info.valence = static_cast<int>(atom->GetValence());
+        info.formal_charge = static_cast<int>(atom->GetFormalCharge());
+        info.radical_electrons =
+            rdkit_atom_radicals(info.atomic_number, info.formal_charge, info.valence);
+        atoms.push_back(info);
+    }
+    return atoms;
+}
+
 // RDKit-internal group-to-group intermediates that are NOT molecule-level
 // shareable (those live on ComputeContext instead). Per spec §4.3, the per-atom
 // EState / LabuteASA vectors and BCUT2D eigenvalues are ComputeContext
@@ -443,11 +1236,22 @@ double fp_density_morgan(const OEChem::OEMolBase& mol, std::uint32_t radius) {
 struct RDKitGroupArtifacts {
     // Populated by the Connectivity group (Task 6) for the CountsWeights `Phi`
     // column; extended only for intermediates that are truly not context-level.
+    //
+    // Kappa1/Kappa2 are Kier shape indices the Connectivity group already
+    // computes. `Phi` (a CountsWeights column) is Kappa1*Kappa2/heavy-count, so
+    // the group stashes them here whenever it runs. The group populates them
+    // request-independently (even if the Kappa* columns themselves are not
+    // wanted), so `Phi` still resolves correctly under column pruning when only
+    // `Phi` is requested and Connectivity runs solely as a dependency.
+    double kappa1 = 0.0;
+    double kappa2 = 0.0;
+    bool kappas_ready = false;
 };
 
 enum class RDKitGroupId {
     CountsWeights,
     RingCounts,
+    Connectivity,
     Count_,
 };
 
@@ -577,12 +1381,14 @@ const std::vector<RDKitGroup>& rdkit_group_registry() {
         const DescriptorSchema& s = *schema;
         std::vector<RDKitGroup> groups;
 
-        // Group: rdkit:CountsWeights — the 21 DEPENDENCY-FREE descriptors this
-        // task computes. `Phi` is a member but needs the Connectivity group's
-        // Kappa values, so it is added in Task 6. `SPS` is a member but is
-        // deferred and left MISSING (see the deferral note at the SPS emission
-        // site below). Neither is listed in emitted_columns so the subtractive
-        // pruning check treats them as unrequested/missing columns.
+        // Group: rdkit:CountsWeights — the 21 DEPENDENCY-FREE descriptors plus
+        // `Phi`. `Phi` needs the Connectivity group's Kappa values, so this
+        // group declares a dependency on Connectivity (the first real
+        // cross-group dependency in the RDKit registry) and reads the Kappa
+        // artifact. `SPS` is a member but is deferred and left MISSING (see the
+        // deferral note at the SPS emission site below), so it is not listed in
+        // emitted_columns and the subtractive pruning check treats it as an
+        // unrequested/missing column.
         groups.push_back(RDKitGroup{
             RDKitGroupId::CountsWeights,
             rdkit_column_indices(
@@ -592,10 +1398,10 @@ const std::vector<RDKitGroup>& rdkit_group_registry() {
                  "FpDensityMorgan3", "FractionCSP3", "HeavyAtomCount", "NHOHCount",
                  "NOCount", "NumAmideBonds", "NumAtomStereoCenters", "NumBridgeheadAtoms",
                  "NumHAcceptors", "NumHDonors", "NumHeteroatoms", "NumRotatableBonds",
-                 "NumSpiroAtoms", "NumUnspecifiedAtomStereoCenters"}),
-            {},  // dependency-free
+                 "NumSpiroAtoms", "NumUnspecifiedAtomStereoCenters", "Phi"}),
+            {RDKitGroupId::Connectivity},  // Phi reads the Connectivity Kappa artifact
             [](const OEChem::OEMolBase&, ComputeContext& ctx,
-               RDKitGroupArtifacts&, const ColumnRequest&,
+               RDKitGroupArtifacts& artifacts, const ColumnRequest&,
                RequestGatedBuilder& builder) {
                 // RDKit's oracle treats a stereo bracket hydrogen (e.g. the H in
                 // C[C@H](N)C(=O)O) as implicit, but OpenEye keeps it as an
@@ -645,6 +1451,19 @@ const std::vector<RDKitGroup>& rdkit_group_registry() {
                 set_float(builder, "FpDensityMorgan1", fp_density_morgan(mol, 1u));
                 set_float(builder, "FpDensityMorgan2", fp_density_morgan(mol, 2u));
                 set_float(builder, "FpDensityMorgan3", fp_density_morgan(mol, 3u));
+                // Phi = Kappa1 * Kappa2 / heavy-atom count (RDKit calcPhi). The
+                // Connectivity group runs first (declared dependency) and stashes
+                // Kappa1/Kappa2 into the artifact regardless of whether the
+                // Kappa* columns are wanted, so Phi resolves even when only Phi
+                // is requested. Guard a zero heavy-atom count (RDKit returns 0).
+                const auto heavy_atom_count = HeavyAtomCount(mol);
+                if (artifacts.kappas_ready && heavy_atom_count != 0u) {
+                    set_float(builder, "Phi",
+                              artifacts.kappa1 * artifacts.kappa2
+                                  / static_cast<double>(heavy_atom_count));
+                } else {
+                    set_float(builder, "Phi", 0.0);
+                }
                 // SPS deferred — RDKit SpacialScore depends on RDKit's
                 // potential-stereocenter enumeration (FindMolChiralCenters with
                 // includeUnassigned=True, useLegacyImplementation=False) and its
@@ -696,6 +1515,76 @@ const std::vector<RDKitGroup>& rdkit_group_registry() {
                 set_int(builder, "NumSaturatedCarbocycles", counts.saturated_carbocycle);
                 set_int(builder, "NumSaturatedHeterocycles", counts.saturated_heterocycle);
                 set_int(builder, "NumHeterocycles", counts.heterocycle);
+            }});
+
+        // Group: rdkit:Connectivity — the 20 float connectivity/shape indices.
+        // Everything is computed from the shared heavy-atom graph
+        // (ctx.HeavyAtomGraph()), whose adjacency degree is the heavy-atom
+        // degree and whose bond orders carry aromaticity (1.5). The group also
+        // stashes Kappa1/Kappa2 into the artifact for the CountsWeights `Phi`
+        // column, unconditionally (not gated on the Kappa* columns being wanted)
+        // so `Phi` still resolves when Connectivity runs only as a dependency
+        // under column pruning.
+        groups.push_back(RDKitGroup{
+            RDKitGroupId::Connectivity,
+            rdkit_column_indices(
+                s,
+                {"Chi0", "Chi1", "Chi0n", "Chi1n", "Chi2n", "Chi3n", "Chi4n",
+                 "Chi0v", "Chi1v", "Chi2v", "Chi3v", "Chi4v", "HallKierAlpha",
+                 "Kappa1", "Kappa2", "Kappa3", "BertzCT", "BalabanJ", "Ipc", "AvgIpc"}),
+            {},  // dependency-free (feeds CountsWeights' Phi via the artifact)
+            [](const OEChem::OEMolBase&, ComputeContext& ctx,
+               RDKitGroupArtifacts& artifacts, const ColumnRequest&,
+               RequestGatedBuilder& builder) {
+                const auto& graph = ctx.HeavyAtomGraph();
+                const auto atom_info = rdkit_connectivity_atom_info(graph);
+
+                // Per-atom delta tables (already 1/sqrt-transformed); the sigma
+                // (n) and valence (v) variants differ only for second-row+ atoms.
+                std::vector<double> sigma_deltas;
+                std::vector<double> valence_deltas;
+                sigma_deltas.reserve(atom_info.size());
+                valence_deltas.reserve(atom_info.size());
+                for (const auto& info : atom_info) {
+                    sigma_deltas.push_back(rdkit_sigma_delta(info));
+                    valence_deltas.push_back(rdkit_valence_delta(info));
+                }
+
+                set_float(builder, "Chi0", rdkit_chi_simple(graph, false));
+                set_float(builder, "Chi1", rdkit_chi_simple(graph, true));
+                set_float(builder, "Chi0n", rdkit_chi_order(graph, sigma_deltas, 0u));
+                set_float(builder, "Chi1n", rdkit_chi_order(graph, sigma_deltas, 1u));
+                set_float(builder, "Chi2n", rdkit_chi_order(graph, sigma_deltas, 2u));
+                set_float(builder, "Chi3n", rdkit_chi_order(graph, sigma_deltas, 3u));
+                set_float(builder, "Chi4n", rdkit_chi_order(graph, sigma_deltas, 4u));
+                set_float(builder, "Chi0v", rdkit_chi_order(graph, valence_deltas, 0u));
+                set_float(builder, "Chi1v", rdkit_chi_order(graph, valence_deltas, 1u));
+                set_float(builder, "Chi2v", rdkit_chi_order(graph, valence_deltas, 2u));
+                set_float(builder, "Chi3v", rdkit_chi_order(graph, valence_deltas, 3u));
+                set_float(builder, "Chi4v", rdkit_chi_order(graph, valence_deltas, 4u));
+
+                const auto hybridizations = rdkit_hybridizations(graph, atom_info);
+                double alpha = 0.0;
+                for (std::size_t i = 0u; i < atom_info.size(); ++i) {
+                    alpha += rdkit_hall_kier_alpha_contribution(
+                        atom_info[i].atomic_number, hybridizations[i]);
+                }
+                set_float(builder, "HallKierAlpha", alpha);
+
+                const auto kappas = rdkit_kappa_values(graph, alpha);
+                set_float(builder, "Kappa1", kappas.kappa1);
+                set_float(builder, "Kappa2", kappas.kappa2);
+                set_float(builder, "Kappa3", kappas.kappa3);
+                // Publish the Kappa values for the CountsWeights `Phi` column,
+                // request-independently so pruning to only {"Phi"} still works.
+                artifacts.kappa1 = kappas.kappa1;
+                artifacts.kappa2 = kappas.kappa2;
+                artifacts.kappas_ready = true;
+
+                set_float(builder, "BertzCT", rdkit_bertz_ct(graph));
+                set_float(builder, "BalabanJ", rdkit_balaban_j(graph));
+                set_float(builder, "Ipc", rdkit_ipc(graph, false));
+                set_float(builder, "AvgIpc", rdkit_ipc(graph, true));
             }});
 
         return groups;
