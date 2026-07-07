@@ -44,6 +44,23 @@ def _canonical_values(calculator, mol):
     return out
 
 
+def _stereo_divergence_mols():
+    # Stereo bracket-H molecules where the RDKit source (H-suppressed) and the
+    # OpenEye/Mordred sources (unsuppressed) compute different exact weights. Kept
+    # local to this test rather than added to the shared panel_mols fixture, which
+    # many other tests consume. They give the audit a VALUE-level catch: if a
+    # divergent id (e.g. exact_molecular_weight) were re-tagged onto RDKit, the
+    # per-pair equality assert fires here even though the achiral panel matches.
+    from openeye import oechem
+
+    mols = []
+    for smiles in ("C[C@H](N)C(=O)O",):  # L-alanine
+        mol = oechem.OEGraphMol()
+        assert oechem.OESmilesToMol(mol, smiles)
+        mols.append(mol)
+    return mols
+
+
 def test_shared_canonical_ids_are_identical(panel_mols):
     import oefp
 
@@ -54,19 +71,27 @@ def test_shared_canonical_ids_are_identical(panel_mols):
     calculators = [mordred, openeye, rdkit]
     rdkit_index = calculators.index(rdkit)
 
-    # Source-aware guard: the RDKit source must DECLARE every id it is expected to
-    # contribute. This catches a schema-level regression (RDKit silently loses a
-    # canonical_id tag) that the global completeness set cannot, because another
-    # source pair could still cover the same id.
+    # Source-aware guard: the RDKit source must declare EXACTLY the curated ids it
+    # is expected to contribute — no more, no less. An EXACT-set check (not a
+    # subset check) catches both a silent LOSS of heavy_atom_count and an
+    # unintended re-ADD of a divergent curated id (e.g. exact_molecular_weight,
+    # which the RDKit source deliberately leaves untagged because its H-suppressed
+    # weight diverges from the other sources on stereo bracket-H molecules). The
+    # global completeness set cannot catch either regression, because another
+    # source pair still covers those ids. Intersect with the curated set so a
+    # future NON-curated RDKit-only canonical id does not spuriously fail here.
     rdkit_schema_ids = {d.canonical_id for d in rdkit.schema.definitions if d.canonical_id}
-    missing_rdkit_schema = EXPECTED_RDKIT_SHARED - rdkit_schema_ids
-    assert not missing_rdkit_schema, (
-        f"RDKit source no longer declares expected canonical id(s): {missing_rdkit_schema}"
+    rdkit_curated = rdkit_schema_ids & EXPECTED_SHARED_CANONICAL_IDS
+    assert rdkit_curated == EXPECTED_RDKIT_SHARED, (
+        f"RDKit curated canonical ids changed: got {rdkit_curated}, "
+        f"expected {EXPECTED_RDKIT_SHARED}"
     )
 
     shared_seen = set()
     rdkit_shared = set()  # ids where RDKit participated in a MATCHING pair
-    for mol in panel_mols:
+    # Include local stereo bracket-H molecules so a re-tagged divergent id also
+    # fails by VALUE, not only by the schema check above.
+    for mol in list(panel_mols) + _stereo_divergence_mols():
         per_source = [_canonical_values(calc, mol) for calc in calculators]
         # PAIRWISE comparison: for every unordered pair of sources, for every
         # canonical_id both carry (and whose value is not None), assert equality.
