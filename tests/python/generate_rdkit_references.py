@@ -89,6 +89,13 @@ RDKIT_COVERAGE_SUPPLEMENT = [
     "SC#N",                                     # fr_thiocyan
     "c1ccsc1",                                  # fr_thiophene
     "NC(=O)N",                                  # fr_urea
+    # CountsWeights integer-count regression coverage (bridgehead/spiro):
+    "C1CCC2(CC1)CCC2",                          # spiro[4.5] center: BH=0, Spiro=1
+    "[O]",                                       # atomic oxygen radical: NumRadicalElectrons=2
+    # CountsWeights integer-count regression coverage (radical/valence):
+    "C1CC23CCC(C1)(CC2)CC3",                     # bridged bicyclo: BH=2 (propellane-safe)
+    "[Cu]",                                      # metal radical: NumRadicalElectrons=1 (parity branch)
+    "[Fe+2]",                                    # metal skip: NumRadicalElectrons=0 (undefined-valence gate)
 ]
 
 # RDKit descriptors excluded from the schema because they are structurally

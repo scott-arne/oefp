@@ -78,27 +78,35 @@ std::int64_t rdkit_outer_electrons(std::uint32_t atomic_number) {
     return outer_electrons[atomic_number];
 }
 
-/// \brief Default (neutral) valence per element, or ``-1`` when undefined.
+/// \brief Whether an element has a defined RDKit default valence.
 ///
-/// Mirrors the ``gasteiger_default_valence`` table in ``src/mordred.cpp``. Used
-/// to reproduce RDKit's ``NumRadicalElectrons`` as the shortfall between an
-/// atom's default valence and its realized valence.
-int rdkit_default_valence(std::uint32_t atomic_number) {
-    static constexpr std::array<int, 119> default_valences{{
-        -1, 1, 0, 1, 2, 3, 4, 3, 2, 1, 0, 1, 2, 3, 4, 3,
-        2, 1, 0, 1, 2, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-        -1, 3, 4, 3, 2, 1, 0, 1, 2, -1, -1, -1, -1, -1,
-        -1, -1, -1, -1, -1, 3, 2, 3, 2, 1, 0, 1, 2, -1,
-        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 2,
-        3, 2, 1, 0, 1, 2, -1, -1, -1, -1, -1, -1, -1,
-        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+/// True exactly for the elements where RDKit's
+/// ``PeriodicTable::getDefaultValence`` returns a non-negative value (main-group
+/// elements with a fixed common valence). Transition metals and other
+/// variable-valence elements return ``-1`` there. This predicate is the
+/// load-bearing gate that selects the radical model: main-group elements use the
+/// octet-shortfall formula, while undefined-valence elements use RDKit's
+/// odd-electron parity rule. The table is derived directly from RDKit's
+/// ``getDefaultValence`` sign across ``Z = 0..118``.
+bool has_defined_default_valence(std::uint32_t atomic_number) {
+    static constexpr std::array<bool, 119> defined{{
+        false, true, true, true, true, true, true, true, true, true, true,
+        true, true, true, true, true, true, true, true, true, true,
+        false, false, false, false, false, false, false, false, false, false,
+        true, true, true, true, true, true, true, true, false, false,
+        false, false, false, false, false, false, false, false, true, true,
+        true, true, true, true, true, true, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false,
+        false, true, true, true, true, true, true, true, false, false,
+        false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false,
     }};
-    if (atomic_number >= default_valences.size()) {
-        return -1;
+    if (atomic_number >= defined.size()) {
+        return false;
     }
-    return default_valences[atomic_number];
+    return defined[atomic_number];
 }
 
 /// \brief Count root-atom (pattern index 0) matches of the given SMARTS.
@@ -170,8 +178,11 @@ constexpr const char* kRotatableBondSmarts =
 
 std::int64_t count_valence_electrons(const OEChem::OEMolBase& mol) {
     // RDKit: sum over all atoms of NOuterElecs(Z) - formalCharge + totalNumHs.
-    // Implicit and explicit hydrogens are folded in via GetTotalHCount on heavy
-    // atoms; explicit hydrogen atoms contribute NOuterElecs(1) - formalCharge.
+    // This assumes implicit/suppressed-H input (the pipeline-wide convention,
+    // shared with Mordred): each heavy atom's bonded hydrogens are added once via
+    // GetTotalHCount. On explicit-H input it double-counts those hydrogens (a
+    // known cross-cutting limitation deferred to a follow-up task); it is NOT
+    // correct for explicit-H molecules.
     std::int64_t total = 0;
     for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
         const auto atomic_number = static_cast<std::uint32_t>(atom->GetAtomicNum());
@@ -184,23 +195,43 @@ std::int64_t count_valence_electrons(const OEChem::OEMolBase& mol) {
 }
 
 std::int64_t count_radical_electrons(const OEChem::OEMolBase& mol) {
-    // RDKit: sum of GetNumRadicalElectrons over all atoms. OpenEye represents an
-    // open shell as valence below the element's neutral default, so the radical
-    // count is the positive shortfall (default_valence - realized_valence) for
-    // neutral atoms with a defined default valence.
+    // RDKit: sum of GetNumRadicalElectrons over all atoms. RDKit assigns radicals
+    // by two different rules depending on whether the element has a defined
+    // default valence, so this mirrors both:
+    //
+    //   * Main-group elements (defined default valence): the open shell is the
+    //     positive shortfall between a charge-shifted target valence and the
+    //     realized valence. Formal charge SHIFTS the target rather than zeroing
+    //     the radical. With the element's outer-electron count v, the target is
+    //     v - charge for shells up to half full (v < 4) and 8 - v + charge
+    //     otherwise (e.g. [O-]=1, [O+]=3, [NH3+]=1, [CH3]=1).
+    //   * Variable-valence elements with NO defined default valence (transition
+    //     metals, etc.): RDKit reports the odd-electron parity of the remaining
+    //     free electrons, (v - charge - valence) mod 2 when positive, else 0
+    //     (e.g. [Cu]=1, [Co]=1, [V]=1 but [Ti]=[Zn]=[Fe+2]=0). Without this gate
+    //     the octet formula would invent spurious radicals for d-block metals.
     std::int64_t total = 0;
     for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
-        if (atom->GetFormalCharge() != 0) {
-            continue;
-        }
         const auto atomic_number = static_cast<std::uint32_t>(atom->GetAtomicNum());
-        const auto default_valence = rdkit_default_valence(atomic_number);
-        if (default_valence < 0) {
+        const auto outer_electrons = rdkit_outer_electrons(atomic_number);
+        if (outer_electrons == 0) {
             continue;
         }
-        const auto shortfall = default_valence - static_cast<int>(atom->GetValence());
-        if (shortfall > 0) {
-            total += shortfall;
+        const auto charge = static_cast<std::int64_t>(atom->GetFormalCharge());
+        const auto valence = static_cast<std::int64_t>(atom->GetValence());
+        if (has_defined_default_valence(atomic_number)) {
+            const auto target_valence = outer_electrons < 4
+                                            ? outer_electrons - charge
+                                            : 8 - outer_electrons + charge;
+            const auto shortfall = target_valence - valence;
+            if (shortfall > 0) {
+                total += shortfall;
+            }
+        } else {
+            const auto free_electrons = outer_electrons - charge - valence;
+            if (free_electrons > 0) {
+                total += free_electrons % 2;
+            }
         }
     }
     return total;
@@ -242,14 +273,82 @@ std::int64_t count_nh_oh_hydrogens(const OEChem::OEMolBase& mol) {
     return hydrogens;
 }
 
+bool is_spiro_atom(const OEChem::OEAtomBase& atom) {
+    // A spiro atom joins two otherwise-separate rings at exactly one shared atom
+    // (the rings share that atom and no bond). Such a center carries at least four
+    // ring bonds, but a raw "four ring bonds" heuristic also matches propellane
+    // bridge atoms, whose rings DO share a bond and are genuine bridgeheads, not
+    // spiro. To distinguish them, delete this atom and walk the remaining ring
+    // bonds: if its ring neighbors then fall into two or more disconnected ring
+    // components, the rings met only here and it is a true spiro center; if they
+    // stay connected (a shared bond bypasses this atom), it is a fused/bridged
+    // junction, not spiro.
+    if (!atom.IsInRing()) {
+        return false;
+    }
+    std::vector<const OEChem::OEAtomBase*> ring_neighbors;
+    for (OESystem::OEIter<OEChem::OEBondBase> bond = atom.GetBonds(); bond; ++bond) {
+        if (bond->IsInRing()) {
+            ring_neighbors.push_back(bond->GetNbr(&atom));
+        }
+    }
+    if (ring_neighbors.size() < 4u) {
+        return false;
+    }
+
+    const auto center_index = atom.GetIdx();
+    // Flood-fill over ring bonds, never crossing this atom, to find the connected
+    // ring component reachable from a starting neighbor.
+    const auto ring_component = [center_index](const OEChem::OEAtomBase* start) {
+        std::unordered_set<unsigned int> seen{start->GetIdx()};
+        std::vector<const OEChem::OEAtomBase*> stack{start};
+        while (!stack.empty()) {
+            const auto* current = stack.back();
+            stack.pop_back();
+            for (OESystem::OEIter<OEChem::OEBondBase> bond = current->GetBonds(); bond;
+                 ++bond) {
+                if (!bond->IsInRing()) {
+                    continue;
+                }
+                const auto* neighbor = bond->GetNbr(current);
+                if (neighbor->GetIdx() == center_index) {
+                    continue;
+                }
+                if (seen.insert(neighbor->GetIdx()).second) {
+                    stack.push_back(neighbor);
+                }
+            }
+        }
+        return seen;
+    };
+
+    std::unordered_set<unsigned int> assigned;
+    std::size_t components = 0u;
+    for (const auto* neighbor : ring_neighbors) {
+        if (assigned.count(neighbor->GetIdx()) != 0u) {
+            continue;
+        }
+        const auto component = ring_component(neighbor);
+        assigned.insert(component.begin(), component.end());
+        ++components;
+    }
+    return components >= 2u;
+}
+
 std::int64_t count_bridgehead_atoms(const OEChem::OEMolBase& mol) {
-    // Mirror Mordred: OpenEye's bridgehead perception flags fused-ring aromatic
-    // atoms that RDKit's CalcNumBridgeheadAtoms does not, so aromatic atoms are
-    // excluded.
+    // RDKit's CalcNumBridgeheadAtoms counts only ring-fusion/bridge atoms: an atom
+    // shared by two rings that also share a bond. OpenEye's OEIsBridgeHead is
+    // broader on two axes, so it is narrowed to match RDKit:
+    //   * it flags fused-ring aromatic atoms RDKit excludes (drop aromatic atoms,
+    //     as Mordred's nBridgehead also does), and
+    //   * it flags pure spiro centers, where two rings share exactly one atom and
+    //     no bond; RDKit does not treat those as bridgeheads, so they are excluded
+    //     via the precise is_spiro_atom test (which, unlike a raw ring-bond count,
+    //     leaves genuine propellane/bridged junctions counted).
     OEChem::OEIsBridgeHead is_bridgehead(mol);
     std::int64_t bridgeheads = 0;
     for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
-        if (!atom->IsAromatic() && is_bridgehead(*atom)) {
+        if (!atom->IsAromatic() && is_bridgehead(*atom) && !is_spiro_atom(*atom)) {
             ++bridgeheads;
         }
     }
@@ -257,20 +356,9 @@ std::int64_t count_bridgehead_atoms(const OEChem::OEMolBase& mol) {
 }
 
 std::int64_t count_spiro_atoms(const OEChem::OEMolBase& mol) {
-    // A spiro atom joins two rings at a single shared atom, so it carries four
-    // ring bonds. Matches Mordred's is_spiro_atom.
     std::int64_t spiro = 0;
     for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
-        if (!atom->IsInRing()) {
-            continue;
-        }
-        std::uint32_t ring_bonds = 0u;
-        for (OESystem::OEIter<OEChem::OEBondBase> bond = atom->GetBonds(); bond; ++bond) {
-            if (bond->IsInRing()) {
-                ++ring_bonds;
-            }
-        }
-        if (ring_bonds >= 4u) {
+        if (is_spiro_atom(*atom)) {
             ++spiro;
         }
     }
