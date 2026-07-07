@@ -98,9 +98,10 @@ def test_rdkit_descriptors_release_gil_for_concurrent_computation():
     assert results == [214] * len(smiles_batch)
 
 
-# Families enabled for conformance checking; grows as tasks land. This task
-# enables 21 dependency-free CountsWeights descriptors. `SPS` and `Phi` are
-# CountsWeights members deferred to later tasks (see comments below).
+# Families enabled for conformance checking; grows as tasks land. This set
+# enables the 21 dependency-free CountsWeights descriptors and the 11
+# RingCounts descriptors. `SPS` and `Phi` are CountsWeights members deferred to
+# later tasks (see comments below).
 ENABLED_DESCRIPTOR_NAMES: set[str] = {
     "MolWt", "HeavyAtomMolWt", "ExactMolWt", "NumValenceElectrons",
     "NumRadicalElectrons", "FpDensityMorgan1", "FpDensityMorgan2",
@@ -108,6 +109,11 @@ ENABLED_DESCRIPTOR_NAMES: set[str] = {
     "NOCount", "NumAmideBonds", "NumAtomStereoCenters", "NumBridgeheadAtoms",
     "NumHAcceptors", "NumHDonors", "NumHeteroatoms", "NumRotatableBonds",
     "NumSpiroAtoms", "NumUnspecifiedAtomStereoCenters",
+    # RingCounts (Task 5): 11 dependency-free SSSR ring classifications.
+    "RingCount", "NumAromaticRings", "NumAliphaticRings", "NumSaturatedRings",
+    "NumAromaticCarbocycles", "NumAromaticHeterocycles", "NumAliphaticCarbocycles",
+    "NumAliphaticHeterocycles", "NumSaturatedCarbocycles",
+    "NumSaturatedHeterocycles", "NumHeterocycles",
     # "SPS" deferred — RDKit SpacialScore needs RDKit-internal potential-stereo +
     # hybridization models OpenEye doesn't expose; needs a dedicated deep-dive task.
     # "Phi" added in Task 6 (needs Connectivity Kappa artifacts).

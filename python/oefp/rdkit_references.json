@@ -1494,7 +1494,7 @@
       "source_name": "RDKit",
       "source_type": "RingCounts",
       "source_version": "RDKit-2026.03.3",
-      "tier": "loose",
+      "tier": "exact",
       "units": "",
       "value_kind": "int"
     },
@@ -1508,7 +1508,7 @@
       "source_name": "RDKit",
       "source_type": "RingCounts",
       "source_version": "RDKit-2026.03.3",
-      "tier": "loose",
+      "tier": "exact",
       "units": "",
       "value_kind": "int"
     },
@@ -1522,7 +1522,7 @@
       "source_name": "RDKit",
       "source_type": "RingCounts",
       "source_version": "RDKit-2026.03.3",
-      "tier": "loose",
+      "tier": "exact",
       "units": "",
       "value_kind": "int"
     },
@@ -1550,7 +1550,7 @@
       "source_name": "RDKit",
       "source_type": "RingCounts",
       "source_version": "RDKit-2026.03.3",
-      "tier": "loose",
+      "tier": "exact",
       "units": "",
       "value_kind": "int"
     },
@@ -1564,7 +1564,7 @@
       "source_name": "RDKit",
       "source_type": "RingCounts",
       "source_version": "RDKit-2026.03.3",
-      "tier": "loose",
+      "tier": "exact",
       "units": "",
       "value_kind": "int"
     },
@@ -1578,7 +1578,7 @@
       "source_name": "RDKit",
       "source_type": "RingCounts",
       "source_version": "RDKit-2026.03.3",
-      "tier": "loose",
+      "tier": "exact",
       "units": "",
       "value_kind": "int"
     },
@@ -1662,7 +1662,7 @@
       "source_name": "RDKit",
       "source_type": "RingCounts",
       "source_version": "RDKit-2026.03.3",
-      "tier": "loose",
+      "tier": "exact",
       "units": "",
       "value_kind": "int"
     },
@@ -1690,7 +1690,7 @@
       "source_name": "RDKit",
       "source_type": "RingCounts",
       "source_version": "RDKit-2026.03.3",
-      "tier": "loose",
+      "tier": "exact",
       "units": "",
       "value_kind": "int"
     },
@@ -1704,7 +1704,7 @@
       "source_name": "RDKit",
       "source_type": "RingCounts",
       "source_version": "RDKit-2026.03.3",
-      "tier": "loose",
+      "tier": "exact",
       "units": "",
       "value_kind": "int"
     },
@@ -1718,7 +1718,7 @@
       "source_name": "RDKit",
       "source_type": "RingCounts",
       "source_version": "RDKit-2026.03.3",
-      "tier": "loose",
+      "tier": "exact",
       "units": "",
       "value_kind": "int"
     },
@@ -1774,7 +1774,7 @@
       "source_name": "RDKit",
       "source_type": "RingCounts",
       "source_version": "RDKit-2026.03.3",
-      "tier": "loose",
+      "tier": "exact",
       "units": "",
       "value_kind": "int"
     },

@@ -61,6 +61,24 @@ MordredGasteigerAtomCharges compute_gasteiger_atom_charges(const OEChem::OEMolBa
 std::optional<MordredCrippenAtomContributions> compute_crippen_atom_contributions(
     const OEChem::OEMolBase& mol);
 
+/// \brief Enumerate the symmetrized smallest-set-of-smallest-rings (SSSR).
+///
+/// Returns the ring set RDKit's ``RingInfo`` reports (``symmetrizeSSSR``), which
+/// is the ring perception Mordred's ring-count descriptors already use. Each
+/// ring is the ordered list of its heavy-atom members, with consecutive atoms
+/// bonded and the last atom bonded back to the first; hydrogens are excluded.
+/// Enumeration is purely topological, so it does not depend on ring or
+/// aromaticity perception having been applied.
+///
+/// Sharing this with the RDKit ``RingCounts`` family keeps its ``RingCount``
+/// equal to RDKit's symmetrized count on fused and caged systems, where the
+/// plain cyclomatic ring number diverges (for example cubane and propellanes).
+///
+/// \param mol Molecule to perceive rings for.
+/// \returns Symmetrized SSSR rings as ordered heavy-atom pointer cycles.
+std::vector<std::vector<const OEChem::OEAtomBase*>> compute_symmetrized_sssr_rings(
+    const OEChem::OEMolBase& mol);
+
 } // namespace OEFP
 
 #endif // OEFP_MORDRED_INTERMEDIATES_H

@@ -140,6 +140,23 @@ RDKIT_TOLERANCE_TIERS: dict[str, str] = {
     "FractionCSP3": "exact",
     "MolWt": "tight",            # average MW: element-average table rounding
     "HeavyAtomMolWt": "tight",
+    # Ring counts (Task 5): all integer counts, so the conformance test compares
+    # them for exact equality and the tier is only advisory. Marked exact because
+    # every one matches RDKit exactly across the panel: RingCount reproduces
+    # RDKit's symmetrized SSSR count (via the shared ring-perception engine, not a
+    # cyclomatic number), and OpenEye's aromaticity model agrees with RDKit on the
+    # aromatic/aliphatic/saturated splits for every panel molecule.
+    "RingCount": "exact",
+    "NumAromaticRings": "exact",
+    "NumAliphaticRings": "exact",
+    "NumSaturatedRings": "exact",
+    "NumAromaticCarbocycles": "exact",
+    "NumAromaticHeterocycles": "exact",
+    "NumAliphaticCarbocycles": "exact",
+    "NumAliphaticHeterocycles": "exact",
+    "NumSaturatedCarbocycles": "exact",
+    "NumSaturatedHeterocycles": "exact",
+    "NumHeterocycles": "exact",
     # ... remaining families appended by their tasks.
 }
 

@@ -3150,6 +3150,53 @@ MordredHeavyAtomGraph build_mordred_heavy_atom_graph(const OEChem::OEMolBase& mo
     return graph;
 }
 
+std::vector<std::vector<const OEChem::OEAtomBase*>> compute_symmetrized_sssr_rings(
+    const OEChem::OEMolBase& mol) {
+    // Build the heavy-atom adjacency exactly as compute_ring_count_value_sets
+    // does, then delegate to the shared symmetrized-SSSR selection so the ring
+    // set matches RDKit's RingInfo (and Mordred's own ring counts) by
+    // construction. Hydrogens are excluded; ordering is topological.
+    std::vector<const OEChem::OEAtomBase*> heavy_atoms;
+    std::unordered_map<unsigned int, std::size_t> atom_indices;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        if (atom->GetAtomicNum() == 1) {
+            continue;
+        }
+        atom_indices.emplace(atom->GetIdx(), heavy_atoms.size());
+        heavy_atoms.push_back(&*atom);
+    }
+
+    std::vector<std::vector<std::size_t>> adjacency(heavy_atoms.size());
+    for (OESystem::OEIter<OEChem::OEBondBase> bond = mol.GetBonds(); bond; ++bond) {
+        const auto* begin = bond->GetBgn();
+        const auto* end = bond->GetEnd();
+        if (begin == nullptr || end == nullptr) {
+            continue;
+        }
+        const auto begin_index = atom_indices.find(begin->GetIdx());
+        const auto end_index = atom_indices.find(end->GetIdx());
+        if (begin_index == atom_indices.end() || end_index == atom_indices.end()) {
+            continue;
+        }
+        adjacency[begin_index->second].push_back(end_index->second);
+        adjacency[end_index->second].push_back(begin_index->second);
+    }
+    for (auto& neighbors : adjacency) {
+        std::sort(neighbors.begin(), neighbors.end());
+    }
+
+    std::vector<std::vector<const OEChem::OEAtomBase*>> rings;
+    for (const auto& cycle : compute_global_base_ring_cycles(adjacency)) {
+        std::vector<const OEChem::OEAtomBase*> ring;
+        ring.reserve(cycle.size());
+        for (const auto atom : cycle) {
+            ring.push_back(heavy_atoms[atom]);
+        }
+        rings.push_back(std::move(ring));
+    }
+    return rings;
+}
+
 namespace {
 
 InformationContentGraph build_information_content_graph(const OEChem::OEMolBase& mol) {

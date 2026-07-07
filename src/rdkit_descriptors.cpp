@@ -2,6 +2,7 @@
 
 #include "oefp/descriptor_source.h"
 #include "oefp/molecular_properties.h"
+#include "oefp/mordred_intermediates.h"
 #include "oefp/morgan.h"
 
 #include <oesystem.h>
@@ -446,8 +447,105 @@ struct RDKitGroupArtifacts {
 
 enum class RDKitGroupId {
     CountsWeights,
+    RingCounts,
     Count_,
 };
+
+/// \brief The 11 RingCounts descriptor values for one molecule.
+///
+/// Each field is an SSSR-ring-level classification total. ``ring_count`` is the
+/// symmetrized SSSR ring count; the aromatic/aliphatic split is exhaustive
+/// (``aromatic + aliphatic == ring_count``), and ``saturated`` is a subset of
+/// ``aliphatic``. Each of the three families is further split into carbocycle
+/// (all ring atoms carbon) and heterocycle (any ring atom a heteroatom).
+struct RDKitRingCounts {
+    std::int64_t ring_count = 0;
+    std::int64_t aromatic = 0;
+    std::int64_t aliphatic = 0;
+    std::int64_t saturated = 0;
+    std::int64_t aromatic_carbocycle = 0;
+    std::int64_t aromatic_heterocycle = 0;
+    std::int64_t aliphatic_carbocycle = 0;
+    std::int64_t aliphatic_heterocycle = 0;
+    std::int64_t saturated_carbocycle = 0;
+    std::int64_t saturated_heterocycle = 0;
+    std::int64_t heterocycle = 0;
+};
+
+/// \brief Classify the symmetrized SSSR rings into RDKit's 11 ring counts.
+///
+/// Mirrors RDKit's ring-count definitions exactly (verified against the oracle
+/// on the conformance panel). A ring is classified from its own atoms and its
+/// in-ring bonds only:
+///   * aromatic — every in-ring bond is aromatic; otherwise aliphatic. RDKit's
+///     ``NumAliphaticRings`` counts every non-fully-aromatic ring, so the
+///     aromatic/aliphatic split is exhaustive and sums to ``RingCount``.
+///   * saturated — no in-ring bond is aromatic and none is a double or triple
+///     bond. An exocyclic multiple bond (e.g. a cyclohexanone C=O) does NOT
+///     unsaturate the ring, so only in-ring bonds are inspected.
+///   * heterocycle — at least one ring atom is not carbon; carbocycle otherwise.
+/// The ring set comes from :cpp:func:`compute_symmetrized_sssr_rings`, whose
+/// ``RingCount`` equals RDKit's symmetrized count on fused and caged systems.
+RDKitRingCounts classify_ring_counts(const OEChem::OEMolBase& mol) {
+    RDKitRingCounts counts;
+    const auto rings = compute_symmetrized_sssr_rings(mol);
+    counts.ring_count = static_cast<std::int64_t>(rings.size());
+    for (const auto& ring : rings) {
+        const auto ring_size = ring.size();
+        bool all_bonds_aromatic = true;
+        bool any_multiple_or_aromatic_bond = false;
+        bool has_heteroatom = false;
+        for (std::size_t i = 0u; i < ring_size; ++i) {
+            const auto* atom = ring[i];
+            if (atom->GetAtomicNum() != 6) {
+                has_heteroatom = true;
+            }
+            const auto* next = ring[(i + 1u) % ring_size];
+            const OEChem::OEBondBase* bond = atom->GetBond(next);
+            if (bond == nullptr) {
+                continue;
+            }
+            if (bond->IsAromatic()) {
+                any_multiple_or_aromatic_bond = true;
+            } else {
+                all_bonds_aromatic = false;
+                if (bond->GetOrder() > 1u) {
+                    any_multiple_or_aromatic_bond = true;
+                }
+            }
+        }
+        const bool carbocycle = !has_heteroatom;
+        const bool saturated = !any_multiple_or_aromatic_bond;
+
+        if (has_heteroatom) {
+            ++counts.heterocycle;
+        }
+        if (all_bonds_aromatic) {
+            ++counts.aromatic;
+            if (carbocycle) {
+                ++counts.aromatic_carbocycle;
+            } else {
+                ++counts.aromatic_heterocycle;
+            }
+        } else {
+            ++counts.aliphatic;
+            if (carbocycle) {
+                ++counts.aliphatic_carbocycle;
+            } else {
+                ++counts.aliphatic_heterocycle;
+            }
+        }
+        if (saturated) {
+            ++counts.saturated;
+            if (carbocycle) {
+                ++counts.saturated_carbocycle;
+            } else {
+                ++counts.saturated_heterocycle;
+            }
+        }
+    }
+    return counts;
+}
 
 /// \brief One compute group: the columns it fills, the groups it depends on, and
 ///     the computation that fills the artifact and emits columns.
@@ -555,6 +653,49 @@ const std::vector<RDKitGroup>& rdkit_group_registry() {
                 // Left MISSING rather than shipping a knowingly-wrong value; a
                 // dedicated deep-dive follow-up task is needed. See the SPS
                 // deferral note in the task-3 report.
+            }});
+
+        // Group: rdkit:RingCounts — the 11 dependency-free SSSR ring-count
+        // classifications. All are integer counts and every one must match
+        // RDKit exactly; the tier label is moot for integers (the conformance
+        // test compares them for exact equality regardless of tier). RingCount
+        // is RDKit's symmetrized SSSR count, not the plain cyclomatic ring
+        // number, so it is computed from compute_symmetrized_sssr_rings rather
+        // than an OpenEye ring-system count (which would diverge on caged and
+        // fused systems such as cubane and propellanes).
+        groups.push_back(RDKitGroup{
+            RDKitGroupId::RingCounts,
+            rdkit_column_indices(
+                s,
+                {"RingCount", "NumAromaticRings", "NumAliphaticRings", "NumSaturatedRings",
+                 "NumAromaticCarbocycles", "NumAromaticHeterocycles", "NumAliphaticCarbocycles",
+                 "NumAliphaticHeterocycles", "NumSaturatedCarbocycles", "NumSaturatedHeterocycles",
+                 "NumHeterocycles"}),
+            {},  // dependency-free
+            [](const OEChem::OEMolBase&, ComputeContext& ctx,
+               RDKitGroupArtifacts&, const ColumnRequest&,
+               RequestGatedBuilder& builder) {
+                // Ring perception + aromaticity define every one of these
+                // counts. RingPerceivedMol() applies ring/hybridization but not
+                // aromaticity (matching the existing prep), so assign aromatic
+                // flags on a LOCAL copy — the context reference is shared with
+                // the Mordred source and must not be mutated. The SSSR ring set
+                // itself is a purely topological property of this graph.
+                OEChem::OEGraphMol mol(ctx.RingPerceivedMol());
+                OEChem::OEAssignAromaticFlags(mol);
+
+                const auto counts = classify_ring_counts(mol);
+                set_int(builder, "RingCount", counts.ring_count);
+                set_int(builder, "NumAromaticRings", counts.aromatic);
+                set_int(builder, "NumAliphaticRings", counts.aliphatic);
+                set_int(builder, "NumSaturatedRings", counts.saturated);
+                set_int(builder, "NumAromaticCarbocycles", counts.aromatic_carbocycle);
+                set_int(builder, "NumAromaticHeterocycles", counts.aromatic_heterocycle);
+                set_int(builder, "NumAliphaticCarbocycles", counts.aliphatic_carbocycle);
+                set_int(builder, "NumAliphaticHeterocycles", counts.aliphatic_heterocycle);
+                set_int(builder, "NumSaturatedCarbocycles", counts.saturated_carbocycle);
+                set_int(builder, "NumSaturatedHeterocycles", counts.saturated_heterocycle);
+                set_int(builder, "NumHeterocycles", counts.heterocycle);
             }});
 
         return groups;

@@ -106,3 +106,20 @@ TEST(RDKitPruningEquivalenceTest, WideCountsWeightsMix) {
          "FractionCSP3", "FpDensityMorgan1", "FpDensityMorgan2", "FpDensityMorgan3",
          "NumHDonors", "NumHAcceptors", "NumRotatableBonds"});
 }
+
+// RingCounts representative single column: requesting only RingCount must match
+// the full-schema value and leave the other 10 group members missing on every
+// panel molecule, proving the group's emitted_columns list is correct.
+TEST(RDKitPruningEquivalenceTest, RingCountsSingleColumn) {
+    expect_column_matches_across_panel({"RingCount"});
+}
+
+// The whole RingCounts group requested together, across the panel: a divergence
+// on any fused/ring molecule surfaces a pruning error in the group.
+TEST(RDKitPruningEquivalenceTest, WholeRingCountsGroup) {
+    expect_column_matches_across_panel(
+        {"RingCount", "NumAromaticRings", "NumAliphaticRings", "NumSaturatedRings",
+         "NumAromaticCarbocycles", "NumAromaticHeterocycles", "NumAliphaticCarbocycles",
+         "NumAliphaticHeterocycles", "NumSaturatedCarbocycles", "NumSaturatedHeterocycles",
+         "NumHeterocycles"});
+}
