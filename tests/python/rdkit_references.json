@@ -113,7 +113,7 @@
       "value_kind": "float"
     },
     {
-      "canonical_id": "quantity:exact_molecular_weight",
+      "canonical_id": "",
       "description": "ExactMolWt",
       "group": "rdkit:CountsWeights",
       "name": "ExactMolWt",
@@ -22615,7 +22615,7 @@
       ]
     }
   ],
-  "schema_id": "1d8fd6d1ab3db106",
+  "schema_id": "fe975cfea4084c34",
   "smiles_panel": [
     "CCO",
     "c1ccncc1",

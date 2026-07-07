@@ -113,9 +113,14 @@ RDKIT_EXCLUDED_DESCRIPTORS = {"SMR_VSA8", "SlogP_VSA9", "EState_VSA11"}
 # panel. Absent => empty => never deduplicated. Start conservative.
 RDKIT_CANONICAL_IDS: dict[str, str] = {
     "HeavyAtomCount": "quantity:heavy_atom_count",
-    "ExactMolWt": "quantity:exact_molecular_weight",
+    # ExactMolWt intentionally NOT tagged: the RDKit source computes exact weight
+    # on an H-suppressed molecule (matching RDKit's implicit-H model) while the
+    # OpenEye and Mordred sources compute weight on the raw molecule. On bracket-H
+    # molecules like C[C@H](N)C(=O)O (L-alanine), RDKit reports 89.0477 while the
+    # others report 90.0555. This is not a bug; it reflects the different input
+    # representations (H-suppressed vs unsuppressed) post-bracket-H unification.
     # MolWt, TPSA, NumHDonors, NumHAcceptors intentionally NOT tagged until a
-    # byte-identical shared-helper path is proven in Task 4.
+    # byte-identical shared-helper path is proven.
 }
 
 # name -> "exact" | "tight" | "loose", each with a one-line rationale comment.

@@ -41,17 +41,26 @@ def test_shared_canonical_ids_are_identical(panel_mols):
     calculators = [
         oefp.DescriptorCalculator([oefp.MordredDescriptorSource()]),
         oefp.DescriptorCalculator([oefp.OpenEyePropertyDescriptorSource()]),
+        oefp.DescriptorCalculator([oefp.RDKitDescriptorSource()]),
     ]
     shared_seen = set()
     for mol in panel_mols:
         per_source = [_canonical_values(calc, mol) for calc in calculators]
-        common = set(per_source[0]).intersection(*[set(d) for d in per_source[1:]])
-        shared_seen |= common
-        for canonical_id in common:
-            values = [d[canonical_id] for d in per_source]
-            first = values[0]
-            for other in values[1:]:
-                assert other == first, f"canonical_id {canonical_id} diverged: {values}"
+        # PAIRWISE comparison: for every unordered pair of sources, for every
+        # canonical_id both carry (and whose value is not None), assert equality.
+        # This avoids the intersection-across-ALL collapse when one source carries
+        # only a subset of the curated ids (e.g., RDKit now carries only 1 of 7).
+        # Accumulate every id observed as shared by ANY pair into shared_seen.
+        for i in range(len(calculators)):
+            for j in range(i + 1, len(calculators)):
+                common = set(per_source[i]).intersection(per_source[j])
+                shared_seen |= common
+                for canonical_id in common:
+                    v1, v2 = per_source[i][canonical_id], per_source[j][canonical_id]
+                    assert v1 == v2, (
+                        f"canonical_id {canonical_id} diverged between "
+                        f"calculators {i} and {j}: {v1} != {v2}"
+                    )
     missing = EXPECTED_SHARED_CANONICAL_IDS - shared_seen
     assert not missing, (
         f"curated canonical identities never observed as shared across the panel: {missing}"

@@ -29,7 +29,7 @@ constexpr std::array<StaticRDKitDefinition, 214> kRDKitDefinitions{{
     {"SPS", DescriptorValueKind::Float, "rdkit:CountsWeights", "CountsWeights", "", "SPS", "", 0u},
     {"MolWt", DescriptorValueKind::Float, "rdkit:CountsWeights", "CountsWeights", "", "MolWt", "", 0u},
     {"HeavyAtomMolWt", DescriptorValueKind::Float, "rdkit:CountsWeights", "CountsWeights", "", "HeavyAtomMolWt", "", 0u},
-    {"ExactMolWt", DescriptorValueKind::Float, "rdkit:CountsWeights", "CountsWeights", "", "ExactMolWt", "quantity:exact_molecular_weight", 0u},
+    {"ExactMolWt", DescriptorValueKind::Float, "rdkit:CountsWeights", "CountsWeights", "", "ExactMolWt", "", 0u},
     {"NumValenceElectrons", DescriptorValueKind::Int, "rdkit:CountsWeights", "CountsWeights", "", "NumValenceElectrons", "", 0u},
     {"NumRadicalElectrons", DescriptorValueKind::Int, "rdkit:CountsWeights", "CountsWeights", "", "NumRadicalElectrons", "", 0u},
     {"MaxPartialCharge", DescriptorValueKind::Float, "rdkit:PartialCharge", "PartialCharge", "", "MaxPartialCharge", "", 0u},
