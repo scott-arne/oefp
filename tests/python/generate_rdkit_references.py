@@ -101,6 +101,14 @@ RDKIT_COVERAGE_SUPPLEMENT = [
     # lock the local H-suppression so weights/valence/Morgan-density match RDKit.
     "C[C@H](N)C(=O)O",                           # L-alanine: bracket-H + real stereocenter
     "C[C@@H](O)C(=O)O",                          # lactic acid: bracket-H + stereocenter
+    # Connectivity regression coverage (Chi valence-delta unsigned wrap): these
+    # hypervalent hydride anions have a NEGATIVE Kier-Hall numerator (Zv - h),
+    # which RDKit forms in unsigned 32-bit so it wraps to 2^32-1 and yields a
+    # finite tiny Chi0n/Chi0v (~1.5e-05 / ~4.6e-05) rather than a NaN. They lock
+    # the native unsigned-wrap reproduction against a regression to sqrt(<0).
+    "[BH4-]",                                    # boron: Zv=3, h=4 -> wraps (Chi0n=Chi0v)
+    "[AlH4-]",                                   # aluminium: 2nd-row denominator branch
+    "[SiH5-]",                                   # silicon: 2nd-row denominator branch
 ]
 
 # RDKit descriptors excluded from the schema because they are structurally

@@ -755,35 +755,56 @@ double rdkit_hall_kier_alpha_contribution(std::uint32_t atomic_number,
     }
 }
 
+// RDKit forms every Kier-Hall delta NUMERATOR ``Zv - h`` in UNSIGNED 32-bit
+// integer arithmetic (both ``getNouterElecs`` and ``getTotalNumHs`` return
+// ``unsigned int``). For a hypervalent hydride anion the numerator is negative
+// (e.g. boron in [BH4-]: Zv=3, h=4 -> 3 - 4) and therefore WRAPS to
+// ``2^32 - 1 = 4294967295``, so RDKit's oracle emits a finite tiny delta
+// (``1/sqrt(4294967295) = 1.5258789e-05``) rather than a NaN. Reproducing that
+// wrap exactly — not clamping or guard-returning-zero — is what matches the
+// oracle bit-for-bit; for all non-negative numerators the unsigned cast is a
+// no-op so ordinary atoms are unchanged.
+std::uint32_t rdkit_wrapped_delta_numerator(std::int64_t outer_electrons, int hydrogens) {
+    return static_cast<std::uint32_t>(outer_electrons) - static_cast<std::uint32_t>(hydrogens);
+}
+
 /// \brief Kier-Hall valence delta (``v`` variant): ``1/sqrt(delta_v)``.
 ///
-/// ``delta_v = Zv - h`` for first-row atoms and ``(Zv - h)/(Z - Zv - 1)`` from
-/// the second row up, where ``Zv`` is the outer-shell electron count and ``h``
-/// the attached-hydrogen count. Returns 0 for a zero delta (the atom is then
-/// skipped from the reciprocal-square-root sum, as RDKit does).
+/// Mirrors RDKit's ``hkDeltas``: ``delta_v = (Zv - h)`` for first-row atoms and
+/// ``(Zv - h)/(Z - Zv - 1)`` from the second row up, where ``Zv`` is the
+/// outer-shell electron count and ``h`` the attached-hydrogen count, with the
+/// numerator formed in unsigned 32-bit (see ``rdkit_wrapped_delta_numerator``).
+/// The denominator is likewise unsigned; ``Z - Zv - 1 == 0`` yields an infinite
+/// delta whose reciprocal square root is 0, matching RDKit. Returns 0 for a zero
+/// delta (the atom is then skipped from the reciprocal-square-root sum).
 double rdkit_valence_delta(const ConnectivityAtomInfo& info) {
     if (info.atomic_number <= 1u) {
         return 0.0;
     }
-    const auto outer = static_cast<double>(rdkit_outer_electrons(info.atomic_number));
+    const auto outer = rdkit_outer_electrons(info.atomic_number);
+    const auto numerator =
+        static_cast<double>(rdkit_wrapped_delta_numerator(outer, info.total_hydrogens));
     double delta = 0.0;
     if (info.atomic_number <= 10u) {
-        delta = outer - info.total_hydrogens;
+        delta = numerator;
     } else {
-        const auto denominator =
-            static_cast<double>(info.atomic_number) - outer - 1.0;
-        if (denominator == 0.0) {
-            return 0.0;
-        }
-        delta = (outer - info.total_hydrogens) / denominator;
+        const auto denominator = static_cast<double>(
+            static_cast<std::uint32_t>(info.atomic_number)
+            - static_cast<std::uint32_t>(outer) - 1u);
+        delta = numerator / denominator;
     }
     return delta != 0.0 ? 1.0 / std::sqrt(delta) : 0.0;
 }
 
 /// \brief Sigma-electron delta (``n`` variant): ``1/sqrt(Zv - h)``.
+///
+/// Mirrors RDKit's ``nVals``: the numerator ``Zv - h`` is formed in unsigned
+/// 32-bit, so hypervalent hydride anions wrap to a finite tiny delta rather than
+/// a NaN (see ``rdkit_wrapped_delta_numerator``).
 double rdkit_sigma_delta(const ConnectivityAtomInfo& info) {
+    const auto outer = rdkit_outer_electrons(info.atomic_number);
     const auto delta =
-        static_cast<double>(rdkit_outer_electrons(info.atomic_number)) - info.total_hydrogens;
+        static_cast<double>(rdkit_wrapped_delta_numerator(outer, info.total_hydrogens));
     return delta != 0.0 ? 1.0 / std::sqrt(delta) : 0.0;
 }
 
