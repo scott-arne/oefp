@@ -98,12 +98,6 @@ struct MordredAdditivePropertyValues {
     std::optional<double> vabc;
 };
 
-struct MordredLabuteAsaValues {
-    double total = 0.0;
-    std::vector<double> atom_contributions;
-    std::vector<unsigned int> atom_ids;
-};
-
 struct MordredGasteigerParameters {
     const char* element;
     const char* mode;
@@ -9085,6 +9079,28 @@ mordred_group_index_by_id() {
 }
 
 } // namespace
+
+std::pair<double, double> compute_crippen_contribution_sums(const OEChem::OEMolBase& mol) {
+    // Thin export of the internal Mordred SLogP/SMR computation, which sums the
+    // Wildman-Crippen table over the hydrogen-added molecule exactly as RDKit's
+    // MolLogP/MolMR do. No behavior change: the same helper still backs Mordred's
+    // SLogP/SMR columns.
+    return compute_crippen_descriptors(mol);
+}
+
+std::optional<MordredLabuteAsaValues> compute_labute_asa(const OEChem::OEMolBase& mol) {
+    // Thin export of the internal Mordred LabuteASA computation (total plus
+    // per-atom contributions). No behavior change.
+    return compute_labute_asa_values(mol);
+}
+
+std::vector<double> compute_estate_indices(const OEChem::OEMolBase& mol) {
+    // Thin export of the internal Mordred EState computation on the
+    // hydrogen-suppressed heavy-atom graph. No behavior change: the same helpers
+    // still back Mordred's EState and EState/VSA columns.
+    const auto working_mol = implicit_hydrogen_estate_mol(mol);
+    return compute_mordred_estate_indices(build_mordred_heavy_atom_graph(working_mol));
+}
 
 DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol,
                                      ComputeContext& ctx,

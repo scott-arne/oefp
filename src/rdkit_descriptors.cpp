@@ -1248,6 +1248,110 @@ std::vector<ConnectivityAtomInfo> rdkit_connectivity_atom_info(
     return atoms;
 }
 
+/// \brief RDKit's Ertl topological polar surface area (N/O only), rounded.
+///
+/// Reproduces ``rdkit.Chem.Descriptors.TPSA``'s default model — the Ertl
+/// fragment contributions for nitrogen and oxygen, EXCLUDING sulfur and
+/// phosphorus (RDKit's default ``includeSandP=False``). It is ported natively
+/// from RDKit's fragment table rather than read from OpenEye's ``OEGet2dPSA``
+/// because the two disagree on a few edge structures (an alkyl azide such as
+/// CCN=[N+]=[N-], and atomic oxygen [O]): OpenEye's polar-surface model assigns
+/// those nitrogen/oxygen environments differently, so no float tolerance can
+/// bridge the gap. The native port matches the oracle exactly across the
+/// conformance panel. Each atom's contribution is selected from its neighbor
+/// bond-order profile (single/double/triple/aromatic counts), attached-hydrogen
+/// count, formal charge, and three-membered-ring membership; unmatched
+/// nitrogen/oxygen fall back to RDKit's degree-and-hydrogen formula. The total is
+/// rounded with the shared two-decimal PSA rounding so it matches the oracle's
+/// stored precision.
+double rdkit_tpsa(const OEChem::OEMolBase& mol) {
+    double total = 0.0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        const auto atomic_number = atom->GetAtomicNum();
+        if (atomic_number != 7 && atomic_number != 8) {
+            continue;
+        }
+        int hydrogens = static_cast<int>(atom->GetTotalHCount());
+        const int charge = atom->GetFormalCharge();
+        const bool in_three_ring = OEChem::OEAtomIsInRingSize(*atom, 3u);
+        int heavy_neighbors = 0;
+        int singles = 0;
+        int doubles = 0;
+        int triples = 0;
+        int aromatics = 0;
+        for (OESystem::OEIter<OEChem::OEBondBase> bond = atom->GetBonds(); bond; ++bond) {
+            const auto* other = bond->GetNbr(&*atom);
+            if (other != nullptr && other->GetAtomicNum() == 1) {
+                ++hydrogens;  // explicit hydrogen folded into the H count
+                continue;
+            }
+            ++heavy_neighbors;
+            if (bond->IsAromatic()) {
+                ++aromatics;
+            } else {
+                switch (bond->GetOrder()) {
+                    case 1u: ++singles; break;
+                    case 2u: ++doubles; break;
+                    case 3u: ++triples; break;
+                    default: break;
+                }
+            }
+        }
+
+        double contribution = -1.0;
+        if (atomic_number == 7) {
+            if (heavy_neighbors == 1) {
+                if (hydrogens == 0 && triples == 1 && charge == 0) contribution = 23.79;
+                else if (hydrogens == 1 && doubles == 1 && charge == 0) contribution = 23.85;
+                else if (hydrogens == 2 && singles == 1 && charge == 0) contribution = 26.02;
+                else if (hydrogens == 2 && doubles == 1 && charge == 1) contribution = 25.59;
+                else if (hydrogens == 3 && singles == 1 && charge == 1) contribution = 27.64;
+            } else if (heavy_neighbors == 2) {
+                if (hydrogens == 0 && singles == 1 && doubles == 1 && charge == 0) contribution = 12.36;
+                else if (hydrogens == 0 && triples == 1 && doubles == 1 && charge == 0) contribution = 13.60;
+                else if (hydrogens == 1 && singles == 2 && charge == 0) contribution = in_three_ring ? 21.94 : 12.03;
+                else if (hydrogens == 0 && triples == 1 && singles == 1 && charge == 1) contribution = 4.36;
+                else if (hydrogens == 1 && doubles == 1 && singles == 1 && charge == 1) contribution = 13.97;
+                else if (hydrogens == 2 && singles == 2 && charge == 1) contribution = 16.61;
+                else if (hydrogens == 0 && aromatics == 2 && charge == 0) contribution = 12.89;
+                else if (hydrogens == 1 && aromatics == 2 && charge == 0) contribution = 15.79;
+                else if (hydrogens == 1 && aromatics == 2 && charge == 1) contribution = 14.14;
+            } else if (heavy_neighbors == 3) {
+                if (hydrogens == 0 && singles == 3 && charge == 0) contribution = in_three_ring ? 3.01 : 3.24;
+                else if (hydrogens == 0 && singles == 1 && doubles == 2 && charge == 0) contribution = 11.68;
+                else if (hydrogens == 0 && singles == 2 && doubles == 1 && charge == 1) contribution = 3.01;
+                else if (hydrogens == 1 && singles == 3 && charge == 1) contribution = 4.44;
+                else if (hydrogens == 0 && aromatics == 3 && charge == 0) contribution = 4.41;
+                else if (hydrogens == 0 && singles == 1 && aromatics == 2 && charge == 0) contribution = 4.93;
+                else if (hydrogens == 0 && doubles == 1 && aromatics == 2 && charge == 0) contribution = 8.39;
+                else if (hydrogens == 0 && aromatics == 3 && charge == 1) contribution = 4.10;
+                else if (hydrogens == 0 && singles == 1 && aromatics == 2 && charge == 1) contribution = 3.88;
+            } else if (heavy_neighbors == 4) {
+                if (hydrogens == 0 && singles == 4 && charge == 1) contribution = 0.00;
+            }
+            if (contribution < 0.0) {
+                contribution = 30.5 - heavy_neighbors * 8.2 + hydrogens * 1.5;
+                if (contribution < 0.0) contribution = 0.0;
+            }
+        } else {  // oxygen
+            if (heavy_neighbors == 1) {
+                if (hydrogens == 0 && doubles == 1 && charge == 0) contribution = 17.07;
+                else if (hydrogens == 1 && singles == 1 && charge == 0) contribution = 20.23;
+                else if (hydrogens == 0 && singles == 1 && charge == -1) contribution = 23.06;
+            } else if (heavy_neighbors == 2) {
+                if (hydrogens == 0 && singles == 2 && charge == 0) contribution = in_three_ring ? 12.53 : 9.23;
+                else if (hydrogens == 0 && aromatics == 2 && charge == 0) contribution = 13.14;
+            }
+            if (contribution < 0.0) {
+                contribution = 28.5 - heavy_neighbors * 8.6 + hydrogens * 1.5;
+                if (contribution < 0.0) contribution = 0.0;
+            }
+        }
+        total += contribution;
+    }
+    return RoundTopologicalPsa(total);
+}
+
 // RDKit-internal group-to-group intermediates that are NOT molecule-level
 // shareable (those live on ComputeContext instead). Per spec §4.3, the per-atom
 // EState / LabuteASA vectors and BCUT2D eigenvalues are ComputeContext
@@ -1273,6 +1377,10 @@ enum class RDKitGroupId {
     CountsWeights,
     RingCounts,
     Connectivity,
+    Crippen,
+    SurfacePolarity,
+    PartialCharge,
+    EState,
     Count_,
 };
 
@@ -1606,6 +1714,121 @@ const std::vector<RDKitGroup>& rdkit_group_registry() {
                 set_float(builder, "BalabanJ", rdkit_balaban_j(graph));
                 set_float(builder, "Ipc", rdkit_ipc(graph, false));
                 set_float(builder, "AvgIpc", rdkit_ipc(graph, true));
+            }});
+
+        // Group: rdkit:Crippen — MolLogP, MolMR. RDKit sums the Wildman-Crippen
+        // atom contributions over the HYDROGEN-ADDED molecule (so the total
+        // differs from summing ctx.CrippenContributions(), which is the
+        // hydrogen-suppressed per-atom vector). The shared, oracle-verified
+        // Mordred SLogP/SMR computation reproduces exactly this H-added sum, so
+        // it is reused directly rather than re-summing the context accessor.
+        groups.push_back(RDKitGroup{
+            RDKitGroupId::Crippen,
+            rdkit_column_indices(s, {"MolLogP", "MolMR"}),
+            {},  // dependency-free
+            [](const OEChem::OEMolBase& mol, ComputeContext&,
+               RDKitGroupArtifacts&, const ColumnRequest&,
+               RequestGatedBuilder& builder) {
+                const auto [logp, mr] = compute_crippen_contribution_sums(mol);
+                set_float(builder, "MolLogP", logp);
+                set_float(builder, "MolMR", mr);
+            }});
+
+        // Group: rdkit:SurfacePolarity — LabuteASA (total), TPSA. LabuteASA reuses
+        // the shared, oracle-verified Labute model's total (heavy-atom surface
+        // contributions plus the hydrogen shielding term); the NEW
+        // ctx.LabuteAtomContributions() exposes the per-atom vector — whose sum
+        // deliberately omits that hydrogen term — for Task 8's VSA bins, so it
+        // cannot supply the total on its own. TPSA is RDKit's N/O-only Ertl polar
+        // surface area, ported natively (see rdkit_tpsa) because OpenEye's
+        // OEGet2dPSA diverges from RDKit on a few nitrogen/oxygen edge cases.
+        groups.push_back(RDKitGroup{
+            RDKitGroupId::SurfacePolarity,
+            rdkit_column_indices(s, {"LabuteASA", "TPSA"}),
+            {},  // dependency-free
+            [](const OEChem::OEMolBase& mol, ComputeContext& ctx,
+               RDKitGroupArtifacts&, const ColumnRequest&,
+               RequestGatedBuilder& builder) {
+                const auto values = compute_labute_asa(mol);
+                if (values.has_value()) {
+                    set_float(builder, "LabuteASA", values->total);
+                }
+                // Ring/aromaticity perception drives the Ertl fragment matching.
+                // RingPerceivedMol() carries ring + hybridization but not aromatic
+                // flags, so assign them on a LOCAL copy — the context reference is
+                // shared with the Mordred source and must not be mutated.
+                OEChem::OEGraphMol tpsa_mol(ctx.RingPerceivedMol());
+                OEChem::OEAssignAromaticFlags(tpsa_mol);
+                set_float(builder, "TPSA", rdkit_tpsa(tpsa_mol));
+            }});
+
+        // Group: rdkit:PartialCharge — Max/Min/MaxAbs/MinAbsPartialCharge. RDKit
+        // reduces over its per-atom Gasteiger charges: MinPartialCharge is the
+        // most negative SIGNED charge, MaxPartialCharge the most positive; the Abs
+        // variants reduce over |charge|. RDKit seeds min=+500/max=-500 and folds
+        // with Python min/max, so a NaN charge poisons the running extreme only
+        // when it is the FIRST argument to min/max (min(nan,acc)->nan) but is
+        // ignored as the second (min(acc,nan)->acc). Iterating atoms in order and
+        // folding min(charge, acc)/max(charge, acc) reproduces that exact NaN
+        // propagation (e.g. C[Na], whose sodium has no Gasteiger parameters, keeps
+        // the row NaN just as RDKit does).
+        groups.push_back(RDKitGroup{
+            RDKitGroupId::PartialCharge,
+            rdkit_column_indices(s, {"MaxPartialCharge", "MinPartialCharge",
+                                     "MaxAbsPartialCharge", "MinAbsPartialCharge"}),
+            {},  // dependency-free
+            [](const OEChem::OEMolBase&, ComputeContext& ctx,
+               RDKitGroupArtifacts&, const ColumnRequest&,
+               RequestGatedBuilder& builder) {
+                const auto& charges = ctx.GasteigerAtomCharges().charges;
+                // RDKit's seeds; on an empty molecule they stay 500/-500 exactly
+                // as RDKit returns them.
+                double min_charge = 500.0;
+                double max_charge = -500.0;
+                for (const auto charge : charges) {
+                    min_charge = std::min(charge, min_charge);
+                    max_charge = std::max(charge, max_charge);
+                }
+                set_float(builder, "MinPartialCharge", min_charge);
+                set_float(builder, "MaxPartialCharge", max_charge);
+                set_float(builder, "MaxAbsPartialCharge",
+                          std::max(std::abs(min_charge), std::abs(max_charge)));
+                set_float(builder, "MinAbsPartialCharge",
+                          std::min(std::abs(min_charge), std::abs(max_charge)));
+            }});
+
+        // Group: rdkit:EState — Max/Min/MaxAbs/MinAbsEStateIndex over the per-atom
+        // EState vector read from the SHARED context (ctx.EStateIndices()), so
+        // Task 8's EState VSA bins reuse the same memoized vector. RDKit reduces
+        // over the signed indices for Max/Min and over |index| for the Abs
+        // variants. An empty vector (no heavy atoms) leaves every column missing,
+        // matching RDKit's degenerate handling downstream.
+        groups.push_back(RDKitGroup{
+            RDKitGroupId::EState,
+            rdkit_column_indices(s, {"MaxEStateIndex", "MinEStateIndex",
+                                     "MaxAbsEStateIndex", "MinAbsEStateIndex"}),
+            {},  // dependency-free
+            [](const OEChem::OEMolBase&, ComputeContext& ctx,
+               RDKitGroupArtifacts&, const ColumnRequest&,
+               RequestGatedBuilder& builder) {
+                const std::vector<double>& estate = ctx.EStateIndices();
+                if (estate.empty()) {
+                    return;
+                }
+                double max_index = estate.front();
+                double min_index = estate.front();
+                double max_abs = std::abs(estate.front());
+                double min_abs = std::abs(estate.front());
+                for (const auto value : estate) {
+                    max_index = std::max(max_index, value);
+                    min_index = std::min(min_index, value);
+                    max_abs = std::max(max_abs, std::abs(value));
+                    min_abs = std::min(min_abs, std::abs(value));
+                }
+                set_float(builder, "MaxEStateIndex", max_index);
+                set_float(builder, "MinEStateIndex", min_index);
+                set_float(builder, "MaxAbsEStateIndex", max_abs);
+                set_float(builder, "MinAbsEStateIndex", min_abs);
             }});
 
         return groups;

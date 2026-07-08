@@ -17,8 +17,9 @@ namespace OEFP {
 /// A ``ComputeContext`` borrows one molecule by const reference and memoizes the
 /// expensive intermediates several descriptor groups share (ring-perceived
 /// working molecule, heavy-atom graph, heavy-atom distance matrix, Gasteiger
-/// charges, Crippen contributions). Each accessor computes its intermediate on
-/// first call, caches it, and returns a const reference to the cached value;
+/// charges, Crippen contributions, per-atom EState indices, per-atom Labute
+/// surface contributions). Each accessor computes its intermediate on first
+/// call, caches it, and returns a const reference to the cached value;
 /// subsequent calls return the same object without recomputing.
 ///
 /// Ownership invariant: a context is per-molecule-per-thread. It must never be
@@ -70,6 +71,24 @@ public:
     /// \returns Cached Crippen contributions for the borrowed molecule.
     const MordredCrippenAtomContributions& CrippenContributions() const;
 
+    /// \brief Per-atom electrotopological-state (EState) indices (RDKit model).
+    ///
+    /// Memoized per-atom EState vector for the borrowed molecule, shared so the
+    /// EState-derived descriptors and the EState VSA bins reuse one computation.
+    ///
+    /// \returns Cached per-atom EState vector for the borrowed molecule.
+    const std::vector<double>& EStateIndices() const;
+
+    /// \brief Per-atom Labute approximate surface-area contributions.
+    ///
+    /// Memoized per-heavy-atom Labute surface contributions (the vector the VSA
+    /// bins bucket by; its sum excludes the hydrogen shielding term that the
+    /// ``LabuteASA`` total adds). Empty when Labute's model is undefined for the
+    /// molecule, matching the missing-value behavior downstream.
+    ///
+    /// \returns Cached per-atom LabuteASA contribution vector.
+    const std::vector<double>& LabuteAtomContributions() const;
+
     /// \brief Number of times an intermediate was actually computed (not
     ///     served from cache). Used by tests to prove memoization/sharing.
     ///
@@ -84,6 +103,8 @@ private:
     mutable std::optional<std::vector<std::vector<std::int64_t>>> heavy_atom_distances_;
     mutable std::optional<MordredGasteigerAtomCharges> gasteiger_charges_;
     mutable std::optional<MordredCrippenAtomContributions> crippen_contributions_;
+    mutable std::optional<std::vector<double>> estate_indices_;
+    mutable std::optional<std::vector<double>> labute_atom_contributions_;
     mutable std::size_t compute_count_ = 0;  // incremented once per actual computation
 };
 

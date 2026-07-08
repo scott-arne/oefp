@@ -23,6 +23,12 @@ struct MordredGasteigerAtomCharges {
     std::vector<unsigned int> atom_ids;
 };
 
+struct MordredLabuteAsaValues {
+    double total = 0.0;
+    std::vector<double> atom_contributions;
+    std::vector<unsigned int> atom_ids;
+};
+
 struct PathCountNeighbor {
     std::size_t atom_index;
     double bond_order;
@@ -60,6 +66,41 @@ MordredGasteigerAtomCharges compute_gasteiger_atom_charges(const OEChem::OEMolBa
 /// \returns Per-atom Crippen contributions, or ``std::nullopt`` when undefined.
 std::optional<MordredCrippenAtomContributions> compute_crippen_atom_contributions(
     const OEChem::OEMolBase& mol);
+
+/// \brief Compute the total Wildman-Crippen logP and molar-refractivity sums.
+///
+/// Sums the per-atom Wildman-Crippen contributions over the hydrogen-added
+/// molecule, reproducing RDKit's ``MolLogP`` and ``MolMR`` (which add explicit
+/// hydrogens before summing, so the total differs from summing the
+/// hydrogen-suppressed :cpp:func:`compute_crippen_atom_contributions`). This is a
+/// thin export of the existing Mordred ``SLogP``/``SMR`` computation, shared so
+/// the RDKit ``Crippen`` family reuses the identical, oracle-verified model.
+///
+/// \param mol Molecule to describe.
+/// \returns Pair of total logP and total molar refractivity.
+std::pair<double, double> compute_crippen_contribution_sums(const OEChem::OEMolBase& mol);
+
+/// \brief Compute Labute's approximate surface area (total plus per-atom).
+///
+/// Thin export of the Mordred ``LabuteASA`` computation. ``total`` reproduces
+/// RDKit's ``LabuteASA`` descriptor (heavy-atom contributions plus the hydrogen
+/// shielding term); ``atom_contributions`` holds the per-heavy-atom surface
+/// contributions the VSA bins bucket by (their sum excludes the hydrogen term).
+///
+/// \param mol Molecule to describe.
+/// \returns Labute surface-area values, or ``std::nullopt`` when undefined.
+std::optional<MordredLabuteAsaValues> compute_labute_asa(const OEChem::OEMolBase& mol);
+
+/// \brief Compute per-atom electrotopological-state (EState) indices.
+///
+/// Thin export of the Mordred EState computation: suppresses hydrogens, builds
+/// the heavy-atom graph, and accumulates the intrinsic-state field over
+/// topological distances. Reproduces RDKit's ``rdkit.Chem.EState.EStateIndices``
+/// (verified against the oracle through the shared EState/VSA bins).
+///
+/// \param mol Molecule to describe.
+/// \returns Per-heavy-atom EState indices in heavy-atom order.
+std::vector<double> compute_estate_indices(const OEChem::OEMolBase& mol);
 
 /// \brief Enumerate the symmetrized smallest-set-of-smallest-rings (SSSR).
 ///

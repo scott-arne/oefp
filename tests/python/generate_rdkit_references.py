@@ -194,6 +194,34 @@ RDKIT_TOLERANCE_TIERS: dict[str, str] = {
     "AvgIpc": "tight",
     # Phi (Task 6): CountsWeights column = Kappa1*Kappa2/heavy-count.
     "Phi": "tight",
+    # Crippen (Task 7): MolLogP/MolMR are Wildman-Crippen atom-contribution sums
+    # over the H-added molecule. The native port reuses the shared, oracle-verified
+    # SLogP/SMR computation, so it is byte-identical to RDKit on the panel; still
+    # gated loose per spec §2.5 (the whole Crippen numeric model is RDKit-specific).
+    "MolLogP": "loose",
+    "MolMR": "loose",
+    # SurfacePolarity (Task 7): tight. LabuteASA reuses the shared Labute model
+    # (matches RDKit's total to ~1e-13). TPSA uses OpenEye's N/O-only OEGet2dPSA
+    # (S/P disabled) rounded the shared way, matching RDKit Descriptors.TPSA
+    # exactly on the panel including the sulfonamide/phosphate S/P discriminators.
+    "LabuteASA": "tight",
+    "TPSA": "tight",
+    # PartialCharge (Task 7): loose. OpenEye and RDKit Gasteiger charges converge
+    # to slightly different values; the signed and absolute extrema stay within
+    # 1e-2 on the panel. NaN-producing molecules (force-field-unassigned atoms,
+    # e.g. C[Na]) are stored as the oracle's nonfinite marker and skipped by the
+    # conformance exact-match, matching RDKit's own NaN behavior.
+    "MaxPartialCharge": "loose",
+    "MinPartialCharge": "loose",
+    "MaxAbsPartialCharge": "loose",
+    "MinAbsPartialCharge": "loose",
+    # EState (Task 7): loose. The per-atom electrotopological-state vector reuses
+    # the shared EState model (matches RDKit's rdkit.Chem.EState to ~1e-3 on the
+    # panel); the Max/Min/MaxAbs/MinAbs reductions inherit that.
+    "MaxEStateIndex": "loose",
+    "MinEStateIndex": "loose",
+    "MaxAbsEStateIndex": "loose",
+    "MinAbsEStateIndex": "loose",
     # ... remaining families appended by their tasks.
 }
 

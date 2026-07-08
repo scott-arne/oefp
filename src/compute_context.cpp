@@ -54,6 +54,26 @@ const MordredCrippenAtomContributions& ComputeContext::CrippenContributions() co
     return *crippen_contributions_;
 }
 
+const std::vector<double>& ComputeContext::EStateIndices() const {
+    if (!estate_indices_) {
+        estate_indices_.emplace(compute_estate_indices(mol_));
+        ++compute_count_;
+    }
+    return *estate_indices_;
+}
+
+const std::vector<double>& ComputeContext::LabuteAtomContributions() const {
+    if (!labute_atom_contributions_) {
+        // A molecule with no defined Labute surface caches an empty vector,
+        // matching today's missing-value behavior downstream.
+        auto values = compute_labute_asa(mol_);
+        labute_atom_contributions_.emplace(
+            values ? std::move(values->atom_contributions) : std::vector<double>{});
+        ++compute_count_;
+    }
+    return *labute_atom_contributions_;
+}
+
 std::size_t ComputeContext::ComputeCount() const {
     return compute_count_;
 }

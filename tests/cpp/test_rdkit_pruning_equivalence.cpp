@@ -153,3 +153,23 @@ TEST(RDKitPruningEquivalenceTest, WholeConnectivityGroup) {
 TEST(RDKitPruningEquivalenceTest, PhiDependencyClosureAcrossPanel) {
     expect_column_matches_across_panel({"Phi"});
 }
+
+// One representative column per Task-7 family across the panel: requesting only
+// that column must reproduce the full-schema value and leave every other column
+// (including its own group siblings) missing, proving each new group's
+// emitted_columns list is correct under subtractive pruning.
+TEST(RDKitPruningEquivalenceTest, CrippenSingleColumn) {
+    expect_column_matches_across_panel({"MolLogP"});
+}
+
+TEST(RDKitPruningEquivalenceTest, SurfacePolaritySingleColumn) {
+    expect_column_matches_across_panel({"LabuteASA"});
+}
+
+TEST(RDKitPruningEquivalenceTest, PartialChargeSingleColumn) {
+    expect_column_matches_across_panel({"MaxPartialCharge"});
+}
+
+TEST(RDKitPruningEquivalenceTest, EStateSingleColumn) {
+    expect_column_matches_across_panel({"MaxEStateIndex"});
+}

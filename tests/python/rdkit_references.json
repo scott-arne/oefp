@@ -654,7 +654,7 @@
       "source_name": "RDKit",
       "source_type": "SurfacePolarity",
       "source_version": "RDKit-2026.03.3",
-      "tier": "loose",
+      "tier": "tight",
       "units": "",
       "value_kind": "float"
     },
@@ -1144,7 +1144,7 @@
       "source_name": "RDKit",
       "source_type": "SurfacePolarity",
       "source_version": "RDKit-2026.03.3",
-      "tier": "loose",
+      "tier": "tight",
       "units": "",
       "value_kind": "float"
     },
