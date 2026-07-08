@@ -68,6 +68,8 @@ module = [
     "oecluster.*",
     "openeye",
     "openeye.*",
+    "rdkit",
+    "rdkit.*",
 ]
 ignore_missing_imports = true
 
