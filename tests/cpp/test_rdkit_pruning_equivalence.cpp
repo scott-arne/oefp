@@ -169,3 +169,58 @@ TEST(RDKitPruningEquivalenceTest, SurfacePolaritySingleColumn) {
 TEST(RDKitPruningEquivalenceTest, EStateSingleColumn) {
     expect_column_matches_across_panel({"MaxEStateIndex"});
 }
+
+// VSA per-sub-family single-column scenarios across the panel: requesting only
+// one bin of each sub-family must reproduce the full-schema value and leave every
+// other column (including its own sub-family siblings) missing, proving the VSA
+// group's emitted_columns list is correct under subtractive pruning. PEOE_VSA is
+// deferred (its Gasteiger-charge dependence diverges from RDKit like
+// PartialCharge), so it emits no columns and is intentionally not exercised here.
+TEST(RDKitPruningEquivalenceTest, SlogpVsaSingleColumn) {
+    expect_column_matches_across_panel({"SlogP_VSA2"});
+}
+
+TEST(RDKitPruningEquivalenceTest, SmrVsaSingleColumn) {
+    expect_column_matches_across_panel({"SMR_VSA1"});
+}
+
+TEST(RDKitPruningEquivalenceTest, EstateVsaSingleColumn) {
+    expect_column_matches_across_panel({"EState_VSA1"});
+}
+
+TEST(RDKitPruningEquivalenceTest, VsaEstateSingleColumn) {
+    expect_column_matches_across_panel({"VSA_EState1"});
+}
+
+// The mandatory dependency-closure pruning scenario (Spec §7 item 3): the VSA
+// group declares a dependency on the EState group. Requesting ONLY
+// {"EState_VSA1"} must (a) reproduce the full-schema EState_VSA1 value exactly,
+// and (b) emit NO *EStateIndex scalar column (MaxEStateIndex, MinEStateIndex,
+// MaxAbsEStateIndex, MinAbsEStateIndex all stay missing) — the EState group runs
+// only as a dependency, warming the shared per-atom EState vector on the context,
+// without any of its own columns being requested. This differs from the Phi case:
+// the shared datum lives on ComputeContext, not a group artifact, so the edge is
+// about run ordering/warming rather than an artifact hand-off. Because
+// EState_VSA1 alone must equal its All() value, the scenario genuinely exercises
+// the dependency (a missing/empty EState vector would zero the bin and diverge).
+// expect_subset_matches_all already asserts every non-requested column (all 213
+// others, including the four *EStateIndex columns) is missing in the pruned row.
+TEST(RDKitPruningEquivalenceTest, EStateVsaDependencyClosureAcrossPanel) {
+    expect_column_matches_across_panel({"EState_VSA1"});
+
+    // Belt-and-suspenders: assert directly that requesting only EState_VSA1 leaves
+    // every *EStateIndex column missing while still producing EState_VSA1, so a
+    // future regression that leaked the dependency's own columns fails loudly.
+    OEChem::OEGraphMol mol;
+    ASSERT_TRUE(OEChem::OESmilesToMol(mol, "CC(=O)OC1=CC=CC=C1C(=O)O"));
+    const auto schema = RDKitDescriptorSchema();
+    ComputeContext ctx(mol);
+    const auto row = MakeRDKitDescriptors(
+        mol, ctx, ColumnRequest::Subset(indices_for({"EState_VSA1"})));
+    EXPECT_TRUE(row.Has(schema->IndexOf("EState_VSA1")));
+    for (const auto* name : {"MaxEStateIndex", "MinEStateIndex",
+                             "MaxAbsEStateIndex", "MinAbsEStateIndex"}) {
+        EXPECT_FALSE(row.Has(schema->IndexOf(name)))
+            << name << " must stay missing when only EState_VSA1 is requested";
+    }
+}

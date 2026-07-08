@@ -16,6 +16,7 @@
 #include <iomanip>
 #include <limits>
 #include <map>
+#include <optional>
 #include <set>
 #include <sstream>
 #include <string>
@@ -1384,6 +1385,7 @@ enum class RDKitGroupId {
     Crippen,
     SurfacePolarity,
     EState,
+    VSA,
     Count_,
 };
 
@@ -1494,6 +1496,68 @@ struct RDKitGroup {
                        RequestGatedBuilder&)>
         run;
 };
+
+/// \brief Bin one per-atom vector by another and accumulate a weight per bin.
+///
+/// Reproduces the RDKit MOE-style VSA binning kernel shared by all five VSA
+/// sub-families: for each atom, find its bin from ``bin_keys[a]`` via
+/// ``bisect_right`` (C++ ``std::upper_bound``) over ``bounds`` and add
+/// ``weights[a]`` into that bin. ``N`` bin bounds define ``N + 1`` bins (the open
+/// tail bin included), so the result is always fully sized and the caller decides
+/// which bins the schema exposes. The two input vectors are the SHARED per-atom
+/// context vectors, already aligned per heavy atom in the same order.
+///
+/// The kernel is deliberately unguarded on value finiteness, matching RDKit
+/// exactly: RDKit bins every atom regardless of a non-finite key or weight. A
+/// non-finite key (for example the NaN Gasteiger charge RDKit assigns to an atom
+/// it has no PEOE parameters for) makes ``key < bound`` always false, so
+/// ``upper_bound`` returns the tail bin — the identical bin ``bisect_right`` picks
+/// for NaN in RDKit. Returning ``std::nullopt`` is reserved for a genuine
+/// alignment fault (the two per-atom vectors disagreeing in length), which would
+/// indicate an upstream context bug rather than a degenerate-but-valid molecule.
+///
+/// \param bin_keys Per-atom values selecting each atom's bin.
+/// \param weights Per-atom values accumulated into the selected bin.
+/// \param bounds Ascending bin upper bounds (``bisect_right`` cut points).
+/// \returns Per-bin accumulated weights, or ``std::nullopt`` on a length mismatch.
+template <std::size_t N>
+std::optional<std::array<double, N + 1>> rdkit_vsa_bin_accumulate(
+    const std::vector<double>& bin_keys,
+    const std::vector<double>& weights,
+    const std::array<double, N>& bounds) {
+    if (bin_keys.size() != weights.size()) {
+        return std::nullopt;
+    }
+    std::array<double, N + 1> result{};
+    for (std::size_t a = 0u; a < bin_keys.size(); ++a) {
+        const auto bin = static_cast<std::size_t>(
+            std::upper_bound(bounds.begin(), bounds.end(), bin_keys[a]) - bounds.begin());
+        result[bin] += weights[a];
+    }
+    return result;
+}
+
+/// \brief Emit the schema bins of one VSA sub-family, skipping the excluded bin.
+///
+/// The bin vector is fully sized (``1..bin_count``) but three bins are structural
+/// zeros excluded from the 214-column schema (``SlogP_VSA9``, ``SMR_VSA8``,
+/// ``EState_VSA11``); calling ``builder.Set`` for such a name would look up a
+/// non-existent schema index. ``excluded_bin`` (1-based, ``0`` for none) is
+/// therefore skipped so only the columns that exist are emitted.
+template <std::size_t BinCount>
+void rdkit_emit_vsa_family(
+    RequestGatedBuilder& builder,
+    const char* prefix,
+    const std::array<double, BinCount>& values,
+    int excluded_bin) {
+    for (int bin = 1; bin <= static_cast<int>(BinCount); ++bin) {
+        if (bin == excluded_bin) {
+            continue;
+        }
+        set_float(builder, prefix + std::to_string(bin),
+                  values[static_cast<std::size_t>(bin - 1)]);
+    }
+}
 
 /// \brief Resolve a list of schema column names to indices once.
 std::vector<std::size_t> rdkit_column_indices(
@@ -1806,6 +1870,96 @@ const std::vector<RDKitGroup>& rdkit_group_registry() {
                 set_float(builder, "MinEStateIndex", min_index);
                 set_float(builder, "MaxAbsEStateIndex", max_abs);
                 set_float(builder, "MinAbsEStateIndex", min_abs);
+            }});
+
+        // Group: rdkit:VSA — the surface-area-binned descriptors across five
+        // sub-families (40 emitted; the 14 PEOE_VSA bins are deferred, see the note
+        // below). Every family bins two SHARED per-atom context vectors
+        // (already memoized per heavy atom in one aligned order): the Labute
+        // surface contributions (ctx.LabuteAtomContributions(), RDKit's
+        // VSAContribs), the Crippen SlogP/SMR contributions
+        // (ctx.CrippenContributions()), the Gasteiger charges
+        // (ctx.GasteigerAtomCharges()), and the EState indices
+        // (ctx.EStateIndices()). SlogP/SMR/PEOE bin by their property and
+        // accumulate the surface contribution; EState_VSA bins by EState and
+        // accumulates surface; VSA_EState transposes that — it bins by surface and
+        // accumulates EState (the property binned and the value accumulated are
+        // SWAPPED between the two, per RDKit's EState_VSA_/VSA_EState_). The group
+        // declares a dependency on EState so the emission ordering is exercised;
+        // the per-atom vectors themselves come from ctx, not a group artifact.
+        // SlogP_VSA9, SMR_VSA8, and EState_VSA11 are structural zeros excluded from
+        // the schema, so those bins are computed but not emitted.
+        //
+        // PEOE_VSA deferred — its 14 bins bucket the Gasteiger partial charges,
+        // the SAME model whose OpenEye-vs-RDKit divergence on cumulated-double-bond
+        // systems (allenes, isocyanates, isothiocyanates, azides, ...) and on
+        // elements RDKit has no Gasteiger parameters for (RDKit assigns those a NaN
+        // charge that bisect_right routes to the open tail bin, PEOE_VSA14, whereas
+        // OpenEye returns a finite charge that lands in a middle bin) caused the
+        // MaxPartialCharge family to be deferred above. Binning inherits that
+        // divergence one-to-one (verified: every panel PEOE_VSA divergence is a
+        // cumulene or an unparametrized-element molecule; the other four VSA
+        // sub-families, which never touch Gasteiger, match RDKit within loose across
+        // the whole panel). The 14 PEOE_VSA columns therefore stay in the schema but
+        // are left uncomputed (missing) until a native RDKit-Gasteiger port lands,
+        // mirroring the PartialCharge deferral rather than shipping wrong bins.
+        std::vector<std::string> vsa_columns;
+        for (int k = 1; k <= 12; ++k) {
+            if (k != 9) vsa_columns.push_back("SlogP_VSA" + std::to_string(k));
+        }
+        for (int k = 1; k <= 10; ++k) {
+            if (k != 8) vsa_columns.push_back("SMR_VSA" + std::to_string(k));
+        }
+        for (int k = 1; k <= 10; ++k) {
+            vsa_columns.push_back("EState_VSA" + std::to_string(k));
+        }
+        for (int k = 1; k <= 10; ++k) {
+            vsa_columns.push_back("VSA_EState" + std::to_string(k));
+        }
+        groups.push_back(RDKitGroup{
+            RDKitGroupId::VSA,
+            rdkit_column_indices(s, vsa_columns),
+            {RDKitGroupId::EState},  // exercises the emission-ordering dependency
+            [](const OEChem::OEMolBase&, ComputeContext& ctx,
+               RDKitGroupArtifacts&, const ColumnRequest&,
+               RequestGatedBuilder& builder) {
+                // RDKit bin bounds (verified against rdkit.Chem.MolSurf +
+                // EState_VSA), used exactly. N bounds define N+1 bins; the excluded
+                // schema bins are skipped on emission, not here.
+                static constexpr std::array<double, 11> kSlogpBins{
+                    {-0.4, -0.2, 0.0, 0.1, 0.15, 0.2, 0.25, 0.3, 0.4, 0.5, 0.6}};
+                static constexpr std::array<double, 9> kSmrBins{
+                    {1.29, 1.82, 2.24, 2.45, 2.75, 3.05, 3.63, 3.8, 4.0}};
+                static constexpr std::array<double, 10> kEstateBins{
+                    {-0.39, 0.29, 0.717, 1.165, 1.54, 1.807, 2.05, 4.69, 9.17, 15.0}};
+                static constexpr std::array<double, 9> kVsaBins{
+                    {4.78, 5.0, 5.41, 5.74, 6.0, 6.07, 6.45, 7.0, 11.0}};
+
+                const std::vector<double>& surface = ctx.LabuteAtomContributions();
+                const auto& crippen = ctx.CrippenContributions();
+                const std::vector<double>& estate = ctx.EStateIndices();
+
+                // SlogP_VSA / SMR_VSA: bin by the Crippen property, accumulate the
+                // surface contribution. PEOE_VSA is deferred (see the note above),
+                // so the Gasteiger charges are intentionally not binned here.
+                if (const auto slogp =
+                        rdkit_vsa_bin_accumulate(crippen.logp, surface, kSlogpBins)) {
+                    rdkit_emit_vsa_family(builder, "SlogP_VSA", *slogp, 9);
+                }
+                if (const auto smr =
+                        rdkit_vsa_bin_accumulate(crippen.mr, surface, kSmrBins)) {
+                    rdkit_emit_vsa_family(builder, "SMR_VSA", *smr, 8);
+                }
+                // EState_VSA: bin by EState, accumulate surface.
+                if (const auto estate_vsa =
+                        rdkit_vsa_bin_accumulate(estate, surface, kEstateBins)) {
+                    rdkit_emit_vsa_family(builder, "EState_VSA", *estate_vsa, 11);
+                }
+                // VSA_EState: the transpose — bin by surface, accumulate EState.
+                if (const auto vsa_estate =
+                        rdkit_vsa_bin_accumulate(surface, estate, kVsaBins)) {
+                    rdkit_emit_vsa_family(builder, "VSA_EState", *vsa_estate, 0);
+                }
             }});
 
         return groups;

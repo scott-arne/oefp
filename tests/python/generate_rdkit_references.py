@@ -218,6 +218,19 @@ RDKIT_TOLERANCE_TIERS: dict[str, str] = {
     "MinEStateIndex": "loose",
     "MaxAbsEStateIndex": "loose",
     "MinAbsEStateIndex": "loose",
+    # VSA (Task 8): loose. The surface-area-binned descriptors reuse the shared
+    # per-atom vectors (Labute surface, Crippen SlogP/SMR, EState) and RDKit's exact
+    # bin bounds. Binning inherits the loose numeric tier of the underlying per-atom
+    # models; coarse bucketing keeps the panel within loose. SlogP_VSA9, SMR_VSA8,
+    # EState_VSA11 are excluded. PEOE_VSA1..14 stay in the schema at the loose tier
+    # but are DEFERRED (uncomputed / out of the conformance ENABLED set) — they
+    # bucket the Gasteiger charges whose OpenEye-vs-RDKit divergence already deferred
+    # the PartialCharge family; a native RDKit-Gasteiger port is the prerequisite.
+    **{f"SlogP_VSA{k}": "loose" for k in range(1, 13) if k != 9},
+    **{f"SMR_VSA{k}": "loose" for k in range(1, 11) if k != 8},
+    **{f"PEOE_VSA{k}": "loose" for k in range(1, 15)},
+    **{f"EState_VSA{k}": "loose" for k in range(1, 11)},
+    **{f"VSA_EState{k}": "loose" for k in range(1, 11)},
     # ... remaining families appended by their tasks.
 }
 

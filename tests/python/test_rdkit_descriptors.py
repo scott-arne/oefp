@@ -133,6 +133,27 @@ ENABLED_DESCRIPTOR_NAMES: set[str] = {
     "LabuteASA", "TPSA",
     # EState (Task 7): signed and absolute electrotopological-state extrema.
     "MaxEStateIndex", "MinEStateIndex", "MaxAbsEStateIndex", "MinAbsEStateIndex",
+    # VSA (Task 8): 40 surface-area-binned descriptors across four sub-families,
+    # each binning the shared per-atom vectors (Labute surface, Crippen SlogP/SMR,
+    # EState) by RDKit's fixed bin bounds. SlogP_VSA9, SMR_VSA8, and EState_VSA11
+    # are structurally-always-zero bins excluded from the schema. EState_VSA bins by
+    # EState and accumulates the surface contribution; VSA_EState transposes that.
+    "SlogP_VSA1", "SlogP_VSA2", "SlogP_VSA3", "SlogP_VSA4", "SlogP_VSA5",
+    "SlogP_VSA6", "SlogP_VSA7", "SlogP_VSA8", "SlogP_VSA10", "SlogP_VSA11",
+    "SlogP_VSA12",
+    "SMR_VSA1", "SMR_VSA2", "SMR_VSA3", "SMR_VSA4", "SMR_VSA5", "SMR_VSA6",
+    "SMR_VSA7", "SMR_VSA9", "SMR_VSA10",
+    "EState_VSA1", "EState_VSA2", "EState_VSA3", "EState_VSA4", "EState_VSA5",
+    "EState_VSA6", "EState_VSA7", "EState_VSA8", "EState_VSA9", "EState_VSA10",
+    "VSA_EState1", "VSA_EState2", "VSA_EState3", "VSA_EState4", "VSA_EState5",
+    "VSA_EState6", "VSA_EState7", "VSA_EState8", "VSA_EState9", "VSA_EState10",
+    # PEOE_VSA1..14 deferred — they bucket the Gasteiger partial charges, the same
+    # model whose OpenEye-vs-RDKit divergence on cumulated-double-bond systems
+    # (azides, isocyanates, isothiocyanates, ...) and on elements RDKit has no
+    # Gasteiger parameters for (RDKit routes their NaN charge to the tail bin) also
+    # deferred the MaxPartialCharge family. Left missing like PartialCharge until a
+    # native RDKit-Gasteiger port lands; the other four VSA sub-families never touch
+    # Gasteiger and match RDKit within loose across the whole panel.
     # PartialCharge (Max/Min/MaxAbs/MinAbsPartialCharge) deferred — RDKit's
     # Gasteiger PEOE solver diverges from OpenEye's on cumulated-double-bond
     # systems; needs a native RDKit-Gasteiger port. Left missing like SPS.
