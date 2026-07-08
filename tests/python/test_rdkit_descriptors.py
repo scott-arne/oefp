@@ -102,6 +102,20 @@ def test_rdkit_descriptors_release_gil_for_concurrent_computation():
     assert results == [214] * len(smiles_batch)
 
 
+# Descriptors intentionally left uncomputed pending deep-dive follow-ups. SPS
+# requires a native RDKit potential-stereo plus hybridization model. The other
+# 20 all consume OpenEye Gasteiger partial charges, which diverge from RDKit on
+# cumulene systems; bundled into a single native RDKit-Gasteiger-port task.
+DEFERRED_DESCRIPTOR_NAMES: frozenset[str] = frozenset({
+    "SPS",
+    "MaxPartialCharge", "MinPartialCharge", "MaxAbsPartialCharge", "MinAbsPartialCharge",
+    "PEOE_VSA1", "PEOE_VSA2", "PEOE_VSA3", "PEOE_VSA4", "PEOE_VSA5",
+    "PEOE_VSA6", "PEOE_VSA7", "PEOE_VSA8", "PEOE_VSA9", "PEOE_VSA10",
+    "PEOE_VSA11", "PEOE_VSA12", "PEOE_VSA13", "PEOE_VSA14",
+    "BCUT2D_CHGHI", "BCUT2D_CHGLO",
+})
+
+
 # Families enabled for conformance checking; grows as tasks land. This set
 # enables the 21 dependency-free CountsWeights descriptors and the 11
 # RingCounts descriptors. `SPS` and `Phi` are CountsWeights members deferred to
@@ -244,3 +258,20 @@ def test_enabled_rdkit_descriptors_match_reference_at_tier():
             else:
                 assert got == pytest.approx(ref, rel=tol, abs=tol), \
                     f"{name} @ {row['smiles']} tier={tiers[name]}"
+
+
+def test_full_214_surface_is_enabled_or_deferred():
+    payload = _payload()
+    all_names = {d["name"] for d in payload["definitions"]}
+
+    missing_from_either = all_names - ENABLED_DESCRIPTOR_NAMES - DEFERRED_DESCRIPTOR_NAMES
+    overlap = ENABLED_DESCRIPTOR_NAMES & DEFERRED_DESCRIPTOR_NAMES
+
+    assert ENABLED_DESCRIPTOR_NAMES.isdisjoint(DEFERRED_DESCRIPTOR_NAMES), \
+        f"enabled/deferred overlap: {overlap}"
+    assert ENABLED_DESCRIPTOR_NAMES | DEFERRED_DESCRIPTOR_NAMES == all_names, \
+        f"missing from enabled+deferred: {missing_from_either}"
+    assert len(DEFERRED_DESCRIPTOR_NAMES) == 21, \
+        f"deferred count changed: {len(DEFERRED_DESCRIPTOR_NAMES)} (expected 21)"
+    assert len(ENABLED_DESCRIPTOR_NAMES) == 193, \
+        f"enabled count changed: {len(ENABLED_DESCRIPTOR_NAMES)} (expected 193)"

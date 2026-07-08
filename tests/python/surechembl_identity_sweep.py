@@ -35,7 +35,9 @@ def test_surechembl_identity_sweep():
     calculators = [
         oefp.DescriptorCalculator([oefp.MordredDescriptorSource()]),
         oefp.DescriptorCalculator([oefp.OpenEyePropertyDescriptorSource()]),
+        oefp.DescriptorCalculator([oefp.RDKitDescriptorSource()]),
     ]
+    SOURCE_NAMES = ["Mordred", "OpenEye", "RDKit"]
 
     parquet = pq.ParquetFile(_PARQUET)
     smiles_seen = 0
@@ -124,8 +126,8 @@ def test_surechembl_identity_sweep():
         if candidates:
             print("Missed-identity candidates (always identical across sample):")
             for (i_a, name_a), (i_b, name_b) in candidates[:50]:
-                calc_a_source = "Mordred" if i_a == 0 else "OpenEye"
-                calc_b_source = "Mordred" if i_b == 0 else "OpenEye"
+                calc_a_source = SOURCE_NAMES[i_a]
+                calc_b_source = SOURCE_NAMES[i_b]
                 print(f"  [{calc_a_source}].{name_a} == [{calc_b_source}].{name_b}")
         else:
             print("No missed-identity candidates found.")
