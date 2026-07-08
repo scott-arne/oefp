@@ -29,6 +29,8 @@ The main Python components are:
   dense-binary generator
 - :func:`mordred_schema` and :func:`mordred_descriptors` -
   Mordred-compatible schema-backed descriptors
+- :func:`rdkit_schema` and :func:`rdkit_descriptors` -
+  RDKit-compatible schema-backed descriptors
 
 For side-by-side RDKit, OEFP, and OEGraphSim examples, see
 :ref:`api-comparison`.
@@ -716,6 +718,24 @@ Mordred-Compatible Descriptors
    typed values. Descriptors that have not been implemented, cannot be
    calculated for the molecule, or require unavailable prerequisites remain
    ``None``.
+
+.. function:: rdkit_schema()
+
+   Return the full RDKit 2D descriptor schema.
+
+   The schema includes 214 RDKit descriptors natively computed in OEFP and
+   matched to RDKit 2026.03.3 within per-descriptor tolerance tiers. Of the
+   214 descriptors, 193 are computed; 21 are deferred pending native
+   follow-ups.
+
+.. function:: rdkit_descriptors(mol)
+
+   Generate RDKit-compatible 2D descriptors as a schema-backed
+   :class:`DescriptorSet`.
+
+   The row uses :func:`rdkit_schema`. Computed descriptors are filled with
+   typed values. Deferred descriptors (21 of 214) remain ``None`` until native
+   implementations are ported.
 
    OEFP does not generate 2D or 3D coordinates during descriptor calculation.
    Mordred descriptors whose local Mordred definitions require 3D coordinates

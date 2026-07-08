@@ -533,7 +533,7 @@ def _rdkit_definition_from_fixture(definition: Mapping[str, Any]) -> DescriptorD
 def rdkit_schema() -> DescriptorSchema:
     """Return the full RDKit 2D descriptor schema.
 
-    :returns: Descriptor schema matching the committed RDKit 2023.09.6 fixture.
+    :returns: Descriptor schema matching the committed RDKit 2026.03.3 fixture.
     """
     payload = _rdkit_reference_payload()
     return DescriptorSchema(
@@ -3360,7 +3360,14 @@ class OpenEyePropertyDescriptorSource:
 
 
 class RDKitDescriptorSource:
-    """Descriptor source reproducing RDKit 2D descriptors natively."""
+    """Descriptor source reproducing RDKit 2D descriptors natively.
+
+    Exposes 214 descriptors from RDKit's 2D descriptor surface, matched to
+    RDKit 2026.03.3 within per-descriptor tolerance tiers. RDKit is used only
+    as a test-time conformance oracle, not a runtime dependency. Of the 214
+    descriptors, 193 are computed natively; 21 are deferred pending native
+    follow-ups (SPS and 20 Gasteiger-dependent descriptors).
+    """
 
     def __init__(self) -> None:
         self._native = _native.RDKitDescriptorSource()

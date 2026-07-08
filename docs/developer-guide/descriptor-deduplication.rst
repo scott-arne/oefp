@@ -75,6 +75,10 @@ The descriptor calculator is built from one or more **descriptor sources**:
   descriptors such as exact molecular weight, heavy atom count, and predicted
   logP (XLogP). Several OpenEye descriptors share ``canonical_id`` tags with
   their Mordred equivalents where computation is provably identical.
+- **RDKitDescriptorSource**: Exposes 214 RDKit 2D descriptors natively
+  reproduced in OEFP and matched to RDKit 2026.03.3 within per-descriptor
+  tolerance tiers. RDKit is used only as a test-time conformance oracle, not a
+  runtime dependency.
 
 **DescriptorCalculator** is constructed from a sequence of sources. Each source
 can be registered:
@@ -157,6 +161,109 @@ The shared context and pruning are internal C++ optimizations of the descriptor
 compute path. There is **no Python API change**: ``compute`` and
 ``calculate_batch`` accept the same arguments and return the same schema-backed
 results as before — only faster.
+
+RDKit Descriptor Source
+------------------------
+
+The **RDKitDescriptorSource** natively reproduces 214 descriptors from RDKit's
+2D descriptor surface, matched to RDKit 2026.03.3 as a test-time conformance
+oracle. RDKit is **not** a runtime dependency; all computation is performed
+natively in OEFP, and RDKit is used only during testing to verify that the
+native implementation produces values within acceptable tolerances.
+
+Conformance Testing and Tolerance Tiers
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The RDKit descriptor test suite compares native OEFP values against a committed
+RDKit 2026.03.3 reference fixture on a fixed molecule panel. Each descriptor is
+assigned one of three **tolerance tiers** that reflect the numerical stability
+of its computation:
+
+- **exact** (1e-8): Integer counts and exact-arithmetic quantities where any
+  deviation is a bug.
+- **tight** (1e-4): Well-conditioned floating-point descriptors such as
+  connectivity indices and information content measures, where accumulation
+  order or model differences should have minimal impact.
+- **loose** (1e-2): Accumulation-order-sensitive or model-dependent descriptors
+  such as VSA bins, BCUT2D eigenvalues, and the composite ``qed`` metric,
+  where slight numerical differences are expected.
+
+These tiers are enforced by ``tests/python/test_rdkit_descriptors.py`` via the
+``TIER_TOLERANCE`` mapping.
+
+Deduplication and Coexistence
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+RDKit and Mordred columns that are **conceptually similar** but computed
+differently are **both present** by design, each with an empty ``canonical_id``.
+A descriptor receives a non-empty ``canonical_id`` ONLY where the RDKit
+computation is provably identical-by-construction to another source's column,
+verified by the canonical-identity audit
+(``tests/python/test_canonical_identity_audit.py``).
+
+This is the same computational-equivalence-not-conceptual-similarity rule that
+applies to Mordred and OpenEye descriptors: deduplication removes only
+identical computations, not correlated or similar-but-different quantities.
+
+.. note::
+
+   The canonical-identity audit compares per-source raw outputs for every
+   tagged ``canonical_id`` pair and asserts exact equality (``==``). Because
+   tagged descriptors are identical by construction (shared computation), any
+   numerical difference is treated as a failed identity, not tolerated.
+
+Excluded Always-Zero Bins
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+RDKit's descriptor list includes three VSA bins that are structurally always
+zero for any molecule: ``SMR_VSA8``, ``SlogP_VSA9``, and ``EState_VSA11``.
+These bins correspond to fixed VSA boundary ranges that receive no atomic
+contribution from any element or hybridization state. Rather than ship them as
+constant-zero noise, OEFP **excludes** them entirely from the schema — the
+RDKit descriptor schema contains 214 columns, not 217.
+
+.. important::
+
+   The three excluded bins are **not in the schema** and are never emitted.
+   They are distinct from the 21 deferred descriptors described below, which
+   **are** present in the schema but return missing values until native
+   follow-ups land.
+
+Deferred Descriptors
+^^^^^^^^^^^^^^^^^^^^
+
+Of the 214 descriptors in the schema, **193 are computed natively** and **21
+are deferred**, pending native follow-up work. Deferred descriptors are present
+in the schema but return ``None`` until their implementations are ported. The
+deferred surface divides into two buckets:
+
+1. **SPS** (1 descriptor) — RDKit's spatial score (``SpacialScore``) depends on
+   RDKit-internal potential-stereocenter and hybridization models that OpenEye
+   does not expose. Porting this descriptor requires reproducing those models
+   natively.
+
+2. **Gasteiger-dependent descriptors** (20 total) — These consume Gasteiger
+   partial charges, where OpenEye's Gasteiger model diverges from RDKit's on
+   cumulated-double-bond (cumulene) systems. The 20 descriptors are bundled
+   into a single native-RDKit-Gasteiger-port follow-up:
+
+   - Partial-charge extrema (4): ``MaxPartialCharge``, ``MinPartialCharge``,
+     ``MaxAbsPartialCharge``, ``MinAbsPartialCharge``
+   - Partial-charge VSA bins (14): ``PEOE_VSA1`` through ``PEOE_VSA14``
+   - Partial-charge BCUT2D eigenvalues (2): ``BCUT2D_CHGHI``,
+     ``BCUT2D_CHGLO``
+
+The test ``test_full_214_surface_is_enabled_or_deferred`` (Task 11) asserts
+that the union of enabled (193) and deferred (21) descriptors equals the full
+214-descriptor schema, ensuring no descriptor is silently missing.
+
+.. note::
+
+   Missing values remain missing: if a deferred descriptor is requested, the
+   calculator emits ``None`` for that column, even if a later source could
+   compute it. This is the same missing-value behavior as Mordred descriptors
+   whose prerequisites are unsatisfied (e.g., 3D descriptors on no-conformer
+   molecules).
 
 Within-Source Naming Smell
 ---------------------------
