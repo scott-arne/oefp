@@ -1271,7 +1271,12 @@ double rdkit_tpsa(const OEChem::OEMolBase& mol) {
         if (atomic_number != 7 && atomic_number != 8) {
             continue;
         }
-        int hydrogens = static_cast<int>(atom->GetTotalHCount());
+        // GetTotalHCount() already returns implicit PLUS bonded explicit
+        // hydrogens, which is exactly the total-hydrogen count RDKit's Ertl TPSA
+        // keys on. Explicit-H neighbors must NOT be re-added below (doing so
+        // double-counts them and inflates TPSA for explicit-H N/O input); the
+        // neighbor loop only skips them so they never inflate heavy_neighbors.
+        const int hydrogens = static_cast<int>(atom->GetTotalHCount());
         const int charge = atom->GetFormalCharge();
         const bool in_three_ring = OEChem::OEAtomIsInRingSize(*atom, 3u);
         int heavy_neighbors = 0;
@@ -1282,8 +1287,7 @@ double rdkit_tpsa(const OEChem::OEMolBase& mol) {
         for (OESystem::OEIter<OEChem::OEBondBase> bond = atom->GetBonds(); bond; ++bond) {
             const auto* other = bond->GetNbr(&*atom);
             if (other != nullptr && other->GetAtomicNum() == 1) {
-                ++hydrogens;  // explicit hydrogen folded into the H count
-                continue;
+                continue;  // already in GetTotalHCount(); exclude from heavy_neighbors
             }
             ++heavy_neighbors;
             if (bond->IsAromatic()) {
