@@ -89,6 +89,19 @@ public:
     /// \returns Cached per-atom LabuteASA contribution vector.
     const std::vector<double>& LabuteAtomContributions() const;
 
+    /// \brief RDKit's eight BCUT2D Burden-matrix extreme eigenvalues.
+    ///
+    /// Memoized high/low eigenvalue pairs of the Burden matrix under RDKit's four
+    /// weightings (atomic mass, Gasteiger charge, Crippen logP, Crippen molar
+    /// refractivity), built from the shared heavy-atom graph, Gasteiger charges,
+    /// and Crippen contributions so the BCUT2D descriptors reuse one computation.
+    /// ``defined`` is false (all eigenvalues 0) when the molecule has no heavy
+    /// atoms or any heavy atom lacks RDKit Gasteiger parameters, matching RDKit's
+    /// all-or-nothing behavior on those inputs.
+    ///
+    /// \returns Cached BCUT2D extreme eigenvalues for the borrowed molecule.
+    const MordredBCUTEigenvalues& BCUTEigenvalues() const;
+
     /// \brief Number of times an intermediate was actually computed (not
     ///     served from cache). Used by tests to prove memoization/sharing.
     ///
@@ -105,6 +118,7 @@ private:
     mutable std::optional<MordredCrippenAtomContributions> crippen_contributions_;
     mutable std::optional<std::vector<double>> estate_indices_;
     mutable std::optional<std::vector<double>> labute_atom_contributions_;
+    mutable std::optional<MordredBCUTEigenvalues> bcut_eigenvalues_;
     mutable std::size_t compute_count_ = 0;  // incremented once per actual computation
 };
 

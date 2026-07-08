@@ -74,6 +74,18 @@ const std::vector<double>& ComputeContext::LabuteAtomContributions() const {
     return *labute_atom_contributions_;
 }
 
+const MordredBCUTEigenvalues& ComputeContext::BCUTEigenvalues() const {
+    if (!bcut_eigenvalues_) {
+        // Reuse the shared heavy-atom graph, Gasteiger charges, and Crippen
+        // contributions so BCUT2D shares those computations rather than rebuilding
+        // them; each is served from cache when already warmed by another accessor.
+        bcut_eigenvalues_.emplace(compute_rdkit_bcut_eigenvalues(
+            HeavyAtomGraph(), GasteigerAtomCharges(), CrippenContributions()));
+        ++compute_count_;
+    }
+    return *bcut_eigenvalues_;
+}
+
 std::size_t ComputeContext::ComputeCount() const {
     return compute_count_;
 }

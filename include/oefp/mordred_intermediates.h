@@ -41,6 +41,27 @@ struct MordredHeavyAtomGraph {
     std::vector<std::vector<std::size_t>> bond_neighbors;
 };
 
+/// \brief The eight extreme eigenvalues of RDKit's Burden matrix (BCUT2D).
+///
+/// Each ``*_high`` / ``*_low`` pair is the largest / smallest eigenvalue of the
+/// symmetric Burden matrix whose diagonal is the per-heavy-atom property under
+/// one of RDKit's four weightings and whose off-diagonal for bonded atoms is
+/// ``1/sqrt(bond_order)`` (non-bonded pairs share the constant ``0.001``).
+/// ``defined`` is false when the molecule has no heavy atoms or when any heavy
+/// atom lacks RDKit Gasteiger parameters (RDKit's ``BCUT2D`` raises there, so all
+/// eight values are undefined together, mirroring RDKit's all-or-nothing model).
+struct MordredBCUTEigenvalues {
+    double mw_high = 0.0;
+    double mw_low = 0.0;
+    double chg_high = 0.0;
+    double chg_low = 0.0;
+    double logp_high = 0.0;
+    double logp_low = 0.0;
+    double mr_high = 0.0;
+    double mr_low = 0.0;
+    bool defined = false;
+};
+
 /// \brief Build the heavy-atom adjacency graph used by Mordred graph descriptors.
 ///
 /// \param mol Molecule to describe.
@@ -101,6 +122,31 @@ std::optional<MordredLabuteAsaValues> compute_labute_asa(const OEChem::OEMolBase
 /// \param mol Molecule to describe.
 /// \returns Per-heavy-atom EState indices in heavy-atom order.
 std::vector<double> compute_estate_indices(const OEChem::OEMolBase& mol);
+
+/// \brief Compute RDKit's eight BCUT2D Burden-matrix extreme eigenvalues.
+///
+/// Builds RDKit's Burden matrix (diagonal = per-heavy-atom property; bonded
+/// off-diagonal = ``1/sqrt(bond_order)``; every other pair = ``0.001``) for each
+/// of RDKit's four weightings — atomic mass, Gasteiger charge, Crippen logP, and
+/// Crippen molar refractivity — and returns each matrix's largest and smallest
+/// eigenvalues via the shared symmetric (Jacobi) eigensolver. The mass diagonal
+/// uses RDKit's standard atomic weights (isotope-aware); the charge diagonal uses
+/// the per-heavy-atom Gasteiger charges without the redistributed hydrogen term,
+/// matching RDKit's ``removeAllHs`` + ``computeGasteigerCharges`` inputs; the
+/// logP/MR diagonals use the per-heavy-atom Crippen contributions.
+///
+/// The result is ``defined == false`` (all eigenvalues left at 0) when the
+/// molecule has no heavy atoms or when any heavy atom lacks RDKit Gasteiger
+/// parameters, reproducing RDKit's all-or-nothing exception on those inputs.
+///
+/// \param graph Heavy-atom graph produced by :cpp:func:`build_mordred_heavy_atom_graph`.
+/// \param gasteiger_charges Per-atom Gasteiger charges for the same molecule.
+/// \param crippen_contributions Per-heavy-atom Crippen logP / MR contributions.
+/// \returns The eight extreme eigenvalues, with ``defined`` set accordingly.
+MordredBCUTEigenvalues compute_rdkit_bcut_eigenvalues(
+    const MordredHeavyAtomGraph& graph,
+    const MordredGasteigerAtomCharges& gasteiger_charges,
+    const MordredCrippenAtomContributions& crippen_contributions);
 
 /// \brief Enumerate the symmetrized smallest-set-of-smallest-rings (SSSR).
 ///

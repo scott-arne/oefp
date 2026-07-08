@@ -9102,6 +9102,131 @@ std::vector<double> compute_estate_indices(const OEChem::OEMolBase& mol) {
     return compute_mordred_estate_indices(build_mordred_heavy_atom_graph(working_mol));
 }
 
+MordredBCUTEigenvalues compute_rdkit_bcut_eigenvalues(
+    const MordredHeavyAtomGraph& graph,
+    const MordredGasteigerAtomCharges& gasteiger_charges,
+    const MordredCrippenAtomContributions& crippen_contributions) {
+    MordredBCUTEigenvalues values;
+    const auto atom_count = graph.atoms.size();
+    if (atom_count == 0u) {
+        return values;  // defined stays false: RDKit returns zeros for an empty mol
+    }
+
+    // RDKit computes Gasteiger charges FIRST and raises when any element lacks
+    // parameters, so all four weightings are undefined together on such inputs.
+    // Reproduce that all-or-nothing gate here: bail (leaving defined == false, so
+    // every BCUT2D column emits a missing/non-finite value) when any heavy atom
+    // lacks RDKit Gasteiger parameters.
+    for (const auto* atom : graph.atoms) {
+        if (atom == nullptr
+            || !has_mordred_gasteiger_parameters(
+                static_cast<std::uint32_t>(atom->GetAtomicNum()))) {
+            return values;
+        }
+    }
+
+    // Map each per-atom property vector into the heavy-atom graph's atom order by
+    // atom id. Hydrogen suppression preserves heavy-atom indices, so the charge and
+    // Crippen vectors' atom ids align with graph.atoms[i]->GetIdx().
+    std::unordered_map<unsigned int, std::size_t> charge_index_by_atom_id;
+    charge_index_by_atom_id.reserve(gasteiger_charges.atom_ids.size());
+    for (std::size_t index = 0u; index < gasteiger_charges.atom_ids.size(); ++index) {
+        charge_index_by_atom_id.emplace(gasteiger_charges.atom_ids[index], index);
+    }
+    std::unordered_map<unsigned int, std::size_t> crippen_index_by_atom_id;
+    crippen_index_by_atom_id.reserve(crippen_contributions.atom_ids.size());
+    for (std::size_t index = 0u; index < crippen_contributions.atom_ids.size(); ++index) {
+        crippen_index_by_atom_id.emplace(crippen_contributions.atom_ids[index], index);
+    }
+
+    std::vector<double> masses(atom_count, 0.0);
+    std::vector<double> charges(atom_count, 0.0);
+    std::vector<double> logp(atom_count, 0.0);
+    std::vector<double> mr(atom_count, 0.0);
+    for (std::size_t i = 0u; i < atom_count; ++i) {
+        const auto* atom = graph.atoms[i];
+        const auto atomic_number = static_cast<std::uint32_t>(atom->GetAtomicNum());
+        const auto atom_id = atom->GetIdx();
+
+        // RDKit's Burden mass diagonal is atom.getMass(): the isotope's exact mass
+        // when an isotope is specified, otherwise the element's standard average
+        // weight (kRDKitAtomicWeights matches RDKit's PeriodicTable byte-for-byte).
+        const auto isotope = static_cast<std::uint32_t>(atom->GetIsotope());
+        if (isotope != 0u) {
+            masses[i] = OEChem::OEGetIsotopicWeight(atomic_number, isotope);
+        } else {
+            const auto weight = rdkit_atomic_weight(atomic_number);
+            masses[i] = weight.value_or(0.0);
+        }
+
+        const auto charge_index = charge_index_by_atom_id.find(atom_id);
+        if (charge_index == charge_index_by_atom_id.end()
+            || !std::isfinite(gasteiger_charges.charges[charge_index->second])) {
+            return values;  // undefined together with the other weightings
+        }
+        // RDKit's charge diagonal is the per-heavy-atom Gasteiger charge WITHOUT the
+        // redistributed implicit-hydrogen term (removeAllHs + computeGasteigerCharges).
+        charges[i] = gasteiger_charges.charges[charge_index->second];
+
+        const auto crippen_index = crippen_index_by_atom_id.find(atom_id);
+        if (crippen_index != crippen_index_by_atom_id.end()) {
+            logp[i] = crippen_contributions.logp[crippen_index->second];
+            mr[i] = crippen_contributions.mr[crippen_index->second];
+        }
+    }
+
+    // RDKit's Burden matrix: off-diagonal for bonded atoms is 1/sqrt(bond_order)
+    // (mordred_bond_order maps aromatic to 1.5, so aromatic bonds weigh 1/sqrt(1.5)
+    // exactly as RDKit's 0.8164965809277261); all other pairs share the 0.001 fill;
+    // the diagonal is the per-atom property. The extreme eigenvalues are the high /
+    // low BCUT2D pair. Eigenvalues are invariant under the simultaneous row/column
+    // permutation between atom orderings, so building every matrix in graph order is
+    // exact. Solve each weighting via the shared symmetric (Jacobi) eigensolver.
+    const auto extremes = [&](const std::vector<double>& diagonal)
+        -> std::optional<std::pair<double, double>> {
+        std::vector<double> matrix(atom_count * atom_count, 0.001);
+        for (std::size_t i = 0u; i < atom_count; ++i) {
+            matrix[i * atom_count + i] = diagonal[i];
+        }
+        for (std::size_t i = 0u; i < graph.adjacency.size(); ++i) {
+            for (const auto& neighbor : graph.adjacency[i]) {
+                if (i >= neighbor.atom_index) {
+                    continue;
+                }
+                const auto weight = 1.0 / std::sqrt(neighbor.bond_order);
+                matrix[i * atom_count + neighbor.atom_index] = weight;
+                matrix[neighbor.atom_index * atom_count + i] = weight;
+            }
+        }
+        const auto eigensystem = symmetric_eigensystem_jacobi(std::move(matrix), atom_count);
+        if (!eigensystem.has_value() || eigensystem->eigenvalues.empty()) {
+            return std::nullopt;
+        }
+        const auto [low, high] = std::minmax_element(
+            eigensystem->eigenvalues.begin(), eigensystem->eigenvalues.end());
+        return std::make_pair(*high, *low);
+    };
+
+    const auto mass_extremes = extremes(masses);
+    const auto charge_extremes = extremes(charges);
+    const auto logp_extremes = extremes(logp);
+    const auto mr_extremes = extremes(mr);
+    if (!mass_extremes || !charge_extremes || !logp_extremes || !mr_extremes) {
+        return values;  // eigensolver failed to converge: leave undefined
+    }
+
+    values.mw_high = mass_extremes->first;
+    values.mw_low = mass_extremes->second;
+    values.chg_high = charge_extremes->first;
+    values.chg_low = charge_extremes->second;
+    values.logp_high = logp_extremes->first;
+    values.logp_low = logp_extremes->second;
+    values.mr_high = mr_extremes->first;
+    values.mr_low = mr_extremes->second;
+    values.defined = true;
+    return values;
+}
+
 DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol,
                                      ComputeContext& ctx,
                                      const ColumnRequest& request) {

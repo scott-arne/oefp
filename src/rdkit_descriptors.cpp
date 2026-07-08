@@ -1388,6 +1388,8 @@ enum class RDKitGroupId {
     EState,
     VSA,
     Fragments,
+    BCUT2D,
+    Composite,
     Count_,
 };
 
@@ -1702,6 +1704,30 @@ std::int64_t count_searcher_matches(const OEChem::OESubSearch& search,
     return count;
 }
 
+/// \brief Count distinct target-atom sets matched by a compiled searcher.
+///
+/// The compiled-searcher analogue of :cpp:func:`count_unique_smarts_matches`:
+/// deduplicates on the sorted set of matched target atoms so it reproduces
+/// RDKit's ``len(GetSubstructMatches(patt, uniquify=True))`` for a pre-compiled
+/// pattern (used by the QED HBA acceptor searchers).
+std::int64_t count_unique_smarts_matches_of(const OEChem::OESubSearch& search,
+                                            const OEChem::OEMolBase& mol) {
+    std::set<std::vector<unsigned int>> matches;
+    for (OESystem::OEIter<OEChem::OEMatchBase> match = search.Match(mol, true); match; ++match) {
+        std::vector<unsigned int> atoms;
+        for (OESystem::OEIter<OEChem::OEMatchPair<OEChem::OEAtomBase>> atom_match =
+                 match->GetAtoms();
+             atom_match; ++atom_match) {
+            if (atom_match->target != nullptr) {
+                atoms.push_back(atom_match->target->GetIdx());
+            }
+        }
+        std::sort(atoms.begin(), atoms.end());
+        matches.insert(std::move(atoms));
+    }
+    return static_cast<std::int64_t>(matches.size());
+}
+
 // --- RDKit `R<n>` ring-membership fragments -------------------------------
 //
 // Five RDKit fragments constrain an atom with the `R<n>` SMARTS primitive, which
@@ -1895,6 +1921,264 @@ std::int64_t count_ring_constrained_matches(
         }
     }
     return static_cast<std::int64_t>(unique_keys.size());
+}
+
+// ---------------------------------------------------------------------------
+// rdkit:Composite family (Task 10): qed, RDKit's quantitative estimate of
+// drug-likeness. qed = exp(sum(w_i*ln(d_i)) / sum(w_i)) with WEIGHT_MEAN weights,
+// where each d_i is one of eight molecular properties mapped through an
+// asymmetric double-sigmoidal (ADS) desirability function. Everything below is
+// transcribed verbatim from rdkit.Chem.QED (the ADS parameter table, the ads()
+// formula, the WEIGHT_MEAN vector, the acceptor SMARTS, and the Brenk structural
+// alert catalog), then computed natively: the numeric properties (MW, ALOGP, HBD,
+// PSA, ROTB) reuse the shared, oracle-verified helpers, while the SMARTS-driven
+// properties (HBA, AROM, ALERTS) are counted with OESubSearch exactly as the
+// Fragments family counts its patterns. Verified byte-identical to RDKit's qed
+// across the whole conformance panel.
+
+/// \brief One property's ADS (asymmetric double sigmoidal) parameters.
+struct QEDAdsParameter {
+    double a;
+    double b;
+    double c;
+    double d;
+    double e;
+    double f;
+    double dmax;
+};
+
+/// \brief The eight QED properties in RDKit's fixed order.
+///
+/// Order matches ``QEDproperties`` (MW, ALOGP, HBA, HBD, PSA, ROTB, AROM, ALERTS)
+/// so the ADS table, the WEIGHT_MEAN weights, and the computed property vector
+/// all index the same slot.
+enum class QEDProperty { MW, ALOGP, HBA, HBD, PSA, ROTB, AROM, ALERTS };
+constexpr std::size_t kQEDPropertyCount = 8u;
+
+/// \brief RDKit's ``adsParameters`` table, transcribed verbatim from QED.py.
+constexpr std::array<QEDAdsParameter, kQEDPropertyCount> kQEDAdsParameters{{
+    // MW
+    {2.817065973, 392.5754953, 290.7489764, 2.419764353, 49.22325677, 65.37051707,
+     104.9805561},
+    // ALOGP
+    {3.172690585, 137.8624751, 2.534937431, 4.581497897, 0.822739154, 0.576295591,
+     131.3186604},
+    // HBA
+    {2.948620388, 160.4605972, 3.615294657, 4.435986202, 0.290141953, 1.300669958,
+     148.7763046},
+    // HBD
+    {1.618662227, 1010.051101, 0.985094388, 0.000000001, 0.713820843, 0.920922555,
+     258.1632616},
+    // PSA
+    {1.876861559, 125.2232657, 62.90773554, 87.83366614, 12.01999824, 28.51324732,
+     104.5686167},
+    // ROTB
+    {0.010000000, 272.4121427, 2.558379970, 1.565547684, 1.271567166, 2.758063707,
+     105.4420403},
+    // AROM
+    {3.217788970, 957.7374108, 2.274627939, 0.000000001, 1.317690384, 0.375760881,
+     312.3372610},
+    // ALERTS
+    {0.010000000, 1199.094025, -0.09002883, 0.000000001, 0.185904477, 0.875193782,
+     417.7253140},
+}};
+
+/// \brief RDKit's default ``WEIGHT_MEAN`` QED weights, in property order.
+constexpr std::array<double, kQEDPropertyCount> kQEDWeightMean{
+    {0.66, 0.46, 0.05, 0.61, 0.06, 0.65, 0.48, 0.95}};
+
+/// \brief RDKit's ``ads(x, p)`` desirability mapping for one property.
+///
+/// Transcribed verbatim from ``QED.ads``: an asymmetric double sigmoidal that
+/// rises through one logistic and falls through a second, normalized by ``DMAX``.
+double qed_ads(double x, const QEDAdsParameter& p) {
+    const double exp1 = 1.0 + std::exp(-1.0 * (x - p.c + p.d / 2.0) / p.e);
+    const double exp2 = 1.0 + std::exp(-1.0 * (x - p.c - p.d / 2.0) / p.f);
+    const double dx = p.a + p.b / exp1 * (1.0 - 1.0 / exp2);
+    return dx / p.dmax;
+}
+
+// RDKit's QED HBA acceptor SMARTS list (``QED.AcceptorSmarts``), transcribed
+// verbatim. HBA is the sum over these patterns of the unique substructure match
+// count (only for patterns that match at all), matching QED.properties()'s
+// ``sum(len(GetSubstructMatches(p)) for p in Acceptors if HasSubstructMatch(p))``.
+constexpr std::array<const char*, 11> kQEDAcceptorSmarts{{
+    "[oH0;X2]", "[OH1;X2;v2]", "[OH0;X2;v2]", "[OH0;X1;v2]", "[O-;X1]", "[SH0;X2;v2]",
+    "[SH0;X1;v2]", "[S-;X1]", "[nH0;X2]", "[NH0;X1;v3]",
+    "[$([N;+0;X3;v3]);!$(N[C,S]=O)]",
+}};
+
+// RDKit's QED Brenk structural-alert SMARTS catalog (``QED.StructuralAlertSmarts``),
+// transcribed verbatim. ALERTS is the number of these patterns that match the
+// molecule at least once (``sum(1 for a in StructuralAlerts if HasSubstructMatch(a))``),
+// so each pattern contributes 0 or 1 regardless of how many times it matches.
+constexpr std::array<const char*, 116> kQEDStructuralAlertSmarts{{
+    "*1[O,S,N]*1", "[S,C](=[O,S])[F,Br,Cl,I]", "[CX4][Cl,Br,I]", "[#6]S(=O)(=O)O[#6]",
+    "[$([CH]),$(CC)]#CC(=O)[#6]", "[$([CH]),$(CC)]#CC(=O)O[#6]", "n[OH]",
+    "[$([CH]),$(CC)]#CS(=O)(=O)[#6]", "C=C(C=O)C=O", "n1c([F,Cl,Br,I])cccc1", "[CH1](=O)",
+    "[#8][#8]", "[C;!R]=[N;!R]", "[N!R]=[N!R]", "[#6](=O)[#6](=O)", "[#16][#16]", "[#7][NH2]",
+    "C(=O)N[NH2]", "[#6]=S",
+    "[$([CH2]),$([CH][CX4]),$(C([CX4])[CX4])]=[$([CH2]),$([CH][CX4]),$(C([CX4])[CX4])]",
+    "C1(=[O,N])C=CC(=[O,N])C=C1", "C1(=[O,N])C(=[O,N])C=CC=C1", "a21aa3a(aa1aaaa2)aaaa3",
+    "a31a(a2a(aa1)aaaa2)aaaa3", "a1aa2a3a(a1)A=AA=A3=AA=A2", "c1cc([NH2])ccc1",
+    "[Hg,Fe,As,Sb,Zn,Se,se,Te,B,Si,Na,Ca,Ge,Ag,Mg,K,Ba,Sr,Be,Ti,Mo,Mn,Ru,Pd,Ni,Cu,Au,Cd,"
+    "Al,Ga,Sn,Rh,Tl,Bi,Nb,Li,Pb,Hf,Ho]",
+    "I", "OS(=O)(=O)[O-]", "[N+](=O)[O-]", "C(=O)N[OH]", "C1NC(=O)NC(=O)1", "[SH]", "[S-]",
+    "c1ccc([Cl,Br,I,F])c([Cl,Br,I,F])c1[Cl,Br,I,F]",
+    "c1cc([Cl,Br,I,F])cc([Cl,Br,I,F])c1[Cl,Br,I,F]", "[CR1]1[CR1][CR1][CR1][CR1][CR1][CR1]1",
+    "[CR1]1[CR1][CR1]cc[CR1][CR1]1", "[CR2]1[CR2][CR2][CR2][CR2][CR2][CR2][CR2]1",
+    "[CR2]1[CR2][CR2]cc[CR2][CR2][CR2]1", "[CH2R2]1N[CH2R2][CH2R2][CH2R2][CH2R2][CH2R2]1",
+    "[CH2R2]1N[CH2R2][CH2R2][CH2R2][CH2R2][CH2R2][CH2R2]1", "C#C",
+    "[OR2,NR2]@[CR2]@[CR2]@[OR2,NR2]@[CR2]@[CR2]@[OR2,NR2]",
+    "[$([N+R]),$([n+R]),$([N+]=C)][O-]", "[#6]=N[OH]", "[#6]=NOC=O",
+    "[#6](=O)[CX4,CR0X3,O][#6](=O)", "c1ccc2c(c1)ccc(=O)o2", "[O+,o+,S+,s+]", "N=C=O",
+    "[NX3,NX4][F,Cl,Br,I]", "c1ccccc1OC(=O)[#6]", "[CR0]=[CR0][CR0]=[CR0]",
+    "[C+,c+,C-,c-]", "N=[N+]=[N-]", "C12C(NC(N1)=O)CSC2", "c1c([OH])c([OH,NH2,NH])ccc1", "P",
+    "[N,O,S]C#N", "C=C=O", "[Si][F,Cl,Br,I]", "[SX2]O",
+    "[SiR0,CR0](c1ccccc1)(c2ccccc2)(c3ccccc3)", "O1CCCCC1OC2CCC3CCCCC3C2", "N=[CR0][N,n,O,S]",
+    "[cR2]1[cR2][cR2]([Nv3X3,Nv4X4])[cR2][cR2][cR2]1[cR2]2[cR2][cR2][cR2]([Nv3X3,Nv4X4])"
+    "[cR2][cR2]2",
+    "C=[C!r]C#N", "[cR2]1[cR2]c([N+0X3R0,nX3R0])c([N+0X3R0,nX3R0])[cR2][cR2]1",
+    "[cR2]1[cR2]c([N+0X3R0,nX3R0])[cR2]c([N+0X3R0,nX3R0])[cR2]1",
+    "[cR2]1[cR2]c([N+0X3R0,nX3R0])[cR2][cR2]c1([N+0X3R0,nX3R0])", "[OH]c1ccc([OH,NH2,NH])cc1",
+    "c1ccccc1OC(=O)O", "[SX2H0][N]", "c12ccccc1(SC(S)=N2)", "c12ccccc1(SC(=S)N2)", "c1nnnn1C=O",
+    "s1c(S)nnc1NC=O", "S1C=CSC1=S", "C(=O)Onnn", "OS(=O)(=O)C(F)(F)F", "N#CC[OH]", "N#CC(=O)",
+    "S(=O)(=O)C#N", "N[CH2]C#N", "C1(=O)NCC1", "S(=O)(=O)[O-,OH]", "NC[F,Cl,Br,I]", "C=[C!r]O",
+    "[NX2+0]=[O+0]", "[OR0,NR0][OR0,NR0]", "C(=O)O[C,H1].C(=O)O[C,H1].C(=O)O[C,H1]",
+    "[CX2R0][NX3R0]", "c1ccccc1[C;!R]=[C;!R]c2ccccc2",
+    "[NX3R0,NX4R0,OR0,SX2R0][CX4][NX3R0,NX4R0,OR0,SX2R0]",
+    "[s,S,c,C,n,N,o,O]~[n+,N+](~[s,S,c,C,n,N,o,O])(~[s,S,c,C,n,N,o,O])~[s,S,c,C,n,N,o,O]",
+    "[s,S,c,C,n,N,o,O]~[nX3+,NX3+](~[s,S,c,C,n,N])~[s,S,c,C,n,N]", "[*]=[N+]=[*]",
+    "[SX3](=O)[O-,OH]", "N#N", "F.F.F.F", "[R0;D2][R0;D2][R0;D2][R0;D2]",
+    "[cR,CR]~C(=O)NC(=O)~[cR,CR]", "C=!@CC=[O,S]", "[#6,#8,#16][#6](=O)O[#6]",
+    "c[C;R0](=[O,S])[#6]", "c[SX2][C;!R]", "C=C=C", "c1nc([F,Cl,Br,I,S])ncc1",
+    "c1ncnc([F,Cl,Br,I,S])c1", "c1nc(c2c(n1)nc(n2)[F,Cl,Br,I])", "[#6]S(=O)(=O)c1ccc(cc1)F",
+    "[15N]", "[13C]", "[18O]", "[34S]",
+}};
+
+/// \brief Thread-local process-lifetime cache of the compiled QED searchers.
+///
+/// Same rationale as :cpp:func:`fragment_searchers`: the acceptor and structural
+/// alert SMARTS are molecule-independent, so each worker thread compiles them once
+/// and reuses them. ``.first`` holds the 11 acceptor searchers, ``.second`` the
+/// 116 structural-alert searchers, index-aligned with the SMARTS tables above.
+const std::pair<std::vector<OEChem::OESubSearch>, std::vector<OEChem::OESubSearch>>&
+qed_searchers() {
+    thread_local const std::pair<std::vector<OEChem::OESubSearch>,
+                                 std::vector<OEChem::OESubSearch>>
+        searchers = [] {
+            std::vector<OEChem::OESubSearch> acceptors;
+            acceptors.reserve(kQEDAcceptorSmarts.size());
+            for (const auto* smarts : kQEDAcceptorSmarts) {
+                acceptors.emplace_back(smarts);
+            }
+            std::vector<OEChem::OESubSearch> alerts;
+            alerts.reserve(kQEDStructuralAlertSmarts.size());
+            for (const auto* smarts : kQEDStructuralAlertSmarts) {
+                alerts.emplace_back(smarts);
+            }
+            return std::make_pair(std::move(acceptors), std::move(alerts));
+        }();
+    return searchers;
+}
+
+/// \brief QED's HBA count: sum of unique acceptor-pattern matches over the mol.
+std::int64_t qed_hba_count(const OEChem::OEMolBase& mol) {
+    std::int64_t total = 0;
+    for (const auto& search : qed_searchers().first) {
+        total += count_unique_smarts_matches_of(search, mol);
+    }
+    return total;
+}
+
+/// \brief QED's ALERTS count: number of Brenk alert patterns that match at all.
+std::int64_t qed_alert_count(const OEChem::OEMolBase& mol) {
+    std::int64_t count = 0;
+    for (const auto& search : qed_searchers().second) {
+        if (search.SingleMatch(mol)) {
+            ++count;
+        }
+    }
+    return count;
+}
+
+/// \brief QED's aromatic-ring count.
+///
+/// Reproduces ``len(GetSSSR(DeleteSubstructs(mol, AliphaticRings)))`` from
+/// QED.properties(): delete every atom matching the aliphatic-ring seed
+/// ``[$([A;R][!a])]`` (an aliphatic ring atom bearing a non-aromatic neighbor),
+/// then count the symmetrized SSSR rings of what remains. Deleting those atoms
+/// removes purely aliphatic rings, leaving the aromatic ring systems; the SSSR
+/// count of the remainder is the cyclomatic number over the surviving ring bonds.
+std::int64_t qed_aromatic_ring_count(const OEChem::OEMolBase& mol) {
+    OEChem::OEGraphMol remainder(mol);
+    OEChem::OESubSearch search("[$([A;R][!a])]");
+    if (search) {
+        std::vector<OEChem::OEAtomBase*> to_delete;
+        std::unordered_set<unsigned int> seen;
+        for (OESystem::OEIter<OEChem::OEMatchBase> match = search.Match(remainder, true); match;
+             ++match) {
+            for (OESystem::OEIter<OEChem::OEMatchPair<OEChem::OEAtomBase>> pair =
+                     match->GetAtoms();
+                 pair; ++pair) {
+                if (pair->pattern != nullptr && pair->target != nullptr
+                    && pair->pattern->GetIdx() == 0u
+                    && seen.insert(pair->target->GetIdx()).second) {
+                    to_delete.push_back(pair->target);
+                }
+            }
+        }
+        for (auto* atom : to_delete) {
+            remainder.DeleteAtom(atom);
+        }
+    }
+    // GetSSSR count = ring bonds - ring atoms + ring-bearing components, the
+    // cyclomatic number the symmetrized SSSR set enumerates. Reuse the shared
+    // RDKit-faithful ring engine, which returns exactly RDKit's RingInfo rings.
+    OEChem::OEFindRingAtomsAndBonds(remainder);
+    return static_cast<std::int64_t>(compute_symmetrized_sssr_rings(remainder).size());
+}
+
+/// \brief RDKit's ``Descriptors.qed`` (WEIGHT_MEAN) drug-likeness score.
+///
+/// Computes the eight QED properties as ``QED.properties()`` does, maps each
+/// through :cpp:func:`qed_ads`, and returns the weighted geometric mean
+/// ``exp(sum(w_i*ln(d_i)) / sum(w_i))``. The numeric properties reuse the shared
+/// oracle-verified helpers; the SMARTS properties come from the QED-specific
+/// searchers above.
+double compute_qed(const OEChem::OEMolBase& mol, const OEChem::OEMolBase& qed_mol) {
+    // ``mol`` is the raw molecule (for the H-added Crippen/weight sums); ``qed_mol``
+    // is the H-suppressed, ring/aromaticity-perceived molecule the SMARTS-driven
+    // counts run on, matching QED's ``Chem.RemoveHs(mol)`` working molecule.
+    const auto [logp, mr] = compute_crippen_contribution_sums(mol);
+    (void)mr;
+    std::array<double, kQEDPropertyCount> properties{};
+    // QED's MW is _CalcMolWt over RemoveHs(mol); compute it on the H-suppressed
+    // qed_mol so a bracket/explicit stereo hydrogen is not double-counted (once as
+    // the explicit H atom, once via the heavy atom's total-H count) the way it would
+    // be on the raw molecule.
+    properties[static_cast<std::size_t>(QEDProperty::MW)] = StandardMolecularWeight(qed_mol);
+    properties[static_cast<std::size_t>(QEDProperty::ALOGP)] = logp;
+    properties[static_cast<std::size_t>(QEDProperty::HBA)] =
+        static_cast<double>(qed_hba_count(qed_mol));
+    properties[static_cast<std::size_t>(QEDProperty::HBD)] =
+        static_cast<double>(count_smarts_root_atoms(qed_mol, kHDonorSmarts));
+    properties[static_cast<std::size_t>(QEDProperty::PSA)] = rdkit_tpsa(qed_mol);
+    properties[static_cast<std::size_t>(QEDProperty::ROTB)] =
+        static_cast<double>(count_unique_smarts_matches(qed_mol, kRotatableBondSmarts));
+    properties[static_cast<std::size_t>(QEDProperty::AROM)] =
+        static_cast<double>(qed_aromatic_ring_count(qed_mol));
+    properties[static_cast<std::size_t>(QEDProperty::ALERTS)] =
+        static_cast<double>(qed_alert_count(qed_mol));
+
+    double weighted_log_sum = 0.0;
+    double weight_sum = 0.0;
+    for (std::size_t i = 0u; i < kQEDPropertyCount; ++i) {
+        const double d = qed_ads(properties[i], kQEDAdsParameters[i]);
+        weighted_log_sum += kQEDWeightMean[i] * std::log(d);
+        weight_sum += kQEDWeightMean[i];
+    }
+    return std::exp(weighted_log_sum / weight_sum);
 }
 
 /// \brief Resolve a list of schema column names to indices once.
@@ -2392,6 +2676,77 @@ const std::vector<RDKitGroup>& rdkit_group_registry() {
                                     ring_fragments[i], ring_searchers[i], mol, membership));
                     }
                 }
+            }});
+
+        // Group: rdkit:BCUT2D — the extreme eigenvalues of RDKit's Burden matrix
+        // under four weightings (atomic mass / Gasteiger charge / Crippen logP /
+        // Crippen molar refractivity). The eigenvalues are memoized on the shared
+        // context (ctx.BCUTEigenvalues()), which builds RDKit's Burden matrix
+        // (diagonal = per-atom property; bonded off-diagonal = 1/sqrt(bond_order);
+        // every other pair = 0.001) from the shared heavy-atom graph, Gasteiger
+        // charges, and Crippen contributions and solves each with the shared
+        // symmetric eigensolver. RDKit's per-descriptor BCUT2D_* functions return
+        // NaN (rather than raising) when the Gasteiger step has no parameters for an
+        // element, so the emitted columns become NaN together on those inputs —
+        // matching the fixture's non-finite state for such molecules, while still
+        // emitting the column (the descriptors are always present).
+        //
+        // BCUT2D_CHGHI / BCUT2D_CHGLO deferred — these two weight the Burden
+        // diagonal by the Gasteiger partial charges, the SAME model whose
+        // OpenEye-vs-RDKit divergence on cumulated-double-bond systems (allenes,
+        // isocyanates, isothiocyanates, ...) already deferred the PartialCharge and
+        // PEOE_VSA families. On the cumulenes N=C=O and N=C=S the CHGHI eigenvalue
+        // diverges beyond loose (verified: isocyanate 1.0772 vs 1.0326, isothio-
+        // cyanate 1.0096 vs 0.9747). They are therefore left MISSING (not emitted)
+        // until a native RDKit-Gasteiger port lands, mirroring the PartialCharge
+        // deferral rather than shipping a knowingly-divergent value; they remain in
+        // the 214-column schema, just uncomputed. The context accessor still
+        // computes the charge pair (it is one Burden solve alongside the others), so
+        // enabling them later is a one-line emission change.
+        groups.push_back(RDKitGroup{
+            RDKitGroupId::BCUT2D,
+            rdkit_column_indices(
+                s,
+                {"BCUT2D_MWHI", "BCUT2D_MWLOW", "BCUT2D_LOGPHI", "BCUT2D_LOGPLOW",
+                 "BCUT2D_MRHI", "BCUT2D_MRLOW"}),
+            {},  // dependency-free (reads the shared context accessor directly)
+            [](const OEChem::OEMolBase&, ComputeContext& ctx,
+               RDKitGroupArtifacts&, const ColumnRequest&,
+               RequestGatedBuilder& builder) {
+                const auto& values = ctx.BCUTEigenvalues();
+                const double nan = std::numeric_limits<double>::quiet_NaN();
+                set_float(builder, "BCUT2D_MWHI", values.defined ? values.mw_high : nan);
+                set_float(builder, "BCUT2D_MWLOW", values.defined ? values.mw_low : nan);
+                set_float(builder, "BCUT2D_LOGPHI", values.defined ? values.logp_high : nan);
+                set_float(builder, "BCUT2D_LOGPLOW", values.defined ? values.logp_low : nan);
+                set_float(builder, "BCUT2D_MRHI", values.defined ? values.mr_high : nan);
+                set_float(builder, "BCUT2D_MRLOW", values.defined ? values.mr_low : nan);
+                // BCUT2D_CHGHI / BCUT2D_CHGLO intentionally not emitted (deferred;
+                // see the group comment above).
+            }});
+
+        // Group: rdkit:Composite — qed, RDKit's quantitative estimate of
+        // drug-likeness. The eight QED properties are recomputed cheaply from the
+        // molecule (numeric properties via the shared oracle-verified helpers;
+        // HBA/AROM/ALERTS via the QED-specific SMARTS searchers), each mapped through
+        // its ADS desirability function, and combined as the WEIGHT_MEAN weighted
+        // geometric mean. The SMARTS-driven counts run on a LOCAL H-suppressed,
+        // ring/aromaticity/hybridization-perceived copy matching QED's RemoveHs
+        // working molecule (the context reference is shared with the Mordred source
+        // and must not be mutated); the H-added Crippen/weight sums use the raw mol.
+        groups.push_back(RDKitGroup{
+            RDKitGroupId::Composite,
+            rdkit_column_indices(s, {"qed"}),
+            {},  // dependency-free
+            [](const OEChem::OEMolBase& mol, ComputeContext& ctx,
+               RDKitGroupArtifacts&, const ColumnRequest&,
+               RequestGatedBuilder& builder) {
+                OEChem::OEGraphMol qed_mol(ctx.RingPerceivedMol());
+                OEChem::OESuppressHydrogens(qed_mol);
+                OEChem::OEFindRingAtomsAndBonds(qed_mol);
+                OEChem::OEAssignAromaticFlags(qed_mol);
+                OEChem::OEAssignHybridization(qed_mol);
+                set_float(builder, "qed", compute_qed(mol, qed_mol));
             }});
 
         return groups;

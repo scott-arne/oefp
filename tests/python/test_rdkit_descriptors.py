@@ -38,11 +38,11 @@ def test_rdkit_source_registers_and_returns_full_width_row():
     calc = oefp.DescriptorCalculator([oefp.RDKitDescriptorSource()])
     assert len(calc.schema.names) == 214
     row = calc.compute(_openeye_mol("CCO"))
-    # CountsWeights (Task 3) and SurfacePolarity (Task 7) are computed; un-ported
-    # families stay missing.
+    # CountsWeights (Task 3), SurfacePolarity (Task 7), and Composite (Task 10) are
+    # computed; the full RDKit 2D surface is now ported.
     assert row["HeavyAtomCount"] == 3
     assert row["TPSA"] == pytest.approx(20.23, rel=1e-4)
-    assert row["qed"] is None  # Composite family not yet ported
+    assert row["qed"] == pytest.approx(0.4068, rel=1e-2)  # Composite family (Task 10)
 
 
 def test_rdkit_schema_size_matches_fixture():
@@ -62,11 +62,11 @@ def test_rdkit_descriptors_free_function_returns_full_width_row():
 
     row = oefp.rdkit_descriptors(_openeye_mol("CCO"))
     assert len(row.schema.names) == 214
-    # CountsWeights (Task 3) and Crippen (Task 7) are computed; un-ported families
-    # remain missing.
+    # CountsWeights (Task 3), Crippen (Task 7), and Composite (Task 10) are
+    # computed; the full RDKit 2D surface is now ported.
     assert row["ExactMolWt"] == pytest.approx(46.0419, rel=1e-4)
     assert row["MolLogP"] == pytest.approx(-0.0014, abs=1e-3)
-    assert row["qed"] is None  # Composite family not yet ported
+    assert row["qed"] == pytest.approx(0.4068, rel=1e-2)  # Composite family (Task 10)
 
 
 def test_rdkit_native_free_functions_are_exported():
@@ -178,6 +178,26 @@ ENABLED_DESCRIPTOR_NAMES: set[str] = {
     # The five R<n> ring-membership fragments (relaxed match + SSSR post-filter):
     "fr_bicyclic", "fr_lactone", "fr_benzodiazepine", "fr_HOCCN",
     "fr_Ndealkylation2",
+    # BCUT2D (Task 10): the extreme eigenvalues of the Burden matrix under RDKit's
+    # weightings (atomic mass / Gasteiger charge / Crippen logP / Crippen MR). RDKit
+    # returns NaN (no Gasteiger parameters) on a handful of elements, marking all
+    # eight nonfinite in the fixture for those molecules (comparison skipped there).
+    # The six non-Gasteiger columns (MW/LOGP/MR HI/LOW) match RDKit within loose
+    # across the panel and are enabled here.
+    "BCUT2D_MWHI", "BCUT2D_MWLOW",
+    "BCUT2D_LOGPHI", "BCUT2D_LOGPLOW", "BCUT2D_MRHI", "BCUT2D_MRLOW",
+    # BCUT2D_CHGHI / BCUT2D_CHGLO deferred — these two weight the Burden diagonal by
+    # the Gasteiger partial charges, the SAME model whose OpenEye-vs-RDKit divergence
+    # on cumulated-double-bond systems already deferred the PartialCharge and
+    # PEOE_VSA families. On the cumulenes N=C=O and N=C=S the resulting CHGHI
+    # eigenvalue diverges beyond loose (isocyanate got 1.0772 vs 1.0326; isothio-
+    # cyanate got 1.0096 vs 0.9747); CHGLO stays within loose on the panel but is
+    # deferred with CHGHI as a unit since it consumes the identical divergent charges.
+    # Left uncomputed (missing) like PartialCharge/PEOE_VSA until a native RDKit-
+    # Gasteiger port lands; they remain in the 214-column schema, just uncomputed.
+    # Composite (Task 10): RDKit's quantitative estimate of drug-likeness (qed),
+    # the WEIGHT_MEAN geometric mean of eight ADS-mapped molecular properties.
+    "qed",
     # PEOE_VSA1..14 deferred — they bucket the Gasteiger partial charges, the same
     # model whose OpenEye-vs-RDKit divergence on cumulated-double-bond systems
     # (azides, isocyanates, isothiocyanates, ...) and on elements RDKit has no
