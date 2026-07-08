@@ -147,6 +147,34 @@ ENABLED_DESCRIPTOR_NAMES: set[str] = {
     "EState_VSA6", "EState_VSA7", "EState_VSA8", "EState_VSA9", "EState_VSA10",
     "VSA_EState1", "VSA_EState2", "VSA_EState3", "VSA_EState4", "VSA_EState5",
     "VSA_EState6", "VSA_EState7", "VSA_EState8", "VSA_EState9", "VSA_EState10",
+    # Fragments (Task 9): 80 of RDKit's 85 fr_* SMARTS-count descriptors, each an
+    # OESubSearch unique-match count on the H-suppressed, ring-perceived molecule.
+    # Five fr_* are DEFERRED (left missing, not enabled): fr_bicyclic, fr_lactone,
+    # fr_benzodiazepine, fr_HOCCN, fr_Ndealkylation2. Each relies on RDKit's `R<n>`
+    # SMARTS primitive meaning SSSR ring-MEMBERSHIP count, whereas OpenEye's
+    # OESubSearch reads `R<n>` as a ring-BOND count — a fundamental SMARTS-dialect
+    # difference that no faithful pattern transcription can bridge. The other 80
+    # match RDKit byte-exactly across the whole panel. See the deferral note at the
+    # Fragments group in src/rdkit_descriptors.cpp.
+    "fr_C_O", "fr_C_O_noCOO", "fr_Al_OH", "fr_Ar_OH", "fr_methoxy",
+    "fr_oxime", "fr_ester", "fr_Al_COO", "fr_Ar_COO", "fr_COO", "fr_COO2",
+    "fr_ketone", "fr_ether", "fr_phenol", "fr_aldehyde", "fr_quatN",
+    "fr_NH2", "fr_NH1", "fr_NH0", "fr_Ar_N", "fr_Ar_NH", "fr_aniline",
+    "fr_Imine", "fr_nitrile", "fr_hdrzine", "fr_hdrzone", "fr_nitroso",
+    "fr_N_O", "fr_nitro", "fr_azo", "fr_diazo", "fr_azide", "fr_amide",
+    "fr_priamide", "fr_amidine", "fr_guanido", "fr_Nhpyrrole", "fr_imide",
+    "fr_isocyan", "fr_isothiocyan", "fr_thiocyan", "fr_halogen",
+    "fr_alkyl_halide", "fr_sulfide", "fr_SH", "fr_C_S", "fr_sulfone",
+    "fr_sulfonamd", "fr_prisulfonamd", "fr_barbitur", "fr_urea",
+    "fr_term_acetylene", "fr_imidazole", "fr_furan", "fr_thiophene",
+    "fr_thiazole", "fr_oxazole", "fr_pyridine", "fr_piperdine",
+    "fr_piperzine", "fr_morpholine", "fr_lactam", "fr_tetrazole",
+    "fr_epoxide", "fr_unbrch_alkane", "fr_benzene", "fr_phos_acid",
+    "fr_phos_ester", "fr_nitro_arom", "fr_nitro_arom_nonortho",
+    "fr_dihydropyridine", "fr_phenol_noOrthoHbond", "fr_Al_OH_noTert",
+    "fr_para_hydroxylation", "fr_allylic_oxid", "fr_aryl_methyl",
+    "fr_Ndealkylation1", "fr_alkyl_carbamate", "fr_ketone_Topliss",
+    "fr_ArN",
     # PEOE_VSA1..14 deferred — they bucket the Gasteiger partial charges, the same
     # model whose OpenEye-vs-RDKit divergence on cumulated-double-bond systems
     # (azides, isocyanates, isothiocyanates, ...) and on elements RDKit has no

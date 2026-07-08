@@ -1386,6 +1386,7 @@ enum class RDKitGroupId {
     SurfacePolarity,
     EState,
     VSA,
+    Fragments,
     Count_,
 };
 
@@ -1557,6 +1558,154 @@ void rdkit_emit_vsa_family(
         set_float(builder, prefix + std::to_string(bin),
                   values[static_cast<std::size_t>(bin - 1)]);
     }
+}
+
+/// \brief One RDKit fragment descriptor: its schema name and matching SMARTS.
+struct FragmentPattern {
+    const char* name;
+    const char* smarts;
+};
+
+// RDKit's fr_* fragment SMARTS, transcribed verbatim from RDKit's
+// Data/FragmentDescriptors.csv (field index 2, the pattern column RDKit's
+// Fragments.py parses), with RDKit's name normalization applied (`=`->`_`,
+// `-`->`_`). RDKit counts each fragment as
+// ``len(GetSubstructMatches(patt, uniquify=True))``; the OpenEye equivalent is
+// an OESubSearch unique-match count over the same molecule.
+//
+// FIVE of RDKit's 85 fr_* are DELIBERATELY OMITTED here and left MISSING:
+// fr_bicyclic ("[R2][R2]"), fr_lactone ("[C&R1](=O)[O&R1][C&R1]"),
+// fr_benzodiazepine, fr_HOCCN, and fr_Ndealkylation2. Every one hinges on
+// RDKit's ``R<n>`` SMARTS primitive, which in RDKit means "atom is a member of
+// exactly n SSSR rings". OpenEye's OESubSearch interprets ``R<n>`` as a
+// ring-BOND count instead, so these patterns count something different and
+// cannot be made to equal RDKit's integer count by any faithful transcription
+// (verified on the conformance panel: e.g. RDKit's fr_bicyclic on benzene is 0
+// while the OpenEye ``[R2][R2]`` reading is 6). Because the fragment counts are
+// integers compared for exact equality, a divergent count cannot be rescued by
+// a looser tier, so these five are deferred for human adjudication rather than
+// shipped wrong (mirroring the SPS deferral). The remaining 80 match RDKit
+// byte-exactly across the whole panel.
+constexpr std::array<FragmentPattern, 80> kFragmentPatterns{{
+    {"fr_C_O", "[CX3]=[OX1]"},
+    {"fr_C_O_noCOO", "[C!$(C-[OH])]=O"},
+    {"fr_Al_OH", "[C!$(C=O)]-[OH]"},
+    {"fr_Ar_OH", "c[OH1]"},
+    {"fr_methoxy", "[OX2](-[#6])-[CH3]"},
+    {"fr_oxime", "[CX3]=[NX2]-[OX2]"},
+    {"fr_ester", "[#6][CX3](=O)[OX2H0][#6]"},
+    {"fr_Al_COO", "C-C(=O)[O;H1,-]"},
+    {"fr_Ar_COO", "c-C(=O)[O;H1,-]"},
+    {"fr_COO", "[#6]C(=O)[O;H,-1]"},
+    {"fr_COO2", "[CX3](=O)[OX1H0-,OX2H1]"},
+    {"fr_ketone", "[#6][CX3](=O)[#6]"},
+    {"fr_ether", "[OD2]([#6])[#6]"},
+    {"fr_phenol", "[OX2H]-c1ccccc1"},
+    {"fr_aldehyde", "[CX3H1](=O)[#6]"},
+    {"fr_quatN", "[$([NX4+]),$([NX4]=*)]"},
+    {"fr_NH2", "[NH2,nH2]"},
+    {"fr_NH1", "[NH1,nH1]"},
+    {"fr_NH0", "[NH0,nH0]"},
+    {"fr_Ar_N", "n"},
+    {"fr_Ar_NH", "[nH]"},
+    {"fr_aniline", "c-[NX3;!$(N=*)]"},
+    {"fr_Imine", "[Nv3](=C)-[#6]"},
+    {"fr_nitrile", "[NX1]#[CX2]"},
+    {"fr_hdrzine", "[NX3]-[NX3]"},
+    {"fr_hdrzone", "C=N-[NX3]"},
+    {"fr_nitroso", "[N!$(N-O)]=O"},
+    {"fr_N_O", "[N!$(N=O)](-O)-C"},
+    {"fr_nitro", "[$([NX3](=O)=O),$([NX3+](=O)[O-])][!#8]"},
+    {"fr_azo", "[#6]-N=N-[#6]"},
+    {"fr_diazo", "[N+]#N"},
+    {"fr_azide", "[$(*-[NX2-]-[NX2+]#[NX1]),$(*-[NX2]=[NX2+]=[NX1-])]"},
+    {"fr_amide", "C(=O)-N"},
+    {"fr_priamide", "C(=O)-[NH2]"},
+    {"fr_amidine", "C(=N)(-N)-[!#7]"},
+    {"fr_guanido", "C(=N)(N)N"},
+    {"fr_Nhpyrrole", "[nH]"},
+    {"fr_imide", "N(-C(=O))-C=O"},
+    {"fr_isocyan", "N=C=O"},
+    {"fr_isothiocyan", "N=C=S"},
+    {"fr_thiocyan", "S-C#N"},
+    {"fr_halogen", "[#9,#17,#35,#53]"},
+    {"fr_alkyl_halide", "[CX4]-[Cl,Br,I,F]"},
+    {"fr_sulfide", "[SX2](-[#6])-C"},
+    {"fr_SH", "[SH]"},
+    {"fr_C_S", "C=[SX1]"},
+    {"fr_sulfone", "S(=,-[OX1;+0,-1])(=,-[OX1;+0,-1])(-[#6])-[#6]"},
+    {"fr_sulfonamd", "N-S(=,-[OX1;+0,-1])(=,-[OX1;+0,-1])-[#6]"},
+    {"fr_prisulfonamd", "[NH2]-S(=,-[OX1;+0,-1])(=,-[OX1;+0,-1])-[#6]"},
+    {"fr_barbitur", "C1C(=O)NC(=O)NC1=O"},
+    {"fr_urea", "C(=O)(-N)-N"},
+    {"fr_term_acetylene", "C#[CH]"},
+    {"fr_imidazole", "n1cncc1"},
+    {"fr_furan", "o1cccc1"},
+    {"fr_thiophene", "s1cccc1"},
+    {"fr_thiazole", "c1scnc1"},
+    {"fr_oxazole", "c1ocnc1"},
+    {"fr_pyridine", "n1ccccc1"},
+    {"fr_piperdine", "N1CCCCC1"},
+    {"fr_piperzine", "N1CCNCC1"},
+    {"fr_morpholine", "O1CCNCC1"},
+    {"fr_lactam", "N1C(=O)CC1"},
+    {"fr_tetrazole", "c1nnnn1"},
+    {"fr_epoxide", "O1CC1"},
+    {"fr_unbrch_alkane", "[CR0;D2,D1][CR0;D2][CR0;D2][CR0;D2,D1]"},
+    {"fr_benzene", "c1ccccc1"},
+    {"fr_phos_acid", "[$(P(=[OX1])([$([OX2H]),$([OX1-]),$([OX2]P)])([$([OX2H]),$([OX1-]),$([OX2]P)])[$([OX2H]),$([OX1-]),$([OX2]P)]),$([P+]([OX1-])([$([OX2H]),$([OX1-]),$([OX2]P)])([$([OX2H]),$([OX1-]),$([OX2]P)])[$([OX2H]),$([OX1-]),$([OX2]P)])]"},
+    {"fr_phos_ester", "[$(P(=[OX1])([OX2][#6])([$([OX2H]),$([OX1-]),$([OX2][#6])])[$([OX2H]),$([OX1-]),$([OX2][#6]),$([OX2]P)]),$([P+]([OX1-])([OX2][#6])([$([OX2H]),$([OX1-]),$([OX2][#6])])[$([OX2H]),$([OX1-]),$([OX2][#6]),$([OX2]P)])]"},
+    {"fr_nitro_arom", "[$(c1(-[$([NX3](=O)=O),$([NX3+](=O)[O-])])ccccc1)]"},
+    {"fr_nitro_arom_nonortho", "[$(c1(-[$([NX3](=O)=O),$([NX3+](=O)[O-])])ccccc1);!$(cc-!:*)]"},
+    {"fr_dihydropyridine", "[$([NX3H1]1-C=C-C-C=C1),$([Nv3]1=C-C-C=C-C1),$([Nv3]1=C-C=C-C-C1),$([NX3H1]1-C-C=C-C=C1)]"},
+    {"fr_phenol_noOrthoHbond", "[$(c1(-[OX2H])ccccc1);!$(cc-!:[CH2]-[OX2H]);!$(cc-!:C(=O)[O;H1,-]);!$(cc-!:C(=O)-[NH2])]"},
+    {"fr_Al_OH_noTert", "[$(C-[OX2H]);!$([CX3](-[OX2H])=[OX1]);!$([CD4]-[OX2H])]"},
+    {"fr_para_hydroxylation", "[$([cH]1[cH]cc(c[cH]1)~[$([#8,$([#8]~[H,c,C])])]),$([cH]1[cH]cc(c[cH]1)~[$([#7X3,$([#7](~[H,c,C])~[H,c,C])])]),$([cH]1[cH]cc(c[cH]1)-!:[$([NX3H,$(NC(=O)[H,c,C])])])]"},
+    {"fr_allylic_oxid", "[$(C=C-C);!$(C=C-C-[N,O,S]);!$(C=C-C-C-[N,O]);!$(C12=CC(=O)CCC1C3C(C4C(CCC4)CC3)CC2)]"},
+    {"fr_aryl_methyl", "[$(a-[CH3]),$(a-[CH2]-[CH3]),$(a-[CH2]-[CH2]~[!N;!O]);!$(a(:a!:*):a!:*)]"},
+    {"fr_Ndealkylation1", "[$(N(-[CH3])-C-[$(C~O),$(C-a),$(C-N),$(C=C)]),$(N(-[CH2][CH3])-C-[$(C~O),$(C-a),$(C-N),$(C=C)])]"},
+    {"fr_alkyl_carbamate", "C[NH1]C(=O)OC"},
+    {"fr_ketone_Topliss", "[$([CX3](=[OX1])(C)([c,C]));!$([CX3](=[OX1])([CH1]=C)[c,C])]"},
+    {"fr_ArN", "[$(a-[NX3H2]),$(a-[NH1][NH2]),$(a-C(=[OX1])[NH1][NH2]),$(a-C(=[NH])[NH2])]"},
+}};
+
+/// \brief Thread-local process-lifetime cache of the compiled fragment searchers.
+///
+/// The 80 fragment patterns are molecule-INDEPENDENT, so they are compiled once
+/// and reused for every molecule rather than per call (Spec §4.3). CalculateBatch
+/// runs sources across worker threads, and an ``OESubSearch`` is not documented as
+/// safe for concurrent ``Match()`` on one shared instance; a ``thread_local``
+/// cache gives each worker its own compiled set, compiled on that thread's first
+/// use and reused for the rest of its molecules. This is correct under concurrency
+/// (no shared mutable searcher state) while still paying the SMARTS-compile cost
+/// only once per thread, not once per molecule. The vector is index-aligned with
+/// ``kFragmentPatterns``.
+const std::vector<OEChem::OESubSearch>& fragment_searchers() {
+    thread_local const std::vector<OEChem::OESubSearch> searchers = [] {
+        std::vector<OEChem::OESubSearch> compiled;
+        compiled.reserve(kFragmentPatterns.size());
+        for (const auto& pattern : kFragmentPatterns) {
+            compiled.emplace_back(pattern.smarts);
+        }
+        return compiled;
+    }();
+    return searchers;
+}
+
+/// \brief Count the unique substructure matches of a compiled searcher.
+///
+/// Iterates ``OESubSearch::Match(mol, /*uniquematch=*/true)`` and counts, which
+/// reproduces RDKit's ``len(GetSubstructMatches(patt, uniquify=True))``. The
+/// searcher is a shared const instance from :cpp:func:`fragment_searchers`;
+/// ``Match`` is a const query and the returned iterator carries the per-call
+/// state, so counting is side-effect free on the searcher.
+std::int64_t count_searcher_matches(const OEChem::OESubSearch& search,
+                                    const OEChem::OEMolBase& mol) {
+    std::int64_t count = 0;
+    for (OESystem::OEIter<OEChem::OEMatchBase> match = search.Match(mol, true); match; ++match) {
+        ++count;
+    }
+    return count;
 }
 
 /// \brief Resolve a list of schema column names to indices once.
@@ -1959,6 +2108,69 @@ const std::vector<RDKitGroup>& rdkit_group_registry() {
                 if (const auto vsa_estate =
                         rdkit_vsa_bin_accumulate(surface, estate, kVsaBins)) {
                     rdkit_emit_vsa_family(builder, "VSA_EState", *vsa_estate, 0);
+                }
+            }});
+
+        // Group: rdkit:Fragments — 80 of RDKit's 85 fr_* SMARTS-count
+        // descriptors, each an OESubSearch unique-match count reproducing
+        // RDKit's len(GetSubstructMatches(patt, uniquify=True)). The patterns are
+        // molecule-independent and compiled once per thread (fragment_searchers,
+        // a thread_local cache), so nothing is recompiled per molecule and no
+        // OESubSearch is shared across threads. Five fr_* are DEFERRED and left
+        // MISSING — fr_bicyclic, fr_lactone, fr_benzodiazepine, fr_HOCCN,
+        // fr_Ndealkylation2 — because each depends on RDKit's `R<n>`
+        // SSSR-ring-membership SMARTS primitive, which OpenEye's OESubSearch reads
+        // as a ring-bond count; the counts genuinely differ and integer counts
+        // cannot be rescued by a looser tier (see the deferral note on
+        // kFragmentPatterns). Those five are absent from both kFragmentPatterns
+        // and this emitted_columns list, so subtractive pruning treats them as
+        // unrequested/missing columns.
+        std::vector<std::string> fragment_columns;
+        fragment_columns.reserve(kFragmentPatterns.size());
+        for (const auto& pattern : kFragmentPatterns) {
+            fragment_columns.emplace_back(pattern.name);
+        }
+        groups.push_back(RDKitGroup{
+            RDKitGroupId::Fragments,
+            rdkit_column_indices(s, fragment_columns),
+            {},  // dependency-free
+            [](const OEChem::OEMolBase&, ComputeContext& ctx,
+               RDKitGroupArtifacts&, const ColumnRequest& request,
+               RequestGatedBuilder& builder) {
+                // RDKit matches fragments on the implicit-H molecule with its own
+                // aromaticity model. Suppress redundant explicit hydrogens on a
+                // LOCAL copy (the context reference is shared with the Mordred
+                // source and must not be mutated) so bracket/explicit hydrogens
+                // don't defeat H-count-sensitive patterns (e.g. fr_Al_OH_noTert),
+                // then perceive rings/aromaticity/hybridization so the aromatic and
+                // ring-membership primitives resolve exactly as RDKit's do for the
+                // 80 supported fragments.
+                OEChem::OEGraphMol mol(ctx.RingPerceivedMol());
+                OEChem::OESuppressHydrogens(mol);
+                OEChem::OEFindRingAtomsAndBonds(mol);
+                OEChem::OEAssignAromaticFlags(mol);
+                OEChem::OEAssignHybridization(mol);
+
+                // Resolve the 80 schema indices once (the pattern list is fixed),
+                // so the per-molecule loop only pays the request-gate check and
+                // the substructure search, not a schema lookup per fragment.
+                static const std::array<std::size_t, kFragmentPatterns.size()>
+                    fragment_indices = [] {
+                        const auto schema = RDKitDescriptorSchema();
+                        std::array<std::size_t, kFragmentPatterns.size()> indices{};
+                        for (std::size_t i = 0u; i < kFragmentPatterns.size(); ++i) {
+                            indices[i] = schema->IndexOf(kFragmentPatterns[i].name);
+                        }
+                        return indices;
+                    }();
+
+                const auto& searchers = fragment_searchers();
+                for (std::size_t i = 0u; i < kFragmentPatterns.size(); ++i) {
+                    if (!request.Wants(fragment_indices[i])) {
+                        continue;
+                    }
+                    set_int(builder, kFragmentPatterns[i].name,
+                            count_searcher_matches(searchers[i], mol));
                 }
             }});
 

@@ -205,6 +205,42 @@ TEST(RDKitPruningEquivalenceTest, VsaEstateSingleColumn) {
 // the dependency (a missing/empty EState vector would zero the bin and diverge).
 // expect_subset_matches_all already asserts every non-requested column (all 213
 // others, including the four *EStateIndex columns) is missing in the pruned row.
+// Fragments representative single column across the panel: requesting only one
+// fr_* SMARTS count must reproduce the full-schema value and leave every other
+// column (including the other 79 fragment members) missing, proving the group's
+// emitted_columns list is correct under subtractive pruning.
+TEST(RDKitPruningEquivalenceTest, FragmentsSingleColumn) {
+    expect_column_matches_across_panel({"fr_benzene"});
+}
+
+// The whole Fragments group requested together across the panel: a divergence on
+// any molecule surfaces a pruning error in the group. Lists all 80 emitted fr_*
+// (the five R<n>-dialect-dependent fragments — fr_bicyclic, fr_lactone,
+// fr_benzodiazepine, fr_HOCCN, fr_Ndealkylation2 — are deferred and never
+// emitted, so they are intentionally absent here and stay missing).
+TEST(RDKitPruningEquivalenceTest, WholeFragmentsGroup) {
+    expect_column_matches_across_panel(
+        {"fr_C_O", "fr_C_O_noCOO", "fr_Al_OH", "fr_Ar_OH", "fr_methoxy",
+         "fr_oxime", "fr_ester", "fr_Al_COO", "fr_Ar_COO", "fr_COO", "fr_COO2",
+         "fr_ketone", "fr_ether", "fr_phenol", "fr_aldehyde", "fr_quatN",
+         "fr_NH2", "fr_NH1", "fr_NH0", "fr_Ar_N", "fr_Ar_NH", "fr_aniline",
+         "fr_Imine", "fr_nitrile", "fr_hdrzine", "fr_hdrzone", "fr_nitroso",
+         "fr_N_O", "fr_nitro", "fr_azo", "fr_diazo", "fr_azide", "fr_amide",
+         "fr_priamide", "fr_amidine", "fr_guanido", "fr_Nhpyrrole", "fr_imide",
+         "fr_isocyan", "fr_isothiocyan", "fr_thiocyan", "fr_halogen",
+         "fr_alkyl_halide", "fr_sulfide", "fr_SH", "fr_C_S", "fr_sulfone",
+         "fr_sulfonamd", "fr_prisulfonamd", "fr_barbitur", "fr_urea",
+         "fr_term_acetylene", "fr_imidazole", "fr_furan", "fr_thiophene",
+         "fr_thiazole", "fr_oxazole", "fr_pyridine", "fr_piperdine",
+         "fr_piperzine", "fr_morpholine", "fr_lactam", "fr_tetrazole",
+         "fr_epoxide", "fr_unbrch_alkane", "fr_benzene", "fr_phos_acid",
+         "fr_phos_ester", "fr_nitro_arom", "fr_nitro_arom_nonortho",
+         "fr_dihydropyridine", "fr_phenol_noOrthoHbond", "fr_Al_OH_noTert",
+         "fr_para_hydroxylation", "fr_allylic_oxid", "fr_aryl_methyl",
+         "fr_Ndealkylation1", "fr_alkyl_carbamate", "fr_ketone_Topliss",
+         "fr_ArN"});
+}
+
 TEST(RDKitPruningEquivalenceTest, EStateVsaDependencyClosureAcrossPanel) {
     expect_column_matches_across_panel({"EState_VSA1"});
 

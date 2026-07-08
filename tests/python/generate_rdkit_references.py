@@ -231,6 +231,41 @@ RDKIT_TOLERANCE_TIERS: dict[str, str] = {
     **{f"PEOE_VSA{k}": "loose" for k in range(1, 15)},
     **{f"EState_VSA{k}": "loose" for k in range(1, 11)},
     **{f"VSA_EState{k}": "loose" for k in range(1, 11)},
+    # Fragments (Task 9): every fr_* is an integer SMARTS-match count, so the
+    # conformance test compares it for exact equality and the tier is only
+    # advisory. Marked exact because the 80 supported patterns match RDKit's
+    # count byte-for-byte across the whole panel (transcribed verbatim from
+    # RDKit's FragmentDescriptors.csv, counted as OESubSearch unique matches on
+    # the H-suppressed ring-perceived molecule). Five fr_* (fr_bicyclic,
+    # fr_lactone, fr_benzodiazepine, fr_HOCCN, fr_Ndealkylation2) remain uncomputed
+    # (deferred; out of the conformance ENABLED set) because RDKit's `R<n>`
+    # SSSR-ring-membership SMARTS primitive reads as a ring-bond count under
+    # OpenEye's OESubSearch and cannot be reconciled for an exact integer count;
+    # they still carry the exact tier here but are left missing until adjudicated.
+    **{name: "exact" for name in (
+        "fr_C_O", "fr_C_O_noCOO", "fr_Al_OH", "fr_Ar_OH", "fr_methoxy",
+        "fr_oxime", "fr_ester", "fr_Al_COO", "fr_Ar_COO", "fr_COO", "fr_COO2",
+        "fr_ketone", "fr_ether", "fr_phenol", "fr_aldehyde", "fr_quatN",
+        "fr_NH2", "fr_NH1", "fr_NH0", "fr_Ar_N", "fr_Ar_NH", "fr_aniline",
+        "fr_Imine", "fr_nitrile", "fr_hdrzine", "fr_hdrzone", "fr_nitroso",
+        "fr_N_O", "fr_nitro", "fr_azo", "fr_diazo", "fr_azide", "fr_amide",
+        "fr_priamide", "fr_amidine", "fr_guanido", "fr_Nhpyrrole", "fr_imide",
+        "fr_isocyan", "fr_isothiocyan", "fr_thiocyan", "fr_halogen",
+        "fr_alkyl_halide", "fr_sulfide", "fr_SH", "fr_C_S", "fr_sulfone",
+        "fr_sulfonamd", "fr_prisulfonamd", "fr_barbitur", "fr_urea",
+        "fr_term_acetylene", "fr_imidazole", "fr_furan", "fr_thiophene",
+        "fr_thiazole", "fr_oxazole", "fr_pyridine", "fr_piperdine",
+        "fr_piperzine", "fr_morpholine", "fr_lactam", "fr_tetrazole",
+        "fr_epoxide", "fr_unbrch_alkane", "fr_benzene", "fr_phos_acid",
+        "fr_phos_ester", "fr_nitro_arom", "fr_nitro_arom_nonortho",
+        "fr_dihydropyridine", "fr_phenol_noOrthoHbond", "fr_Al_OH_noTert",
+        "fr_para_hydroxylation", "fr_allylic_oxid", "fr_aryl_methyl",
+        "fr_Ndealkylation1", "fr_alkyl_carbamate", "fr_ketone_Topliss",
+        "fr_ArN",
+        # Deferred five (uncomputed, but keep an explicit exact tier record):
+        "fr_bicyclic", "fr_lactone", "fr_benzodiazepine", "fr_HOCCN",
+        "fr_Ndealkylation2",
+    )},
     # ... remaining families appended by their tasks.
 }
 
