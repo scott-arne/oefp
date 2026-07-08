@@ -213,11 +213,20 @@ TEST(RDKitPruningEquivalenceTest, FragmentsSingleColumn) {
     expect_column_matches_across_panel({"fr_benzene"});
 }
 
+// Single R<n> ring-membership fragment across the panel: fr_bicyclic is computed
+// by relaxed match + SSSR-membership post-filter, and requesting it alone must
+// reproduce the full-schema value and leave every other column missing — this
+// also proves the lazy SSSR-membership map fires when only a ring fragment is
+// wanted.
+TEST(RDKitPruningEquivalenceTest, RingConstrainedFragmentSingleColumn) {
+    expect_column_matches_across_panel({"fr_bicyclic"});
+}
+
 // The whole Fragments group requested together across the panel: a divergence on
-// any molecule surfaces a pruning error in the group. Lists all 80 emitted fr_*
-// (the five R<n>-dialect-dependent fragments — fr_bicyclic, fr_lactone,
-// fr_benzodiazepine, fr_HOCCN, fr_Ndealkylation2 — are deferred and never
-// emitted, so they are intentionally absent here and stay missing).
+// any molecule surfaces a pruning error in the group. Lists all 85 emitted fr_*,
+// including the five R<n> ring-membership fragments (fr_bicyclic, fr_lactone,
+// fr_benzodiazepine, fr_HOCCN, fr_Ndealkylation2) computed via relaxed match +
+// SSSR post-filter.
 TEST(RDKitPruningEquivalenceTest, WholeFragmentsGroup) {
     expect_column_matches_across_panel(
         {"fr_C_O", "fr_C_O_noCOO", "fr_Al_OH", "fr_Ar_OH", "fr_methoxy",
@@ -238,7 +247,8 @@ TEST(RDKitPruningEquivalenceTest, WholeFragmentsGroup) {
          "fr_dihydropyridine", "fr_phenol_noOrthoHbond", "fr_Al_OH_noTert",
          "fr_para_hydroxylation", "fr_allylic_oxid", "fr_aryl_methyl",
          "fr_Ndealkylation1", "fr_alkyl_carbamate", "fr_ketone_Topliss",
-         "fr_ArN"});
+         "fr_ArN", "fr_bicyclic", "fr_lactone", "fr_benzodiazepine", "fr_HOCCN",
+         "fr_Ndealkylation2"});
 }
 
 TEST(RDKitPruningEquivalenceTest, EStateVsaDependencyClosureAcrossPanel) {

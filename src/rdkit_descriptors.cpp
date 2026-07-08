@@ -20,6 +20,7 @@
 #include <set>
 #include <sstream>
 #include <string>
+#include <unordered_map>
 #include <unordered_set>
 #include <utility>
 #include <vector>
@@ -1573,19 +1574,12 @@ struct FragmentPattern {
 // ``len(GetSubstructMatches(patt, uniquify=True))``; the OpenEye equivalent is
 // an OESubSearch unique-match count over the same molecule.
 //
-// FIVE of RDKit's 85 fr_* are DELIBERATELY OMITTED here and left MISSING:
-// fr_bicyclic ("[R2][R2]"), fr_lactone ("[C&R1](=O)[O&R1][C&R1]"),
-// fr_benzodiazepine, fr_HOCCN, and fr_Ndealkylation2. Every one hinges on
-// RDKit's ``R<n>`` SMARTS primitive, which in RDKit means "atom is a member of
-// exactly n SSSR rings". OpenEye's OESubSearch interprets ``R<n>`` as a
-// ring-BOND count instead, so these patterns count something different and
-// cannot be made to equal RDKit's integer count by any faithful transcription
-// (verified on the conformance panel: e.g. RDKit's fr_bicyclic on benzene is 0
-// while the OpenEye ``[R2][R2]`` reading is 6). Because the fragment counts are
-// integers compared for exact equality, a divergent count cannot be rescued by
-// a looser tier, so these five are deferred for human adjudication rather than
-// shipped wrong (mirroring the SPS deferral). The remaining 80 match RDKit
-// byte-exactly across the whole panel.
+// This table holds the 80 fr_* whose SMARTS OpenEye interprets identically to
+// RDKit. The other 5 (fr_bicyclic, fr_lactone, fr_benzodiazepine, fr_HOCCN,
+// fr_Ndealkylation2) constrain an atom with RDKit's `R<n>` SSSR-ring-membership
+// primitive, which OpenEye reads as a ring-BOND count, so they are computed by a
+// relaxed match + SSSR post-filter (see ring_constrained_fragments) rather than a
+// plain search here. All 85 are emitted.
 constexpr std::array<FragmentPattern, 80> kFragmentPatterns{{
     {"fr_C_O", "[CX3]=[OX1]"},
     {"fr_C_O_noCOO", "[C!$(C-[OH])]=O"},
@@ -1706,6 +1700,201 @@ std::int64_t count_searcher_matches(const OEChem::OESubSearch& search,
         ++count;
     }
     return count;
+}
+
+// --- RDKit `R<n>` ring-membership fragments -------------------------------
+//
+// Five RDKit fragments constrain an atom with the `R<n>` SMARTS primitive, which
+// in RDKit means "atom is a member of EXACTLY n SSSR rings" (RingInfo's
+// NumAtomRings; a naphthalene fusion carbon has NumAtomRings == 2). OpenEye's
+// OESubSearch reads `R<n>` as a ring-BOND count instead, so a verbatim
+// transcription miscounts these. We reproduce RDKit exactly by RELAXING the
+// pattern — stripping the `R<n>` ring-membership token from each constrained atom
+// — matching the relaxed pattern with OpenEye, then POST-FILTERING each match on
+// our own RDKit-faithful SSSR ring-membership count (from
+// compute_symmetrized_sssr_rings, the same ring set the RingCounts family uses
+// and which equals RDKit's RingInfo). This is possible only because we own that
+// ring engine; the `R<n>`-to-ring-bond mismatch itself is unfixable in the SMARTS
+// dialect alone.
+
+/// \brief One atom's required SSSR ring-membership within a relaxed pattern.
+struct FragmentRingConstraint {
+    unsigned int pattern_atom_index;   ///< pattern atom in SMARTS parse order
+    int required_ring_membership;      ///< exact count of SSSR rings it must be in
+};
+
+/// \brief One relaxed sub-pattern of a ring-membership fragment.
+///
+/// ``constraints`` lists the atoms whose `R<n>` token was stripped and the exact
+/// membership they must satisfy. ``key_pattern_atoms`` are the pattern atoms whose
+/// matched targets form the uniqueness key; an EMPTY list means "use the full set
+/// of matched atoms" (reproducing RDKit's ``uniquify=True`` over the whole match),
+/// while an explicit list dedups by only those atoms (needed when a recursive RDKit
+/// pattern is single-atom-rooted but expanded here into an explicit chain — e.g.
+/// fr_HOCCN, whose count is unique root oxygens, not unique O-C-C-N chains).
+struct FragmentBranch {
+    const char* relaxed_smarts;
+    std::vector<FragmentRingConstraint> constraints;
+    std::vector<unsigned int> key_pattern_atoms;
+};
+
+/// \brief A fragment counted as relaxed-match + SSSR-membership post-filter.
+struct RingConstrainedFragment {
+    const char* name;
+    std::vector<FragmentBranch> branches;  ///< OR-ed; count is distinct keys across all
+};
+
+/// \brief The five RDKit `R<n>` fragments and their relaxed + filter recipes.
+///
+/// Each entry is the RDKit CSV pattern with the `R<n>` token stripped from the
+/// constrained atoms, plus the membership those atoms must recover. fr_HOCCN and
+/// fr_Ndealkylation2 are recursive in RDKit; fr_Ndealkylation2's constrained N is
+/// the recursion root (exposed as pattern atom 0, so the recursion is kept and only
+/// `&R1` stripped), whereas fr_HOCCN's constrained N is nested inside `$(...)` and
+/// not exposed, so its two branches are expanded into explicit chains and deduped
+/// by the root oxygen (pattern atom 0). Verified to equal RDKit across the panel.
+const std::vector<RingConstrainedFragment>& ring_constrained_fragments() {
+    static const std::vector<RingConstrainedFragment> fragments = {
+        // [R2][R2] -> both atoms in exactly 2 SSSR rings, adjacent (SMARTS bond).
+        {"fr_bicyclic", {{"[*][*]", {{0u, 2}, {1u, 2}}, {}}}},
+        // [C&R1](=O)[O&R1][C&R1] -> the two carbons and the ester oxygen each in 1 ring.
+        {"fr_lactone", {{"[C](=O)[O][C]", {{0u, 1}, {2u, 1}, {3u, 1}}, {}}}},
+        // Fused benzo-diazepine ring skeleton: the two ring-fusion carbons in 2
+        // rings, every other skeleton atom in exactly 1.
+        {"fr_benzodiazepine",
+         {{"[c]12[c][c][c][c][c]1[N][C][C][N]=[C]2",
+           {{0u, 2}, {1u, 1}, {2u, 1}, {3u, 1}, {4u, 1}, {5u, 2}, {6u, 1}, {7u, 1}, {8u, 1},
+            {9u, 1}, {10u, 1}},
+           {}}}},
+        // Recursive N-methyl/ethyl in a 4-7 membered ring; the recursion root N
+        // (pattern atom 0) carries the &R1, so keep the recursion and require the
+        // matched N be in exactly one ring.
+        {"fr_Ndealkylation2",
+         {{"[$([N]1(-C)CCC1),$([N]1(-C)CCCC1),$([N]1(-C)CCCCC1),$([N]1(-C)CCCCCC1),"
+           "$([N]1(-C)CCCCCCC1)]",
+           {{0u, 1}},
+           {0u}}}},
+        // Two OR-ed branches over a root hydroxyl oxygen; branch 1 requires the
+        // downstream amine nitrogen (chain atom 3) be in exactly one ring, branch 2
+        // is ring-free. Count is distinct root oxygens (pattern atom 0) across both.
+        {"fr_HOCCN",
+         {{"[OX2H1][CX4][CX4H2][NX3]", {{3u, 1}}, {0u}},
+          {"[OH1][CX4][CX4H2][NX3][CX4](C)(C)C", {}, {0u}}}},
+    };
+    return fragments;
+}
+
+/// \brief Thread-local process-lifetime cache of the compiled relaxed searchers.
+///
+/// Same rationale as :cpp:func:`fragment_searchers`: the relaxed patterns are
+/// molecule-independent, so each worker thread compiles them once and reuses them,
+/// avoiding both per-molecule recompilation and any OESubSearch shared across
+/// threads. Outer index aligns with :cpp:func:`ring_constrained_fragments`, inner
+/// index with that fragment's branches.
+const std::vector<std::vector<OEChem::OESubSearch>>& ring_constrained_searchers() {
+    thread_local const std::vector<std::vector<OEChem::OESubSearch>> searchers = [] {
+        std::vector<std::vector<OEChem::OESubSearch>> compiled;
+        const auto& fragments = ring_constrained_fragments();
+        compiled.reserve(fragments.size());
+        for (const auto& fragment : fragments) {
+            std::vector<OEChem::OESubSearch> branches;
+            branches.reserve(fragment.branches.size());
+            for (const auto& branch : fragment.branches) {
+                branches.emplace_back(branch.relaxed_smarts);
+            }
+            compiled.push_back(std::move(branches));
+        }
+        return compiled;
+    }();
+    return searchers;
+}
+
+/// \brief Per-atom SSSR ring-membership counts, keyed by atom index.
+///
+/// Reproduces RDKit's ``RingInfo::NumAtomRings``: the number of symmetrized-SSSR
+/// rings each atom belongs to, from :cpp:func:`compute_symmetrized_sssr_rings`.
+/// Computed per molecule (a local, never shared) so it is race-free under the
+/// batch worker threads. Atoms in no ring are simply absent (membership 0).
+std::unordered_map<unsigned int, int> sssr_membership_by_atom(
+    const OEChem::OEMolBase& mol) {
+    std::unordered_map<unsigned int, int> membership;
+    for (const auto& ring : compute_symmetrized_sssr_rings(mol)) {
+        for (const auto* atom : ring) {
+            if (atom != nullptr) {
+                ++membership[atom->GetIdx()];
+            }
+        }
+    }
+    return membership;
+}
+
+/// \brief SSSR ring-membership of an atom index, defaulting to 0 when absent.
+int membership_of(const std::unordered_map<unsigned int, int>& membership,
+                  unsigned int atom_index) {
+    const auto iter = membership.find(atom_index);
+    return iter == membership.end() ? 0 : iter->second;
+}
+
+/// \brief Count a ring-membership fragment via relaxed match + SSSR post-filter.
+///
+/// For every branch, matches the relaxed searcher (unique matches), keeps only the
+/// matches whose constrained atoms hit their required SSSR membership, and collects
+/// the branch's uniqueness key (full matched-atom set, or the explicit anchor
+/// atoms). The count is the number of DISTINCT keys across all branches, which
+/// reproduces RDKit's ``len(GetSubstructMatches(patt, uniquify=True))`` for both the
+/// whole-match patterns and the anchor-rooted recursive ones.
+std::int64_t count_ring_constrained_matches(
+    const RingConstrainedFragment& fragment,
+    const std::vector<OEChem::OESubSearch>& branch_searchers,
+    const OEChem::OEMolBase& mol,
+    const std::unordered_map<unsigned int, int>& membership) {
+    std::set<std::vector<unsigned int>> unique_keys;
+    for (std::size_t branch_index = 0u; branch_index < fragment.branches.size();
+         ++branch_index) {
+        const FragmentBranch& branch = fragment.branches[branch_index];
+        const OEChem::OESubSearch& search = branch_searchers[branch_index];
+        for (OESystem::OEIter<OEChem::OEMatchBase> match = search.Match(mol, true); match;
+             ++match) {
+            std::unordered_map<unsigned int, unsigned int> pattern_to_target;
+            for (OESystem::OEIter<OEChem::OEMatchPair<OEChem::OEAtomBase>> pair =
+                     match->GetAtoms();
+                 pair; ++pair) {
+                if (pair->pattern != nullptr && pair->target != nullptr) {
+                    pattern_to_target.emplace(pair->pattern->GetIdx(), pair->target->GetIdx());
+                }
+            }
+
+            bool constraints_hold = true;
+            for (const FragmentRingConstraint& constraint : branch.constraints) {
+                const auto target = pattern_to_target.find(constraint.pattern_atom_index);
+                if (target == pattern_to_target.end()
+                    || membership_of(membership, target->second)
+                           != constraint.required_ring_membership) {
+                    constraints_hold = false;
+                    break;
+                }
+            }
+            if (!constraints_hold) {
+                continue;
+            }
+
+            std::vector<unsigned int> key;
+            if (branch.key_pattern_atoms.empty()) {
+                key.reserve(pattern_to_target.size());
+                for (const auto& entry : pattern_to_target) {
+                    key.push_back(entry.second);
+                }
+            } else {
+                key.reserve(branch.key_pattern_atoms.size());
+                for (const unsigned int pattern_atom : branch.key_pattern_atoms) {
+                    key.push_back(pattern_to_target.at(pattern_atom));
+                }
+            }
+            std::sort(key.begin(), key.end());
+            unique_keys.insert(std::move(key));
+        }
+    }
+    return static_cast<std::int64_t>(unique_keys.size());
 }
 
 /// \brief Resolve a list of schema column names to indices once.
@@ -2111,24 +2300,25 @@ const std::vector<RDKitGroup>& rdkit_group_registry() {
                 }
             }});
 
-        // Group: rdkit:Fragments — 80 of RDKit's 85 fr_* SMARTS-count
-        // descriptors, each an OESubSearch unique-match count reproducing
-        // RDKit's len(GetSubstructMatches(patt, uniquify=True)). The patterns are
-        // molecule-independent and compiled once per thread (fragment_searchers,
-        // a thread_local cache), so nothing is recompiled per molecule and no
-        // OESubSearch is shared across threads. Five fr_* are DEFERRED and left
-        // MISSING — fr_bicyclic, fr_lactone, fr_benzodiazepine, fr_HOCCN,
-        // fr_Ndealkylation2 — because each depends on RDKit's `R<n>`
-        // SSSR-ring-membership SMARTS primitive, which OpenEye's OESubSearch reads
-        // as a ring-bond count; the counts genuinely differ and integer counts
-        // cannot be rescued by a looser tier (see the deferral note on
-        // kFragmentPatterns). Those five are absent from both kFragmentPatterns
-        // and this emitted_columns list, so subtractive pruning treats them as
-        // unrequested/missing columns.
+        // Group: rdkit:Fragments — all 85 of RDKit's fr_* SMARTS-count
+        // descriptors. 80 are a direct OESubSearch unique-match count reproducing
+        // RDKit's len(GetSubstructMatches(patt, uniquify=True)); the remaining 5
+        // constrain an atom with RDKit's `R<n>` (SSSR ring-MEMBERSHIP) primitive,
+        // which OpenEye's OESubSearch reads as a ring-BOND count, so they are
+        // computed by matching a relaxed pattern (the `R<n>` token stripped) and
+        // post-filtering each match on our own RDKit-faithful SSSR membership from
+        // compute_symmetrized_sssr_rings (see ring_constrained_fragments). All
+        // patterns are molecule-independent and compiled once per thread
+        // (fragment_searchers / ring_constrained_searchers, thread_local caches),
+        // so nothing is recompiled per molecule and no OESubSearch is shared across
+        // threads; the per-molecule SSSR membership map is a local, never shared.
         std::vector<std::string> fragment_columns;
-        fragment_columns.reserve(kFragmentPatterns.size());
+        fragment_columns.reserve(kFragmentPatterns.size() + ring_constrained_fragments().size());
         for (const auto& pattern : kFragmentPatterns) {
             fragment_columns.emplace_back(pattern.name);
+        }
+        for (const auto& fragment : ring_constrained_fragments()) {
+            fragment_columns.emplace_back(fragment.name);
         }
         groups.push_back(RDKitGroup{
             RDKitGroupId::Fragments,
@@ -2143,15 +2333,14 @@ const std::vector<RDKitGroup>& rdkit_group_registry() {
                 // source and must not be mutated) so bracket/explicit hydrogens
                 // don't defeat H-count-sensitive patterns (e.g. fr_Al_OH_noTert),
                 // then perceive rings/aromaticity/hybridization so the aromatic and
-                // ring-membership primitives resolve exactly as RDKit's do for the
-                // 80 supported fragments.
+                // ring-membership primitives resolve exactly as RDKit's do.
                 OEChem::OEGraphMol mol(ctx.RingPerceivedMol());
                 OEChem::OESuppressHydrogens(mol);
                 OEChem::OEFindRingAtomsAndBonds(mol);
                 OEChem::OEAssignAromaticFlags(mol);
                 OEChem::OEAssignHybridization(mol);
 
-                // Resolve the 80 schema indices once (the pattern list is fixed),
+                // Resolve the schema indices once (both pattern lists are fixed),
                 // so the per-molecule loop only pays the request-gate check and
                 // the substructure search, not a schema lookup per fragment.
                 static const std::array<std::size_t, kFragmentPatterns.size()>
@@ -2171,6 +2360,37 @@ const std::vector<RDKitGroup>& rdkit_group_registry() {
                     }
                     set_int(builder, kFragmentPatterns[i].name,
                             count_searcher_matches(searchers[i], mol));
+                }
+
+                // The five `R<n>` fragments: relaxed match + SSSR-membership
+                // post-filter. The membership map is computed lazily only when at
+                // least one of the five is requested, so molecules that prune them
+                // away pay nothing for the extra ring perception.
+                const auto& ring_fragments = ring_constrained_fragments();
+                const auto& ring_searchers = ring_constrained_searchers();
+                static const std::vector<std::size_t> ring_fragment_indices = [] {
+                    const auto schema = RDKitDescriptorSchema();
+                    std::vector<std::size_t> indices;
+                    indices.reserve(ring_constrained_fragments().size());
+                    for (const auto& fragment : ring_constrained_fragments()) {
+                        indices.push_back(schema->IndexOf(fragment.name));
+                    }
+                    return indices;
+                }();
+
+                const bool wants_any_ring_fragment = std::any_of(
+                    ring_fragment_indices.begin(), ring_fragment_indices.end(),
+                    [&request](std::size_t index) { return request.Wants(index); });
+                if (wants_any_ring_fragment) {
+                    const auto membership = sssr_membership_by_atom(mol);
+                    for (std::size_t i = 0u; i < ring_fragments.size(); ++i) {
+                        if (!request.Wants(ring_fragment_indices[i])) {
+                            continue;
+                        }
+                        set_int(builder, ring_fragments[i].name,
+                                count_ring_constrained_matches(
+                                    ring_fragments[i], ring_searchers[i], mol, membership));
+                    }
                 }
             }});
 

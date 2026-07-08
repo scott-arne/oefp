@@ -233,15 +233,14 @@ RDKIT_TOLERANCE_TIERS: dict[str, str] = {
     **{f"VSA_EState{k}": "loose" for k in range(1, 11)},
     # Fragments (Task 9): every fr_* is an integer SMARTS-match count, so the
     # conformance test compares it for exact equality and the tier is only
-    # advisory. Marked exact because the 80 supported patterns match RDKit's
-    # count byte-for-byte across the whole panel (transcribed verbatim from
-    # RDKit's FragmentDescriptors.csv, counted as OESubSearch unique matches on
-    # the H-suppressed ring-perceived molecule). Five fr_* (fr_bicyclic,
-    # fr_lactone, fr_benzodiazepine, fr_HOCCN, fr_Ndealkylation2) remain uncomputed
-    # (deferred; out of the conformance ENABLED set) because RDKit's `R<n>`
-    # SSSR-ring-membership SMARTS primitive reads as a ring-bond count under
-    # OpenEye's OESubSearch and cannot be reconciled for an exact integer count;
-    # they still carry the exact tier here but are left missing until adjudicated.
+    # advisory. All 85 are marked exact and match RDKit's count byte-for-byte
+    # across the whole panel. 80 are transcribed verbatim from RDKit's
+    # FragmentDescriptors.csv and counted as OESubSearch unique matches on the
+    # H-suppressed ring-perceived molecule. The other 5 (fr_bicyclic, fr_lactone,
+    # fr_benzodiazepine, fr_HOCCN, fr_Ndealkylation2) use RDKit's `R<n>`
+    # SSSR-ring-membership primitive (a ring-bond count under OpenEye's OESubSearch)
+    # and are reproduced by a relaxed match + SSSR-membership post-filter driven by
+    # our own RDKit-faithful ring perception (compute_symmetrized_sssr_rings).
     **{name: "exact" for name in (
         "fr_C_O", "fr_C_O_noCOO", "fr_Al_OH", "fr_Ar_OH", "fr_methoxy",
         "fr_oxime", "fr_ester", "fr_Al_COO", "fr_Ar_COO", "fr_COO", "fr_COO2",
@@ -262,7 +261,7 @@ RDKIT_TOLERANCE_TIERS: dict[str, str] = {
         "fr_para_hydroxylation", "fr_allylic_oxid", "fr_aryl_methyl",
         "fr_Ndealkylation1", "fr_alkyl_carbamate", "fr_ketone_Topliss",
         "fr_ArN",
-        # Deferred five (uncomputed, but keep an explicit exact tier record):
+        # The five R<n> ring-membership fragments (relaxed match + SSSR post-filter):
         "fr_bicyclic", "fr_lactone", "fr_benzodiazepine", "fr_HOCCN",
         "fr_Ndealkylation2",
     )},
