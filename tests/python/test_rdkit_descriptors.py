@@ -131,33 +131,13 @@ ENABLED_DESCRIPTOR_NAMES: set[str] = {
     # SurfacePolarity (Task 7): Labute approximate surface area (total) and the
     # N/O-only topological polar surface area.
     "LabuteASA", "TPSA",
-    # PartialCharge (Task 7): signed and absolute Gasteiger charge extrema.
-    "MaxPartialCharge", "MinPartialCharge", "MaxAbsPartialCharge", "MinAbsPartialCharge",
     # EState (Task 7): signed and absolute electrotopological-state extrema.
     "MaxEStateIndex", "MinEStateIndex", "MaxAbsEStateIndex", "MinAbsEStateIndex",
+    # PartialCharge (Max/Min/MaxAbs/MinAbsPartialCharge) deferred — RDKit's
+    # Gasteiger PEOE solver diverges from OpenEye's on cumulated-double-bond
+    # systems; needs a native RDKit-Gasteiger port. Left missing like SPS.
     # "SPS" deferred — RDKit SpacialScore needs RDKit-internal potential-stereo +
     # hybridization models OpenEye doesn't expose; needs a dedicated deep-dive task.
-}
-
-
-# Recorded (descriptor, SMILES) conformance exclusions: genuine
-# OpenEye-vs-RDKit MODEL differences that no tolerance can bridge, kept explicit
-# and per-molecule so the descriptor stays fully checked everywhere else and any
-# NEW divergence still fails. Do not add to this set without a recorded rationale.
-#
-# PartialCharge on cumulated-double-bond nitrogen systems: the Gasteiger PEOE
-# solver (shared with Mordred, unmodified) equilibrates the charges on these
-# unusual =N=/=C= cumulenes to different fixed points than RDKit's solver — a
-# convergence difference in the charge model itself, not a reduction bug (the
-# Max/Min/Abs reductions and every other molecule match RDKit within the loose
-# tier). Concrete deltas (native vs RDKit): azide MinPartialCharge -0.148/-0.094,
-# isocyanate MaxPartialCharge 0.329/0.231, isothiocyanate MaxPartialCharge
-# 0.154/0.055. Surfaced as a Task-7 concern for human review.
-KNOWN_DIVERGENCES: set[tuple[str, str]] = {
-    (name, smiles)
-    for name in ("MaxPartialCharge", "MinPartialCharge",
-                 "MaxAbsPartialCharge", "MinAbsPartialCharge")
-    for smiles in ("CCN=[N+]=[N-]", "N=C=O", "N=C=S")
 }
 
 
@@ -181,8 +161,6 @@ def test_enabled_rdkit_descriptors_match_reference_at_tier():
         expected = _values_by_name(payload, row)
         actual = calc.compute(_openeye_mol(row["smiles"]))
         for name in ENABLED_DESCRIPTOR_NAMES:
-            if (name, row["smiles"]) in KNOWN_DIVERGENCES:
-                continue  # recorded OpenEye-vs-RDKit model difference (see above)
             ref = expected[name]
             got = actual[name]
             assert got is not None, f"{name} @ {row['smiles']}"

@@ -166,10 +166,6 @@ TEST(RDKitPruningEquivalenceTest, SurfacePolaritySingleColumn) {
     expect_column_matches_across_panel({"LabuteASA"});
 }
 
-TEST(RDKitPruningEquivalenceTest, PartialChargeSingleColumn) {
-    expect_column_matches_across_panel({"MaxPartialCharge"});
-}
-
 TEST(RDKitPruningEquivalenceTest, EStateSingleColumn) {
     expect_column_matches_across_panel({"MaxEStateIndex"});
 }

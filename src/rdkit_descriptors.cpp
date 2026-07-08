@@ -1379,7 +1379,6 @@ enum class RDKitGroupId {
     Connectivity,
     Crippen,
     SurfacePolarity,
-    PartialCharge,
     EState,
     Count_,
 };
@@ -1762,40 +1761,14 @@ const std::vector<RDKitGroup>& rdkit_group_registry() {
                 set_float(builder, "TPSA", rdkit_tpsa(tpsa_mol));
             }});
 
-        // Group: rdkit:PartialCharge — Max/Min/MaxAbs/MinAbsPartialCharge. RDKit
-        // reduces over its per-atom Gasteiger charges: MinPartialCharge is the
-        // most negative SIGNED charge, MaxPartialCharge the most positive; the Abs
-        // variants reduce over |charge|. RDKit seeds min=+500/max=-500 and folds
-        // with Python min/max, so a NaN charge poisons the running extreme only
-        // when it is the FIRST argument to min/max (min(nan,acc)->nan) but is
-        // ignored as the second (min(acc,nan)->acc). Iterating atoms in order and
-        // folding min(charge, acc)/max(charge, acc) reproduces that exact NaN
-        // propagation (e.g. C[Na], whose sodium has no Gasteiger parameters, keeps
-        // the row NaN just as RDKit does).
-        groups.push_back(RDKitGroup{
-            RDKitGroupId::PartialCharge,
-            rdkit_column_indices(s, {"MaxPartialCharge", "MinPartialCharge",
-                                     "MaxAbsPartialCharge", "MinAbsPartialCharge"}),
-            {},  // dependency-free
-            [](const OEChem::OEMolBase&, ComputeContext& ctx,
-               RDKitGroupArtifacts&, const ColumnRequest&,
-               RequestGatedBuilder& builder) {
-                const auto& charges = ctx.GasteigerAtomCharges().charges;
-                // RDKit's seeds; on an empty molecule they stay 500/-500 exactly
-                // as RDKit returns them.
-                double min_charge = 500.0;
-                double max_charge = -500.0;
-                for (const auto charge : charges) {
-                    min_charge = std::min(charge, min_charge);
-                    max_charge = std::max(charge, max_charge);
-                }
-                set_float(builder, "MinPartialCharge", min_charge);
-                set_float(builder, "MaxPartialCharge", max_charge);
-                set_float(builder, "MaxAbsPartialCharge",
-                          std::max(std::abs(min_charge), std::abs(max_charge)));
-                set_float(builder, "MinAbsPartialCharge",
-                          std::min(std::abs(min_charge), std::abs(max_charge)));
-            }});
+        // PartialCharge deferred — RDKit's Max/Min PartialCharge use RDKit's
+        // Gasteiger PEOE solver, which diverges from OpenEye's (both the shared
+        // context solver and the QuacpacTk OEGasteigerCharges implementation) on
+        // cumulated-double-bond systems (allenes, isocyanates, isothiocyanates,
+        // carbon dioxide, azides, carbodiimides, and related cumulenes). The
+        // MaxPartialCharge, MinPartialCharge, MaxAbsPartialCharge, and
+        // MinAbsPartialCharge columns are therefore left uncomputed (missing)
+        // until a native RDKit-Gasteiger port is available (see follow-up).
 
         // Group: rdkit:EState — Max/Min/MaxAbs/MinAbsEStateIndex over the per-atom
         // EState vector read from the SHARED context (ctx.EStateIndices()), so

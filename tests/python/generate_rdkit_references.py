@@ -206,15 +206,11 @@ RDKIT_TOLERANCE_TIERS: dict[str, str] = {
     # exactly on the panel including the sulfonamide/phosphate S/P discriminators.
     "LabuteASA": "tight",
     "TPSA": "tight",
-    # PartialCharge (Task 7): loose. OpenEye and RDKit Gasteiger charges converge
-    # to slightly different values; the signed and absolute extrema stay within
-    # 1e-2 on the panel. NaN-producing molecules (force-field-unassigned atoms,
-    # e.g. C[Na]) are stored as the oracle's nonfinite marker and skipped by the
-    # conformance exact-match, matching RDKit's own NaN behavior.
-    "MaxPartialCharge": "loose",
-    "MinPartialCharge": "loose",
-    "MaxAbsPartialCharge": "loose",
-    "MinAbsPartialCharge": "loose",
+    # PartialCharge (Max/Min/MaxAbs/MinAbsPartialCharge) deferred — RDKit's
+    # Gasteiger PEOE solver diverges from OpenEye's on cumulated-double-bond
+    # systems; needs a native RDKit-Gasteiger port. Like SPS, these are left
+    # unclassified here (falling to the loose default) and out of the conformance
+    # ENABLED set until the port lands; they remain in the schema, just uncomputed.
     # EState (Task 7): loose. The per-atom electrotopological-state vector reuses
     # the shared EState model (matches RDKit's rdkit.Chem.EState to ~1e-3 on the
     # panel); the Max/Min/MaxAbs/MinAbs reductions inherit that.
