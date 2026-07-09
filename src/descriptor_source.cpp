@@ -116,11 +116,11 @@ DescriptorSet OpenEyePropertyDescriptorSource::Compute(const OEChem::OEMolBase& 
     // counts reuse the shared helpers on the input molecule.
     if (wants("MolecularWeight")) {
         builder.Set("MolecularWeight",
-                    DescriptorValue::Float(ExactMolecularWeight(ctx.HydrogenSuppressedMol())));
+                    DescriptorValue::Float(ExactMolecularWeight(ctx.NormalizedMol())));
     }
     if (wants("AverageMolecularWeight")) {
         builder.Set("AverageMolecularWeight",
-                    DescriptorValue::Float(AverageMolecularWeight(ctx.HydrogenSuppressedMol())));
+                    DescriptorValue::Float(AverageMolecularWeight(ctx.NormalizedMol())));
     }
     if (wants("HeavyAtomCount")) {
         builder.Set(
@@ -131,7 +131,7 @@ DescriptorSet OpenEyePropertyDescriptorSource::Compute(const OEChem::OEMolBase& 
         builder.Set(
             "TotalAtomCount",
             DescriptorValue::Int(
-                static_cast<std::int64_t>(TotalAtomCount(ctx.HydrogenSuppressedMol()))));
+                static_cast<std::int64_t>(TotalAtomCount(ctx.NormalizedMol()))));
     }
 
     // TopoPSA/HBD/HBA pull the ring-perceived working molecule from the shared

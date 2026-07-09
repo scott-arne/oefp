@@ -39,3 +39,18 @@ TEST(MolecularPropertiesTest, IsotopeHydrogenCountedOnce) {
     // HeavyAtomMolWt strips all hydrogen mass, leaving the oxygen average weight.
     EXPECT_NEAR(heavy_atom_standard_weight(heavy_water), OEChem::OEGetAverageWeight(8u), 1e-4);
 }
+
+TEST(MolecularPropertiesTest, HydrogenOnlyAndMixtureCountedInFull) {
+    // Weight/count run on the un-suppressed molecule, so a hydrogen-only molecule
+    // (no heavy atom to hold implicit hydrogens) and an H-only fragment of a
+    // mixture are counted in full rather than collapsed.
+    const auto h2 = mol_from_smiles("[H][H]");
+    EXPECT_NEAR(ExactMolecularWeight(h2), 2.01565, 1e-4);
+    EXPECT_EQ(TotalAtomCount(h2), 2u);
+    EXPECT_EQ(HeavyAtomCount(h2), 0u);
+
+    const auto mixture = mol_from_smiles("[H][H].CCO");  // molecular hydrogen plus ethanol
+    EXPECT_NEAR(ExactMolecularWeight(mixture),
+                ExactMolecularWeight(h2) + ExactMolecularWeight(mol_from_smiles("CCO")), 1e-4);
+    EXPECT_EQ(TotalAtomCount(mixture), 11u);  // two (H2) plus nine (ethanol)
+}

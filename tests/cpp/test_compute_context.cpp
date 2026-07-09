@@ -1,5 +1,4 @@
 #include "oefp/compute_context.h"
-#include "oefp/molecular_properties.h"
 
 #include <gtest/gtest.h>
 
@@ -34,7 +33,7 @@ TEST(ComputeContextTest, EachIntermediateComputedAtMostOnce) {
     OEChem::OEGraphMol mol;
     ASSERT_TRUE(OEChem::OESmilesToMol(mol, "CC(=O)OC1=CC=CC=C1C(=O)O"));
     ComputeContext ctx(mol);
-    // Touch every accessor twice; only the nine first-touches compute.
+    // Touch every accessor twice; only the eight first-touches compute.
     // BCUTEigenvalues() reuses the heavy-atom graph, Gasteiger charges, and Crippen
     // contributions internally, so it adds exactly one computation of its own.
     for (int pass = 0; pass < 2; ++pass) {
@@ -46,9 +45,8 @@ TEST(ComputeContextTest, EachIntermediateComputedAtMostOnce) {
         ctx.EStateIndices();
         ctx.LabuteAtomContributions();
         ctx.BCUTEigenvalues();      // reuses graph/Gasteiger/Crippen internally
-        ctx.HydrogenSuppressedMol();
     }
-    EXPECT_EQ(ctx.ComputeCount(), 9u);  // one per intermediate, regardless of repeated access
+    EXPECT_EQ(ctx.ComputeCount(), 8u);  // one per intermediate, regardless of repeated access
 }
 
 // Each new accessor (EState indices, Labute per-atom contributions, BCUT2D
@@ -209,33 +207,4 @@ TEST(ComputeContextTest, PreservesExplicitHydrogensOnConstruction) {
     ASSERT_TRUE(OEChem::OESmilesToMol(mol, "[H]O[H]"));
     ComputeContext ctx(mol);
     EXPECT_EQ(ctx.NormalizedMol().NumAtoms(), 3u);  // oxygen plus both explicit H
-}
-
-// HydrogenSuppressedMol suppresses explicit/bracket hydrogens (so weight/count
-// descriptors are not double-counted), returns a stable memoized reference, and
-// is a no-op on molecules that already carry only implicit hydrogens.
-TEST(ComputeContextTest, HydrogenSuppressedMolSuppressesExplicitHydrogens) {
-    OEChem::OEGraphMol alanine;
-    ASSERT_TRUE(OEChem::OESmilesToMol(alanine, "C[C@H](N)C(=O)O"));  // bracket stereo H
-    ASSERT_EQ(alanine.NumAtoms(), 7u);  // OpenEye keeps the [C@H] hydrogen explicit
-    ComputeContext ctx(alanine);
-    EXPECT_EQ(ctx.HydrogenSuppressedMol().NumAtoms(), 6u);  // six heavy atoms, H implicit
-    EXPECT_EQ(&ctx.HydrogenSuppressedMol(), &ctx.HydrogenSuppressedMol());  // memoized
-
-    OEChem::OEGraphMol ethanol;
-    ASSERT_TRUE(OEChem::OESmilesToMol(ethanol, "CCO"));  // already implicit-H
-    ComputeContext ctx2(ethanol);
-    EXPECT_EQ(ctx2.HydrogenSuppressedMol().NumAtoms(), ethanol.NumAtoms());  // no-op
-}
-
-// A hydrogen-only molecule has no heavy atom to hold implicit hydrogens, so
-// suppression must be skipped — otherwise OESuppressHydrogens collapses it and
-// halves the weight/atom counts. Molecular hydrogen must stay two atoms.
-TEST(ComputeContextTest, HydrogenSuppressedMolPreservesHydrogenOnlyMolecule) {
-    OEChem::OEGraphMol h2;
-    ASSERT_TRUE(OEChem::OESmilesToMol(h2, "[H][H]"));
-    ComputeContext ctx(h2);
-    EXPECT_EQ(ctx.HydrogenSuppressedMol().NumAtoms(), 2u);
-    EXPECT_NEAR(ExactMolecularWeight(ctx.HydrogenSuppressedMol()), 2.01565, 1e-4);
-    EXPECT_EQ(TotalAtomCount(ctx.HydrogenSuppressedMol()), 2u);
 }

@@ -123,11 +123,11 @@ TEST(DescriptorSourceTest, OpenEyeComputesRingPerceptionThroughContextThenReuses
     // A non-sharing fallback that rebuilds ring perception on a private inline
     // OEGraphMol never touches ctx and would leave the count at 0 -> FAILS here.
     const auto oe_row = oe.Compute(mol, ctx, OEFP::ColumnRequest::All());
-    EXPECT_EQ(ctx.ComputeCount(), 2u);            // ring perception + H-suppression computed via ctx (0 -> 2)
+    EXPECT_EQ(ctx.ComputeCount(), 1u);            // ring perception computed via ctx (0 -> 1)
 
     // REUSE proof: a second OpenEye call on the same ctx adds nothing.
     const auto oe_row2 = oe.Compute(mol, ctx, OEFP::ColumnRequest::All());
-    EXPECT_EQ(ctx.ComputeCount(), 2u);            // cache hit (2 -> 2)
+    EXPECT_EQ(ctx.ComputeCount(), 1u);            // cache hit (1 -> 1)
 
     // Value-equivalence regression guard vs the unshared (fresh-context) path.
     const auto oe_plain = openeye.Compute(mol);   // convenience overload, fresh ctx

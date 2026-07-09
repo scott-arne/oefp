@@ -51,22 +51,6 @@ public:
     /// \returns The owned normalized molecule.
     const OEChem::OEGraphMol& NormalizedMol() const;
 
-    /// \brief Return a hydrogen-suppressed copy of the normalized molecule.
-    ///
-    /// A copy of :cpp:func:`NormalizedMol` with ``OESuppressHydrogens`` applied
-    /// and ring/hybridization re-perceived. Consumed only by weight and
-    /// hydrogen-inclusive count descriptors (Mordred ``MW``/``AMW``/``nAtom``/
-    /// ``nH``/``nBonds``/``nBondsS``/``nBondsKS`` and OpenEye
-    /// ``MolecularWeight``/``AverageMolecularWeight``/``TotalAtomCount``) so a
-    /// molecule whose SMILES carries an explicit/bracket hydrogen is not
-    /// double-counted, matching Mordred 1.2.0 / RDKit's implicit-hydrogen input
-    /// model. The universal :cpp:func:`NormalizedMol` boundary is left
-    /// un-suppressed, so Gasteiger charges and every other descriptor are
-    /// unaffected.
-    ///
-    /// \returns Cached hydrogen-suppressed working molecule.
-    const OEChem::OEGraphMol& HydrogenSuppressedMol() const;
-
     /// \brief Return the ring-perceived, hybridization-assigned working molecule.
     ///
     /// A copy of the owned normalized molecule with ``OEFindRingAtomsAndBonds`` and
@@ -150,7 +134,6 @@ public:
 private:
     const OEChem::OEGraphMol mol_;
     mutable std::optional<OEChem::OEGraphMol> ring_perceived_mol_;
-    mutable std::optional<OEChem::OEGraphMol> hydrogen_suppressed_mol_;
     mutable std::optional<MordredHeavyAtomGraph> heavy_atom_graph_;
     mutable std::optional<std::vector<std::vector<std::int64_t>>> heavy_atom_distances_;
     mutable std::optional<MordredGasteigerAtomCharges> gasteiger_charges_;

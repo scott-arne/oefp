@@ -8445,33 +8445,27 @@ const std::vector<MordredGroup>& mordred_group_registry() {
                 // Ring-perceived prep is byte-identical to the shared context mol.
                 const auto values = compute_first_batch_values(ctx.RingPerceivedMol());
                 // The heavy-atom fields of `values` are hydrogen-invariant and
-                // stay on RingPerceivedMol. Only the hydrogen count must come
-                // from the hydrogen-suppressed molecule so an explicit/bracket
-                // stereo hydrogen is not double-counted (matching Mordred
-                // 1.2.0's implicit-hydrogen input). TotalAtomCount on the
-                // suppressed molecule counts heavy atoms plus their implicit
-                // hydrogens; subtracting the heavy-atom count yields the correct
-                // hydrogen count. This is a no-op on molecules that carry no
-                // explicit hydrogen atom (the entire existing panel).
-                const auto suppressed_total_atoms =
-                    static_cast<std::uint32_t>(TotalAtomCount(ctx.HydrogenSuppressedMol()));
-                // suppressed_total_atoms counts heavy atoms plus their implicit
-                // hydrogens; OESuppressHydrogens never removes a heavy atom, so it
-                // is always >= values.heavy_atoms. The guard makes that invariant
-                // explicit and keeps an (impossible) unsigned underflow from
-                // silently corrupting every hydrogen-derived count.
-                const auto hydrogens = suppressed_total_atoms >= values.heavy_atoms
-                    ? suppressed_total_atoms - values.heavy_atoms
+                // stay on RingPerceivedMol. The hydrogen count and exact weight
+                // come from the normalized molecule via the shared weight/count
+                // helpers, which count each explicit hydrogen atom exactly once
+                // and add only the implicit hydrogens on heavy atoms
+                // (implicit_hydrogen_count). No hydrogen suppression is applied,
+                // so an explicit/bracket/isotope hydrogen is not double-counted
+                // AND hydrogen-only inputs (or H-only fragments of a mixture) are
+                // not collapsed. TotalAtomCount counts heavy atoms plus all
+                // hydrogens; subtracting the heavy-atom count yields the hydrogen
+                // count. No-op vs the raw molecule when there is no explicit
+                // hydrogen atom (the entire existing panel), so fixtures are
+                // byte-identical.
+                const auto total_atoms =
+                    static_cast<std::uint32_t>(TotalAtomCount(ctx.NormalizedMol()));
+                const auto hydrogens = total_atoms >= values.heavy_atoms
+                    ? total_atoms - values.heavy_atoms
                     : 0u;
-                // The Lipinski/GhoseFilter weight thresholds use the
-                // hydrogen-suppressed molecule (the same weight as MW) so a
-                // bracket/explicit hydrogen is not double-counted (matching
-                // Mordred 1.2.0) and GhoseFilter does not mix a suppressed atom
-                // count with an un-suppressed weight. For a molecule with no
-                // explicit hydrogen atom this equals the former weight, so
-                // existing panel rows are unchanged.
-                const auto suppressed_exact_weight =
-                    ExactMolecularWeight(ctx.HydrogenSuppressedMol());
+                // Lipinski/GhoseFilter compare against the same exact weight as
+                // MW so their weight term matches the (suppressed-count) atom
+                // term rather than mixing conventions.
+                const auto exact_weight = ExactMolecularWeight(ctx.NormalizedMol());
                 const auto all_atoms = values.heavy_atoms + hydrogens;
                 const auto all_bonds = values.heavy_bonds + hydrogens;
                 const auto all_single_bonds = values.single_heavy_bonds + hydrogens;
@@ -8488,7 +8482,7 @@ const std::vector<MordredGroup>& mordred_group_registry() {
                 set_int(builder, "nBase", values.basic_groups);
                 set_int(builder, "nAromAtom", values.aromatic_atoms);
                 set_int(builder, "nAromBond", values.aromatic_bonds);
-                set_int(builder, "nAtom", suppressed_total_atoms);
+                set_int(builder, "nAtom", total_atoms);
                 set_int(builder, "nHeavyAtom", static_cast<std::uint32_t>(HeavyAtomCount(mol)));
                 set_int(builder, "nSpiro", values.spiro_atoms);
                 set_int(builder, "nBridgehead", values.bridgehead_atoms);
@@ -8553,10 +8547,10 @@ const std::vector<MordredGroup>& mordred_group_registry() {
                 set_bool(
                     builder, "Lipinski",
                     values.hbond_donors <= 5u && values.hbond_acceptors <= 10u
-                        && suppressed_exact_weight <= 500.0 && values.crippen_logp <= 5.0);
+                        && exact_weight <= 500.0 && values.crippen_logp <= 5.0);
                 set_bool(
                     builder, "GhoseFilter",
-                    suppressed_exact_weight >= 160.0 && suppressed_exact_weight <= 480.0
+                    exact_weight >= 160.0 && exact_weight <= 480.0
                         && all_atoms >= 20u && all_atoms <= 70u
                         && values.crippen_logp >= -0.4 && values.crippen_logp <= 5.6
                         && values.crippen_mr >= 40.0 && values.crippen_mr <= 130.0);
@@ -8569,8 +8563,8 @@ const std::vector<MordredGroup>& mordred_group_registry() {
             {},
             [](const OEChem::OEMolBase&, ComputeContext& ctx, MordredGroupArtifacts&,
                const ColumnRequest&, RequestGatedBuilder& builder) {
-                set_float(builder, "MW", ExactMolecularWeight(ctx.HydrogenSuppressedMol()));
-                set_float(builder, "AMW", AverageMolecularWeight(ctx.HydrogenSuppressedMol()));
+                set_float(builder, "MW", ExactMolecularWeight(ctx.NormalizedMol()));
+                set_float(builder, "AMW", AverageMolecularWeight(ctx.NormalizedMol()));
             }});
 
         groups.push_back(MordredGroup{
