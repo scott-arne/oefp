@@ -70,7 +70,6 @@ struct MordredFirstBatchValues {
     std::uint32_t hbond_donors = 0u;
     double topo_psa_no = 0.0;
     double topo_psa = 0.0;
-    double exact_weight = 0.0;
     double crippen_logp = 0.0;
     double crippen_mr = 0.0;
 };
@@ -2141,16 +2140,12 @@ MordredFirstBatchValues compute_first_batch_values(const OEChem::OEMolBase& work
         const auto atomic_number = static_cast<std::uint32_t>(atom->GetAtomicNum());
         if (is_hydrogen(*atom)) {
             ++values.hydrogens;
-            values.exact_weight += atom_exact_mass(*atom);
             continue;
         }
 
         const auto total_h_count = static_cast<std::uint32_t>(atom->GetTotalHCount());
         ++values.heavy_atoms;
         values.hydrogens += total_h_count;
-        values.exact_weight += atom_exact_mass(*atom)
-                               + static_cast<double>(total_h_count)
-                                     * default_isotopic_mass(1u);
         if (atom->IsAromatic()) {
             ++values.aromatic_atoms;
         }
@@ -8472,6 +8467,15 @@ const std::vector<MordredGroup>& mordred_group_registry() {
                 const auto hydrogens = suppressed_total_atoms >= values.heavy_atoms
                     ? suppressed_total_atoms - values.heavy_atoms
                     : 0u;
+                // The Lipinski/GhoseFilter weight thresholds use the
+                // hydrogen-suppressed molecule (the same weight as MW) so a
+                // bracket/explicit hydrogen is not double-counted (matching
+                // Mordred 1.2.0) and GhoseFilter does not mix a suppressed atom
+                // count with an un-suppressed weight. For a molecule with no
+                // explicit hydrogen atom this equals the former weight, so
+                // existing panel rows are unchanged.
+                const auto suppressed_exact_weight =
+                    ExactMolecularWeight(ctx.HydrogenSuppressedMol());
                 const auto all_atoms = values.heavy_atoms + hydrogens;
                 const auto all_bonds = values.heavy_bonds + hydrogens;
                 const auto all_single_bonds = values.single_heavy_bonds + hydrogens;
@@ -8553,10 +8557,10 @@ const std::vector<MordredGroup>& mordred_group_registry() {
                 set_bool(
                     builder, "Lipinski",
                     values.hbond_donors <= 5u && values.hbond_acceptors <= 10u
-                        && values.exact_weight <= 500.0 && values.crippen_logp <= 5.0);
+                        && suppressed_exact_weight <= 500.0 && values.crippen_logp <= 5.0);
                 set_bool(
                     builder, "GhoseFilter",
-                    values.exact_weight >= 160.0 && values.exact_weight <= 480.0
+                    suppressed_exact_weight >= 160.0 && suppressed_exact_weight <= 480.0
                         && all_atoms >= 20u && all_atoms <= 70u
                         && values.crippen_logp >= -0.4 && values.crippen_logp <= 5.6
                         && values.crippen_mr >= 40.0 && values.crippen_mr <= 130.0);
