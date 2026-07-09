@@ -8467,6 +8467,12 @@ const std::vector<MordredGroup>& mordred_group_registry() {
                 // term rather than mixing conventions.
                 const auto exact_weight = ExactMolecularWeight(ctx.NormalizedMol());
                 const auto all_atoms = values.heavy_atoms + hydrogens;
+                // Bond counts add one bond per hydrogen, assuming each hydrogen is
+                // terminal on a heavy atom. This is exact for every real molecule
+                // but over-counts a hydrogen-only molecule or H-only fragment
+                // (an H-H bond is shared by two hydrogens): e.g. [H][H] yields 2,
+                // Mordred 1. Hydrogen-only inputs are a degenerate, out-of-scope
+                // case (see the descriptor-explicit-h memory note).
                 const auto all_bonds = values.heavy_bonds + hydrogens;
                 const auto all_single_bonds = values.single_heavy_bonds + hydrogens;
                 const auto kekulized_aromatic_double_bonds = values.aromatic_bonds / 2u;
