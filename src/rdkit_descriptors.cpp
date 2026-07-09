@@ -2447,7 +2447,7 @@ const std::vector<RDKitGroup>& rdkit_group_registry() {
             RDKitGroupId::PartialCharge,
             rdkit_column_indices(s, {"MaxPartialCharge", "MinPartialCharge",
                                      "MaxAbsPartialCharge", "MinAbsPartialCharge"}),
-            {},  // dependency-free (RDKitGasteiger is a context accessor)
+            {},  // dependency-free (Gasteiger charges are a context accessor)
             [](const OEChem::OEMolBase&, ComputeContext& ctx,
                RDKitGroupArtifacts&, const ColumnRequest&,
                RequestGatedBuilder& builder) {
