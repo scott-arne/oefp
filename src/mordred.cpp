@@ -28,7 +28,7 @@
 namespace OEFP {
 namespace {
 
-// The single-argument and three-argument compute_gasteiger_atom_charges overloads
+// The single-argument and two-argument compute_gasteiger_atom_charges overloads
 // live at OEFP namespace scope (declared in mordred_intermediates.h).
 // Re-introduce them here so they are visible for call sites inside this anonymous
 // namespace.
@@ -1491,8 +1491,7 @@ unsigned int count_double_bonds(const OEChem::OEAtomBase& atom) {
     return doubles;
 }
 
-const char* gasteiger_mode(const OEChem::OEAtomBase& atom, bool has_conjugated_bond,
-                           bool cumulene_sp) {
+const char* gasteiger_mode(const OEChem::OEAtomBase& atom, bool has_conjugated_bond) {
     const auto atomic_number = static_cast<std::uint32_t>(atom.GetAtomicNum());
     if (atomic_number == 1u) {
         return "*";
@@ -1501,10 +1500,9 @@ const char* gasteiger_mode(const OEChem::OEAtomBase& atom, bool has_conjugated_b
         return "sp";
     }
     // A first-row cumulene centre (two cumulated double bonds) is sp-hybridised.
-    // RDKit types it "sp"; Mordred 1.2.0 types it "sp2". Only the RDKit charge
-    // path requests the sp typing (cumulene_sp); the shared/Mordred path leaves
-    // it to the sp2 branch below, preserving Mordred 1.2.0 byte-identity.
-    if (cumulene_sp && atomic_number <= 10u && count_double_bonds(atom) >= 2u) {
+    // RDKit's ComputeGasteigerCharges types it "sp"; Mordred 1.2.0 delegates to
+    // RDKit so it also types it "sp". OEFP matches this behavior.
+    if (atomic_number <= 10u && count_double_bonds(atom) >= 2u) {
         return "sp";
     }
     // RDKit hybridization uses its conjugation flags before Gasteiger lookup;
@@ -1809,8 +1807,7 @@ bool rdkit_molecule_has_nan_gasteiger(const std::vector<OEChem::OEAtomBase*>& at
 
 MordredGasteigerAtomCharges compute_gasteiger_atom_charges(
     const OEChem::OEMolBase& mol,
-    bool suppress_hydrogens,
-    bool cumulene_sp) {
+    bool suppress_hydrogens) {
     static constexpr double ionxh = 20.02;
     static constexpr double damp_scale = 0.5;
     static constexpr double initial_damp = 0.5;
@@ -1871,7 +1868,7 @@ MordredGasteigerAtomCharges compute_gasteiger_atom_charges(
             atom_has_gasteiger_conjugated_bond(atom_index, atom_bonds, conjugated_bonds);
         const auto& parameters = lookup_gasteiger_parameters(
             gasteiger_element_symbol(static_cast<std::uint32_t>(atoms[atom_index]->GetAtomicNum())),
-            gasteiger_mode(*atoms[atom_index], has_conjugated_bond, cumulene_sp));
+            gasteiger_mode(*atoms[atom_index], has_conjugated_bond));
         atom_parameters.push_back(parameters);
         ion_x[atom_index] =
             atoms[atom_index]->GetAtomicNum() == 1u
@@ -1925,12 +1922,11 @@ MordredGasteigerAtomCharges compute_gasteiger_atom_charges(
         damp *= damp_scale;
     }
 
-    // The RDKit-faithful accessor (cumulene_sp) reproduces RDKit's molecule-wide
-    // NaN: when any charge-flowing atom lacks a Gasteiger parameter RDKit yields
-    // NaN for the whole molecule, which downstream PEOE_VSA binning routes to the
-    // open tail bin (PEOE_VSA14). The Mordred path (cumulene_sp == false) leaves
-    // these finite, preserving Mordred 1.2.0 byte-identity.
-    if (cumulene_sp && rdkit_molecule_has_nan_gasteiger(atoms)) {
+    // RDKit's ComputeGasteigerCharges returns molecule-wide NaN when any
+    // charge-flowing atom lacks a Gasteiger parameter. Mordred 1.2.0 delegates
+    // to RDKit so it also produces molecule-wide NaN. OEFP matches this behavior.
+    // Downstream PEOE_VSA binning routes NaN to the open tail bin (PEOE_VSA14).
+    if (rdkit_molecule_has_nan_gasteiger(atoms)) {
         std::fill(charges.begin(), charges.end(),
                   std::numeric_limits<double>::quiet_NaN());
     }
@@ -1942,7 +1938,7 @@ MordredGasteigerAtomCharges compute_gasteiger_atom_charges(
 }
 
 MordredGasteigerAtomCharges compute_gasteiger_atom_charges(const OEChem::OEMolBase& mol) {
-    return compute_gasteiger_atom_charges(mol, true, false);
+    return compute_gasteiger_atom_charges(mol, true);
 }
 
 namespace {
@@ -5350,7 +5346,7 @@ std::optional<std::vector<double>> compute_explicit_gasteiger_charge_values(
         }
     }
 
-    const auto charges = compute_gasteiger_atom_charges(explicit_mol, false, false);
+    const auto charges = compute_gasteiger_atom_charges(explicit_mol, false);
     if (charges.charges.size() != charges.hydrogen_charges.size()
         || charges.charges.size() != charges.atom_ids.size()) {
         return std::nullopt;

@@ -75,18 +75,20 @@ MordredHeavyAtomGraph build_mordred_heavy_atom_graph(const OEChem::OEMolBase& mo
 std::vector<std::vector<std::int64_t>> compute_mordred_heavy_atom_distances(
     const MordredHeavyAtomGraph& graph);
 
-/// \brief Compute per-atom Gasteiger partial charges as used by Mordred.
+/// \brief Compute RDKit-faithful Gasteiger partial charges.
 ///
 /// \param mol Molecule to describe.
 /// \param suppress_hydrogens When true, compute on H-suppressed mol (Mordred/RDKit);
 ///     when false, retain explicit hydrogens.
-/// \param cumulene_sp When true, type cumulene centres "sp" (RDKit fidelity);
-///     when false, leave them "sp2" (Mordred 1.2.0 fidelity).
 /// \returns Per-atom charges, implicit-hydrogen charges, and atom identifiers.
+///
+/// Reproduces RDKit's ComputeGasteigerCharges behavior (which Mordred 1.2.0 delegates
+/// to): first-row cumulene centres typed "sp", and molecule-wide NaN when any
+/// charge-flowing atom lacks an RDKit Gasteiger parameter. Consumed by both the
+/// RDKit and Mordred descriptor sources.
 MordredGasteigerAtomCharges compute_gasteiger_atom_charges(
     const OEChem::OEMolBase& mol,
-    bool suppress_hydrogens,
-    bool cumulene_sp);
+    bool suppress_hydrogens);
 
 MordredGasteigerAtomCharges compute_gasteiger_atom_charges(const OEChem::OEMolBase& mol);
 

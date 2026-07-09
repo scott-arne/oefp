@@ -42,15 +42,6 @@ const MordredGasteigerAtomCharges& ComputeContext::GasteigerAtomCharges() const 
     return *gasteiger_charges_;
 }
 
-const MordredGasteigerAtomCharges& ComputeContext::RDKitGasteigerAtomCharges() const {
-    if (!rdkit_gasteiger_charges_) {
-        rdkit_gasteiger_charges_.emplace(
-            compute_gasteiger_atom_charges(mol_, /*suppress_hydrogens=*/true,
-                                           /*cumulene_sp=*/true));
-        ++compute_count_;
-    }
-    return *rdkit_gasteiger_charges_;
-}
 
 const MordredCrippenAtomContributions& ComputeContext::CrippenContributions() const {
     if (!crippen_contributions_) {
@@ -90,7 +81,7 @@ const MordredBCUTEigenvalues& ComputeContext::BCUTEigenvalues() const {
         // contributions so BCUT2D shares those computations rather than rebuilding
         // them; each is served from cache when already warmed by another accessor.
         bcut_eigenvalues_.emplace(compute_rdkit_bcut_eigenvalues(
-            HeavyAtomGraph(), RDKitGasteigerAtomCharges(), CrippenContributions()));
+            HeavyAtomGraph(), GasteigerAtomCharges(), CrippenContributions()));
         ++compute_count_;
     }
     return *bcut_eigenvalues_;

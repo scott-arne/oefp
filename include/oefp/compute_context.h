@@ -57,19 +57,16 @@ public:
     /// \returns Cached symmetric heavy-atom distance matrix.
     const std::vector<std::vector<std::int64_t>>& HeavyAtomDistances() const;
 
-    /// \brief Return per-atom Gasteiger partial charges.
+    /// \brief Compute RDKit-faithful Gasteiger partial charges.
     ///
-    /// \returns Cached Gasteiger charges for the borrowed molecule.
-    const MordredGasteigerAtomCharges& GasteigerAtomCharges() const;
-
-    /// \brief Return per-atom Gasteiger partial charges with RDKit cumulene typing.
-    ///
-    /// Differs from :cpp:func:`GasteigerAtomCharges` on molecules with cumulene
-    /// centres (e.g. CO2, azides): types them "C sp" (RDKit 2026.03.3 fidelity),
-    /// while the Mordred accessor types them "C sp2" (Mordred 1.2.0 fidelity).
+    /// Reproduces RDKit's ComputeGasteigerCharges: cumulene centres typed sp,
+    /// molecule-wide NaN when any heavy atom lacks an RDKit Gasteiger parameter.
+    /// Consumed by BOTH the Mordred descriptor source (which delegates to RDKit's
+    /// ComputeGasteigerCharges in Mordred 1.2.0) and the RDKit descriptor source
+    /// (PartialCharge, PEOE_VSA, BCUT2D_CHG families).
     ///
     /// \returns Cached RDKit-faithful Gasteiger charges for the borrowed molecule.
-    const MordredGasteigerAtomCharges& RDKitGasteigerAtomCharges() const;
+    const MordredGasteigerAtomCharges& GasteigerAtomCharges() const;
 
     /// \brief Return per-atom Crippen logP and molar-refractivity contributions.
     ///
@@ -124,7 +121,6 @@ private:
     mutable std::optional<MordredHeavyAtomGraph> heavy_atom_graph_;
     mutable std::optional<std::vector<std::vector<std::int64_t>>> heavy_atom_distances_;
     mutable std::optional<MordredGasteigerAtomCharges> gasteiger_charges_;
-    mutable std::optional<MordredGasteigerAtomCharges> rdkit_gasteiger_charges_;
     mutable std::optional<MordredCrippenAtomContributions> crippen_contributions_;
     mutable std::optional<std::vector<double>> estate_indices_;
     mutable std::optional<std::vector<double>> labute_atom_contributions_;

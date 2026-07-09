@@ -2451,7 +2451,7 @@ const std::vector<RDKitGroup>& rdkit_group_registry() {
             [](const OEChem::OEMolBase&, ComputeContext& ctx,
                RDKitGroupArtifacts&, const ColumnRequest&,
                RequestGatedBuilder& builder) {
-                const auto& charges = ctx.RDKitGasteigerAtomCharges().charges;
+                const auto& charges = ctx.GasteigerAtomCharges().charges;
                 double min_chg = std::numeric_limits<double>::infinity();
                 double max_chg = -std::numeric_limits<double>::infinity();
                 for (const double q : charges) {
@@ -2504,7 +2504,7 @@ const std::vector<RDKitGroup>& rdkit_group_registry() {
         // surface contributions (ctx.LabuteAtomContributions(), RDKit's
         // VSAContribs), the Crippen SlogP/SMR contributions
         // (ctx.CrippenContributions()), the RDKit-faithful Gasteiger charges
-        // (ctx.RDKitGasteigerAtomCharges()), and the EState indices
+        // (ctx.GasteigerAtomCharges()), and the EState indices
         // (ctx.EStateIndices()). SlogP/SMR/PEOE bin by their property and
         // accumulate the surface contribution; EState_VSA bins by EState and
         // accumulates surface; VSA_EState transposes that — it bins by surface and
@@ -2516,7 +2516,7 @@ const std::vector<RDKitGroup>& rdkit_group_registry() {
         // the schema, so those bins are computed but not emitted.
         //
         // PEOE_VSA buckets the RDKit-faithful Gasteiger charges
-        // (ctx.RDKitGasteigerAtomCharges(), the sp-cumulene variant), which now
+        // (ctx.GasteigerAtomCharges(), the sp-cumulene variant), which now
         // reproduce RDKit's molecule-wide NaN on elements RDKit has no Gasteiger
         // parameters for and on hypervalent main-group atoms. Those NaN charge keys
         // route to the open tail bin (PEOE_VSA14) exactly like RDKit's bisect_right,
@@ -2578,7 +2578,7 @@ const std::vector<RDKitGroup>& rdkit_group_registry() {
                 // the surface contribution. A molecule-wide NaN charge (RDKit's
                 // no-parameter behavior) routes every atom to the open tail bin
                 // (PEOE_VSA14), matching RDKit's bisect_right. All 14 bins emit.
-                const std::vector<double>& charge = ctx.RDKitGasteigerAtomCharges().charges;
+                const std::vector<double>& charge = ctx.GasteigerAtomCharges().charges;
                 if (const auto peoe =
                         rdkit_vsa_bin_accumulate(charge, surface, kPeoeBins)) {
                     rdkit_emit_vsa_family(builder, "PEOE_VSA", *peoe, 0);
