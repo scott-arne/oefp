@@ -37,7 +37,6 @@ void rewrite_neutral_nitro(OEChem::OEMolBase& mol) {
 
 OEChem::OEGraphMol normalize_molecule(const OEChem::OEMolBase& mol) {
     OEChem::OEGraphMol working(mol);
-    OEChem::OESuppressHydrogens(working);
     rewrite_neutral_nitro(working);
     return working;
 }

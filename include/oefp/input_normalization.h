@@ -2,9 +2,14 @@
 #define OEFP_INPUT_NORMALIZATION_H
 #include <oechem.h>
 namespace OEFP {
-/// \brief Return a copy of ``mol`` normalized to RDKit's input convention:
-///     explicit/bracket hydrogens suppressed and neutral nitro (N(=O)=O)
-///     rewritten to the charged [N+](=O)[O-] form. Idempotent.
+/// \brief Return a copy of ``mol`` with neutral nitro groups rewritten to
+///     RDKit's charged convention: N(=O)=O becomes [N+](=O)[O-]. Idempotent.
+///
+/// Hydrogen suppression is intentionally NOT performed here. Suppressing
+/// explicit/bracket hydrogens at this shared boundary regresses the Gasteiger
+/// charge model for molecules carrying stereo bracket hydrogens (e.g. the
+/// ``[C@H]`` in L-alanine), so explicit-hydrogen handling remains the
+/// responsibility of the individual descriptor sources that require it.
 OEChem::OEGraphMol normalize_molecule(const OEChem::OEMolBase& mol);
 }  // namespace OEFP
 #endif

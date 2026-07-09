@@ -19,10 +19,13 @@ unsigned int explicit_h(const OEChem::OEMolBase& m) {
 }
 }  // namespace
 
-TEST(InputNormalizationTest, SuppressesExplicitHydrogens) {
+TEST(InputNormalizationTest, PreservesExplicitHydrogens) {
+    // Hydrogen suppression is intentionally NOT part of normalization: bracket
+    // hydrogens must survive so the shared Gasteiger model is not regressed on
+    // stereo inputs. Explicit-H handling stays with the individual sources.
     const auto norm = normalize_molecule(parse("[H]O[H]"));
-    EXPECT_EQ(explicit_h(norm), 0u);
-    EXPECT_EQ(norm.NumAtoms(), 1u);  // just the oxygen, H implicit
+    EXPECT_EQ(explicit_h(norm), 2u);
+    EXPECT_EQ(norm.NumAtoms(), 3u);  // oxygen plus both explicit hydrogens
 }
 
 TEST(InputNormalizationTest, NeutralNitroBecomesCharged) {
