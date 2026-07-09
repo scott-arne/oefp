@@ -412,19 +412,94 @@ std::vector<int> refine_symmetry_classes(const HeavyGraph& g,
     }
 }
 
+// RDKit's internal potential-stereo-bond sets, used ONLY to support ring-atom
+// perception in flagRingStereo. These reproduce RDKit's initBondInfo /
+// detail::isBondPotentialStereoBond (FindStereo.cpp:378-409): a DOUBLE bond
+// whose two ends each have 1 < total degree < 4 and fewer than two hydrogens,
+// and which is not in a ring smaller than MIN_RING_SIZE_FOR_DOUBLE_BOND_STEREO.
+// This LOCAL gate deliberately does NOT test substituent distinguishability, so
+// e.g. an exocyclic =C(C)C (two identical methyls) still qualifies. This set is
+// separate from compute_stereo_bond_atoms (the legacy OUTPUT path) and must not
+// be conflated with it: total degree here is heavy + H (RDKit getTotalDegree),
+// whereas the output path keys on heavy degree only.
+struct StereoBondSets {
+    std::vector<bool> possible;  // per edge id: gate passed, no specified E/Z
+    std::vector<bool> known;     // per edge id: gate passed, specified E/Z
+};
+
+StereoBondSets compute_internal_stereo_bonds(const OEChem::OEMolBase& mol,
+                                             const HeavyGraph& g, const RingInfo& ri) {
+    StereoBondSets sets;
+    sets.possible.assign(g.edges.size(), false);
+    sets.known.assign(g.edges.size(), false);
+
+    for (OESystem::OEIter<OEChem::OEBondBase> bond = mol.GetBonds(); bond; ++bond) {
+        if (bond->GetOrder() != 2u || bond->IsAromatic()) {
+            continue;
+        }
+        const auto* begin = bond->GetBgn();
+        const auto* end = bond->GetEnd();
+        if (begin == nullptr || end == nullptr || is_hydrogen(*begin) || is_hydrogen(*end)) {
+            continue;
+        }
+        const auto bi = g.index_by_oeidx.find(begin->GetIdx());
+        const auto ei = g.index_by_oeidx.find(end->GetIdx());
+        if (bi == g.index_by_oeidx.end() || ei == g.index_by_oeidx.end()) {
+            continue;
+        }
+        const std::size_t a = bi->second;
+        const std::size_t b = ei->second;
+
+        // Local gate: total degree (heavy + H) strictly between 1 and 4, and
+        // fewer than two hydrogens, on both ends.
+        const int tdeg_a = g.heavy_degree[a] + g.h_count[a];
+        const int tdeg_b = g.heavy_degree[b] + g.h_count[b];
+        if (!(tdeg_a > 1 && tdeg_a < 4 && tdeg_b > 1 && tdeg_b < 4
+              && g.h_count[a] < 2 && g.h_count[b] < 2)) {
+            continue;
+        }
+
+        const auto key = a < b ? std::make_pair(a, b) : std::make_pair(b, a);
+        const auto it = g.edge_id.find(key);
+        if (it == g.edge_id.end()) {
+            continue;
+        }
+        const std::size_t eid = it->second;
+
+        // Reject bonds in any ring smaller than the threshold (trans double bond
+        // is geometrically impossible). The smallest containing ring settles it.
+        const std::size_t ring_size = min_ring_size_for_bond(ri, eid);
+        if (ring_size != 0u && ring_size < MIN_RING_SIZE_FOR_DOUBLE_BOND_STEREO) {
+            continue;
+        }
+
+        if (bond->HasStereoSpecified(OEChem::OEBondStereo::CisTrans)) {
+            sets.known[eid] = true;
+        } else {
+            sets.possible[eid] = true;
+        }
+    }
+    return sets;
+}
+
 // RDKit flagRingStereo (FindStereo.cpp:625-746) for the atom path: commit a ring
 // only when it holds >= 2 mutually-supporting candidates. Across-ring divisor-2
 // (atom opposite in an even ring) and divisor-3 (three alternating positions of
 // a ring whose size is a multiple of three) tests, plus a fused common-edge
-// walk. There are no stereogenic double bonds in the atom path, so RDKit's
-// "found by ring-stereo bond" branch is vacuous (bond count always zero).
+// walk. Each across position may be supported either by an out-of-ring
+// possible/known stereo bond on the across atom (otherFoundByBondCount, e.g. an
+// exocyclic double bond) or, only while no bond support has yet been seen, by
+// the across atom itself being a candidate (otherFoundByAtomCount). RDKit tests
+// the running bond count, so once any earlier across position is bond-supported
+// the atom branch is skipped for the remaining positions.
 struct RingStereo {
     std::vector<int> atoms;  // possibleRingStereoAtoms, per heavy atom
     std::vector<int> bonds;  // possibleRingStereoBonds, per edge id
 };
 
 RingStereo flag_ring_stereo(const HeavyGraph& g, const RingInfo& ri,
-                            const std::vector<bool>& possible) {
+                            const std::vector<bool>& possible,
+                            const StereoBondSets& stereo_bonds) {
     RingStereo rs;
     rs.atoms.assign(g.atoms.size(), 0);
     rs.bonds.assign(g.edges.size(), 0);
@@ -448,15 +523,33 @@ RingStereo flag_ring_stereo(const HeavyGraph& g, const RingInfo& ri,
                     continue;
                 }
                 const std::size_t inc = sz / divisor;
+                unsigned int found_by_bond = 0u;
                 unsigned int found_by_atom = 0u;
                 for (std::size_t step = inc; step < sz; step += inc) {
                     const std::size_t other = aring[(ai + step) % sz];
-                    if (possible[other]) {
+                    // otherFoundByBondCount: an out-of-ring possible/known stereo
+                    // bond on the across atom (e.g. an exocyclic double bond)
+                    // supports this position without the atom itself being a
+                    // candidate.
+                    bool bond_support = false;
+                    for (const std::size_t e : g.atom_edges[other]) {
+                        if ((stereo_bonds.possible[e] || stereo_bonds.known[e])
+                            && std::find(bring.begin(), bring.end(), e) == bring.end()) {
+                            bond_support = true;
+                            break;
+                        }
+                    }
+                    if (bond_support) {
+                        ++found_by_bond;
+                    }
+                    // RDKit only tries the atom branch while the running bond
+                    // count is still zero.
+                    if (found_by_bond == 0u && possible[other]) {
                         ++found_by_atom;
                     }
                 }
-                if (found_by_atom == divisor - 1u) {
-                    here += 1;
+                if (found_by_bond == divisor - 1u || found_by_atom == divisor - 1u) {
+                    here += 1 + static_cast<int>(found_by_bond);
                     for (std::size_t step = 0u; step < sz; step += inc) {
                         in_ring[aring[(ai + step) % sz]] = true;
                     }
@@ -623,7 +716,8 @@ RDKitStereogenicity rdkit_potential_stereogenicity(const OEChem::OEMolBase& mol)
         tetrahedral[i] = tet || (nontet && (g.heavy_degree[i] + g.h_count[i]) == 4);
     }
 
-    RingStereo rs = flag_ring_stereo(g, ri, possible);
+    const StereoBondSets stereo_bonds = compute_internal_stereo_bonds(mol, g, ri);
+    RingStereo rs = flag_ring_stereo(g, ri, possible, stereo_bonds);
 
     // Fixed-point disqualification. Each surviving candidate carries a unique
     // label (desymmetrising its own environment); a candidate whose neighbours

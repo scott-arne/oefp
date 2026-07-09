@@ -130,3 +130,24 @@ TEST(RDKitStereogenicityTest, SpecifiedStereoDoubleBonds) {
     EXPECT_TRUE(stereo_bond_atoms("C1CCC/C=C/C1").empty());                        // 7-ring, NOT flagged
     EXPECT_TRUE(stereo_bond_atoms("C1CC/C=C/C1").empty());                         // 6-ring, NOT flagged
 }
+
+// flagRingStereo otherFoundByBondCount branch: a ring stereocenter is supported
+// by an exocyclic (out-of-ring) double bond at the across-ring atom. The support
+// uses the LOCAL bond gate (degree/H/ring-size only), NOT distinguishability, so
+// an exocyclic =C(C)C with two identical methyls still qualifies. All expected
+// sets verified against the RDKit 2026.03.3 oracle (FindMolChiralCenters,
+// includeUnassigned=True, includeCIP=False, useLegacyImplementation=False).
+TEST(RDKitStereogenicityTest, ExocyclicDoubleBondRingStereo) {
+    EXPECT_EQ(stereo_atoms("CC1CCC(=C(F)Cl)CC1"), (std::set<std::size_t>{1}));  // para exocyclic C=CFCl
+    EXPECT_EQ(stereo_atoms("CC1CCC(=C(C)C)CC1"), (std::set<std::size_t>{1}));   // identical methyls still support
+    EXPECT_EQ(stereo_atoms("CC1CCC(=CC)CC1"), (std::set<std::size_t>{1}));      // exocyclic =CHCH3
+    EXPECT_EQ(stereo_atoms("CC1CC(=C(F)Cl)C1"), (std::set<std::size_t>{1}));    // 4-ring, exocyclic bond acyclic
+    EXPECT_EQ(stereo_atoms("C1CC(=C(F)Cl)CCC1C"), (std::set<std::size_t>{8}));  // support with methyl at far end
+    EXPECT_EQ(stereo_atoms("CC1CC(=C(F)Cl)CC(=C(F)Cl)C1"),
+              (std::set<std::size_t>{1}));                    // divisor-3 bond branch (two exocyclic bonds)
+    EXPECT_TRUE(stereo_atoms("CC1CCC(=O)CC1").empty());        // terminal =O: far end degree 1 fails gate
+    EXPECT_TRUE(stereo_atoms("CC1CCC(=S)CC1").empty());        // terminal =S: far end degree 1 fails gate
+    EXPECT_TRUE(stereo_atoms("C1CCC(=C(F)Cl)CC1").empty());    // no ring substituent: across atom not a candidate
+    EXPECT_TRUE(stereo_atoms("C1CC2(CCC1)CCC(=C(F)Cl)CC2").empty());  // spiro: across atom not a candidate
+    EXPECT_TRUE(stereo_atoms("CC1CCCCC1").empty());            // methylcyclohexane regression guard (no support)
+}
