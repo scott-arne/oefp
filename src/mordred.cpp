@@ -1783,24 +1783,48 @@ bool rdkit_atom_lacks_gasteiger_parameters(const OEChem::OEAtomBase& atom) {
     return atom.GetDegree() > 4u;
 }
 
-// Reproduce RDKit's molecule-wide NaN. RDKit's PEOE reads a parameterless atom's
-// missing coefficients as an empty vector and propagates the resulting NaN
-// through every bond and attached-hydrogen charge-flow term, so any parameterless
-// atom that participates in charge flow drives the whole connected molecule to
-// NaN. An isolated parameterless atom with no connections keeps its formal charge
-// and stays finite (e.g. a bare [Cu] or [Fe+2]); GetDegree() includes implicit
-// hydrogens, so the degree > 0 guard treats "has a bond or a hydrogen" as charge
-// flow and avoids over-firing on isolated atoms.
-bool rdkit_molecule_has_nan_gasteiger(const std::vector<OEChem::OEAtomBase*>& atoms) {
-    for (const auto* atom : atoms) {
-        if (atom == nullptr) {
+// RDKit's Gasteiger NaNs only the connected COMPONENT containing an atom that
+// lacks a parameter (charge flows along bonds and cannot cross components), not
+// the whole (possibly multi-component) molecule. Return a per-atom mask marking
+// every atom in a component that contains a charge-flowing atom without a
+// Gasteiger parameter.
+std::vector<bool> rdkit_gasteiger_nan_atom_mask(
+    const std::vector<OEChem::OEAtomBase*>& atoms,
+    const std::vector<std::vector<std::pair<std::size_t, const OEChem::OEBondBase*>>>& atom_bonds) {
+    // Label connected components by BFS over atom_bonds (drop the bond pointer).
+    std::vector<int> component(atoms.size(), -1);
+    int next_component = 0;
+    for (std::size_t start = 0u; start < atoms.size(); ++start) {
+        if (component[start] != -1) {
             continue;
         }
-        if (atom->GetDegree() > 0u && rdkit_atom_lacks_gasteiger_parameters(*atom)) {
-            return true;
+        std::vector<std::size_t> stack{start};
+        component[start] = next_component;
+        while (!stack.empty()) {
+            const auto current = stack.back();
+            stack.pop_back();
+            for (const auto& neighbor : atom_bonds[current]) {
+                if (component[neighbor.first] == -1) {
+                    component[neighbor.first] = next_component;
+                    stack.push_back(neighbor.first);
+                }
+            }
+        }
+        ++next_component;
+    }
+    // Mark components that contain a charge-flowing atom lacking a parameter.
+    std::vector<bool> bad_component(static_cast<std::size_t>(next_component), false);
+    for (std::size_t i = 0u; i < atoms.size(); ++i) {
+        if (atoms[i] != nullptr && atoms[i]->GetDegree() > 0u
+            && rdkit_atom_lacks_gasteiger_parameters(*atoms[i])) {
+            bad_component[static_cast<std::size_t>(component[i])] = true;
         }
     }
-    return false;
+    std::vector<bool> mask(atoms.size(), false);
+    for (std::size_t i = 0u; i < atoms.size(); ++i) {
+        mask[i] = bad_component[static_cast<std::size_t>(component[i])];
+    }
+    return mask;
 }
 
 } // namespace
@@ -1922,13 +1946,17 @@ MordredGasteigerAtomCharges compute_gasteiger_atom_charges(
         damp *= damp_scale;
     }
 
-    // RDKit's ComputeGasteigerCharges returns molecule-wide NaN when any
-    // charge-flowing atom lacks a Gasteiger parameter. Mordred 1.2.0 delegates
-    // to RDKit so it also produces molecule-wide NaN. OEFP matches this behavior.
-    // Downstream PEOE_VSA binning routes NaN to the open tail bin (PEOE_VSA14).
-    if (rdkit_molecule_has_nan_gasteiger(atoms)) {
-        std::fill(charges.begin(), charges.end(),
-                  std::numeric_limits<double>::quiet_NaN());
+    // RDKit's ComputeGasteigerCharges returns per-component NaN when any
+    // charge-flowing atom lacks a Gasteiger parameter. Charge flows along bonds
+    // and cannot cross components, so only the component containing the
+    // parameterless atom is NaN. Mordred 1.2.0 delegates to RDKit so it also
+    // produces per-component NaN. OEFP matches this behavior. Downstream PEOE_VSA
+    // binning routes NaN to the open tail bin (PEOE_VSA14).
+    const auto nan_mask = rdkit_gasteiger_nan_atom_mask(atoms, atom_bonds);
+    for (std::size_t i = 0u; i < charges.size(); ++i) {
+        if (nan_mask[i]) {
+            charges[i] = std::numeric_limits<double>::quiet_NaN();
+        }
     }
 
     return MordredGasteigerAtomCharges{

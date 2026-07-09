@@ -104,6 +104,32 @@ TEST(ComputeContextTest, GasteigerTypesCumuleneSp) {
     EXPECT_NEAR(charges[2], -0.1865, 1e-3);
 }
 
+// RDKit NaNs only the connected component containing a parameterless atom; a
+// mixture's well-formed component stays finite. C[Na].CCO -> the C-Na component
+// (atoms 0,1) is NaN, the ethanol component (atoms 2,3,4) is finite AND equals
+// ethanol computed alone.
+TEST(ComputeContextTest, GasteigerNaNsOnlyTheOffendingComponent) {
+    OEChem::OEGraphMol mix;
+    ASSERT_TRUE(OEChem::OESmilesToMol(mix, "C[Na].CCO"));
+    OEFP::ComputeContext ctx_mix(mix);
+    const auto& mixed = ctx_mix.GasteigerAtomCharges().charges;
+    ASSERT_EQ(mixed.size(), 5u);
+    EXPECT_TRUE(std::isnan(mixed[0]));   // methyl C on the C-Na component
+    EXPECT_TRUE(std::isnan(mixed[1]));   // Na
+    EXPECT_FALSE(std::isnan(mixed[2]));  // ethanol C
+    EXPECT_FALSE(std::isnan(mixed[3]));
+    EXPECT_FALSE(std::isnan(mixed[4]));
+
+    OEChem::OEGraphMol etoh;
+    ASSERT_TRUE(OEChem::OESmilesToMol(etoh, "CCO"));
+    OEFP::ComputeContext ctx_etoh(etoh);
+    const auto& alone = ctx_etoh.GasteigerAtomCharges().charges;
+    ASSERT_EQ(alone.size(), 3u);
+    for (std::size_t i = 0u; i < 3u; ++i) {
+        EXPECT_NEAR(mixed[i + 2u], alone[i], 1e-9);  // component-independent
+    }
+}
+
 // The RDKit-faithful accessor reproduces RDKit's molecule-wide NaN: when any
 // charge-flowing atom lacks a Gasteiger parameter — a no-parameter element
 // (Na, Se) or a hypervalent main-group atom ([SiH5-]) — the ENTIRE charge vector
