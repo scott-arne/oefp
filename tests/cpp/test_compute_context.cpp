@@ -107,3 +107,52 @@ TEST(ComputeContextTest, RDKitGasteigerTypesCumuleneSpWhileMordredStaysSp2) {
     EXPECT_NEAR(rdkit[0], -0.1865, 1e-3);
     EXPECT_GT(std::abs(mordred[1] - rdkit[1]), 1e-2);  // Mordred stays sp2 (differs)
 }
+
+// The RDKit-faithful accessor reproduces RDKit's molecule-wide NaN: when any
+// charge-flowing atom lacks a Gasteiger parameter — a no-parameter element
+// (Na, Se) or a hypervalent main-group atom ([SiH5-]) — the ENTIRE charge vector
+// is NaN, so downstream PEOE_VSA binning routes it to the open tail bin. Normal
+// organics, including hypervalent-looking but parameterized sulfones, stay finite,
+// and the Mordred accessor is never affected.
+TEST(ComputeContextTest, RDKitGasteigerNaNsMoleculesLackingParameters) {
+    struct Case {
+        const char* smiles;
+    };
+    for (const auto* smiles : {"C[Na]", "O=[Se]=O", "[SiH5-]"}) {
+        OEChem::OEGraphMol mol;
+        ASSERT_TRUE(OEChem::OESmilesToMol(mol, smiles)) << smiles;
+        OEFP::ComputeContext ctx(mol);
+        const auto& charges = ctx.RDKitGasteigerAtomCharges().charges;
+        ASSERT_FALSE(charges.empty()) << smiles;
+        for (const double q : charges) {
+            EXPECT_TRUE(std::isnan(q)) << smiles << " expected all-NaN, got " << q;
+        }
+    }
+    // No over-fire on the RDKit path: normal organics and a parameterized sulfone
+    // (hypervalent-looking but S has RDKit "so2" parameters, connectivity == 4)
+    // stay finite.
+    for (const auto* smiles : {"CCO", "O=C=O", "CS(=O)(=O)C"}) {
+        OEChem::OEGraphMol mol;
+        ASSERT_TRUE(OEChem::OESmilesToMol(mol, smiles)) << smiles;
+        OEFP::ComputeContext ctx(mol);
+        const auto& charges = ctx.RDKitGasteigerAtomCharges().charges;
+        ASSERT_FALSE(charges.empty()) << smiles;
+        for (const double q : charges) {
+            EXPECT_TRUE(std::isfinite(q)) << smiles << " expected finite, got " << q;
+        }
+    }
+    // The molecule-wide NaN is gated to the RDKit path (cumulene_sp) only. The
+    // Mordred accessor keeps [SiH5-] finite because silicon IS parameterized —
+    // only RDKit's hypervalent-hybridization NaN drives it to NaN — proving the
+    // hypervalency rule never leaks into the Mordred path. (Na/Se already yield a
+    // pre-existing NaN in both paths via the zero-valued X-fallback denominator,
+    // so they cannot demonstrate the gating.)
+    OEChem::OEGraphMol sih5;
+    ASSERT_TRUE(OEChem::OESmilesToMol(sih5, "[SiH5-]"));
+    OEFP::ComputeContext sih5_ctx(sih5);
+    const auto& sih5_mordred = sih5_ctx.GasteigerAtomCharges().charges;
+    ASSERT_FALSE(sih5_mordred.empty());
+    for (const double q : sih5_mordred) {
+        EXPECT_TRUE(std::isfinite(q)) << "[SiH5-] Mordred must stay finite, got " << q;
+    }
+}

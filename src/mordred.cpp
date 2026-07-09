@@ -1769,6 +1769,42 @@ void split_gasteiger_formal_charges(
     }
 }
 
+// True when RDKit's Gasteiger model has no (element, hybridization) parameter for
+// this atom. RDKit parameterizes only H, Be, B, C, N, O, F, Mg, Al, Si, P, S,
+// Cl, Br, and I; every other element maps to the "X" fallback symbol here. On the
+// hydrogen-suppressed working molecule OpenEye's GetDegree() counts an atom's
+// total sigma connectivity (heavy neighbors plus implicit hydrogens); a
+// parameterized main-group atom exceeding four is hypervalent — RDKit types it
+// sp3d/sp3d2, hybridizations the sp/sp2/sp3 parameter set does not cover — so it
+// too has no parameter (e.g. the 5-coordinate silicon in [SiH5-]).
+bool rdkit_atom_lacks_gasteiger_parameters(const OEChem::OEAtomBase& atom) {
+    const auto atomic_number = static_cast<std::uint32_t>(atom.GetAtomicNum());
+    if (std::string(gasteiger_element_symbol(atomic_number)) == "X") {
+        return true;
+    }
+    return atom.GetDegree() > 4u;
+}
+
+// Reproduce RDKit's molecule-wide NaN. RDKit's PEOE reads a parameterless atom's
+// missing coefficients as an empty vector and propagates the resulting NaN
+// through every bond and attached-hydrogen charge-flow term, so any parameterless
+// atom that participates in charge flow drives the whole connected molecule to
+// NaN. An isolated parameterless atom with no connections keeps its formal charge
+// and stays finite (e.g. a bare [Cu] or [Fe+2]); GetDegree() includes implicit
+// hydrogens, so the degree > 0 guard treats "has a bond or a hydrogen" as charge
+// flow and avoids over-firing on isolated atoms.
+bool rdkit_molecule_has_nan_gasteiger(const std::vector<OEChem::OEAtomBase*>& atoms) {
+    for (const auto* atom : atoms) {
+        if (atom == nullptr) {
+            continue;
+        }
+        if (atom->GetDegree() > 0u && rdkit_atom_lacks_gasteiger_parameters(*atom)) {
+            return true;
+        }
+    }
+    return false;
+}
+
 } // namespace
 
 MordredGasteigerAtomCharges compute_gasteiger_atom_charges(
@@ -1887,6 +1923,16 @@ MordredGasteigerAtomCharges compute_gasteiger_atom_charges(
             charges[atom_index] += damp * delta_charge;
         }
         damp *= damp_scale;
+    }
+
+    // The RDKit-faithful accessor (cumulene_sp) reproduces RDKit's molecule-wide
+    // NaN: when any charge-flowing atom lacks a Gasteiger parameter RDKit yields
+    // NaN for the whole molecule, which downstream PEOE_VSA binning routes to the
+    // open tail bin (PEOE_VSA14). The Mordred path (cumulene_sp == false) leaves
+    // these finite, preserving Mordred 1.2.0 byte-identity.
+    if (cumulene_sp && rdkit_molecule_has_nan_gasteiger(atoms)) {
+        std::fill(charges.begin(), charges.end(),
+                  std::numeric_limits<double>::quiet_NaN());
     }
 
     return MordredGasteigerAtomCharges{
