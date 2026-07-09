@@ -58,13 +58,16 @@ def _canonical_values(calculator, mol):
     return out
 
 
-def _stereo_divergence_mols():
-    # Stereo bracket-H molecules where the RDKit source (H-suppressed) and the
-    # OpenEye/Mordred sources (unsuppressed) compute different exact weights. Kept
-    # local to this test rather than added to the shared panel_mols fixture, which
-    # many other tests consume. They give the audit a VALUE-level catch: if a
-    # divergent id (e.g. exact_molecular_weight) were re-tagged onto RDKit, the
-    # per-pair equality assert fires here even though the achiral panel matches.
+def _stereo_bracket_hydrogen_mols():
+    # Stereo bracket-H molecules (OpenEye keeps the [C@H] hydrogen explicit). All
+    # three sources now compute weight/counts on a hydrogen-suppressed molecule,
+    # so their shared canonical ids agree on these rows too; they give the audit a
+    # VALUE-level check that the cross-source identities hold on explicit-hydrogen
+    # input, not only on the achiral panel. Kept local rather than added to the
+    # shared panel_mols fixture, which many other tests consume. (RDKit's
+    # exact_molecular_weight stays untagged by deliberate deferral of 3-source
+    # re-tagging — not because it diverges; a stray re-tag is caught by the schema
+    # check below.)
     from openeye import oechem
 
     mols = []
@@ -90,8 +93,9 @@ def test_shared_canonical_ids_are_identical(panel_mols):
     # the full (name, id) mapping (not just the id set) catches a silent LOSS of
     # heavy_atom_count (missing key), an unintended re-ADD of a divergent curated
     # id (extra key, e.g. exact_molecular_weight, which the RDKit source
-    # deliberately leaves untagged because its H-suppressed weight diverges from
-    # the other sources on stereo bracket-H molecules), AND a curated id attached
+    # deliberately leaves untagged pending a separate 3-source re-tag decision —
+    # all three sources now agree on it, so any re-tag must be an explicit choice),
+    # AND a curated id attached
     # to the WRONG descriptor (e.g. ExactMolWt carrying heavy_atom_count, which a
     # plain id-set check would miss because the set is unchanged). The global
     # completeness set cannot catch any of these, because another source pair
@@ -109,9 +113,9 @@ def test_shared_canonical_ids_are_identical(panel_mols):
 
     shared_seen = set()
     rdkit_shared = set()  # ids where RDKit participated in a MATCHING pair
-    # Include local stereo bracket-H molecules so a re-tagged divergent id also
-    # fails by VALUE, not only by the schema check above.
-    for mol in list(panel_mols) + _stereo_divergence_mols():
+    # Include local stereo bracket-H molecules so the cross-source identities are
+    # checked by VALUE on explicit-hydrogen input, not only on the achiral panel.
+    for mol in list(panel_mols) + _stereo_bracket_hydrogen_mols():
         per_source = [_canonical_values(calc, mol) for calc in calculators]
         # PAIRWISE comparison: for every unordered pair of sources, for every
         # canonical_id both carry (and whose value is not None), assert equality.

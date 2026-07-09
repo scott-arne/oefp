@@ -63,6 +63,11 @@ SMILES_PANEL = [
     "[13CH4]",
     "COC(=O)c1ccc(OCC)c(O)c1C(=O)OCC",
     "O=C=O",
+    # Input-normalization coverage (stereo bracket hydrogen): OpenEye keeps the
+    # [C@H]/[C@@H] hydrogen explicit while Mordred 1.2.0 parses implicit H, so
+    # these lock MW/AMW/nAtom/nH/nBonds/nBondsS/nBondsKS to the suppressed count.
+    "C[C@H](N)C(=O)O",   # L-alanine
+    "C[C@@H](O)C(=O)O",  # lactic acid
 ]
 
 
