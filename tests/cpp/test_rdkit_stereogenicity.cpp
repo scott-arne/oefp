@@ -133,6 +133,24 @@ TEST(RDKitStereogenicityTest, NonStereoDoubleBonds) {
     EXPECT_TRUE(stereo_bond_atoms("c1ccccc1C=C").empty()); // styrene vinyl
 }
 
+// Cumulene double bonds (allene, azide, isocyanate, ketenimine, CO2-like) are
+// never flagged by the legacy findPotentialStereoBonds: its neighbour lists come
+// from findAtomNeighborsHelper (single/aromatic bonds only), so a cumulene
+// centre has no substituent on its cumulated side and the bond is skipped. This
+// is the SPS ethyl-azide parity fix. Normal/terminal alkenes and diazenes are
+// unaffected. All expected sets verified against the RDKit 2026.03.3 SPS oracle
+// (rdmolops.FindPotentialStereoBonds + GetStereo != STEREONONE).
+TEST(RDKitStereogenicityTest, CumuleneDoubleBondsNotFlagged) {
+    EXPECT_TRUE(stereo_bond_atoms("CCN=[N+]=[N-]").empty());  // ethyl azide N=N=N
+    EXPECT_TRUE(stereo_bond_atoms("CC=C=CC").empty());        // 2,3-pentadiene (allene)
+    EXPECT_TRUE(stereo_bond_atoms("CN=C=O").empty());         // methyl isocyanate
+    EXPECT_TRUE(stereo_bond_atoms("C=C=C").empty());          // allene
+    // Non-cumulene positives remain flagged (single-bonded neighbours present).
+    EXPECT_EQ(stereo_bond_atoms("CC=CC"), (std::set<std::size_t>{1, 2}));   // 2-butene
+    EXPECT_EQ(stereo_bond_atoms("CC=CCO"), (std::set<std::size_t>{1, 2}));  // crotyl alcohol
+    EXPECT_EQ(stereo_bond_atoms("CN=NC"), (std::set<std::size_t>{1, 2}));   // dimethyldiazene
+}
+
 // Additional fused/bridged/spiro topologies verified against the RDKit oracle,
 // guarding the port beyond the plan's pinned cages.
 TEST(RDKitStereogenicityTest, ExtraRingTopologies) {

@@ -639,16 +639,32 @@ bool has_disqualifying_duplicate(const HeavyGraph& g, const RingStereo& rs,
     return false;
 }
 
-// One end of a double bond has distinguishable substituents when it has a single
-// non-partner heavy neighbour (trivially distinguishable) or two whose symmetry
-// classes differ. Mirrors the CIP-rank comparison in the legacy
-// findPotentialStereoBonds; plain symmetry classes stand in for assignAtomCIPRanks
-// (equal iff topologically equivalent, which is exactly the "ranks differ" test).
+// One end of a double bond has distinguishable substituents when, restricted to
+// its single/aromatic-bonded non-partner neighbours, it has exactly one such
+// neighbour (trivially distinguishable) or two whose symmetry classes differ.
+//
+// Mirrors RDKit's legacy findPotentialStereoBonds (Chirality.cpp:2910), which
+// builds each end's neighbour list with findAtomNeighborsHelper: SINGLE and
+// AROMATIC bonds only, excluding the double bond itself. Crucially this also
+// excludes any OTHER double bond on the end, so a cumulene centre (allene,
+// azide, isocyanate, ketenimine, CO2-like) has no substituent on its cumulated
+// side. RDKit then requires BOTH ends' neighbour lists to be non-empty before it
+// can flag the bond, so an empty list here means "not distinguishable" and the
+// bond is skipped. Plain symmetry classes stand in for assignAtomCIPRanks (equal
+// iff topologically equivalent, which is exactly the "ranks differ" test).
 bool double_bond_end_distinguishable(const HeavyGraph& g, std::size_t end,
                                      std::size_t partner, const std::vector<int>& ranks) {
     std::vector<int> subs;
-    for (const auto nbr : g.adjacency[end]) {
-        if (nbr != partner) {
+    for (std::size_t k = 0u; k < g.adjacency[end].size(); ++k) {
+        const std::size_t nbr = g.adjacency[end][k];
+        if (nbr == partner) {
+            continue;
+        }
+        // findAtomNeighborsHelper keeps single (key 1) and aromatic (key 100)
+        // bonds only; double/triple-bonded neighbours are dropped, which is what
+        // strips the cumulated partner of a cumulene centre.
+        const int key = g.neighbor_bond_key[end][k];
+        if (key == 1 || key == 100) {
             subs.push_back(ranks[nbr]);
         }
     }
