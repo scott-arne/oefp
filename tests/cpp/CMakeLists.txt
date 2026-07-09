@@ -39,6 +39,7 @@ add_executable(oefp_tests
     test_rdkit_descriptors.cpp
     test_rdkit_pruning_equivalence.cpp
     test_rdkit_schema.cpp
+    test_rdkit_stereogenicity.cpp
     test_sparse.cpp
     test_sparse_batch.cpp
     test_topological_torsions.cpp

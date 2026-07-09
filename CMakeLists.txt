@@ -168,6 +168,7 @@ set(OEFP_SOURCES
     src/openeye.cpp
     src/rdkit_descriptors.cpp
     src/rdkit_schema.cpp
+    src/rdkit_stereogenicity.cpp
     src/sparse.cpp
     src/sparse_batch.cpp
     src/stereo.cpp
