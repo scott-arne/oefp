@@ -120,3 +120,13 @@ TEST(RDKitStereogenicityTest, RingDoubleBondsNotFlagged) {
     EXPECT_TRUE(stereo_bond_atoms("C1CCCC=CCC1").empty());   // cyclooctene (8)
     EXPECT_TRUE(stereo_bond_atoms("C1CCCC=CCCCC1").empty()); // cyclodecene (10)
 }
+
+// RDKit clears specified stereo on ring double bonds in rings smaller than
+// MIN_RING_SIZE_FOR_DOUBLE_BOND_STEREO (8) because trans is geometrically
+// impossible in small rings. Ring size >= 8 retains specified stereo.
+TEST(RDKitStereogenicityTest, SpecifiedStereoDoubleBonds) {
+    EXPECT_EQ(stereo_bond_atoms("F/C=C/F"), (std::set<std::size_t>{1, 2}));        // acyclic, flagged
+    EXPECT_EQ(stereo_bond_atoms("C1CCCC/C=C/C1"), (std::set<std::size_t>{5, 6}));  // 8-ring, flagged
+    EXPECT_TRUE(stereo_bond_atoms("C1CCC/C=C/C1").empty());                        // 7-ring, NOT flagged
+    EXPECT_TRUE(stereo_bond_atoms("C1CC/C=C/C1").empty());                         // 6-ring, NOT flagged
+}

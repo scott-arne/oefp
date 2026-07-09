@@ -17,6 +17,12 @@
 namespace OEFP {
 namespace {
 
+/// RDKit's minimum ring size for retaining specified double-bond stereo.
+/// Ring double bonds in rings smaller than this have their stereo cleared at
+/// parse time (trans double bond is geometrically impossible in small rings).
+/// Mirrors RDKit's Chirality::minRingSizeForDoubleBondStereo.
+constexpr std::size_t MIN_RING_SIZE_FOR_DOUBLE_BOND_STEREO = 8u;
+
 // Heavy-atom-only view of the molecule. Iteration order mirrors
 // build_mordred_heavy_atom_graph (GetAtoms() filtered to non-hydrogen), so the
 // output flags align with the SPS caller's heavy-atom graph. The module is
@@ -182,6 +188,22 @@ bool in_ring_of_size(const RingInfo& ri, std::size_t i, std::size_t size) {
         }
     }
     return false;
+}
+
+/// Return the size of the smallest ring containing the given edge, or 0 if
+/// the edge is not in any ring.
+std::size_t min_ring_size_for_bond(const RingInfo& ri, std::size_t edge_id) {
+    std::size_t min_size = 0u;
+    for (std::size_t ridx = 0u; ridx < ri.bond_rings.size(); ++ridx) {
+        const auto& bring = ri.bond_rings[ridx];
+        if (std::find(bring.begin(), bring.end(), edge_id) != bring.end()) {
+            const std::size_t ring_size = ri.atom_rings[ridx].size();
+            if (min_size == 0u || ring_size < min_size) {
+                min_size = ring_size;
+            }
+        }
+    }
+    return min_size;
 }
 
 // RDKit QueryOps queryIsAtomBridgehead: at least three ring bonds on the atom,
@@ -529,8 +551,9 @@ bool double_bond_end_distinguishable(const HeavyGraph& g, std::size_t end,
 // bond that carries non-STEREONONE stereo afterwards: a non-ring double bond
 // whose two-substituent ends are rank-distinguishable (a one-substituent end is
 // trivially so), plus any double bond that already carries specified E/Z stereo
-// (any ring size). Unmarked ring double bonds are skipped entirely, at any size.
-std::vector<bool> compute_stereo_bond_atoms(const OEChem::OEMolBase& mol, const HeavyGraph& g) {
+// (acyclic or ring size >= MIN_RING_SIZE_FOR_DOUBLE_BOND_STEREO). Unmarked ring
+// double bonds are skipped entirely, at any size.
+std::vector<bool> compute_stereo_bond_atoms(const OEChem::OEMolBase& mol, const HeavyGraph& g, const RingInfo& ri) {
     std::vector<bool> flags(g.atoms.size(), false);
     const std::vector<int> plain_ranks = refine_symmetry_classes(g, std::vector<bool>(g.atoms.size(), false));
 
@@ -554,7 +577,17 @@ std::vector<bool> compute_stereo_bond_atoms(const OEChem::OEMolBase& mol, const 
 
         bool flag = false;
         if (bond->IsInRing()) {
-            flag = specified;  // ring double bonds are otherwise ignored, any size
+            // RDKit clears specified stereo on ring double bonds in rings smaller
+            // than MIN_RING_SIZE_FOR_DOUBLE_BOND_STEREO (trans is geometrically
+            // impossible in small rings). Only flag if ring size >= threshold.
+            if (specified) {
+                const auto key = a < b ? std::make_pair(a, b) : std::make_pair(b, a);
+                const auto it = g.edge_id.find(key);
+                if (it != g.edge_id.end()) {
+                    const std::size_t ring_size = min_ring_size_for_bond(ri, it->second);
+                    flag = ring_size >= MIN_RING_SIZE_FOR_DOUBLE_BOND_STEREO;
+                }
+            }
         } else {
             const bool degree_ok = (g.heavy_degree[a] == 2 || g.heavy_degree[a] == 3)
                                    && (g.heavy_degree[b] == 2 || g.heavy_degree[b] == 3);
@@ -647,7 +680,7 @@ RDKitStereogenicity rdkit_potential_stereogenicity(const OEChem::OEMolBase& mol)
         }
     }
 
-    const std::vector<bool> stereo_bond_atoms = compute_stereo_bond_atoms(mol, g);
+    const std::vector<bool> stereo_bond_atoms = compute_stereo_bond_atoms(mol, g, ri);
 
     RDKitStereogenicity result;
     result.atom_is_potential_stereocenter.assign(n, false);
