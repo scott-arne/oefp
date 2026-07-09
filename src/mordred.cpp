@@ -8464,7 +8464,14 @@ const std::vector<MordredGroup>& mordred_group_registry() {
                 // explicit hydrogen atom (the entire existing panel).
                 const auto suppressed_total_atoms =
                     static_cast<std::uint32_t>(TotalAtomCount(ctx.HydrogenSuppressedMol()));
-                const auto hydrogens = suppressed_total_atoms - values.heavy_atoms;
+                // suppressed_total_atoms counts heavy atoms plus their implicit
+                // hydrogens; OESuppressHydrogens never removes a heavy atom, so it
+                // is always >= values.heavy_atoms. The guard makes that invariant
+                // explicit and keeps an (impossible) unsigned underflow from
+                // silently corrupting every hydrogen-derived count.
+                const auto hydrogens = suppressed_total_atoms >= values.heavy_atoms
+                    ? suppressed_total_atoms - values.heavy_atoms
+                    : 0u;
                 const auto all_atoms = values.heavy_atoms + hydrogens;
                 const auto all_bonds = values.heavy_bonds + hydrogens;
                 const auto all_single_bonds = values.single_heavy_bonds + hydrogens;
