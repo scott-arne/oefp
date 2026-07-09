@@ -115007,6 +115007,3874 @@
         8.416666666666668,
         4.638888888888889
       ]
+    },
+    {
+      "smiles": "O=C=O",
+      "values": [
+        1.4142135623730951,
+        1.4142135623730951,
+        0,
+        0,
+        2.82842712474619,
+        1.414213562373095,
+        2.82842712474619,
+        2.82842712474619,
+        0.9428090415820632,
+        1.8494570055365824,
+        1.7071067811865475,
+        0.5690355937288492,
+        -0.6691728075863654,
+        3.3635856610148585,
+        1.1211952203382862,
+        0.009034761653968602,
+        0,
+        0,
+        3,
+        3,
+        0,
+        0,
+        2,
+        0,
+        0,
+        1,
+        0,
+        2,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        88.0,
+        48.0,
+        36.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        6.0,
+        4.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        104.25,
+        35.0,
+        49.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        164.0,
+        96.0,
+        64.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        656.2001230000001,
+        384.327978,
+        255.96800100000002,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        856.2984556780439,
+        605.4590041516427,
+        216.39077696435706,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        34.243948,
+        20.067768,
+        13.351716,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        30.1697,
+        17.543999999999997,
+        11.833599999999999,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        30.75,
+        17.5,
+        12.25,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        4.075308,
+        2.67868,
+        0.6432040000000001,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        497.696927695,
+        306.68665683,
+        185.4512858025,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        29.333333333333332,
+        24.0,
+        36.0,
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        2.0,
+        2.0,
+        1.0,
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        34.75,
+        17.5,
+        49.0,
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        54.666666666666664,
+        48.0,
+        64.0,
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        218.73337433333336,
+        192.163989,
+        255.96800100000002,
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        285.43281855934794,
+        302.72950207582136,
+        216.39077696435706,
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        11.414649333333335,
+        10.033884,
+        13.351716,
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        10.056566666666667,
+        8.771999999999998,
+        11.833599999999999,
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        10.25,
+        8.75,
+        12.25,
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        1.358436,
+        1.33934,
+        0.6432040000000001,
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        165.89897589833333,
+        153.343328415,
+        185.4512858025,
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        0.20861385652286496,
+        -0.13907590434857664,
+        0.03476897608714416,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        2.666666666666667,
+        -1.7777777777777781,
+        0.44444444444444486,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.6666666666666666,
+        -0.4444444444444444,
+        0.11111111111111106,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        13.5,
+        -9.0,
+        2.25,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        2.666666666666667,
+        -1.7777777777777781,
+        0.44444444444444486,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        10.602762666666674,
+        -7.068508444444451,
+        1.7671271111111138,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        22.9657830413627,
+        -15.310522027575134,
+        3.8276305068937835,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.5496426666666666,
+        -0.3664284444444444,
+        0.0916071111111111,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.5280666666666668,
+        -0.3520444444444446,
+        0.08801111111111122,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.6666666666666667,
+        -0.44444444444444453,
+        0.11111111111111122,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.5022826666666665,
+        -0.334855111111111,
+        0.0837137777777777,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        3.7059900416666647,
+        -2.4706600277777775,
+        0.617665006944445,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.06953795217428832,
+        -0.06953795217428832,
+        0.03476897608714416,
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        0.888888888888889,
+        -0.8888888888888891,
+        0.44444444444444486,
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        0.2222222222222222,
+        -0.2222222222222222,
+        0.11111111111111106,
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        4.5,
+        -4.5,
+        2.25,
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        0.888888888888889,
+        -0.8888888888888891,
+        0.44444444444444486,
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        3.534254222222225,
+        -3.5342542222222253,
+        1.7671271111111138,
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        7.655261013787567,
+        -7.655261013787567,
+        3.8276305068937835,
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        0.1832142222222222,
+        -0.1832142222222222,
+        0.0916071111111111,
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        0.17602222222222227,
+        -0.1760222222222223,
+        0.08801111111111122,
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        0.22222222222222224,
+        -0.22222222222222227,
+        0.11111111111111122,
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        0.16742755555555552,
+        -0.1674275555555555,
+        0.0837137777777777,
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        1.2353300138888883,
+        -1.2353300138888887,
+        0.617665006944445,
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        -1.0,
+        0.5,
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        -1.0,
+        0.5000000000000004,
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        -1.0,
+        0.49999999999999983,
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        -1.0,
+        0.5,
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        -1.0,
+        0.5000000000000004,
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        -1.0000000000000002,
+        0.5000000000000004,
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        -1.0,
+        0.5,
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        -1.0,
+        0.5,
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        -1.0000000000000002,
+        0.5000000000000006,
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        -1.0,
+        0.5000000000000004,
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        -0.9999999999999998,
+        0.49999999999999967,
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        -1.0000000000000004,
+        0.5000000000000007,
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        1.5000000000000002,
+        0.0,
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        1.4999999999999998,
+        0.0,
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        1.5,
+        0.0,
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        1.5,
+        0.0,
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        1.4999999999999998,
+        0.0,
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        1.5,
+        0.0,
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        1.4999999999999998,
+        0.0,
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        1.5,
+        0.0,
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        1.5,
+        0.0,
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        1.4999999999999998,
+        0.0,
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        1.5,
+        0.0,
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        1.5,
+        0.0,
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        0.5013481387683274,
+        -0.31388372906195994,
+        6.0441475698242195,
+        3.956852430175779,
+        2.0816198241326824,
+        0.919380175867317,
+        7.0205110682549545,
+        2.4804889317450423,
+        8.044147569824219,
+        5.95685243017578,
+        16.0219895858893,
+        11.989010414110707,
+        20.594517885571573,
+        14.696235342034445,
+        3.743427481345344,
+        2.657572518654656,
+        3.5309159597920097,
+        2.46008404020799,
+        3.5824795958622615,
+        2.4185204041377384,
+        1.7619733580306434,
+        0.711026641969357,
+        13.655867990698843,
+        11.223482009301149,
+        1.6329931618554523,
+        1.9577379737113247,
+        1.2288689868556624,
+        1.7288689868556624,
+        2.1244046403779917,
+        0.7081348801259972,
+        1.7611843901899182,
+        0.5,
+        1.6946942736494006,
+        0.5648980912164668,
+        -0.6764704492904391,
+        3.943248033400995,
+        1.314416011133665,
+        0.16803195333396798,
+        1.9599627024177475,
+        1.2292469303075675,
+        1.7307157721101802,
+        2.12613975515021,
+        0.7087132517167367,
+        1.76120174572497,
+        0.49853115819738747,
+        1.6947816147894572,
+        0.5649272049298191,
+        -0.6764189126263939,
+        3.942340502721902,
+        1.3141135009073006,
+        0.16780177883806513,
+        4.0148270420559555,
+        1.608419042969952,
+        3.406407999086004,
+        3.748830723350605,
+        1.2496102411168684,
+        1.902816298427264,
+        -0.7979889561160514,
+        1.728496317579304,
+        0.5761654391931014,
+        -0.6567209543627193,
+        3.56044253257037,
+        1.1868141775234566,
+        0.06591203971432992,
+        1.9622979416853163,
+        1.2296437710615962,
+        1.7326541706237202,
+        2.127961141831275,
+        0.709320380610425,
+        1.761220397184077,
+        0.4969896004378762,
+        1.6948730739024866,
+        0.5649576913008288,
+        -0.6763649489507684,
+        3.9413902327714996,
+        1.3137967442571665,
+        0.16756070770388085,
+        1.931347053956363,
+        1.2243944572107397,
+        1.7069525967456236,
+        2.1038276741114017,
+        0.7012758913704672,
+        1.7610094497017315,
+        0.5174418604651163,
+        1.6936423549961024,
+        0.5645474516653675,
+        -0.6770913549455622,
+        3.9541822448444117,
+        1.3180607482814706,
+        0.17080101062091965,
+        1.8499820530094573,
+        1.2107053122190143,
+        1.639276740790443,
+        2.0404582434856477,
+        0.6801527478285493,
+        1.7608366715988528,
+        0.5714285714285714,
+        1.6902073986939996,
+        0.5634024662313332,
+        -0.6791215617998646,
+        3.9899622797347236,
+        1.3299874265782412,
+        0.17980897283057928,
+        6.274556182304217,
+        2.0549838268129563,
+        5.21957235549126,
+        5.553026672744782,
+        1.8510088909149272,
+        2.218892695138786,
+        -2.164588528678304,
+        1.7320171171325092,
+        0.5773390390441697,
+        -0.654686111363564,
+        3.456621907206449,
+        1.1522073024021495,
+        0.036318980428679745,
+        2.1923719855479495,
+        1.269320178652276,
+        1.923051806895674,
+        2.307794776133484,
+        0.769264925377828,
+        1.7651472512252737,
+        0.3462683717566024,
+        1.7028690086951168,
+        0.5676230028983723,
+        -0.6716583235748821,
+        3.858300371697595,
+        1.2861001238991985,
+        0.1462539639692154,
+        23.774437510817343,
+        2,
+        2,
+        0,
+        2,
+        0,
+        0,
+        2,
+        0,
+        2,
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        0.5,
+        1.0,
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        2.7071067811865475,
+        1.4142135623730951,
+        0.7071067811865476,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.9023689270621825,
+        0.7071067811865476,
+        0.7071067811865476,
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        1.316496580927726,
+        0.408248290463863,
+        0.08333333333333333,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.43883219364257536,
+        0.2041241452319315,
+        0.08333333333333333,
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        3.666666666666666,
+        3.664057946882025,
+        2.4295982088337067,
+        3.6613255644573925,
+        3.6980392156862747,
+        3.8,
+        1.9604790419161677,
+        3.418772146390416,
+        1.222222222222222,
+        1.221352648960675,
+        0.8098660696112355,
+        1.220441854819131,
+        1.2326797385620916,
+        1.2666666666666666,
+        0.653493013972056,
+        1.139590715463472,
+        5.464101615137755,
+        2.7320508075688776,
+        4.732050807568878,
+        5.464101615137755,
+        1.8213672050459184,
+        2.832072756761435,
+        0.0,
+        1.7156269037800915,
+        0.5718756345933639,
+        -0.6641942489393373,
+        3.7224194364083996,
+        1.2408064788028,
+        0.11040103868100991,
+        4,
+        5.464101615137755,
+        2.7320508075688776,
+        4.732050807568878,
+        5.464101615137755,
+        1.8213672050459184,
+        2.832072756761435,
+        1.7156269037800915,
+        0.5718756345933639,
+        -0.6641942489393373,
+        3.7224194364083996,
+        1.2408064788028,
+        0.11040103868100991,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        2,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0.25,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        16.25,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        0.25,
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        8.125,
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        0.25,
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        8.125,
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        6,
+        1.1666666666666665,
+        0.38888888888888884,
+        0.5714285714285715,
+        0.0,
+        0.0,
+        4.5,
+        1.5,
+        1.5,
+        0.5,
+        3.0,
+        1.0,
+        0.0,
+        0.0,
+        0.3306741937139077,
+        0.11022473123796923,
+        0.25660011963983365,
+        0.08553337321327788,
+        1.914213562373095,
+        0.6380711874576983,
+        1.4142135623730951,
+        0.47140452079103173,
+        1.5835393686591872,
+        0.527846456219729,
+        1.1576134427332616,
+        0.38587114757775387,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.11111111111111116,
+        1.211111111111111,
+        1.211111111111111,
+        0.4090909090909091,
+        1.211111111111111,
+        1.211111111111111,
+        0.8020202020202019,
+        0.0,
+        -0.8020202020202019,
+        0.0,
+        1.5,
+        0.5,
+        0.3211009174311927,
+        0.3928990825688073,
+        0.0,
+        2.02,
+        0.0,
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        2,
+        0,
+        0.9182958340544896,
+        0.9182958340544896,
+        0.9182958340544896,
+        0.9182958340544896,
+        0.9182958340544896,
+        0.9182958340544896,
+        2.7548875021634687,
+        2.7548875021634687,
+        2.7548875021634687,
+        2.7548875021634687,
+        2.7548875021634687,
+        2.7548875021634687,
+        0.579380164285695,
+        0.579380164285695,
+        0.579380164285695,
+        0.579380164285695,
+        0.579380164285695,
+        0.579380164285695,
+        0.4591479170272448,
+        0.4591479170272448,
+        0.4591479170272448,
+        0.4591479170272448,
+        0.4591479170272448,
+        0.4591479170272448,
+        0.6666666666666665,
+        0.6666666666666665,
+        0.6666666666666665,
+        0.6666666666666665,
+        0.6666666666666665,
+        0.6666666666666665,
+        12.584871564745788,
+        12.584871564745788,
+        12.584871564745788,
+        12.584871564745788,
+        12.584871564745788,
+        12.584871564745788,
+        9.409525009134645,
+        9.409525009134645,
+        9.409525009134645,
+        9.409525009134645,
+        9.409525009134645,
+        9.409525009134645,
+        3.0,
+        2.0,
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        true,
+        false,
+        0.5060980112223641,
+        28.090000000000003,
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        17.062295227917083,
+        0.0,
+        0.0,
+        0.0,
+        9.589074368143644,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        9.589074368143644,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        6.1514994233331,
+        9.589074368143644,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        6.1514994233331,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        9.589074368143644,
+        0.0,
+        0.0,
+        16.25,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.25,
+        0.0,
+        0.0,
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        0.4999999999999999,
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        4.914213562373095,
+        1.6380711874576983,
+        3.2071067811865475,
+        1.0690355937288492,
+        1.7071067811865475,
+        0.5690355937288492,
+        0.0,
+        0.0,
+        3.2071067811865475,
+        1.0690355937288492,
+        0.0,
+        0.0,
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        {
+          "error_type": "Missing",
+          "state": "missing"
+        },
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        6,
+        1.6094379124341003,
+        1.6094379124341003,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        2.4849066497880004,
+        3.274,
+        1.7359999999999998,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0.0,
+        -0.5835,
+        5.007,
+        34.14,
+        34.14,
+        0.5,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.25,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.25,
+        2,
+        1,
+        1.0,
+        0.5,
+        38.15998017909651,
+        2.0,
+        2.0,
+        1.9459101490553132,
+        2.1972245773362196,
+        2.5649493574615367,
+        2.833213344056216,
+        3.2188758248682006,
+        3.4965075614664802,
+        3.8918202981106265,
+        4.174387269895637,
+        4.574710978503383,
+        33.89759936075361,
+        1.6094379124341003,
+        0.0,
+        2.1972245773362196,
+        0.0,
+        2.833213344056216,
+        0.0,
+        3.4965075614664802,
+        0.0,
+        4.174387269895637,
+        17.310770665188652,
+        43.98982924,
+        14.663276413333334,
+        4,
+        0,
+        6.0,
+        4.0,
+        2.25,
+        1.0
+      ]
     }
   ],
   "schema_id": "f30d5132e9b0ac99",
@@ -115036,7 +118904,8 @@
     "CCCCCCCCCCCCCCCC",
     "O=[Se]=O",
     "[13CH4]",
-    "COC(=O)c1ccc(OCC)c(O)c1C(=O)OCC"
+    "COC(=O)c1ccc(OCC)c(O)c1C(=O)OCC",
+    "O=C=O"
   ],
   "source": {
     "descriptor_source": "local-mordred-1.2.0",
