@@ -22,6 +22,18 @@ const OEChem::OEGraphMol& ComputeContext::RingPerceivedMol() const {
     return *ring_perceived_mol_;
 }
 
+const OEChem::OEGraphMol& ComputeContext::HydrogenSuppressedMol() const {
+    if (!hydrogen_suppressed_mol_) {
+        OEChem::OEGraphMol working_mol(mol_);
+        OEChem::OESuppressHydrogens(working_mol);
+        OEChem::OEFindRingAtomsAndBonds(working_mol);
+        OEChem::OEAssignHybridization(working_mol);
+        hydrogen_suppressed_mol_.emplace(std::move(working_mol));
+        ++compute_count_;
+    }
+    return *hydrogen_suppressed_mol_;
+}
+
 const MordredHeavyAtomGraph& ComputeContext::HeavyAtomGraph() const {
     if (!heavy_atom_graph_) {
         heavy_atom_graph_.emplace(build_mordred_heavy_atom_graph(mol_));
