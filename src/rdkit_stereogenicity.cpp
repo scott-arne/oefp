@@ -348,16 +348,48 @@ bool is_potential_nontetrahedral_center(const HeavyGraph& g, std::size_t i) {
     return tnz >= 4;
 }
 
+// RDKit's getAtomCompareSymbol seed (isotope + element + charge), extended with
+// heavy degree. This is the per-atom invariant fed to the equitable-partition
+// refinement (the module's stand-in for Canon::rankFragmentAtoms). Stereo
+// suffixes ("_CW"/"_CCW" for specified centres, a unique "_idx" for possible
+// centres) are appended to this seed by the caller.
+std::string base_atom_symbol(const HeavyGraph& g, std::size_t i) {
+    return std::to_string(g.heavy_degree[i]) + '|' + std::to_string(g.isotope[i]) + '|'
+           + std::to_string(g.atomic_num[i]) + '|' + std::to_string(g.formal_charge[i]);
+}
+
+// Parity (0 or 1) of the swaps needed to bring the index-ordered neighbour ranks
+// into ascending (rank-sorted) order. A faithful port of RDKit's
+// countSwapsToInterconvert (RDGeneral/utils.h) with ref = the index order and
+// probe = the sorted order, so its tie-handling matches RDKit exactly; this is
+// what drives the "_CW"/"_CCW" descriptor flip in updateAtoms.
+int neighbor_rank_swap_parity(const std::vector<int>& index_order) {
+    std::vector<int> probe = index_order;
+    std::sort(probe.begin(), probe.end());
+    unsigned int swaps = 0u;
+    for (std::size_t i = 0u; i < index_order.size(); ++i) {
+        if (probe[i] == index_order[i]) {
+            continue;
+        }
+        std::size_t j = i;
+        while (j < probe.size() && probe[j] != index_order[i]) {
+            ++j;
+        }
+        if (j < probe.size()) {
+            std::swap(probe[i], probe[j]);
+            ++swaps;
+        }
+    }
+    return static_cast<int>(swaps & 1u);
+}
+
 // Equitable-partition (colour) refinement reproducing the symmetry classes that
 // RDKit's Canon::rankFragmentAtoms(breakTies=false) yields for FindStereo: only
 // equivalence of ranks matters (the duplicate rule tests rank equality), so the
-// class labels themselves are arbitrary. Initial colour is (degree, symbol),
-// where the symbol is isotope+element+charge plus, for a candidate carrying a
-// possible/known stereo tag, a unique per-atom suffix (RDKit's "_idx" label
-// under cleanIt=false). Refinement then folds in each atom's sorted multiset of
-// (bond key, neighbour class).
-std::vector<int> refine_symmetry_classes(const HeavyGraph& g,
-                                         const std::vector<bool>& labelled) {
+// class labels themselves are arbitrary. The per-atom seed symbols are supplied
+// by the caller (RDKit's atomSymbols array); refinement then folds in each
+// atom's sorted multiset of (bond key, neighbour class).
+std::vector<int> rank_by_symbols(const HeavyGraph& g, const std::vector<std::string>& symbols) {
     const std::size_t n = g.atoms.size();
 
     auto compress = [](const std::vector<std::string>& sigs) {
@@ -376,17 +408,7 @@ std::vector<int> refine_symmetry_classes(const HeavyGraph& g,
         return std::make_pair(out, next);
     };
 
-    std::vector<std::string> sigs(n);
-    for (std::size_t i = 0u; i < n; ++i) {
-        std::string s = std::to_string(g.heavy_degree[i]) + '|' + std::to_string(g.isotope[i])
-                        + '|' + std::to_string(g.atomic_num[i]) + '|'
-                        + std::to_string(g.formal_charge[i]);
-        if (labelled[i]) {
-            s += "|P" + std::to_string(i);
-        }
-        sigs[i] = std::move(s);
-    }
-    auto [color, classes] = compress(sigs);
+    auto [color, classes] = compress(symbols);
 
     while (true) {
         std::vector<std::string> next(n);
@@ -648,7 +670,11 @@ bool double_bond_end_distinguishable(const HeavyGraph& g, std::size_t end,
 // double bonds are skipped entirely, at any size.
 std::vector<bool> compute_stereo_bond_atoms(const OEChem::OEMolBase& mol, const HeavyGraph& g, const RingInfo& ri) {
     std::vector<bool> flags(g.atoms.size(), false);
-    const std::vector<int> plain_ranks = refine_symmetry_classes(g, std::vector<bool>(g.atoms.size(), false));
+    std::vector<std::string> plain_symbols(g.atoms.size());
+    for (std::size_t i = 0u; i < g.atoms.size(); ++i) {
+        plain_symbols[i] = base_atom_symbol(g, i);
+    }
+    const std::vector<int> plain_ranks = rank_by_symbols(g, plain_symbols);
 
     for (OESystem::OEIter<OEChem::OEBondBase> bond = mol.GetBonds(); bond; ++bond) {
         if (bond->GetOrder() != 2u || bond->IsAromatic()) {
@@ -704,49 +730,164 @@ RDKitStereogenicity rdkit_potential_stereogenicity(const OEChem::OEMolBase& mol)
     const RingInfo ri = build_ring_info(mol, g);
     const std::size_t n = g.atoms.size();
 
-    // Candidates seeded into the ranking. Nontetrahedral centres participate in
-    // the ranking (RDKit puts them in possibleAtoms) but only total-degree-4
-    // ones survive the Atom_Tetrahedral output filter.
-    std::vector<bool> possible(n, false);
+    // Candidate centres. Nontetrahedral centres participate in the ranking (RDKit
+    // puts them in possibleAtoms) but only total-degree-4 ones survive the
+    // Atom_Tetrahedral output filter.
+    std::vector<bool> candidate(n, false);
     std::vector<bool> tetrahedral(n, false);
     for (std::size_t i = 0u; i < n; ++i) {
         const bool tet = is_potential_tetrahedral_center(g, ri, i);
         const bool nontet = is_potential_nontetrahedral_center(g, i);
-        possible[i] = tet || nontet;
+        candidate[i] = tet || nontet;
         tetrahedral[i] = tet || (nontet && (g.heavy_degree[i] + g.h_count[i]) == 4);
     }
 
-    const StereoBondSets stereo_bonds = compute_internal_stereo_bonds(mol, g, ri);
-    RingStereo rs = flag_ring_stereo(g, ri, possible, stereo_bonds);
+    // Per-atom seed symbol (RDKit getAtomCompareSymbol) and the parity data for
+    // specified centres. base_parity[i] is the tetrahedral parity of atom i with
+    // its heavy neighbours in ascending atom-index order (RDKit's index-sorted
+    // controllingAtoms); ctrl[i] holds those heavy neighbours in that same order.
+    // The Left/Right -> parity mapping is arbitrary: only whether two symmetric
+    // centres share a symbol matters, and a global bit-flip preserves every such
+    // equality, so any consistent choice reproduces the oracle.
+    std::vector<std::string> base(n);
+    std::vector<int> base_parity(n, 0);
+    std::vector<std::vector<std::size_t>> ctrl(n);
+    std::vector<bool> specified(n, false);
+    for (std::size_t i = 0u; i < n; ++i) {
+        base[i] = base_atom_symbol(g, i);
+        if (!candidate[i] || !g.atoms[i]->HasStereoSpecified(OEChem::OEAtomStereo::Tetra)) {
+            continue;
+        }
+        std::vector<std::pair<unsigned int, std::size_t>> ordered;
+        ordered.reserve(g.adjacency[i].size());
+        for (const auto k : g.adjacency[i]) {
+            ordered.emplace_back(g.atoms[k]->GetIdx(), k);
+        }
+        std::sort(ordered.begin(), ordered.end());
+        std::vector<OEChem::OEAtomBase*> oe_nbrs;
+        oe_nbrs.reserve(ordered.size());
+        ctrl[i].reserve(ordered.size());
+        for (const auto& [oeidx, hidx] : ordered) {
+            oe_nbrs.push_back(const_cast<OEChem::OEAtomBase*>(g.atoms[hidx]));
+            ctrl[i].push_back(hidx);
+        }
+        const unsigned int st =
+            const_cast<OEChem::OEAtomBase*>(g.atoms[i])->GetStereo(oe_nbrs, OEChem::OEAtomStereo::Tetra);
+        if (st == OEChem::OEAtomStereo::Left || st == OEChem::OEAtomStereo::Right) {
+            specified[i] = true;
+            base_parity[i] = (st == OEChem::OEAtomStereo::Right) ? 1 : 0;
+        }
+    }
 
-    // Fixed-point disqualification. Each surviving candidate carries a unique
-    // label (desymmetrising its own environment); a candidate whose neighbours
-    // are indistinguishable is dropped unless a ring-stereo tie tolerates it.
-    // Dropping a candidate cascades to its ring partners exactly as RDKit's
-    // updateAtoms does, and the possible set only shrinks, so this converges.
-    // (The cleanIt=false restore pass RDKit performs afterwards re-seeds the
-    // same original candidates and re-runs the identical loop, so it is
-    // redundant here.)
-    while (true) {
-        const std::vector<int> ranks = refine_symmetry_classes(g, possible);
-        bool changed = false;
+    // "_CW"/"_CCW" descriptor rendering (labels are arbitrary; only equality
+    // matters). Distinct prefix from the unique "_P" possible-atom label so the
+    // two schemes never collide.
+    const auto desc_symbol = [&](std::size_t i, int parity) {
+        return base[i] + (parity ? "|Scw" : "|Sccw");
+    };
+
+    const StereoBondSets stereo_bonds = compute_internal_stereo_bonds(mol, g, ri);
+
+    // RDKit knownAtoms/possibleAtoms partition: specified centres are "known"
+    // (carry a parity descriptor), every other candidate is an "unspecified
+    // possible" centre (carries a unique per-index label). Unknown ("?"/wiggly)
+    // atoms would also be "known" with a unique to_string(idx) label, but that is
+    // behaviourally identical to the unspecified unique label for the atom path,
+    // so both are folded into the possible branch.
+    std::vector<bool> known(n, false);
+    std::vector<bool> possible(n, false);
+    std::vector<bool> fixed(n, false);
+    std::vector<bool> center(n, false);
+    std::vector<std::string> symbol(n);
+    for (std::size_t i = 0u; i < n; ++i) {
+        symbol[i] = base[i];
+        if (!candidate[i]) {
+            continue;
+        }
+        if (specified[i]) {
+            known[i] = true;
+            symbol[i] = desc_symbol(i, base_parity[i]);  // ctrl already index-sorted
+        } else {
+            possible[i] = true;
+            symbol[i] = base[i] + "|P" + std::to_string(i);
+        }
+    }
+    const std::vector<bool> orig_possible = possible;
+
+    RingStereo rs = flag_ring_stereo(g, ri, candidate, stereo_bonds);
+
+    // RDKit updateAtoms (FindStereo.cpp:748-869), atom path. Recomputes each
+    // specified centre's descriptor relative to its neighbours' current ranks,
+    // drops candidates whose controlling neighbours become indistinguishable
+    // (unless a ring-stereo tie tolerates it), and cascades the ring-stereo
+    // bookkeeping. Returns whether any symbol/candidate changed.
+    //
+    // Unlike RDKit's updateAtoms, the duplicate rule is applied to specified
+    // centres on EVERY round, not just before they are first fixed. RDKit's new
+    // findPotentialStereo trusts a specified tag once fixed because the molecule
+    // it sees has already had redundant tags stripped by the legacy parse-time
+    // chirality cleanup (MolFromSmiles' SANITIZE_CLEANUPCHIRALITY, which uses the
+    // legacy perception by default). OE preserves those tags, so we reproduce the
+    // cleanup here: once a centre's controlling neighbours converge to equal
+    // ranks it can no longer be a stereocentre and its tag is dropped. The
+    // duplicate rule never keeps a centre with equal-rank controlling neighbours,
+    // so this only ever removes genuinely redundant (e.g. pseudo-asymmetric meso)
+    // tags and matches the SPS oracle (FindMolChiralCenters on the cleaned mol).
+    const auto update_atoms = [&](const std::vector<int>& ranks) {
+        bool need_another = false;
+        center.assign(n, false);
         for (std::size_t i = 0u; i < n; ++i) {
-            if (!possible[i] || !has_disqualifying_duplicate(g, rs, i, ranks)) {
+            if (!(known[i] || possible[i])) {
                 continue;
             }
+            if (!has_disqualifying_duplicate(g, rs, i, ranks)) {
+                if (fixed[i]) {
+                    center[i] = true;  // frozen survivor; RDKit re-emits its StereoInfo
+                    continue;
+                }
+                std::string new_symbol = symbol[i];
+                if (!possible[i]) {  // a "known" (specified) centre
+                    if (specified[i]) {
+                        std::vector<int> nbr_ranks;
+                        nbr_ranks.reserve(ctrl[i].size());
+                        for (const auto c : ctrl[i]) {
+                            nbr_ranks.push_back(ranks[c]);
+                        }
+                        const int parity = base_parity[i] ^ neighbor_rank_swap_parity(nbr_ranks);
+                        new_symbol = desc_symbol(i, parity);
+                    }
+                    fixed[i] = true;
+                }
+                if (symbol[i] != new_symbol) {
+                    symbol[i] = new_symbol;
+                    need_another = true;
+                }
+                center[i] = true;
+                continue;
+            }
+            // haveADupe: this centre loses its stereo candidacy this round. This
+            // also re-checks already-fixed specified centres, stripping redundant
+            // tags OE preserves (see the note above the lambda).
+            if (possible[i] || fixed[i]) {
+                need_another = true;
+            }
             possible[i] = false;
-            changed = true;
+            fixed[i] = false;
+            symbol[i] = base[i];
+            center[i] = false;
             if (rs.atoms[i] == 0) {
                 continue;
             }
-            // Ring-stereo cascade: this atom no longer supports ring stereo, so
-            // update every ring it shares. Rings dropping below two candidates
-            // can no longer transmit stereo.
+            // Ring-stereo cascade (FindStereo.cpp:826-860): drop this atom's ring
+            // support, un-fix every ring atom so it is rechecked, and decrement
+            // rings that can no longer transmit stereo.
             rs.atoms[i] = 0;
+            need_another = true;
             for (std::size_t ridx = 0u; ridx < ri.atom_rings.size(); ++ridx) {
                 const auto& aring = ri.atom_rings[ridx];
                 int here = 0;
                 for (const auto a : aring) {
+                    fixed[a] = false;
                     if (rs.atoms[a] > 0) {
                         ++here;
                     }
@@ -769,9 +910,38 @@ RDKitStereogenicity rdkit_potential_stereogenicity(const OEChem::OEMolBase& mol)
                 }
             }
         }
-        if (!changed) {
-            break;
+        return need_another;
+    };
+
+    const auto run_rounds = [&]() {
+        bool need_another = true;
+        while (need_another) {
+            const std::vector<int> ranks = rank_by_symbols(g, symbol);
+            need_another = update_atoms(ranks);
         }
+    };
+
+    run_rounds();
+
+    // RDKit's second pass (FindStereo.cpp:1163-1204): if any possible centre was
+    // dropped, restore the original possible set, demote every non-fixed known
+    // centre to a uniquely-labelled possible centre, and re-run. This lets a
+    // specified centre that failed as "known" be reconsidered as an ordinary
+    // possible (ring-dependent) centre, while the fixed specified survivors keep
+    // their parity descriptors.
+    if (possible != orig_possible) {
+        possible = orig_possible;
+        for (std::size_t i = 0u; i < n; ++i) {
+            if (!fixed[i] && known[i]) {
+                possible[i] = true;
+                known[i] = false;
+            }
+            if (possible[i]) {
+                symbol[i] += "|P" + std::to_string(i);
+            }
+        }
+        rs = flag_ring_stereo(g, ri, candidate, stereo_bonds);
+        run_rounds();
     }
 
     const std::vector<bool> stereo_bond_atoms = compute_stereo_bond_atoms(mol, g, ri);
@@ -780,7 +950,7 @@ RDKitStereogenicity rdkit_potential_stereogenicity(const OEChem::OEMolBase& mol)
     result.atom_is_potential_stereocenter.assign(n, false);
     result.atom_on_potential_stereo_bond.assign(n, false);
     for (std::size_t i = 0u; i < n; ++i) {
-        result.atom_is_potential_stereocenter[i] = possible[i] && tetrahedral[i];
+        result.atom_is_potential_stereocenter[i] = center[i] && tetrahedral[i];
         result.atom_on_potential_stereo_bond[i] = stereo_bond_atoms[i];
     }
     return result;

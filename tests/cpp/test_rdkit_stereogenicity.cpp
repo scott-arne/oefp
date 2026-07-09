@@ -47,6 +47,38 @@ TEST(RDKitStereogenicityTest, ClassicTetrahedralCenters) {
     EXPECT_EQ(stereo_atoms("FC(Cl)Br"), (std::set<std::size_t>{1}));        // assigned-agnostic
 }
 
+// Specified-stereo atom symbols: a specified centre contributes a parity symbol
+// (_CW/_CCW), not a unique per-index label, so ring/dependent centres are
+// distinguished by the RELATIONSHIP between neighbouring specified centres.
+// meso vs like configurations therefore give different centre sets. Redundant
+// (pseudo-asymmetric) specified tags that OE preserves but RDKit strips at parse
+// time are cleaned up by the duplicate rule. All expected sets verified against
+// the RDKit 2026.03.3 SPS oracle (FindMolChiralCenters, includeUnassigned=True,
+// includeCIP=False, useLegacyImplementation=False, on the sanitized molecule).
+TEST(RDKitStereogenicityTest, SpecifiedStereoAtomSymbols) {
+    // Opposite-parity (meso-like): central atom 3 is NOT a stereocenter because
+    // the two [C@H]/[C@@H] arms become equivalent under the parity symbols.
+    EXPECT_EQ(stereo_atoms("C[C@H](F)C(Cl)(Br)[C@@H](F)C"),
+              (std::set<std::size_t>{1, 6}));
+    // Same-parity: central atom 3 IS a stereocenter (arms distinguishable).
+    EXPECT_EQ(stereo_atoms("C[C@H](F)C(Cl)(Br)[C@H](F)C"),
+              (std::set<std::size_t>{1, 3, 6}));
+    // Butane-2,3-diol: both centres survive regardless of relative parity.
+    EXPECT_EQ(stereo_atoms("C[C@H](O)[C@@H](O)C"), (std::set<std::size_t>{1, 3}));
+    EXPECT_EQ(stereo_atoms("C[C@H](O)[C@H](O)C"), (std::set<std::size_t>{1, 3}));
+    // Pentitol with a specified middle carbon: the middle is a redundant
+    // pseudo-asymmetric tag (enantiomeric arms) and is dropped -> {2,6}.
+    EXPECT_EQ(stereo_atoms("OC[C@@H](O)[C@@H](O)[C@H](O)CO"),
+              (std::set<std::size_t>{2, 6}));
+    // Trihydroxyglutaric acid: the middle carbon's arms are distinguishable
+    // (COOH-terminated), so the middle IS retained -> {3,5,7}.
+    EXPECT_EQ(stereo_atoms("OC(=O)[C@@H](O)[C@H](O)[C@@H](O)C(=O)O"),
+              (std::set<std::size_t>{3, 5, 7}));
+    // 2,3,4-trichloropentane: middle carbon retained (arms distinguishable).
+    EXPECT_EQ(stereo_atoms("C[C@@H](Cl)[C@H](Cl)[C@@H](Cl)C"),
+              (std::set<std::size_t>{1, 3, 5}));
+}
+
 TEST(RDKitStereogenicityTest, SimpleNegatives) {
     EXPECT_TRUE(stereo_atoms("c1ccccc1").empty());   // benzene
     EXPECT_TRUE(stereo_atoms("C1CCCCC1").empty());   // cyclohexane
