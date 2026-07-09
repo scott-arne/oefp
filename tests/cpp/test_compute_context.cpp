@@ -1,4 +1,5 @@
 #include "oefp/compute_context.h"
+#include "oefp/molecular_properties.h"
 
 #include <gtest/gtest.h>
 
@@ -225,4 +226,16 @@ TEST(ComputeContextTest, HydrogenSuppressedMolSuppressesExplicitHydrogens) {
     ASSERT_TRUE(OEChem::OESmilesToMol(ethanol, "CCO"));  // already implicit-H
     ComputeContext ctx2(ethanol);
     EXPECT_EQ(ctx2.HydrogenSuppressedMol().NumAtoms(), ethanol.NumAtoms());  // no-op
+}
+
+// A hydrogen-only molecule has no heavy atom to hold implicit hydrogens, so
+// suppression must be skipped — otherwise OESuppressHydrogens collapses it and
+// halves the weight/atom counts. Molecular hydrogen must stay two atoms.
+TEST(ComputeContextTest, HydrogenSuppressedMolPreservesHydrogenOnlyMolecule) {
+    OEChem::OEGraphMol h2;
+    ASSERT_TRUE(OEChem::OESmilesToMol(h2, "[H][H]"));
+    ComputeContext ctx(h2);
+    EXPECT_EQ(ctx.HydrogenSuppressedMol().NumAtoms(), 2u);
+    EXPECT_NEAR(ExactMolecularWeight(ctx.HydrogenSuppressedMol()), 2.01565, 1e-4);
+    EXPECT_EQ(TotalAtomCount(ctx.HydrogenSuppressedMol()), 2u);
 }

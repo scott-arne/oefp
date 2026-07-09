@@ -1,6 +1,7 @@
 #include "oefp/compute_context.h"
 
 #include "oefp/input_normalization.h"
+#include "oefp/molecular_properties.h"
 
 #include <utility>
 
@@ -25,7 +26,14 @@ const OEChem::OEGraphMol& ComputeContext::RingPerceivedMol() const {
 const OEChem::OEGraphMol& ComputeContext::HydrogenSuppressedMol() const {
     if (!hydrogen_suppressed_mol_) {
         OEChem::OEGraphMol working_mol(mol_);
-        OEChem::OESuppressHydrogens(working_mol);
+        // OESuppressHydrogens collapses a hydrogen-only molecule (e.g. [H][H]):
+        // it strips the bonded hydrogen and warns on the neighborless remainder,
+        // halving the atom/weight counts. Only suppress when a heavy atom exists
+        // to hold the implicit hydrogens; the weight/count helpers already count
+        // explicit hydrogens correctly on the un-suppressed molecule regardless.
+        if (HeavyAtomCount(working_mol) > 0u) {
+            OEChem::OESuppressHydrogens(working_mol);
+        }
         OEChem::OEFindRingAtomsAndBonds(working_mol);
         OEChem::OEAssignHybridization(working_mol);
         hydrogen_suppressed_mol_.emplace(std::move(working_mol));
