@@ -62,3 +62,25 @@ TEST(RDKitDescriptorSourceTest, TpsaCountsExplicitHydrogensOnce) {
         EXPECT_NEAR(row.Float("TPSA"), c.expected_tpsa, 1e-6) << c.smiles;
     }
 }
+
+TEST(RDKitDescriptorsTest, SpacialScoreMatchesOracle) {
+    struct Case { const char* smiles; double nsps; };
+    const Case cases[] = {
+        {"C12C3C4C1C5C2C3C45", 108.0},          // cubane
+        {"C1C2CC3CC1CC(C2)C3", 57.6},           // adamantane
+        {"C1CC23CCC(C1)(CC2)CC3", 600.0 / 11},  // bridged bicyclo
+        {"CC1CCC(C)CC1", 39.75},                // 1,4-dimethylcyclohexane
+        {"CC1CCCCC1", 177.0 / 7},               // methylcyclohexane (negative)
+        {"CC=CCO", 10.0},                       // crotyl (double-bond stereo)
+        {"c1ccccc1", 8.0},                      // benzene
+    };
+    const auto schema = RDKitDescriptorSchema();
+    const auto sps = schema->IndexOf("SPS");
+    for (const auto& c : cases) {
+        OEChem::OEGraphMol mol;
+        ASSERT_TRUE(OEChem::OESmilesToMol(mol, c.smiles)) << c.smiles;
+        const auto row = MakeRDKitDescriptors(mol);
+        ASSERT_TRUE(row.Has(sps)) << c.smiles;
+        EXPECT_NEAR(row.Value(sps).AsFloat(), c.nsps, 1e-9) << c.smiles;
+    }
+}

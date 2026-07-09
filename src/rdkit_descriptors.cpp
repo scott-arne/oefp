@@ -4,6 +4,7 @@
 #include "oefp/molecular_properties.h"
 #include "oefp/mordred_intermediates.h"
 #include "oefp/morgan.h"
+#include "oefp/rdkit_stereogenicity.h"
 
 #include <oesystem.h>
 
@@ -436,12 +437,6 @@ double fp_density_morgan(const OEChem::OEMolBase& mol, std::uint32_t radius) {
     return static_cast<double>(fingerprint.NonzeroCount()) / static_cast<double>(heavy_atoms);
 }
 
-// SPS (RDKit SpacialScore) is intentionally NOT implemented here. It is deferred
-// and left MISSING: reproducing it requires RDKit's potential-stereocenter
-// enumeration and exact conjugated-heteroatom hybridization model, neither
-// exposed by OpenEye (a best-effort native port deviated by up to 50% on cage
-// systems). A dedicated deep-dive follow-up task will own it.
-
 // ---------------------------------------------------------------------------
 // rdkit:Connectivity family (Task 6): the 20 float connectivity/shape indices
 // plus the Kappa values that feed the CountsWeights `Phi` column.
@@ -602,6 +597,16 @@ int rdkit_num_bonds_plus_lone_pairs(const ConnectivityAtomInfo& info) {
 
 /// \brief RDKit hybridization classes the Hall-Kier alpha table distinguishes.
 enum class RDKitHybridization { S, SP, SP2, SP3, SP3D, SP3D2, Unspecified };
+
+/// \brief RDKit SpacialScore hybridization term: SP->1, SP2->2, SP3->3, else 4.
+int sps_hybridization_term(RDKitHybridization hybridization) {
+    switch (hybridization) {
+        case RDKitHybridization::SP:  return 1;
+        case RDKitHybridization::SP2: return 2;
+        case RDKitHybridization::SP3: return 3;
+        default:                      return 4;
+    }
+}
 
 /// \brief Per-heavy-atom hybridization reproducing RDKit's
 ///     ``setConjugation`` + ``setHybridization``.
@@ -2190,16 +2195,13 @@ const std::vector<RDKitGroup>& rdkit_group_registry() {
         const DescriptorSchema& s = *schema;
         std::vector<RDKitGroup> groups;
 
-        // Group: rdkit:CountsWeights — 21 dependency-free descriptors. `Phi` was
+        // Group: rdkit:CountsWeights — 22 dependency-free descriptors. `Phi` was
         // once a member here, but it is Kappa1*Kappa2/heavy-count and so is now
         // emitted by the Connectivity group alongside the Kappa indices it
         // derives from. Keeping it here forced every CountsWeights request —
         // including cheap columns like `MolWt`/`HeavyAtomCount` — to drag in the
         // whole Connectivity group (its O(n^4) `Ipc` and O(n^3) `BertzCT`); the
-        // move drops that dependency. `SPS` is a member but is deferred and left
-        // MISSING (see the deferral note at the SPS emission site below), so it
-        // is not listed in emitted_columns and the subtractive pruning check
-        // treats it as an unrequested/missing column.
+        // move drops that dependency.
         groups.push_back(RDKitGroup{
             RDKitGroupId::CountsWeights,
             rdkit_column_indices(
@@ -2209,10 +2211,10 @@ const std::vector<RDKitGroup>& rdkit_group_registry() {
                  "FpDensityMorgan3", "FractionCSP3", "HeavyAtomCount", "NHOHCount",
                  "NOCount", "NumAmideBonds", "NumAtomStereoCenters", "NumBridgeheadAtoms",
                  "NumHAcceptors", "NumHDonors", "NumHeteroatoms", "NumRotatableBonds",
-                 "NumSpiroAtoms", "NumUnspecifiedAtomStereoCenters"}),
+                 "NumSpiroAtoms", "NumUnspecifiedAtomStereoCenters", "SPS"}),
             {},  // dependency-free
             [](const OEChem::OEMolBase&, ComputeContext& ctx,
-               RDKitGroupArtifacts& artifacts, const ColumnRequest&,
+               RDKitGroupArtifacts& artifacts, const ColumnRequest& request,
                RequestGatedBuilder& builder) {
                 // RDKit's oracle treats a stereo bracket hydrogen (e.g. the H in
                 // C[C@H](N)C(=O)O) as implicit, but OpenEye keeps it as an
@@ -2262,14 +2264,59 @@ const std::vector<RDKitGroup>& rdkit_group_registry() {
                 set_float(builder, "FpDensityMorgan1", fp_density_morgan(mol, 1u));
                 set_float(builder, "FpDensityMorgan2", fp_density_morgan(mol, 2u));
                 set_float(builder, "FpDensityMorgan3", fp_density_morgan(mol, 3u));
-                // SPS deferred — RDKit SpacialScore depends on RDKit's
-                // potential-stereocenter enumeration (FindMolChiralCenters with
-                // includeUnassigned=True, useLegacyImplementation=False) and its
-                // exact conjugated-heteroatom hybridization model, neither exposed
-                // by OpenEye (up to 50% deviation on cage systems such as cubane).
-                // Left MISSING rather than shipping a knowingly-wrong value; a
-                // dedicated deep-dive follow-up task is needed. See the SPS
-                // deferral note in the task-3 report.
+
+                // SPS (RDKit SpacialScore / nSPS): guarded behind an explicit
+                // request-gate so a cheap CountsWeights request (e.g. MolWt) does
+                // NOT build the heavy-atom graph or run stereogenicity perception.
+                static const std::size_t sps_index =
+                    RDKitDescriptorSchema()->IndexOf("SPS");
+                if (request.Wants(sps_index)) {
+                    // h and n come from the SHARED heavy-atom graph. Calling
+                    // ctx.HeavyAtomGraph() (a COUNTED intermediate) is what makes the
+                    // Task-3 pruning gate observable: a MolWt-only request never asks
+                    // for SPS, so the heavy graph is never built for it. The heavy
+                    // graph excludes hydrogens, so it is correct without suppression,
+                    // and rdkit_hybridizations over this same graph is already
+                    // conformance-verified (HallKierAlpha uses it).
+                    const auto& graph = ctx.HeavyAtomGraph();
+                    const auto atom_info = rdkit_connectivity_atom_info(graph);
+                    const auto hybridizations = rdkit_hybridizations(graph, atom_info);
+
+                    // r (ring/aromatic) and s (stereogenicity) need ring + aromaticity
+                    // perception. Build a LOCAL perceived copy of the normalized
+                    // molecule; the context reference is shared with other sources and
+                    // must not be mutated. No suppression: indices stay aligned with
+                    // graph.atoms, and rdkit_potential_stereogenicity is
+                    // hydrogen-representation-agnostic (heavy-only terms).
+                    OEChem::OEGraphMol sps_mol(ctx.NormalizedMol());
+                    OEChem::OEFindRingAtomsAndBonds(sps_mol);
+                    OEChem::OEAssignAromaticFlags(sps_mol);
+                    OEChem::OEAssignHybridization(sps_mol);
+                    const auto stereo = rdkit_potential_stereogenicity(sps_mol);
+
+                    std::int64_t sps_total = 0;
+                    const std::size_t heavy = graph.atoms.size();
+                    for (std::size_t i = 0u; i < heavy; ++i) {
+                        // graph.atoms[i] and sps_mol share atom indices (both derive
+                        // from the normalized molecule); stereo[i] is in the same heavy
+                        // iteration order as graph.atoms.
+                        const OEChem::OEAtomBase* rmol_atom =
+                            sps_mol.GetAtom(OEChem::OEHasAtomIdx(graph.atoms[i]->GetIdx()));
+                        const int h = sps_hybridization_term(hybridizations[i]);
+                        const int s = (stereo.atom_is_potential_stereocenter[i]
+                                       || stereo.atom_on_potential_stereo_bond[i]) ? 2 : 1;
+                        const int r = rmol_atom->IsAromatic()
+                                          ? 1
+                                          : (rmol_atom->IsInRing() ? 2 : 1);
+                        const std::int64_t n =
+                            static_cast<std::int64_t>(graph.adjacency[i].size());
+                        sps_total += static_cast<std::int64_t>(h) * s * r * n * n;
+                    }
+                    if (heavy != 0u) {
+                        set_float(builder, "SPS",
+                                  static_cast<double>(sps_total) / static_cast<double>(heavy));
+                    }
+                }
             }});
 
         // Group: rdkit:RingCounts — the 11 dependency-free SSSR ring-count

@@ -102,25 +102,21 @@ def test_rdkit_descriptors_release_gil_for_concurrent_computation():
     assert results == [214] * len(smiles_batch)
 
 
-# Descriptors intentionally left uncomputed pending deep-dive follow-ups. SPS
-# requires a native RDKit potential-stereo plus hybridization model; the
-# Gasteiger-dependent set has been resolved via the native RDKit-Gasteiger port.
-DEFERRED_DESCRIPTOR_NAMES: frozenset[str] = frozenset({
-    "SPS",
-})
+# Descriptors intentionally left uncomputed pending deep-dive follow-ups. The
+# Gasteiger-dependent set and SPS have been resolved.
+DEFERRED_DESCRIPTOR_NAMES: frozenset[str] = frozenset()
 
 
 # Families enabled for conformance checking; grows as tasks land. This set
-# enables the 21 dependency-free CountsWeights descriptors and the 11
-# RingCounts descriptors. `SPS` and `Phi` are CountsWeights members deferred to
-# later tasks (see comments below).
+# enables the 22 dependency-free CountsWeights descriptors and the 11
+# RingCounts descriptors.
 ENABLED_DESCRIPTOR_NAMES: set[str] = {
     "MolWt", "HeavyAtomMolWt", "ExactMolWt", "NumValenceElectrons",
     "NumRadicalElectrons", "FpDensityMorgan1", "FpDensityMorgan2",
     "FpDensityMorgan3", "FractionCSP3", "HeavyAtomCount", "NHOHCount",
     "NOCount", "NumAmideBonds", "NumAtomStereoCenters", "NumBridgeheadAtoms",
     "NumHAcceptors", "NumHDonors", "NumHeteroatoms", "NumRotatableBonds",
-    "NumSpiroAtoms", "NumUnspecifiedAtomStereoCenters",
+    "NumSpiroAtoms", "NumUnspecifiedAtomStereoCenters", "SPS",
     # RingCounts (Task 5): 11 dependency-free SSSR ring classifications.
     "RingCount", "NumAromaticRings", "NumAliphaticRings", "NumSaturatedRings",
     "NumAromaticCarbocycles", "NumAromaticHeterocycles", "NumAliphaticCarbocycles",
@@ -209,8 +205,6 @@ ENABLED_DESCRIPTOR_NAMES: set[str] = {
     "PEOE_VSA1", "PEOE_VSA2", "PEOE_VSA3", "PEOE_VSA4", "PEOE_VSA5",
     "PEOE_VSA6", "PEOE_VSA7", "PEOE_VSA8", "PEOE_VSA9", "PEOE_VSA10",
     "PEOE_VSA11", "PEOE_VSA12", "PEOE_VSA13", "PEOE_VSA14",
-    # "SPS" deferred — RDKit SpacialScore needs RDKit-internal potential-stereo +
-    # hybridization models OpenEye doesn't expose; needs a dedicated deep-dive task.
 }
 
 
@@ -258,7 +252,7 @@ def test_full_214_surface_is_enabled_or_deferred():
         f"enabled/deferred overlap: {overlap}"
     assert ENABLED_DESCRIPTOR_NAMES | DEFERRED_DESCRIPTOR_NAMES == all_names, \
         f"missing from enabled+deferred: {missing_from_either}"
-    assert len(DEFERRED_DESCRIPTOR_NAMES) == 1, \
-        f"deferred count changed: {len(DEFERRED_DESCRIPTOR_NAMES)} (expected 1)"
-    assert len(ENABLED_DESCRIPTOR_NAMES) == 213, \
-        f"enabled count changed: {len(ENABLED_DESCRIPTOR_NAMES)} (expected 213)"
+    assert len(DEFERRED_DESCRIPTOR_NAMES) == 0, \
+        f"deferred count changed: {len(DEFERRED_DESCRIPTOR_NAMES)} (expected 0)"
+    assert len(ENABLED_DESCRIPTOR_NAMES) == 214, \
+        f"enabled count changed: {len(ENABLED_DESCRIPTOR_NAMES)} (expected 214)"

@@ -161,6 +161,7 @@ RDKIT_TOLERANCE_TIERS: dict[str, str] = {
     "FpDensityMorgan1": "exact",
     "FpDensityMorgan2": "exact",
     "FpDensityMorgan3": "exact",
+    "SPS": "exact",
     # Ring counts (Task 5): all integer counts, so the conformance test compares
     # them for exact equality and the tier is only advisory. Marked exact because
     # every one matches RDKit exactly across the panel: RingCount reproduces
