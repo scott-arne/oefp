@@ -1479,12 +1479,32 @@ bool has_bond_order_at_least(const OEChem::OEAtomBase& atom, unsigned int order)
     return false;
 }
 
+// Count an atom's double bonds (order exactly 2). Two or more mark a cumulene
+// centre (sp), distinguishing it from an ordinary sp2 atom with one double bond.
+unsigned int count_double_bonds(const OEChem::OEAtomBase& atom) {
+    unsigned int doubles = 0u;
+    for (OESystem::OEIter<OEChem::OEBondBase> bond = atom.GetBonds(); bond; ++bond) {
+        if (bond->GetOrder() == 2u) {
+            ++doubles;
+        }
+    }
+    return doubles;
+}
+
 const char* gasteiger_mode(const OEChem::OEAtomBase& atom, bool has_conjugated_bond) {
     const auto atomic_number = static_cast<std::uint32_t>(atom.GetAtomicNum());
     if (atomic_number == 1u) {
         return "*";
     }
     if (atomic_number != 16u && has_bond_order_at_least(atom, 3u)) {
+        return "sp";
+    }
+    // A first-row atom with two or more double bonds is a cumulene centre
+    // (e.g. the carbon of O=C=O / N=C=O, the central N of an azide): two
+    // orthogonal pi systems make it sp-hybridised, which RDKit types "sp".
+    // This must precede the sp2 branch below, which would otherwise capture
+    // any atom that merely has a double bond.
+    if (atomic_number <= 10u && count_double_bonds(atom) >= 2u) {
         return "sp";
     }
     // RDKit hybridization uses its conjugation flags before Gasteiger lookup;

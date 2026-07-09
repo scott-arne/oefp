@@ -86,3 +86,20 @@ TEST(ComputeContextTest, NewAccessorsCacheAndBumpCountByOne) {
     EXPECT_EQ(ctx.ComputeCount(), after_first_bcut);
     EXPECT_TRUE(bcut_a.defined);  // aspirin has RDKit Gasteiger parameters
 }
+
+// CO2 (O=C=O) has no hydrogens, so its heavy-atom Gasteiger charges are
+// H-treatment-independent and can be pinned directly to RDKit's values. The
+// central carbon is sp-hybridised (two cumulated double bonds); RDKit types it
+// "C sp" and reports +0.3729, and each terminal oxygen -0.1865. The pre-fix
+// gasteiger_mode() mis-types the carbon "sp2" and diverges here.
+TEST(ComputeContextTest, GasteigerChargesMatchRDKitOnCumulene) {
+    OEChem::OEGraphMol mol;
+    ASSERT_TRUE(OEChem::OESmilesToMol(mol, "O=C=O"));
+    ComputeContext ctx(mol);
+    const auto& charges = ctx.GasteigerAtomCharges().charges;
+    ASSERT_EQ(charges.size(), 3u);
+    // atom order O, C, O — carbon is the middle heavy atom.
+    EXPECT_NEAR(charges[1], 0.3729, 1e-3);
+    EXPECT_NEAR(charges[0], -0.1865, 1e-3);
+    EXPECT_NEAR(charges[2], -0.1865, 1e-3);
+}
