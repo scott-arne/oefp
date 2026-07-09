@@ -1,6 +1,7 @@
 #include "oefp/input_normalization.h"
 #include <gtest/gtest.h>
 #include <oechem.h>
+#include <set>
 using namespace OEFP;
 
 namespace {
@@ -52,15 +53,36 @@ TEST(InputNormalizationTest, IdempotentAndNonNitroUntouched) {
     }
     EXPECT_EQ(n_charge, 1);
     EXPECT_EQ(o_minus, 1);
-    // non-nitro nitrogens untouched (amide, amine, pyridine, azide)
+
+    // Non-nitro molecules must be untouched: the guard must not over-fire on an
+    // amide, amine, pyridine, or azide (whose central N is legitimately +1 in
+    // the input). Normalization must leave every formal charge exactly as parsed
+    // and must introduce no -1 oxygen (the sole product of the nitro rewrite).
     for (const char* smi : {"CC(=O)N", "CCN", "c1ccncc1", "CCN=[N+]=[N-]"}) {
-        const auto norm = normalize_molecule(parse(smi));
-        for (OESystem::OEIter<OEChem::OEAtomBase> a = norm.GetAtoms(); a; ++a) {
-            if (a->GetAtomicNum() == 7) {
-                // no neutral N should have been turned into a +1 nitro N here
-                // (azide's central N is legitimately +1 already from the SMILES)
-            }
+        const auto input = parse(smi);
+        const auto norm = normalize_molecule(input);
+        std::multiset<int> before, after;
+        int norm_o_minus = 0;
+        for (OESystem::OEIter<OEChem::OEAtomBase> a = input.GetAtoms(); a; ++a) {
+            before.insert(a->GetFormalCharge());
         }
-        SUCCEED();  // parse + normalize without crash; charges below asserted structurally
+        for (OESystem::OEIter<OEChem::OEAtomBase> a = norm.GetAtoms(); a; ++a) {
+            after.insert(a->GetFormalCharge());
+            if (a->GetAtomicNum() == 8 && a->GetFormalCharge() == -1) ++norm_o_minus;
+        }
+        EXPECT_EQ(before, after) << smi << ": formal charges must be unchanged";
+        EXPECT_EQ(norm_o_minus, 0) << smi << ": nitro rewrite must not have fired";
     }
+
+    // Double application is a no-op: re-normalizing an already-charged nitro
+    // leaves the +1 N and single -1 O in place (the guard skips charged N).
+    const auto once = normalize_molecule(parse("CN(=O)=O"));
+    const auto twice = normalize_molecule(once);
+    int twice_n = 0, twice_o_minus = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> a = twice.GetAtoms(); a; ++a) {
+        if (a->GetAtomicNum() == 7) twice_n = a->GetFormalCharge();
+        if (a->GetAtomicNum() == 8 && a->GetFormalCharge() == -1) ++twice_o_minus;
+    }
+    EXPECT_EQ(twice_n, 1);
+    EXPECT_EQ(twice_o_minus, 1);
 }
