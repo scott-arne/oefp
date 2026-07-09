@@ -335,3 +335,34 @@ TEST(RDKitPruningEquivalenceTest, PartialChargeSingleColumnAcrossPanel) {
 TEST(RDKitPruningEquivalenceTest, CompositeSingleColumn) {
     expect_column_matches_across_panel({"qed"});
 }
+
+// SPS is emitted by the CountsWeights group but its expensive heavy-graph +
+// stereogenicity path is request-gated. Requesting ONLY {"SPS"} must reproduce
+// the full-schema value exactly and leave every other column missing, including
+// its CountsWeights siblings (MolWt, ...). Cage molecules exercise the stereo path.
+TEST(RDKitPruningEquivalenceTest, SpsSingleColumnAcrossPanel) {
+    expect_subset_matches_all("C12C3C4C1C5C2C3C45", {"SPS"});   // cubane
+    expect_subset_matches_all("C1C2CC3CC1CC(C2)C3", {"SPS"});   // adamantane
+    expect_subset_matches_all("CC=CCO", {"SPS"});               // crotyl
+    expect_column_matches_across_panel({"SPS"});                // the standard panel too
+}
+
+// A cheap CountsWeights request (MolWt) must NOT trigger SPS's expensive path.
+// SPS builds ctx.HeavyAtomGraph() (and runs stereogenicity perception); MolWt
+// reads only ctx.RingPerceivedMol(). So adding SPS to a MolWt request must
+// STRICTLY increase the shared-context intermediates computed. If SPS were ever
+// computed ungated inside CountsWeights, MolWt alone would already build the
+// heavy graph and the two counts would converge, failing this test.
+TEST(RDKitPruningEquivalenceTest, CheapCountsWeightsRequestSkipsSps) {
+    OEChem::OEGraphMol mol;
+    ASSERT_TRUE(OEChem::OESmilesToMol(mol, "C12C3C4C1C5C2C3C45"));  // cubane
+
+    ComputeContext ctx_molwt(mol);
+    MakeRDKitDescriptors(mol, ctx_molwt, ColumnRequest::Subset(indices_for({"MolWt"})));
+
+    ComputeContext ctx_molwt_sps(mol);
+    MakeRDKitDescriptors(
+        mol, ctx_molwt_sps, ColumnRequest::Subset(indices_for({"MolWt", "SPS"})));
+
+    EXPECT_LT(ctx_molwt.ComputeCount(), ctx_molwt_sps.ComputeCount());
+}
