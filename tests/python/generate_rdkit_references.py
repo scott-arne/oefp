@@ -273,6 +273,17 @@ RDKIT_TOLERANCE_TIERS: dict[str, str] = {
         "fr_bicyclic", "fr_lactone", "fr_benzodiazepine", "fr_HOCCN",
         "fr_Ndealkylation2",
     )},
+    # BCUT2D (Task 10 + Gasteiger Task 6): Burden eigenvalues from the charge-
+    # weighted diagonal. BCUT2D_MWHI/MWLOW/LOGPHI/LOGPLOW/MRHI/MRLOW use charge-
+    # independent weights and were enabled in Task 10; BCUT2D_CHGHI/CHGLO weight
+    # by the RDKit-Gasteiger charges (now sp-cumulene faithful) and match the
+    # oracle within loose. qed (Composite) is the RDKit drug-likeness geometric
+    # mean of eight ADS-mapped properties, enabled in Task 10.
+    "BCUT2D_MWHI": "loose", "BCUT2D_MWLOW": "loose",
+    "BCUT2D_CHGHI": "loose", "BCUT2D_CHGLO": "loose",
+    "BCUT2D_LOGPHI": "loose", "BCUT2D_LOGPLOW": "loose",
+    "BCUT2D_MRHI": "loose", "BCUT2D_MRLOW": "loose",
+    "qed": "loose",
     # ... remaining families appended by their tasks.
 }
 

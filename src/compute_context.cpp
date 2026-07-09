@@ -90,7 +90,7 @@ const MordredBCUTEigenvalues& ComputeContext::BCUTEigenvalues() const {
         // contributions so BCUT2D shares those computations rather than rebuilding
         // them; each is served from cache when already warmed by another accessor.
         bcut_eigenvalues_.emplace(compute_rdkit_bcut_eigenvalues(
-            HeavyAtomGraph(), GasteigerAtomCharges(), CrippenContributions()));
+            HeavyAtomGraph(), RDKitGasteigerAtomCharges(), CrippenContributions()));
         ++compute_count_;
     }
     return *bcut_eigenvalues_;

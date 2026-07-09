@@ -299,22 +299,26 @@ TEST(RDKitPruningEquivalenceTest, EStateVsaDependencyClosureAcrossPanel) {
 
 // BCUT2D representative single column across the panel: requesting only
 // BCUT2D_MWHI must reproduce the full-schema value and leave every other column
-// (including the other five emitted BCUT2D members) missing, proving the group's
+// (including the other seven emitted BCUT2D members) missing, proving the group's
 // emitted_columns list is correct under subtractive pruning. Every panel molecule
-// is Gasteiger-parametrized, so the eigenvalues are finite here. BCUT2D_CHGHI /
-// BCUT2D_CHGLO are deferred (their Gasteiger-charge weighting diverges from RDKit
-// on cumulenes, like PartialCharge/PEOE_VSA), so they emit no columns and are not
-// exercised, matching expect_subset_matches_all's every-other-column-missing check.
+// is Gasteiger-parametrized, so the eigenvalues are finite here.
 TEST(RDKitPruningEquivalenceTest, BCUT2DSingleColumn) {
     expect_column_matches_across_panel({"BCUT2D_MWHI"});
+}
+
+// BCUT2D_CHGHI single column across the panel: the charge-weighted eigenvalues
+// (re-enabled after the RDKit sp-cumulene Gasteiger port) must prune correctly
+// like the other BCUT2D pairs.
+TEST(RDKitPruningEquivalenceTest, Bcut2dChgSingleColumnAcrossPanel) {
+    expect_column_matches_across_panel({"BCUT2D_CHGHI"});
 }
 
 // The whole emitted BCUT2D group requested together across the panel: a
 // divergence on any molecule surfaces a pruning error in the group.
 TEST(RDKitPruningEquivalenceTest, WholeBCUT2DGroup) {
     expect_column_matches_across_panel(
-        {"BCUT2D_MWHI", "BCUT2D_MWLOW", "BCUT2D_LOGPHI", "BCUT2D_LOGPLOW",
-         "BCUT2D_MRHI", "BCUT2D_MRLOW"});
+        {"BCUT2D_MWHI", "BCUT2D_MWLOW", "BCUT2D_CHGHI", "BCUT2D_CHGLO",
+         "BCUT2D_LOGPHI", "BCUT2D_LOGPLOW", "BCUT2D_MRHI", "BCUT2D_MRLOW"});
 }
 
 // PartialCharge representative single column across the panel: requesting only

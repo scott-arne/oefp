@@ -74,11 +74,11 @@ TEST(ComputeContextTest, NewAccessorsCacheAndBumpCountByOne) {
     EXPECT_EQ(after_first_labute, before_labute + 1u);
     EXPECT_EQ(ctx.ComputeCount(), after_first_labute);
 
-    // BCUTEigenvalues() reuses the heavy-atom graph, Gasteiger charges, and Crippen
-    // contributions internally, so pre-warm those three; then its own first compute
-    // must bump the count by exactly one and cache a stable reference thereafter.
+    // BCUTEigenvalues() reuses the heavy-atom graph, RDKit Gasteiger charges, and
+    // Crippen contributions internally, so pre-warm those three; then its own first
+    // compute must bump the count by exactly one and cache a stable reference thereafter.
     ctx.HeavyAtomGraph();
-    ctx.GasteigerAtomCharges();
+    ctx.RDKitGasteigerAtomCharges();
     ctx.CrippenContributions();
     const auto before_bcut = ctx.ComputeCount();
     const auto& bcut_a = ctx.BCUTEigenvalues();

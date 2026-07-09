@@ -103,12 +103,10 @@ def test_rdkit_descriptors_release_gil_for_concurrent_computation():
 
 
 # Descriptors intentionally left uncomputed pending deep-dive follow-ups. SPS
-# requires a native RDKit potential-stereo plus hybridization model. The other
-# 20 all consume OpenEye Gasteiger partial charges, which diverge from RDKit on
-# cumulene systems; bundled into a single native RDKit-Gasteiger-port task.
+# requires a native RDKit potential-stereo plus hybridization model; the
+# Gasteiger-dependent set has been resolved via the native RDKit-Gasteiger port.
 DEFERRED_DESCRIPTOR_NAMES: frozenset[str] = frozenset({
     "SPS",
-    "BCUT2D_CHGHI", "BCUT2D_CHGLO",
 })
 
 
@@ -195,16 +193,8 @@ ENABLED_DESCRIPTOR_NAMES: set[str] = {
     # The six non-Gasteiger columns (MW/LOGP/MR HI/LOW) match RDKit within loose
     # across the panel and are enabled here.
     "BCUT2D_MWHI", "BCUT2D_MWLOW",
-    "BCUT2D_LOGPHI", "BCUT2D_LOGPLOW", "BCUT2D_MRHI", "BCUT2D_MRLOW",
-    # BCUT2D_CHGHI / BCUT2D_CHGLO deferred — these two weight the Burden diagonal by
-    # the Gasteiger partial charges, the SAME model whose OpenEye-vs-RDKit divergence
-    # on cumulated-double-bond systems already deferred the PartialCharge and
-    # PEOE_VSA families. On the cumulenes N=C=O and N=C=S the resulting CHGHI
-    # eigenvalue diverges beyond loose (isocyanate got 1.0772 vs 1.0326; isothio-
-    # cyanate got 1.0096 vs 0.9747); CHGLO stays within loose on the panel but is
-    # deferred with CHGHI as a unit since it consumes the identical divergent charges.
-    # Left uncomputed (missing) like PartialCharge/PEOE_VSA until a native RDKit-
-    # Gasteiger port lands; they remain in the 214-column schema, just uncomputed.
+    "BCUT2D_CHGHI", "BCUT2D_CHGLO", "BCUT2D_LOGPHI", "BCUT2D_LOGPLOW",
+    "BCUT2D_MRHI", "BCUT2D_MRLOW",
     # Composite (Task 10): RDKit's quantitative estimate of drug-likeness (qed),
     # the WEIGHT_MEAN geometric mean of eight ADS-mapped molecular properties.
     "qed",
@@ -268,7 +258,7 @@ def test_full_214_surface_is_enabled_or_deferred():
         f"enabled/deferred overlap: {overlap}"
     assert ENABLED_DESCRIPTOR_NAMES | DEFERRED_DESCRIPTOR_NAMES == all_names, \
         f"missing from enabled+deferred: {missing_from_either}"
-    assert len(DEFERRED_DESCRIPTOR_NAMES) == 3, \
-        f"deferred count changed: {len(DEFERRED_DESCRIPTOR_NAMES)} (expected 3)"
-    assert len(ENABLED_DESCRIPTOR_NAMES) == 211, \
-        f"enabled count changed: {len(ENABLED_DESCRIPTOR_NAMES)} (expected 211)"
+    assert len(DEFERRED_DESCRIPTOR_NAMES) == 1, \
+        f"deferred count changed: {len(DEFERRED_DESCRIPTOR_NAMES)} (expected 1)"
+    assert len(ENABLED_DESCRIPTOR_NAMES) == 213, \
+        f"enabled count changed: {len(ENABLED_DESCRIPTOR_NAMES)} (expected 213)"

@@ -2701,25 +2701,12 @@ const std::vector<RDKitGroup>& rdkit_group_registry() {
         // element, so the emitted columns become NaN together on those inputs —
         // matching the fixture's non-finite state for such molecules, while still
         // emitting the column (the descriptors are always present).
-        //
-        // BCUT2D_CHGHI / BCUT2D_CHGLO deferred — these two weight the Burden
-        // diagonal by the Gasteiger partial charges, the SAME model whose
-        // OpenEye-vs-RDKit divergence on cumulated-double-bond systems (allenes,
-        // isocyanates, isothiocyanates, ...) already deferred the PartialCharge and
-        // PEOE_VSA families. On the cumulenes N=C=O and N=C=S the CHGHI eigenvalue
-        // diverges beyond loose (verified: isocyanate 1.0772 vs 1.0326, isothio-
-        // cyanate 1.0096 vs 0.9747). They are therefore left MISSING (not emitted)
-        // until a native RDKit-Gasteiger port lands, mirroring the PartialCharge
-        // deferral rather than shipping a knowingly-divergent value; they remain in
-        // the 214-column schema, just uncomputed. The context accessor still
-        // computes the charge pair (it is one Burden solve alongside the others), so
-        // enabling them later is a one-line emission change.
         groups.push_back(RDKitGroup{
             RDKitGroupId::BCUT2D,
             rdkit_column_indices(
                 s,
-                {"BCUT2D_MWHI", "BCUT2D_MWLOW", "BCUT2D_LOGPHI", "BCUT2D_LOGPLOW",
-                 "BCUT2D_MRHI", "BCUT2D_MRLOW"}),
+                {"BCUT2D_MWHI", "BCUT2D_MWLOW", "BCUT2D_CHGHI", "BCUT2D_CHGLO",
+                 "BCUT2D_LOGPHI", "BCUT2D_LOGPLOW", "BCUT2D_MRHI", "BCUT2D_MRLOW"}),
             {},  // dependency-free (reads the shared context accessor directly)
             [](const OEChem::OEMolBase&, ComputeContext& ctx,
                RDKitGroupArtifacts&, const ColumnRequest&,
@@ -2728,12 +2715,12 @@ const std::vector<RDKitGroup>& rdkit_group_registry() {
                 const double nan = std::numeric_limits<double>::quiet_NaN();
                 set_float(builder, "BCUT2D_MWHI", values.defined ? values.mw_high : nan);
                 set_float(builder, "BCUT2D_MWLOW", values.defined ? values.mw_low : nan);
+                set_float(builder, "BCUT2D_CHGHI", values.defined ? values.chg_high : nan);
+                set_float(builder, "BCUT2D_CHGLO", values.defined ? values.chg_low : nan);
                 set_float(builder, "BCUT2D_LOGPHI", values.defined ? values.logp_high : nan);
                 set_float(builder, "BCUT2D_LOGPLOW", values.defined ? values.logp_low : nan);
                 set_float(builder, "BCUT2D_MRHI", values.defined ? values.mr_high : nan);
                 set_float(builder, "BCUT2D_MRLOW", values.defined ? values.mr_low : nan);
-                // BCUT2D_CHGHI / BCUT2D_CHGLO intentionally not emitted (deferred;
-                // see the group comment above).
             }});
 
         // Group: rdkit:Composite — qed, RDKit's quantitative estimate of
