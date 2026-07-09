@@ -225,36 +225,34 @@ RDKit descriptor schema contains 214 columns, not 217.
 .. important::
 
    The three excluded bins are **not in the schema** and are never emitted.
-   They are distinct from the 21 deferred descriptors described below, which
-   **are** present in the schema but return missing values until native
-   follow-ups land.
+   They are distinct from the one deferred descriptor described below, which
+   **is** present in the schema but returns missing values until native
+   follow-up work lands.
 
 Deferred Descriptors
 ^^^^^^^^^^^^^^^^^^^^
 
-Of the 214 descriptors in the schema, **193 are computed natively** and **21
-are deferred**, pending native follow-up work. Deferred descriptors are present
-in the schema but return ``None`` until their implementations are ported. The
-deferred surface divides into two buckets:
+Of the 214 descriptors in the schema, **213 are computed natively** and **1
+is deferred**, pending native follow-up work. Deferred descriptors are present
+in the schema but return ``None`` until their implementations are ported.
 
-1. **SPS** (1 descriptor) — RDKit's spatial score (``SpacialScore``) depends on
-   RDKit-internal potential-stereocenter and hybridization models that OpenEye
-   does not expose. Porting this descriptor requires reproducing those models
-   natively.
+**SPS** (1 descriptor) — RDKit's spatial score (``SpacialScore``) depends on
+RDKit-internal potential-stereocenter and hybridization models that OpenEye
+does not expose. Porting this descriptor requires reproducing those models
+natively.
 
-2. **Gasteiger-dependent descriptors** (20 total) — These consume Gasteiger
-   partial charges, where OpenEye's Gasteiger model diverges from RDKit's on
-   cumulated-double-bond (cumulene) systems. The 20 descriptors are bundled
-   into a single native-RDKit-Gasteiger-port follow-up:
+.. note::
 
-   - Partial-charge extrema (4): ``MaxPartialCharge``, ``MinPartialCharge``,
-     ``MaxAbsPartialCharge``, ``MinAbsPartialCharge``
-   - Partial-charge VSA bins (14): ``PEOE_VSA1`` through ``PEOE_VSA14``
-   - Partial-charge BCUT2D eigenvalues (2): ``BCUT2D_CHGHI``,
-     ``BCUT2D_CHGLO``
+   **Gasteiger-dependent descriptors now computed** (20 descriptors) — The
+   partial-charge extrema (4), PEOE_VSA bins (14), and BCUT2D_CHG eigenvalues
+   (2) that were previously deferred have been **re-enabled** following a
+   native RDKit-Gasteiger port. The cumulene Gasteiger divergence that blocked
+   these descriptors was resolved by implementing RDKit's atom-typing rules
+   (RDKit types cumulene atoms as ``sp``). The Mordred source continues to use
+   Mordred 1.2.0's ``sp2`` Gasteiger charges for its own PartialCharge family.
 
-The test ``test_full_214_surface_is_enabled_or_deferred`` (Task 11) asserts
-that the union of enabled (193) and deferred (21) descriptors equals the full
+The test ``test_full_214_surface_is_enabled_or_deferred`` asserts that the
+union of enabled (213) and deferred (1) descriptors equals the full
 214-descriptor schema, ensuring no descriptor is silently missing.
 
 .. note::
