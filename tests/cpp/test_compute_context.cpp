@@ -4,6 +4,8 @@
 
 #include <oechem.h>
 
+#include <cmath>
+
 using namespace OEFP;
 
 TEST(ComputeContextTest, AccessorsCacheAndReturnStableReferences) {
@@ -31,7 +33,7 @@ TEST(ComputeContextTest, EachIntermediateComputedAtMostOnce) {
     OEChem::OEGraphMol mol;
     ASSERT_TRUE(OEChem::OESmilesToMol(mol, "CC(=O)OC1=CC=CC=C1C(=O)O"));
     ComputeContext ctx(mol);
-    // Touch every accessor twice; only the eight first-touches compute.
+    // Touch every accessor twice; only the nine first-touches compute.
     // BCUTEigenvalues() reuses the heavy-atom graph, Gasteiger charges, and Crippen
     // contributions internally, so it adds exactly one computation of its own.
     for (int pass = 0; pass < 2; ++pass) {
@@ -39,12 +41,13 @@ TEST(ComputeContextTest, EachIntermediateComputedAtMostOnce) {
         ctx.HeavyAtomGraph();
         ctx.HeavyAtomDistances();   // reuses HeavyAtomGraph internally
         ctx.GasteigerAtomCharges();
+        ctx.RDKitGasteigerAtomCharges();
         ctx.CrippenContributions();
         ctx.EStateIndices();
         ctx.LabuteAtomContributions();
         ctx.BCUTEigenvalues();      // reuses graph/Gasteiger/Crippen internally
     }
-    EXPECT_EQ(ctx.ComputeCount(), 8u);  // one per intermediate, regardless of repeated access
+    EXPECT_EQ(ctx.ComputeCount(), 9u);  // one per intermediate, regardless of repeated access
 }
 
 // Each new accessor (EState indices, Labute per-atom contributions, BCUT2D
@@ -87,19 +90,20 @@ TEST(ComputeContextTest, NewAccessorsCacheAndBumpCountByOne) {
     EXPECT_TRUE(bcut_a.defined);  // aspirin has RDKit Gasteiger parameters
 }
 
-// CO2 (O=C=O) has no hydrogens, so its heavy-atom Gasteiger charges are
-// H-treatment-independent and can be pinned directly to RDKit's values. The
-// central carbon is sp-hybridised (two cumulated double bonds); RDKit types it
-// "C sp" and reports +0.3729, and each terminal oxygen -0.1865. The pre-fix
-// gasteiger_mode() mis-types the carbon "sp2" and diverges here.
-TEST(ComputeContextTest, GasteigerChargesMatchRDKitOnCumulene) {
+// The two Gasteiger accessors intentionally diverge on cumulenes: the RDKit
+// accessor types the central sp atom "sp" (RDKit 2026.03.3), the Mordred
+// accessor keeps "sp2" (Mordred 1.2.0 fidelity). CO2 has no H so the charges
+// are exact/H-independent.
+TEST(ComputeContextTest, RDKitGasteigerTypesCumuleneSpWhileMordredStaysSp2) {
     OEChem::OEGraphMol mol;
     ASSERT_TRUE(OEChem::OESmilesToMol(mol, "O=C=O"));
-    ComputeContext ctx(mol);
-    const auto& charges = ctx.GasteigerAtomCharges().charges;
-    ASSERT_EQ(charges.size(), 3u);
+    OEFP::ComputeContext ctx(mol);
+    const auto& rdkit = ctx.RDKitGasteigerAtomCharges().charges;   // sp
+    const auto& mordred = ctx.GasteigerAtomCharges().charges;       // sp2
+    ASSERT_EQ(rdkit.size(), 3u);
+    ASSERT_EQ(mordred.size(), 3u);
     // atom order O, C, O — carbon is the middle heavy atom.
-    EXPECT_NEAR(charges[1], 0.3729, 1e-3);
-    EXPECT_NEAR(charges[0], -0.1865, 1e-3);
-    EXPECT_NEAR(charges[2], -0.1865, 1e-3);
+    EXPECT_NEAR(rdkit[1], 0.3729, 1e-3);      // RDKit "C sp"
+    EXPECT_NEAR(rdkit[0], -0.1865, 1e-3);
+    EXPECT_GT(std::abs(mordred[1] - rdkit[1]), 1e-2);  // Mordred stays sp2 (differs)
 }

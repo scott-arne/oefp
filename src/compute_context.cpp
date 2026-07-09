@@ -42,6 +42,16 @@ const MordredGasteigerAtomCharges& ComputeContext::GasteigerAtomCharges() const 
     return *gasteiger_charges_;
 }
 
+const MordredGasteigerAtomCharges& ComputeContext::RDKitGasteigerAtomCharges() const {
+    if (!rdkit_gasteiger_charges_) {
+        rdkit_gasteiger_charges_.emplace(
+            compute_gasteiger_atom_charges(mol_, /*suppress_hydrogens=*/true,
+                                           /*cumulene_sp=*/true));
+        ++compute_count_;
+    }
+    return *rdkit_gasteiger_charges_;
+}
+
 const MordredCrippenAtomContributions& ComputeContext::CrippenContributions() const {
     if (!crippen_contributions_) {
         // A molecule with no defined Crippen contributions caches empty vectors,

@@ -62,6 +62,15 @@ public:
     /// \returns Cached Gasteiger charges for the borrowed molecule.
     const MordredGasteigerAtomCharges& GasteigerAtomCharges() const;
 
+    /// \brief Return per-atom Gasteiger partial charges with RDKit cumulene typing.
+    ///
+    /// Differs from :cpp:func:`GasteigerAtomCharges` on molecules with cumulene
+    /// centres (e.g. CO2, azides): types them "C sp" (RDKit 2026.03.3 fidelity),
+    /// while the Mordred accessor types them "C sp2" (Mordred 1.2.0 fidelity).
+    ///
+    /// \returns Cached RDKit-faithful Gasteiger charges for the borrowed molecule.
+    const MordredGasteigerAtomCharges& RDKitGasteigerAtomCharges() const;
+
     /// \brief Return per-atom Crippen logP and molar-refractivity contributions.
     ///
     /// When the molecule has no defined Crippen contributions the cached value
@@ -115,6 +124,7 @@ private:
     mutable std::optional<MordredHeavyAtomGraph> heavy_atom_graph_;
     mutable std::optional<std::vector<std::vector<std::int64_t>>> heavy_atom_distances_;
     mutable std::optional<MordredGasteigerAtomCharges> gasteiger_charges_;
+    mutable std::optional<MordredGasteigerAtomCharges> rdkit_gasteiger_charges_;
     mutable std::optional<MordredCrippenAtomContributions> crippen_contributions_;
     mutable std::optional<std::vector<double>> estate_indices_;
     mutable std::optional<std::vector<double>> labute_atom_contributions_;

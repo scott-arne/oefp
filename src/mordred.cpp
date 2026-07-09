@@ -28,10 +28,10 @@
 namespace OEFP {
 namespace {
 
-// The single-argument compute_gasteiger_atom_charges overload lives at OEFP
-// namespace scope (declared in mordred_intermediates.h). Re-introduce it here so
-// the two-argument internal overload below does not hide it for the one-argument
-// call sites inside this anonymous namespace.
+// The single-argument and three-argument compute_gasteiger_atom_charges overloads
+// live at OEFP namespace scope (declared in mordred_intermediates.h).
+// Re-introduce them here so they are visible for call sites inside this anonymous
+// namespace.
 using OEFP::compute_gasteiger_atom_charges;
 
 struct MordredFirstBatchValues {
@@ -1491,7 +1491,8 @@ unsigned int count_double_bonds(const OEChem::OEAtomBase& atom) {
     return doubles;
 }
 
-const char* gasteiger_mode(const OEChem::OEAtomBase& atom, bool has_conjugated_bond) {
+const char* gasteiger_mode(const OEChem::OEAtomBase& atom, bool has_conjugated_bond,
+                           bool cumulene_sp) {
     const auto atomic_number = static_cast<std::uint32_t>(atom.GetAtomicNum());
     if (atomic_number == 1u) {
         return "*";
@@ -1499,12 +1500,11 @@ const char* gasteiger_mode(const OEChem::OEAtomBase& atom, bool has_conjugated_b
     if (atomic_number != 16u && has_bond_order_at_least(atom, 3u)) {
         return "sp";
     }
-    // A first-row atom with two or more double bonds is a cumulene centre
-    // (e.g. the carbon of O=C=O / N=C=O, the central N of an azide): two
-    // orthogonal pi systems make it sp-hybridised, which RDKit types "sp".
-    // This must precede the sp2 branch below, which would otherwise capture
-    // any atom that merely has a double bond.
-    if (atomic_number <= 10u && count_double_bonds(atom) >= 2u) {
+    // A first-row cumulene centre (two cumulated double bonds) is sp-hybridised.
+    // RDKit types it "sp"; Mordred 1.2.0 types it "sp2". Only the RDKit charge
+    // path requests the sp typing (cumulene_sp); the shared/Mordred path leaves
+    // it to the sp2 branch below, preserving Mordred 1.2.0 byte-identity.
+    if (cumulene_sp && atomic_number <= 10u && count_double_bonds(atom) >= 2u) {
         return "sp";
     }
     // RDKit hybridization uses its conjugation flags before Gasteiger lookup;
@@ -1769,9 +1769,12 @@ void split_gasteiger_formal_charges(
     }
 }
 
+} // namespace
+
 MordredGasteigerAtomCharges compute_gasteiger_atom_charges(
     const OEChem::OEMolBase& mol,
-    bool suppress_hydrogens) {
+    bool suppress_hydrogens,
+    bool cumulene_sp) {
     static constexpr double ionxh = 20.02;
     static constexpr double damp_scale = 0.5;
     static constexpr double initial_damp = 0.5;
@@ -1832,7 +1835,7 @@ MordredGasteigerAtomCharges compute_gasteiger_atom_charges(
             atom_has_gasteiger_conjugated_bond(atom_index, atom_bonds, conjugated_bonds);
         const auto& parameters = lookup_gasteiger_parameters(
             gasteiger_element_symbol(static_cast<std::uint32_t>(atoms[atom_index]->GetAtomicNum())),
-            gasteiger_mode(*atoms[atom_index], has_conjugated_bond));
+            gasteiger_mode(*atoms[atom_index], has_conjugated_bond, cumulene_sp));
         atom_parameters.push_back(parameters);
         ion_x[atom_index] =
             atoms[atom_index]->GetAtomicNum() == 1u
@@ -1892,10 +1895,8 @@ MordredGasteigerAtomCharges compute_gasteiger_atom_charges(
         std::move(atom_ids)};
 }
 
-} // namespace
-
 MordredGasteigerAtomCharges compute_gasteiger_atom_charges(const OEChem::OEMolBase& mol) {
-    return compute_gasteiger_atom_charges(mol, true);
+    return compute_gasteiger_atom_charges(mol, true, false);
 }
 
 namespace {
@@ -5303,7 +5304,7 @@ std::optional<std::vector<double>> compute_explicit_gasteiger_charge_values(
         }
     }
 
-    const auto charges = compute_gasteiger_atom_charges(explicit_mol, false);
+    const auto charges = compute_gasteiger_atom_charges(explicit_mol, false, false);
     if (charges.charges.size() != charges.hydrogen_charges.size()
         || charges.charges.size() != charges.atom_ids.size()) {
         return std::nullopt;

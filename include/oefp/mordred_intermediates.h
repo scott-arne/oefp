@@ -78,7 +78,16 @@ std::vector<std::vector<std::int64_t>> compute_mordred_heavy_atom_distances(
 /// \brief Compute per-atom Gasteiger partial charges as used by Mordred.
 ///
 /// \param mol Molecule to describe.
+/// \param suppress_hydrogens When true, compute on H-suppressed mol (Mordred/RDKit);
+///     when false, retain explicit hydrogens.
+/// \param cumulene_sp When true, type cumulene centres "sp" (RDKit fidelity);
+///     when false, leave them "sp2" (Mordred 1.2.0 fidelity).
 /// \returns Per-atom charges, implicit-hydrogen charges, and atom identifiers.
+MordredGasteigerAtomCharges compute_gasteiger_atom_charges(
+    const OEChem::OEMolBase& mol,
+    bool suppress_hydrogens,
+    bool cumulene_sp);
+
 MordredGasteigerAtomCharges compute_gasteiger_atom_charges(const OEChem::OEMolBase& mol);
 
 /// \brief Compute per-atom Crippen logP and molar-refractivity contributions.
