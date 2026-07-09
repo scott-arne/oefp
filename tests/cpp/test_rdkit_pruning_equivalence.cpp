@@ -142,16 +142,40 @@ TEST(RDKitPruningEquivalenceTest, WholeConnectivityGroup) {
          "Kappa1", "Kappa2", "Kappa3", "BertzCT", "BalabanJ", "Ipc", "AvgIpc"});
 }
 
-// The first real cross-group dependency in the RDKit registry: `Phi` lives in
-// CountsWeights but is computed from the Connectivity group's Kappa artifact.
-// Requesting ONLY {"Phi"} must (a) reproduce the full-schema Phi value exactly,
-// and (b) emit NO Kappa* (or any other Connectivity) column — Connectivity runs
-// only as a dependency to populate the artifact, and its own columns stay
-// unrequested/missing. This exercises the dependency-closure resolver end to
-// end. expect_subset_matches_all already asserts every non-requested column
-// (all 213 others, including Kappa1/Kappa2/Kappa3) is missing in the pruned row.
-TEST(RDKitPruningEquivalenceTest, PhiDependencyClosureAcrossPanel) {
+// `Phi` (= Kappa1*Kappa2/heavy-count) is emitted by the Connectivity group,
+// co-located with the Kappa indices it derives from (it was moved out of
+// CountsWeights so that cheap CountsWeights requests no longer force this
+// group's O(n^4) computation). Requesting ONLY {"Phi"} must (a) reproduce the
+// full-schema Phi value exactly, and (b) emit NO other Connectivity column
+// (Chi*, Kappa*, BertzCT, ...) — the group runs and emits only the requested
+// Phi, its 20 siblings staying missing. expect_subset_matches_all already
+// asserts every non-requested column (all 213 others) is missing in the row.
+TEST(RDKitPruningEquivalenceTest, PhiSingleColumnAcrossPanel) {
     expect_column_matches_across_panel({"Phi"});
+}
+
+// The perf motivation for emitting Phi from the Connectivity group: a request
+// for a cheap CountsWeights column must NOT drag in the Connectivity group's
+// heavy computation (its O(n^4) Ipc and O(n^3) BertzCT). CountsWeights reads
+// only ctx.RingPerceivedMol(); Connectivity additionally builds
+// ctx.HeavyAtomGraph(). So adding a Connectivity column (Chi0) to a MolWt
+// request must STRICTLY increase the shared-context intermediates computed —
+// i.e. MolWt alone does not already run Connectivity. If a
+// CountsWeights->Connectivity dependency is ever reintroduced (as when Phi
+// lived in CountsWeights), MolWt alone would already run Connectivity and the
+// two counts would converge, failing this test.
+TEST(RDKitPruningEquivalenceTest, CheapCountsWeightsRequestSkipsConnectivity) {
+    OEChem::OEGraphMol mol;
+    ASSERT_TRUE(OEChem::OESmilesToMol(mol, "CC(=O)OC1=CC=CC=C1C(=O)O"));  // aspirin
+
+    ComputeContext ctx_molwt(mol);
+    MakeRDKitDescriptors(mol, ctx_molwt, ColumnRequest::Subset(indices_for({"MolWt"})));
+
+    ComputeContext ctx_molwt_chi(mol);
+    MakeRDKitDescriptors(
+        mol, ctx_molwt_chi, ColumnRequest::Subset(indices_for({"MolWt", "Chi0"})));
+
+    EXPECT_LT(ctx_molwt.ComputeCount(), ctx_molwt_chi.ComputeCount());
 }
 
 // One representative column per Task-7 family across the panel: requesting only

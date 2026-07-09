@@ -1361,23 +1361,13 @@ double rdkit_tpsa(const OEChem::OEMolBase& mol) {
 // RDKit-internal group-to-group intermediates that are NOT molecule-level
 // shareable (those live on ComputeContext instead). Per spec §4.3, the per-atom
 // EState / LabuteASA vectors and BCUT2D eigenvalues are ComputeContext
-// accessors, NOT fields here. Kept for parity with Mordred's
-// MordredGroupArtifacts and to carry the Connectivity group's Kappa values to
-// the `Phi` column (Task 6).
-struct RDKitGroupArtifacts {
-    // Populated by the Connectivity group (Task 6) for the CountsWeights `Phi`
-    // column; extended only for intermediates that are truly not context-level.
-    //
-    // Kappa1/Kappa2 are Kier shape indices the Connectivity group already
-    // computes. `Phi` (a CountsWeights column) is Kappa1*Kappa2/heavy-count, so
-    // the group stashes them here whenever it runs. The group populates them
-    // request-independently (even if the Kappa* columns themselves are not
-    // wanted), so `Phi` still resolves correctly under column pruning when only
-    // `Phi` is requested and Connectivity runs solely as a dependency.
-    double kappa1 = 0.0;
-    double kappa2 = 0.0;
-    bool kappas_ready = false;
-};
+// accessors, NOT fields here. Currently empty: no RDKit group needs a
+// non-context artifact hand-off. The only former user — the Connectivity group
+// stashing Kappa1/Kappa2 for the CountsWeights `Phi` column — was removed by
+// emitting `Phi` directly from the Connectivity group, alongside the Kappa
+// indices it derives from. Retained as the extension point mirroring Mordred's
+// MordredGroupArtifacts for a future family that needs a non-context artifact.
+struct RDKitGroupArtifacts {};
 
 enum class RDKitGroupId {
     CountsWeights,
@@ -2199,14 +2189,16 @@ const std::vector<RDKitGroup>& rdkit_group_registry() {
         const DescriptorSchema& s = *schema;
         std::vector<RDKitGroup> groups;
 
-        // Group: rdkit:CountsWeights — the 21 DEPENDENCY-FREE descriptors plus
-        // `Phi`. `Phi` needs the Connectivity group's Kappa values, so this
-        // group declares a dependency on Connectivity (the first real
-        // cross-group dependency in the RDKit registry) and reads the Kappa
-        // artifact. `SPS` is a member but is deferred and left MISSING (see the
-        // deferral note at the SPS emission site below), so it is not listed in
-        // emitted_columns and the subtractive pruning check treats it as an
-        // unrequested/missing column.
+        // Group: rdkit:CountsWeights — 21 dependency-free descriptors. `Phi` was
+        // once a member here, but it is Kappa1*Kappa2/heavy-count and so is now
+        // emitted by the Connectivity group alongside the Kappa indices it
+        // derives from. Keeping it here forced every CountsWeights request —
+        // including cheap columns like `MolWt`/`HeavyAtomCount` — to drag in the
+        // whole Connectivity group (its O(n^4) `Ipc` and O(n^3) `BertzCT`); the
+        // move drops that dependency. `SPS` is a member but is deferred and left
+        // MISSING (see the deferral note at the SPS emission site below), so it
+        // is not listed in emitted_columns and the subtractive pruning check
+        // treats it as an unrequested/missing column.
         groups.push_back(RDKitGroup{
             RDKitGroupId::CountsWeights,
             rdkit_column_indices(
@@ -2216,8 +2208,8 @@ const std::vector<RDKitGroup>& rdkit_group_registry() {
                  "FpDensityMorgan3", "FractionCSP3", "HeavyAtomCount", "NHOHCount",
                  "NOCount", "NumAmideBonds", "NumAtomStereoCenters", "NumBridgeheadAtoms",
                  "NumHAcceptors", "NumHDonors", "NumHeteroatoms", "NumRotatableBonds",
-                 "NumSpiroAtoms", "NumUnspecifiedAtomStereoCenters", "Phi"}),
-            {RDKitGroupId::Connectivity},  // Phi reads the Connectivity Kappa artifact
+                 "NumSpiroAtoms", "NumUnspecifiedAtomStereoCenters"}),
+            {},  // dependency-free
             [](const OEChem::OEMolBase&, ComputeContext& ctx,
                RDKitGroupArtifacts& artifacts, const ColumnRequest&,
                RequestGatedBuilder& builder) {
@@ -2269,19 +2261,6 @@ const std::vector<RDKitGroup>& rdkit_group_registry() {
                 set_float(builder, "FpDensityMorgan1", fp_density_morgan(mol, 1u));
                 set_float(builder, "FpDensityMorgan2", fp_density_morgan(mol, 2u));
                 set_float(builder, "FpDensityMorgan3", fp_density_morgan(mol, 3u));
-                // Phi = Kappa1 * Kappa2 / heavy-atom count (RDKit calcPhi). The
-                // Connectivity group runs first (declared dependency) and stashes
-                // Kappa1/Kappa2 into the artifact regardless of whether the
-                // Kappa* columns are wanted, so Phi resolves even when only Phi
-                // is requested. Guard a zero heavy-atom count (RDKit returns 0).
-                const auto heavy_atom_count = HeavyAtomCount(mol);
-                if (artifacts.kappas_ready && heavy_atom_count != 0u) {
-                    set_float(builder, "Phi",
-                              artifacts.kappa1 * artifacts.kappa2
-                                  / static_cast<double>(heavy_atom_count));
-                } else {
-                    set_float(builder, "Phi", 0.0);
-                }
                 // SPS deferred — RDKit SpacialScore depends on RDKit's
                 // potential-stereocenter enumeration (FindMolChiralCenters with
                 // includeUnassigned=True, useLegacyImplementation=False) and its
@@ -2335,22 +2314,23 @@ const std::vector<RDKitGroup>& rdkit_group_registry() {
                 set_int(builder, "NumHeterocycles", counts.heterocycle);
             }});
 
-        // Group: rdkit:Connectivity — the 20 float connectivity/shape indices.
-        // Everything is computed from the shared heavy-atom graph
+        // Group: rdkit:Connectivity — 20 float connectivity/shape indices plus
+        // `Phi`. Everything is computed from the shared heavy-atom graph
         // (ctx.HeavyAtomGraph()), whose adjacency degree is the heavy-atom
-        // degree and whose bond orders carry aromaticity (1.5). The group also
-        // stashes Kappa1/Kappa2 into the artifact for the CountsWeights `Phi`
-        // column, unconditionally (not gated on the Kappa* columns being wanted)
-        // so `Phi` still resolves when Connectivity runs only as a dependency
-        // under column pruning.
+        // degree and whose bond orders carry aromaticity (1.5). `Phi`
+        // (Kappa1*Kappa2/heavy-count) is emitted here, co-located with the Kappa
+        // indices it derives from, so a CountsWeights request no longer forces
+        // this group to run. `Phi` keeps its public schema group of
+        // `rdkit:CountsWeights` (its RDKit family); only the compute group moved.
         groups.push_back(RDKitGroup{
             RDKitGroupId::Connectivity,
             rdkit_column_indices(
                 s,
                 {"Chi0", "Chi1", "Chi0n", "Chi1n", "Chi2n", "Chi3n", "Chi4n",
                  "Chi0v", "Chi1v", "Chi2v", "Chi3v", "Chi4v", "HallKierAlpha",
-                 "Kappa1", "Kappa2", "Kappa3", "BertzCT", "BalabanJ", "Ipc", "AvgIpc"}),
-            {},  // dependency-free (feeds CountsWeights' Phi via the artifact)
+                 "Kappa1", "Kappa2", "Kappa3", "BertzCT", "BalabanJ", "Ipc", "AvgIpc",
+                 "Phi"}),
+            {},  // dependency-free
             [](const OEChem::OEMolBase&, ComputeContext& ctx,
                RDKitGroupArtifacts& artifacts, const ColumnRequest&,
                RequestGatedBuilder& builder) {
@@ -2393,11 +2373,19 @@ const std::vector<RDKitGroup>& rdkit_group_registry() {
                 set_float(builder, "Kappa1", kappas.kappa1);
                 set_float(builder, "Kappa2", kappas.kappa2);
                 set_float(builder, "Kappa3", kappas.kappa3);
-                // Publish the Kappa values for the CountsWeights `Phi` column,
-                // request-independently so pruning to only {"Phi"} still works.
-                artifacts.kappa1 = kappas.kappa1;
-                artifacts.kappa2 = kappas.kappa2;
-                artifacts.kappas_ready = true;
+                // Phi = Kappa1 * Kappa2 / heavy-atom count (RDKit calcPhi). The
+                // heavy-atom count is the graph's node count (atom_info has one
+                // entry per heavy atom). Guard an empty graph (RDKit returns 0).
+                // Emitted here, with the Kappa indices it derives from, rather
+                // than handed to CountsWeights via an artifact.
+                const std::size_t heavy_atom_count = atom_info.size();
+                if (heavy_atom_count != 0u) {
+                    set_float(builder, "Phi",
+                              kappas.kappa1 * kappas.kappa2
+                                  / static_cast<double>(heavy_atom_count));
+                } else {
+                    set_float(builder, "Phi", 0.0);
+                }
 
                 set_float(builder, "BertzCT", rdkit_bertz_ct(graph));
                 set_float(builder, "BalabanJ", rdkit_balaban_j(graph));
