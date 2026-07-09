@@ -5,8 +5,8 @@ High-performance molecular fingerprints for the [OpenEye Toolkits](https://www.e
 OEFP generates RDKit-compatible Morgan and topological Atom Pair fingerprints
 from OpenEye molecules, stores them in compact C++ containers, and compares
 them with fast scalar and batch kernels. It also provides raw Morgan and
-topological Atom Pair descriptor rows plus a schema-backed Mordred-compatible
-descriptor surface. Python
+topological Atom Pair descriptor rows plus schema-backed Mordred-compatible and
+RDKit-compatible named descriptor surfaces. Python
 bindings are built with SWIG, so `openeye.oechem` molecules pass directly into
 C++ without serialization.
 
@@ -142,6 +142,65 @@ Descriptor calculation never generates 2D or 3D coordinates implicitly. When a
 descriptor requires coordinates that the input molecule does not already have,
 that descriptor value remains missing (`None` in Python).
 
+Work with RDKit-compatible named descriptors:
+
+```python
+from openeye import oechem
+import oefp
+
+mol = oechem.OEGraphMol()
+oechem.OESmilesToMol(mol, "CC(=O)OC1=CC=CC=C1C(=O)O")  # aspirin
+
+row = oefp.rdkit_descriptors(mol)
+schema = row.schema
+
+print(len(schema.names))        # 213 native RDKit 2D descriptors
+print(row["MolWt"])             # 180.157...
+print(row["TPSA"])              # 63.6
+print(row["NumAromaticRings"])  # 1
+print(row["MolLogP"])           # Wildman-Crippen SLogP
+print(row["qed"])               # 0.550...
+```
+
+OEFP reproduces 213 of RDKit's 2D descriptors natively, matched to RDKit
+2026.03.3 within per-descriptor tolerance tiers. RDKit is used only as a
+test-time conformance oracle; it is not a runtime dependency. Four of RDKit's
+217 descriptors are excluded from the schema: three structurally-always-zero
+VSA bins (`SMR_VSA8`, `SlogP_VSA9`, `EState_VSA11`) and `SPS` (`SpacialScore`),
+whose exact value depends on RDKit's aromaticity perception, which differs from
+OpenEye's on some conjugated ring systems.
+
+Use `RDKitDescriptorSource` in a calculator to compute batches or select a
+subset of columns:
+
+```python
+calc = oefp.DescriptorCalculator([oefp.RDKitDescriptorSource()])
+
+smiles = ["c1ccccc1", "c1ccc(O)cc1", "CC(=O)O"]
+mols = []
+for smi in smiles:
+    m = oechem.OEGraphMol()
+    oechem.OESmilesToMol(m, smi)
+    mols.append(m)
+
+batch = calc.calculate_batch(mols)
+print(batch.size)               # 3
+print(batch[0]["MolLogP"], batch[0]["NumHAcceptors"])
+```
+
+The Mordred and RDKit sources share many descriptor names (for example
+`BalabanJ`, `Chi0`, and `TPSA`). Registering both in one calculator without
+narrowing raises a name-collision error, since the same name would appear
+twice. Select the columns you want from one source to combine them:
+
+```python
+calc = oefp.DescriptorCalculator([
+    oefp.OpenEyePropertyDescriptorSource(),
+    (oefp.RDKitDescriptorSource(), ["MolLogP", "TPSA", "qed"]),
+])
+print("MolLogP" in calc.schema.names)  # True
+```
+
 Compute merged, deduplicated descriptors from multiple sources:
 
 ```python
@@ -241,6 +300,7 @@ int main() {
 | Topological Atom Pair | Raw counted string-key descriptors | Uses graph shortest-path distances and requires no coordinate generation |
 | Distance Atom Pair | Reserved | Requires existing 3D coordinates and is not implemented yet |
 | Mordred-compatible | Schema-backed named descriptor rows | Full Mordred 1.2.0 schema with implemented values filled and unsupported or unavailable values left missing |
+| RDKit-compatible | Schema-backed named descriptor rows | 213 of RDKit's 2D descriptors reproduced natively and matched to RDKit 2026.03.3 within tolerance tiers; `SPS` and three always-zero VSA bins are excluded |
 
 Mordred-compatible descriptors use local Mordred and RDKit source as the
 reference truth. Descriptor definitions include source metadata, group labels,
