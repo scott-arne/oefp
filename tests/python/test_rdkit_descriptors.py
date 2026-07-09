@@ -108,7 +108,6 @@ def test_rdkit_descriptors_release_gil_for_concurrent_computation():
 # cumulene systems; bundled into a single native RDKit-Gasteiger-port task.
 DEFERRED_DESCRIPTOR_NAMES: frozenset[str] = frozenset({
     "SPS",
-    "MaxPartialCharge", "MinPartialCharge", "MaxAbsPartialCharge", "MinAbsPartialCharge",
     "PEOE_VSA1", "PEOE_VSA2", "PEOE_VSA3", "PEOE_VSA4", "PEOE_VSA5",
     "PEOE_VSA6", "PEOE_VSA7", "PEOE_VSA8", "PEOE_VSA9", "PEOE_VSA10",
     "PEOE_VSA11", "PEOE_VSA12", "PEOE_VSA13", "PEOE_VSA14",
@@ -212,6 +211,9 @@ ENABLED_DESCRIPTOR_NAMES: set[str] = {
     # Composite (Task 10): RDKit's quantitative estimate of drug-likeness (qed),
     # the WEIGHT_MEAN geometric mean of eight ADS-mapped molecular properties.
     "qed",
+    # PartialCharge (Task 11): Max/Min/MaxAbs/MinAbsPartialCharge reduce the shared
+    # RDKit-Gasteiger charges per RDKit's _ChargeDescriptors semantics.
+    "MaxPartialCharge", "MinPartialCharge", "MaxAbsPartialCharge", "MinAbsPartialCharge",
     # PEOE_VSA1..14 deferred — they bucket the Gasteiger partial charges, the same
     # model whose OpenEye-vs-RDKit divergence on cumulated-double-bond systems
     # (azides, isocyanates, isothiocyanates, ...) and on elements RDKit has no
@@ -219,9 +221,6 @@ ENABLED_DESCRIPTOR_NAMES: set[str] = {
     # deferred the MaxPartialCharge family. Left missing like PartialCharge until a
     # native RDKit-Gasteiger port lands; the other four VSA sub-families never touch
     # Gasteiger and match RDKit within loose across the whole panel.
-    # PartialCharge (Max/Min/MaxAbs/MinAbsPartialCharge) deferred — RDKit's
-    # Gasteiger PEOE solver diverges from OpenEye's on cumulated-double-bond
-    # systems; needs a native RDKit-Gasteiger port. Left missing like SPS.
     # "SPS" deferred — RDKit SpacialScore needs RDKit-internal potential-stereo +
     # hybridization models OpenEye doesn't expose; needs a dedicated deep-dive task.
 }
@@ -271,7 +270,7 @@ def test_full_214_surface_is_enabled_or_deferred():
         f"enabled/deferred overlap: {overlap}"
     assert ENABLED_DESCRIPTOR_NAMES | DEFERRED_DESCRIPTOR_NAMES == all_names, \
         f"missing from enabled+deferred: {missing_from_either}"
-    assert len(DEFERRED_DESCRIPTOR_NAMES) == 21, \
-        f"deferred count changed: {len(DEFERRED_DESCRIPTOR_NAMES)} (expected 21)"
-    assert len(ENABLED_DESCRIPTOR_NAMES) == 193, \
-        f"enabled count changed: {len(ENABLED_DESCRIPTOR_NAMES)} (expected 193)"
+    assert len(DEFERRED_DESCRIPTOR_NAMES) == 17, \
+        f"deferred count changed: {len(DEFERRED_DESCRIPTOR_NAMES)} (expected 17)"
+    assert len(ENABLED_DESCRIPTOR_NAMES) == 197, \
+        f"enabled count changed: {len(ENABLED_DESCRIPTOR_NAMES)} (expected 197)"

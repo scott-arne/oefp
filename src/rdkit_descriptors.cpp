@@ -1375,6 +1375,7 @@ enum class RDKitGroupId {
     Connectivity,
     Crippen,
     SurfacePolarity,
+    PartialCharge,
     EState,
     VSA,
     Fragments,
@@ -2439,14 +2440,29 @@ const std::vector<RDKitGroup>& rdkit_group_registry() {
                 set_float(builder, "TPSA", rdkit_tpsa(tpsa_mol));
             }});
 
-        // PartialCharge deferred — RDKit's Max/Min PartialCharge use RDKit's
-        // Gasteiger PEOE solver, which diverges from OpenEye's (both the shared
-        // context solver and the QuacpacTk OEGasteigerCharges implementation) on
-        // cumulated-double-bond systems (allenes, isocyanates, isothiocyanates,
-        // carbon dioxide, azides, carbodiimides, and related cumulenes). The
-        // MaxPartialCharge, MinPartialCharge, MaxAbsPartialCharge, and
-        // MinAbsPartialCharge columns are therefore left uncomputed (missing)
-        // until a native RDKit-Gasteiger port is available (see follow-up).
+        // Group: rdkit:PartialCharge — Max/Min/MaxAbs/MinAbsPartialCharge reduce
+        // the shared RDKit-Gasteiger charges per RDKit's _ChargeDescriptors. The
+        // Abs variants use only the two signed extremes (not per-atom |q|).
+        groups.push_back(RDKitGroup{
+            RDKitGroupId::PartialCharge,
+            rdkit_column_indices(s, {"MaxPartialCharge", "MinPartialCharge",
+                                     "MaxAbsPartialCharge", "MinAbsPartialCharge"}),
+            {},  // dependency-free (RDKitGasteiger is a context accessor)
+            [](const OEChem::OEMolBase&, ComputeContext& ctx,
+               RDKitGroupArtifacts&, const ColumnRequest&,
+               RequestGatedBuilder& builder) {
+                const auto& charges = ctx.RDKitGasteigerAtomCharges().charges;
+                double min_chg = std::numeric_limits<double>::infinity();
+                double max_chg = -std::numeric_limits<double>::infinity();
+                for (const double q : charges) {
+                    min_chg = std::min(min_chg, q);
+                    max_chg = std::max(max_chg, q);
+                }
+                set_float(builder, "MinPartialCharge", min_chg);
+                set_float(builder, "MaxPartialCharge", max_chg);
+                set_float(builder, "MaxAbsPartialCharge", std::max(std::abs(min_chg), std::abs(max_chg)));
+                set_float(builder, "MinAbsPartialCharge", std::min(std::abs(min_chg), std::abs(max_chg)));
+            }});
 
         // Group: rdkit:EState — Max/Min/MaxAbs/MinAbsEStateIndex over the per-atom
         // EState vector read from the SHARED context (ctx.EStateIndices()), so

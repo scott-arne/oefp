@@ -315,6 +315,14 @@ TEST(RDKitPruningEquivalenceTest, WholeBCUT2DGroup) {
          "BCUT2D_MRHI", "BCUT2D_MRLOW"});
 }
 
+// PartialCharge representative single column across the panel: requesting only
+// MaxPartialCharge must reproduce the full-schema value and leave every other
+// column missing, proving the group's emitted_columns list is correct under
+// subtractive pruning.
+TEST(RDKitPruningEquivalenceTest, PartialChargeSingleColumnAcrossPanel) {
+    expect_column_matches_across_panel({"MaxPartialCharge"});
+}
+
 // Composite representative single column across the panel: requesting only qed
 // must reproduce the full-schema value and leave every other column missing,
 // proving the group's emitted_columns list is correct under subtractive pruning.

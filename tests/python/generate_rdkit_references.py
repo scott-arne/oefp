@@ -213,11 +213,12 @@ RDKIT_TOLERANCE_TIERS: dict[str, str] = {
     # exactly on the panel including the sulfonamide/phosphate S/P discriminators.
     "LabuteASA": "tight",
     "TPSA": "tight",
-    # PartialCharge (Max/Min/MaxAbs/MinAbsPartialCharge) deferred — RDKit's
-    # Gasteiger PEOE solver diverges from OpenEye's on cumulated-double-bond
-    # systems; needs a native RDKit-Gasteiger port. Like SPS, these are left
-    # unclassified here (falling to the loose default) and out of the conformance
-    # ENABLED set until the port lands; they remain in the schema, just uncomputed.
+    # PartialCharge (Task 11): tight. The four Max/Min/MaxAbs/MinAbsPartialCharge
+    # columns reduce the shared RDKit-Gasteiger charges per RDKit's _ChargeDescriptors
+    # semantics. The native RDKit Gasteiger port (Task 1 via sp-cumulene typing)
+    # matches the oracle exactly on non-cumulenes; tight allows for numeric margins.
+    "MaxPartialCharge": "tight", "MinPartialCharge": "tight",
+    "MaxAbsPartialCharge": "tight", "MinAbsPartialCharge": "tight",
     # EState (Task 7): loose. The per-atom electrotopological-state vector reuses
     # the shared EState model (matches RDKit's rdkit.Chem.EState to ~1e-3 on the
     # panel); the Max/Min/MaxAbs/MinAbs reductions inherit that.
