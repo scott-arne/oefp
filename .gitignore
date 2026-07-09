@@ -3,6 +3,7 @@ build*/
 dist/
 *.egg-info/
 *.whl
+.cache
 
 # CMake
 CMakeFiles/
