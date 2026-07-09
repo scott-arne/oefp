@@ -4,15 +4,13 @@ High-performance molecular fingerprints for the [OpenEye Toolkits](https://www.e
 
 OEFP generates RDKit-compatible Morgan and topological Atom Pair fingerprints
 from OpenEye molecules, stores them in compact C++ containers, and compares
-them with fast scalar and batch kernels. It also provides raw Morgan and
-topological Atom Pair descriptor rows plus schema-backed Mordred-compatible and
-RDKit-compatible named descriptor surfaces. Python
-bindings are built with SWIG, so `openeye.oechem` molecules pass directly into
-C++ without serialization.
+them with fast scalar and batch kernels. It also provides Morgan and
+topological Atom Pair descriptor rows plus Mordred-compatible and
+RDKit-compatible descriptors.
 
 OEFP currently supports dense binary, sparse binary, and sparse counted
 fingerprint containers; scalar comparison; query-to-batch comparison; `cdist`;
-SciPy-compatible condensed `pdist`; columnar descriptor batches; and
+SciPy-compatible condensed `pdist`; and
 Arrow/Parquet interchange for schema-backed descriptor rows.
 
 Try it out:
@@ -300,32 +298,19 @@ int main() {
 | Topological Atom Pair | Raw counted string-key descriptors | Uses graph shortest-path distances and requires no coordinate generation |
 | Distance Atom Pair | Reserved | Requires existing 3D coordinates and is not implemented yet |
 | Mordred-compatible | Schema-backed named descriptor rows | Full Mordred 1.2.0 schema with implemented values filled and unsupported or unavailable values left missing |
-| RDKit-compatible | Schema-backed named descriptor rows | 213 of RDKit's 2D descriptors reproduced natively and matched to RDKit 2026.03.3 within tolerance tiers; `SPS` and three always-zero VSA bins are excluded |
+| RDKit-compatible | Schema-backed named descriptor rows | 213 of RDKit's 2D descriptors reproduced natively and matched to RDKit within tolerance |
 
-Mordred-compatible descriptors use local Mordred and RDKit source as the
-reference truth. Descriptor definitions include source metadata, group labels,
-serialized parameters, value type, description, and prerequisite bitmaps.
-Coordinate prerequisites are declarative only: OEFP descriptor calculators do
-not invoke conformer generation.
-
-Morgan supports both ECFP-style connectivity invariants (default) and
-FCFP-style pharmacophore-feature invariants via `use_features=True` (Donor,
-Acceptor, Aromatic, Halogen, Basic, Acidic), matching RDKit's feature
-atom-invariant generator and composing with `use_chirality`.
+Morgan supports both ECFP-style and FCFP-style pharfingerprints
+via `use_features=True` (Donor, Acceptor, Aromatic, Halogen, Basic, Acidic), 
+matching RDKit's feature.
 `morgan_fingerprint(mol, radius=2)` is ECFP4; `morgan_fingerprint(mol,
 radius=2, use_features=True)` is FCFP4.
 
 Morgan, Topological Atom Pair, and Topological Torsions outputs support
-RDKit-compatible chirality encoding with `use_chirality=True`. OEFP keeps the
-caller's OpenEye molecule graph as the input truth; it does not normalize
-molecules to RDKit's graph model. When OpenEye and RDKit materialize a molecule
-differently, such as stereo hydrogens or sanitization-specific valence rewrites,
-chirality-enabled output may reflect that graph-model boundary.
-
-Current conformance scope is otherwise explicit: Distance Atom Pair generation
-raises `ValueError` or `NotImplementedError` until that path has dedicated RDKit
-parity coverage. Topological Atom Pair uses only the molecular connectivity
-graph; it does not require 2D coordinates.
+RDKit-compatible chirality encoding with `use_chirality=True` directly
+from OpenEye molecule objects. There may be some differences in chirality
+encoding between OpenEye and RDKit based on how each toolkit represents
+stereo information.
 
 ## Installation
 
