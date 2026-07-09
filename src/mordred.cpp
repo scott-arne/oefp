@@ -40,7 +40,6 @@ struct MordredFirstBatchValues {
     std::uint32_t aromatic_atoms = 0u;
     std::uint32_t heavy_atoms = 0u;
     std::uint32_t hetero_atoms = 0u;
-    std::uint32_t hydrogens = 0u;
     std::uint32_t spiro_atoms = 0u;
     std::uint32_t bridgehead_atoms = 0u;
     std::uint32_t boron = 0u;
@@ -2139,13 +2138,10 @@ MordredFirstBatchValues compute_first_batch_values(const OEChem::OEMolBase& work
     for (OESystem::OEIter<OEChem::OEAtomBase> atom = working_mol.GetAtoms(); atom; ++atom) {
         const auto atomic_number = static_cast<std::uint32_t>(atom->GetAtomicNum());
         if (is_hydrogen(*atom)) {
-            ++values.hydrogens;
             continue;
         }
 
-        const auto total_h_count = static_cast<std::uint32_t>(atom->GetTotalHCount());
         ++values.heavy_atoms;
-        values.hydrogens += total_h_count;
         if (atom->IsAromatic()) {
             ++values.aromatic_atoms;
         }

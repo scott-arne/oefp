@@ -27,3 +27,15 @@ TEST(MolecularPropertiesTest, EmptyMoleculeAverageIsZero) {
     EXPECT_DOUBLE_EQ(AverageMolecularWeight(empty), 0.0);
     EXPECT_EQ(TotalAtomCount(empty), 0u);
 }
+
+TEST(MolecularPropertiesTest, IsotopeHydrogenCountedOnce) {
+    // OESuppressHydrogens retains isotope hydrogens ([2H]) as explicit atoms, so
+    // the weight/count helpers must count such a hydrogen exactly once with its
+    // isotope mass, not double-count it via the heavy atom's GetTotalHCount.
+    const auto heavy_water = mol_from_smiles("[2H]O[H]");  // one deuterium, one protium
+    EXPECT_NEAR(ExactMolecularWeight(heavy_water), 19.01684, 1e-4);  // O + D + H, each once
+    EXPECT_EQ(TotalAtomCount(heavy_water), 3u);  // O plus two hydrogens
+    EXPECT_EQ(HeavyAtomCount(heavy_water), 1u);  // just the oxygen
+    // HeavyAtomMolWt strips all hydrogen mass, leaving the oxygen average weight.
+    EXPECT_NEAR(heavy_atom_standard_weight(heavy_water), OEChem::OEGetAverageWeight(8u), 1e-4);
+}
