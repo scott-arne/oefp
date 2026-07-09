@@ -41,6 +41,12 @@ RDKIT_COVERAGE_SUPPLEMENT = [
     "CS(=O)(=O)c1ccccc1",                       # sulfone
     "OB(O)c1ccccc1",                            # boronic acid
     "[O-][N+](=O)c1ccc(cc1)N=Nc1ccccc1",        # nitro + azo
+    # Input-normalization coverage (neutral nitro): OpenEye parses N(=O)=O with a
+    # neutral hypervalent nitrogen, but RDKit normalizes it to the charged
+    # [N+](=O)[O-] form. normalize_molecule rewrites it so OEFP's charge-sensitive
+    # descriptors (Gasteiger PartialCharge/PEOE_VSA/BCUT2D_CHG, fr_nitro) match
+    # the RDKit reference computed on the same neutral SMILES.
+    "CN(=O)=O",                                 # neutral nitromethane
     # VSA bin coverage (SMR, EState, SlogP bins)
     "c1ccc2c(c1)c1c(c3c2cccc3)cccc1",           # large PAH for VSA10
     "c1ccc(cc1)c1ccc(cc1)c1ccc(cc1)c1ccccc1",   # quaterphenyl for VSA9
