@@ -181,3 +181,30 @@ TEST(ComputeContextTest, GasteigerNaNsBerylliumLackingModeParameter) {
     ASSERT_EQ(lone_charges.size(), 1u);
     EXPECT_FALSE(std::isnan(lone_charges[0]));  // bare atom, degree 0 -> finite
 }
+
+// The context owns a normalized copy: neutral nitro is rewritten to the charged
+// [N+](=O)[O-] form so every descriptor source describes RDKit's convention.
+TEST(ComputeContextTest, NormalizesNeutralNitroOnConstruction) {
+    OEChem::OEGraphMol mol;
+    ASSERT_TRUE(OEChem::OESmilesToMol(mol, "c1ccc(cc1)N(=O)=O"));  // neutral nitrobenzene
+    ComputeContext ctx(mol);
+
+    int n_charge = 0, o_minus = 0, o_neutral = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> a = ctx.NormalizedMol().GetAtoms(); a; ++a) {
+        if (a->GetAtomicNum() == 7) n_charge = a->GetFormalCharge();
+        if (a->GetAtomicNum() == 8 && a->GetFormalCharge() == -1) ++o_minus;
+        if (a->GetAtomicNum() == 8 && a->GetFormalCharge() == 0) ++o_neutral;
+    }
+    EXPECT_EQ(n_charge, 1);
+    EXPECT_EQ(o_minus, 1);
+    EXPECT_EQ(o_neutral, 1);
+}
+
+// Normalization does NOT suppress hydrogens: explicit/bracket hydrogens survive
+// so the shared Gasteiger model is not regressed on stereo inputs.
+TEST(ComputeContextTest, PreservesExplicitHydrogensOnConstruction) {
+    OEChem::OEGraphMol mol;
+    ASSERT_TRUE(OEChem::OESmilesToMol(mol, "[H]O[H]"));
+    ComputeContext ctx(mol);
+    EXPECT_EQ(ctx.NormalizedMol().NumAtoms(), 3u);  // oxygen plus both explicit H
+}

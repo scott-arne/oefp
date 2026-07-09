@@ -94,7 +94,7 @@ DescriptorSet OpenEyePropertyDescriptorSource::Compute(const OEChem::OEMolBase& 
     // Delegate through a fresh per-molecule context so there is a single
     // implementation; the context supplies the shared ring-perceived molecule.
     ComputeContext ctx(mol);
-    return Compute(mol, ctx, ColumnRequest::All());
+    return Compute(ctx.NormalizedMol(), ctx, ColumnRequest::All());
 }
 
 DescriptorSet OpenEyePropertyDescriptorSource::Compute(const OEChem::OEMolBase& mol,

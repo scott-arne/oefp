@@ -108,7 +108,7 @@ DescriptorSet DescriptorCalculator::Compute(const OEChem::OEMolBase& mol) const 
             // columns; skip its Compute so it is a genuine no-op at compute time.
             continue;
         }
-        const DescriptorSet row = plan.source->Compute(mol, ctx, plan.request);
+        const DescriptorSet row = plan.source->Compute(ctx.NormalizedMol(), ctx, plan.request);
         for (const auto& [src_idx, merged_slot] : plan.kept) {
             // Copy only present source values; missing values stay missing.
             if (row.Has(src_idx)) {

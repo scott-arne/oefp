@@ -1,10 +1,15 @@
 #include "oefp/compute_context.h"
 
+#include "oefp/input_normalization.h"
+
 #include <utility>
 
 namespace OEFP {
 
-ComputeContext::ComputeContext(const OEChem::OEMolBase& mol) : mol_(mol) {}
+ComputeContext::ComputeContext(const OEChem::OEMolBase& mol)
+    : mol_(normalize_molecule(mol)) {}
+
+const OEChem::OEGraphMol& ComputeContext::NormalizedMol() const { return mol_; }
 
 const OEChem::OEGraphMol& ComputeContext::RingPerceivedMol() const {
     if (!ring_perceived_mol_) {

@@ -2770,7 +2770,7 @@ rdkit_group_index_by_id() {
 
 DescriptorSet MakeRDKitDescriptors(const OEChem::OEMolBase& mol) {
     ComputeContext ctx(mol);
-    return MakeRDKitDescriptors(mol, ctx, ColumnRequest::All());
+    return MakeRDKitDescriptors(ctx.NormalizedMol(), ctx, ColumnRequest::All());
 }
 
 DescriptorSet MakeRDKitDescriptors(const OEChem::OEMolBase& mol,
@@ -2843,7 +2843,7 @@ std::shared_ptr<const DescriptorSchema> RDKitDescriptorSource::Schema() const {
 
 DescriptorSet RDKitDescriptorSource::Compute(const OEChem::OEMolBase& mol) const {
     ComputeContext ctx(mol);
-    return Compute(mol, ctx, ColumnRequest::All());
+    return Compute(ctx.NormalizedMol(), ctx, ColumnRequest::All());
 }
 
 DescriptorSet RDKitDescriptorSource::Compute(const OEChem::OEMolBase& mol,

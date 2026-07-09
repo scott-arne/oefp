@@ -14,7 +14,8 @@ namespace OEFP {
 
 /// \brief Per-molecule cache of shared descriptor-computation intermediates.
 ///
-/// A ``ComputeContext`` borrows one molecule by const reference and memoizes the
+/// A ``ComputeContext`` owns a normalized copy of one molecule (see
+/// :cpp:func:`normalize_molecule`) and memoizes the
 /// expensive intermediates several descriptor groups share (ring-perceived
 /// working molecule, heavy-atom graph, heavy-atom distance matrix, Gasteiger
 /// charges, Crippen contributions, per-atom EState indices, per-atom Labute
@@ -29,11 +30,26 @@ namespace OEFP {
 /// molecule.
 class ComputeContext {
 public:
-    /// \brief Construct a context borrowing ``mol`` for its lifetime.
+    /// \brief Construct a context owning ``normalize_molecule(mol)``.
     ///
-    /// \param mol Molecule to describe. Must outlive the context; it is
-    ///     borrowed by const reference and never mutated.
+    /// The context stores its own normalized copy of ``mol`` (neutral nitro
+    /// groups rewritten to RDKit's charged form) and computes every cached
+    /// intermediate from it. ``mol`` is read only during construction and need
+    /// not outlive the context.
+    ///
+    /// \param mol Molecule to describe. Read once during construction; never
+    ///     mutated.
     explicit ComputeContext(const OEChem::OEMolBase& mol);
+
+    /// \brief Return the normalized molecule the context owns and describes.
+    ///
+    /// The input molecule with neutral nitro groups rewritten to the charged
+    /// [N+](=O)[O-] form (see :cpp:func:`normalize_molecule`). Descriptor
+    /// sources pass this to their compute entry points so every source
+    /// describes the same normalized structure the cached intermediates use.
+    ///
+    /// \returns The owned normalized molecule.
+    const OEChem::OEGraphMol& NormalizedMol() const;
 
     /// \brief Return the ring-perceived, hybridization-assigned working molecule.
     ///
@@ -116,7 +132,7 @@ public:
     std::size_t ComputeCount() const;
 
 private:
-    const OEChem::OEMolBase& mol_;
+    const OEChem::OEGraphMol mol_;
     mutable std::optional<OEChem::OEGraphMol> ring_perceived_mol_;
     mutable std::optional<MordredHeavyAtomGraph> heavy_atom_graph_;
     mutable std::optional<std::vector<std::vector<std::int64_t>>> heavy_atom_distances_;

@@ -9393,7 +9393,7 @@ DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol,
 
 DescriptorSet MakeMordredDescriptors(const OEChem::OEMolBase& mol) {
     ComputeContext ctx(mol);
-    return MakeMordredDescriptors(mol, ctx, ColumnRequest::All());
+    return MakeMordredDescriptors(ctx.NormalizedMol(), ctx, ColumnRequest::All());
 }
 
 namespace test {
