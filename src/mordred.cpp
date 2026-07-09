@@ -8453,15 +8453,27 @@ const std::vector<MordredGroup>& mordred_group_registry() {
                RequestGatedBuilder& builder) {
                 // Ring-perceived prep is byte-identical to the shared context mol.
                 const auto values = compute_first_batch_values(ctx.RingPerceivedMol());
-                const auto all_atoms = values.heavy_atoms + values.hydrogens;
-                const auto all_bonds = values.heavy_bonds + values.hydrogens;
-                const auto all_single_bonds = values.single_heavy_bonds + values.hydrogens;
+                // The heavy-atom fields of `values` are hydrogen-invariant and
+                // stay on RingPerceivedMol. Only the hydrogen count must come
+                // from the hydrogen-suppressed molecule so an explicit/bracket
+                // stereo hydrogen is not double-counted (matching Mordred
+                // 1.2.0's implicit-hydrogen input). TotalAtomCount on the
+                // suppressed molecule counts heavy atoms plus their implicit
+                // hydrogens; subtracting the heavy-atom count yields the correct
+                // hydrogen count. This is a no-op on molecules that carry no
+                // explicit hydrogen atom (the entire existing panel).
+                const auto suppressed_total_atoms =
+                    static_cast<std::uint32_t>(TotalAtomCount(ctx.HydrogenSuppressedMol()));
+                const auto hydrogens = suppressed_total_atoms - values.heavy_atoms;
+                const auto all_atoms = values.heavy_atoms + hydrogens;
+                const auto all_bonds = values.heavy_bonds + hydrogens;
+                const auto all_single_bonds = values.single_heavy_bonds + hydrogens;
                 const auto kekulized_aromatic_double_bonds = values.aromatic_bonds / 2u;
                 const auto kekulized_aromatic_single_bonds =
                     values.aromatic_bonds - kekulized_aromatic_double_bonds;
                 const auto kekulized_single_bonds =
                     values.single_heavy_bonds + kekulized_aromatic_single_bonds
-                    + values.hydrogens;
+                    + hydrogens;
                 const auto kekulized_double_bonds =
                     values.double_heavy_bonds + kekulized_aromatic_double_bonds;
 
@@ -8469,12 +8481,12 @@ const std::vector<MordredGroup>& mordred_group_registry() {
                 set_int(builder, "nBase", values.basic_groups);
                 set_int(builder, "nAromAtom", values.aromatic_atoms);
                 set_int(builder, "nAromBond", values.aromatic_bonds);
-                set_int(builder, "nAtom", static_cast<std::uint32_t>(TotalAtomCount(mol)));
+                set_int(builder, "nAtom", suppressed_total_atoms);
                 set_int(builder, "nHeavyAtom", static_cast<std::uint32_t>(HeavyAtomCount(mol)));
                 set_int(builder, "nSpiro", values.spiro_atoms);
                 set_int(builder, "nBridgehead", values.bridgehead_atoms);
                 set_int(builder, "nHetero", values.hetero_atoms);
-                set_int(builder, "nH", values.hydrogens);
+                set_int(builder, "nH", hydrogens);
                 set_int(builder, "nB", values.boron);
                 set_int(builder, "nC", values.carbon);
                 set_int(builder, "nN", values.nitrogen);
@@ -8548,10 +8560,10 @@ const std::vector<MordredGroup>& mordred_group_registry() {
             MordredGroupId::Weight,
             mordred_schema_group_indices(s, "mordred:Weight"),
             {},
-            [](const OEChem::OEMolBase& mol, ComputeContext&, MordredGroupArtifacts&,
+            [](const OEChem::OEMolBase&, ComputeContext& ctx, MordredGroupArtifacts&,
                const ColumnRequest&, RequestGatedBuilder& builder) {
-                set_float(builder, "MW", ExactMolecularWeight(mol));
-                set_float(builder, "AMW", AverageMolecularWeight(mol));
+                set_float(builder, "MW", ExactMolecularWeight(ctx.HydrogenSuppressedMol()));
+                set_float(builder, "AMW", AverageMolecularWeight(ctx.HydrogenSuppressedMol()));
             }});
 
         groups.push_back(MordredGroup{
