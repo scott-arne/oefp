@@ -117,10 +117,13 @@ RDKIT_COVERAGE_SUPPLEMENT = [
     "[SiH5-]",                                   # silicon: 2nd-row denominator branch
 ]
 
-# RDKit descriptors excluded from the schema because they are structurally
+# RDKit descriptors excluded from the schema. The three VSA bins are structurally
 # always zero (empty VSA bins; RDKit's fixed bin boundaries never populate these
-# ranges). Excluded per user decision 2026-07-06.
-RDKIT_EXCLUDED_DESCRIPTORS = {"SMR_VSA8", "SlogP_VSA9", "EState_VSA11"}
+# ranges; excluded per user decision 2026-07-06). SPS (SpacialScore) is excluded
+# because it diverges from RDKit on exotic aromaticity-model cases that cannot be
+# reproduced without porting RDKit's aromaticity model (excluded per user decision
+# 2026-07-09).
+RDKIT_EXCLUDED_DESCRIPTORS = {"SMR_VSA8", "SlogP_VSA9", "EState_VSA11", "SPS"}
 
 # Curated cross-source identities. A name maps to a shared canonical_id ONLY
 # after Task 4 verifies byte-identical output vs the existing source over the
@@ -161,7 +164,6 @@ RDKIT_TOLERANCE_TIERS: dict[str, str] = {
     "FpDensityMorgan1": "exact",
     "FpDensityMorgan2": "exact",
     "FpDensityMorgan3": "exact",
-    "SPS": "exact",
     # Ring counts (Task 5): all integer counts, so the conformance test compares
     # them for exact equality and the tier is only advisory. Marked exact because
     # every one matches RDKit exactly across the panel: RingCount reproduces
@@ -567,12 +569,12 @@ def main() -> None:
     args = parser.parse_args()
 
     payload = _reference_payload(args.descriptor_source, args.allow_rdkit_version_mismatch)
-    # 217 in RDKit _descList minus 3 always-zero VSA bins = 214 schema descriptors
-    if len(payload["definitions"]) != 214:
-        raise RuntimeError(f"Expected 214 RDKit definitions, got {len(payload['definitions'])}.")
+    # 217 in RDKit _descList minus 4 (3 always-zero VSA bins + SPS) = 213 schema descriptors
+    if len(payload["definitions"]) != 213:
+        raise RuntimeError(f"Expected 213 RDKit definitions, got {len(payload['definitions'])}.")
     for row in payload["reference_rows"]:
-        if len(row["values"]) != 214:
-            raise RuntimeError(f"Expected 214 values for {row['smiles']}.")
+        if len(row["values"]) != 213:
+            raise RuntimeError(f"Expected 213 values for {row['smiles']}.")
 
     args.output.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n",
                            encoding="utf-8")

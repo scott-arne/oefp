@@ -36,7 +36,7 @@ def test_rdkit_source_registers_and_returns_full_width_row():
     import oefp
 
     calc = oefp.DescriptorCalculator([oefp.RDKitDescriptorSource()])
-    assert len(calc.schema.names) == 214
+    assert len(calc.schema.names) == 213
     row = calc.compute(_openeye_mol("CCO"))
     # CountsWeights (Task 3), SurfacePolarity (Task 7), and Composite (Task 10) are
     # computed; the full RDKit 2D surface is now ported.
@@ -49,7 +49,7 @@ def test_rdkit_schema_size_matches_fixture():
     import oefp
 
     payload = _payload()
-    assert len(payload["definitions"]) == 214
+    assert len(payload["definitions"]) == 213
     assert oefp.rdkit_schema().names == tuple(d["name"] for d in payload["definitions"])
 
 
@@ -61,7 +61,7 @@ def test_rdkit_descriptors_free_function_returns_full_width_row():
     import oefp
 
     row = oefp.rdkit_descriptors(_openeye_mol("CCO"))
-    assert len(row.schema.names) == 214
+    assert len(row.schema.names) == 213
     # CountsWeights (Task 3), Crippen (Task 7), and Composite (Task 10) are
     # computed; the full RDKit 2D surface is now ported.
     assert row["ExactMolWt"] == pytest.approx(46.0419, rel=1e-4)
@@ -82,7 +82,7 @@ def test_rdkit_descriptors_release_gil_for_concurrent_computation():
     A smoke test that exercises rdkit_descriptors concurrently from multiple
     threads to confirm the exported trampoline releases the GIL (no deadlock,
     no serialization). Each thread computes the descriptor row for a small
-    molecule and asserts the expected 214-column width. If the GIL were held,
+    molecule and asserts the expected 213-column width. If the GIL were held,
     Python threads would serialize (functionally correct but not concurrent);
     this test simply confirms all threads complete successfully without error.
     """
@@ -92,23 +92,24 @@ def test_rdkit_descriptors_release_gil_for_concurrent_computation():
     def compute_row(smiles: str) -> int:
         mol = _openeye_mol(smiles)
         row = oefp.rdkit_descriptors(mol)
-        assert len(row.schema.names) == 214
+        assert len(row.schema.names) == 213
         return len(row.schema.names)
 
     smiles_batch = ["CCO", "c1ccccc1", "CC(C)C", "CCCC", "C1CCCCC1"]
     with ThreadPoolExecutor(max_workers=4) as executor:
         results = list(executor.map(compute_row, smiles_batch))
 
-    assert results == [214] * len(smiles_batch)
+    assert results == [213] * len(smiles_batch)
 
 
 # Descriptors intentionally left uncomputed pending deep-dive follow-ups. The
-# Gasteiger-dependent set and SPS have been resolved.
+# Gasteiger-dependent set has been resolved; SPS is now EXCLUDED from the schema
+# (see RDKIT_EXCLUDED_DESCRIPTORS) rather than deferred, so it never appears here.
 DEFERRED_DESCRIPTOR_NAMES: frozenset[str] = frozenset()
 
 
 # Families enabled for conformance checking; grows as tasks land. This set
-# enables the 22 dependency-free CountsWeights descriptors and the 11
+# enables the 21 dependency-free CountsWeights descriptors and the 11
 # RingCounts descriptors.
 ENABLED_DESCRIPTOR_NAMES: set[str] = {
     "MolWt", "HeavyAtomMolWt", "ExactMolWt", "NumValenceElectrons",
@@ -116,7 +117,7 @@ ENABLED_DESCRIPTOR_NAMES: set[str] = {
     "FpDensityMorgan3", "FractionCSP3", "HeavyAtomCount", "NHOHCount",
     "NOCount", "NumAmideBonds", "NumAtomStereoCenters", "NumBridgeheadAtoms",
     "NumHAcceptors", "NumHDonors", "NumHeteroatoms", "NumRotatableBonds",
-    "NumSpiroAtoms", "NumUnspecifiedAtomStereoCenters", "SPS",
+    "NumSpiroAtoms", "NumUnspecifiedAtomStereoCenters",
     # RingCounts (Task 5): 11 dependency-free SSSR ring classifications.
     "RingCount", "NumAromaticRings", "NumAliphaticRings", "NumSaturatedRings",
     "NumAromaticCarbocycles", "NumAromaticHeterocycles", "NumAliphaticCarbocycles",
@@ -241,7 +242,9 @@ def test_enabled_rdkit_descriptors_match_reference_at_tier():
                     f"{name} @ {row['smiles']} tier={tiers[name]}"
 
 
-def test_full_214_surface_is_enabled_or_deferred():
+def test_full_213_surface_is_enabled_or_deferred():
+    # SPS is EXCLUDED from the schema (not deferred), so all_names is the 213
+    # schema descriptors and every one must be enabled; deferred stays empty.
     payload = _payload()
     all_names = {d["name"] for d in payload["definitions"]}
 
@@ -254,5 +257,5 @@ def test_full_214_surface_is_enabled_or_deferred():
         f"missing from enabled+deferred: {missing_from_either}"
     assert len(DEFERRED_DESCRIPTOR_NAMES) == 0, \
         f"deferred count changed: {len(DEFERRED_DESCRIPTOR_NAMES)} (expected 0)"
-    assert len(ENABLED_DESCRIPTOR_NAMES) == 214, \
-        f"enabled count changed: {len(ENABLED_DESCRIPTOR_NAMES)} (expected 214)"
+    assert len(ENABLED_DESCRIPTOR_NAMES) == 213, \
+        f"enabled count changed: {len(ENABLED_DESCRIPTOR_NAMES)} (expected 213)"

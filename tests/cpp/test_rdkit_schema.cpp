@@ -4,10 +4,11 @@
 
 using namespace OEFP;
 
-// 217 RDKit _descList descriptors minus 3 always-zero VSA bins (SMR_VSA8,
-// SlogP_VSA9, EState_VSA11) = 214 schema descriptors.
-TEST(RDKitSchemaTest, HasAll214Descriptors) {
-    EXPECT_EQ(RDKitDescriptorSchema()->Size(), 214u);
+// 217 RDKit _descList descriptors minus 4 (3 always-zero VSA bins — SMR_VSA8,
+// SlogP_VSA9, EState_VSA11 — plus SPS, excluded because it diverges from RDKit
+// on exotic aromaticity-model cases) = 213 schema descriptors.
+TEST(RDKitSchemaTest, HasAll213Descriptors) {
+    EXPECT_EQ(RDKitDescriptorSchema()->Size(), 213u);
 }
 
 // Pin the native schema to the committed reference fixture (schema_id, column
@@ -18,18 +19,19 @@ TEST(RDKitSchemaTest, HasAll214Descriptors) {
 TEST(RDKitSchemaTest, MatchesCommittedFixtureIdentity) {
     const auto schema = RDKitDescriptorSchema();
 
-    EXPECT_EQ(schema->SchemaId(), "fe975cfea4084c34");
+    EXPECT_EQ(schema->SchemaId(), "1faa8f3e6f579c15");
 
     // First and last columns pin the schema's ordering endpoints.
     EXPECT_EQ(schema->Definition(0).name, "MaxAbsEStateIndex");
-    EXPECT_EQ(schema->Definition(213).name, "fr_urea");
+    EXPECT_EQ(schema->Definition(212).name, "fr_urea");
 
-    // Representative interior columns pin the ordering across families.
+    // Representative interior columns pin the ordering across families. Every
+    // index after SPS (old index 5) shifts down by one now that SPS is excluded.
     EXPECT_EQ(schema->IndexOf("qed"), 4u);
-    EXPECT_EQ(schema->IndexOf("MolWt"), 6u);
-    EXPECT_EQ(schema->IndexOf("BCUT2D_MWHI"), 18u);
-    EXPECT_EQ(schema->IndexOf("TPSA"), 81u);
-    EXPECT_EQ(schema->IndexOf("fr_benzene"), 163u);
+    EXPECT_EQ(schema->IndexOf("MolWt"), 5u);
+    EXPECT_EQ(schema->IndexOf("BCUT2D_MWHI"), 17u);
+    EXPECT_EQ(schema->IndexOf("TPSA"), 80u);
+    EXPECT_EQ(schema->IndexOf("fr_benzene"), 162u);
 
     EXPECT_EQ(schema->Definition(0).source_version, "RDKit-2026.03.3");
 }
@@ -58,10 +60,13 @@ TEST(RDKitSchemaTest, NoCoordinatePrerequisites) {
     }
 }
 
-// Verify that structurally always-zero VSA bins are excluded from the schema.
+// Verify that excluded descriptors are absent from the schema: the three
+// structurally always-zero VSA bins and SPS (excluded because it diverges from
+// RDKit on exotic aromaticity-model cases).
 TEST(RDKitSchemaTest, ExcludesAlwaysZeroVsaBins) {
     const auto schema = RDKitDescriptorSchema();
     EXPECT_FALSE(schema->Contains("SMR_VSA8"));
     EXPECT_FALSE(schema->Contains("SlogP_VSA9"));
     EXPECT_FALSE(schema->Contains("EState_VSA11"));
+    EXPECT_FALSE(schema->Contains("SPS"));
 }

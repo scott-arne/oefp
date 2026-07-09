@@ -20,13 +20,12 @@ struct StaticRDKitDefinition {
     DescriptorPrerequisites prerequisites;
 };
 
-constexpr std::array<StaticRDKitDefinition, 214> kRDKitDefinitions{{
+constexpr std::array<StaticRDKitDefinition, 213> kRDKitDefinitions{{
     {"MaxAbsEStateIndex", DescriptorValueKind::Float, "rdkit:EState", "EState", "", "MaxAbsEStateIndex", "", 0u},
     {"MaxEStateIndex", DescriptorValueKind::Float, "rdkit:EState", "EState", "", "MaxEStateIndex", "", 0u},
     {"MinAbsEStateIndex", DescriptorValueKind::Float, "rdkit:EState", "EState", "", "MinAbsEStateIndex", "", 0u},
     {"MinEStateIndex", DescriptorValueKind::Float, "rdkit:EState", "EState", "", "MinEStateIndex", "", 0u},
     {"qed", DescriptorValueKind::Float, "rdkit:Composite", "Composite", "", "qed", "", 0u},
-    {"SPS", DescriptorValueKind::Float, "rdkit:CountsWeights", "CountsWeights", "", "SPS", "", 0u},
     {"MolWt", DescriptorValueKind::Float, "rdkit:CountsWeights", "CountsWeights", "", "MolWt", "", 0u},
     {"HeavyAtomMolWt", DescriptorValueKind::Float, "rdkit:CountsWeights", "CountsWeights", "", "HeavyAtomMolWt", "", 0u},
     {"ExactMolWt", DescriptorValueKind::Float, "rdkit:CountsWeights", "CountsWeights", "", "ExactMolWt", "", 0u},
