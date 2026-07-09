@@ -148,6 +148,13 @@ RDKIT_TOLERANCE_TIERS: dict[str, str] = {
     "FractionCSP3": "exact",
     "MolWt": "tight",            # average MW: element-average table rounding
     "HeavyAtomMolWt": "tight",
+    # FpDensityMorgan1/2/3 are the unique-Morgan-bit count divided by the heavy-atom
+    # count — a ratio of two matching integers, so the native value equals RDKit's
+    # exactly (0.0 difference across the panel). Pinned exact rather than left at the
+    # loose default so a Morgan-environment miscount is caught, not tolerated.
+    "FpDensityMorgan1": "exact",
+    "FpDensityMorgan2": "exact",
+    "FpDensityMorgan3": "exact",
     # Ring counts (Task 5): all integer counts, so the conformance test compares
     # them for exact equality and the tier is only advisory. Marked exact because
     # every one matches RDKit exactly across the panel: RingCount reproduces
