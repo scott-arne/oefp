@@ -108,9 +108,6 @@ def test_rdkit_descriptors_release_gil_for_concurrent_computation():
 # cumulene systems; bundled into a single native RDKit-Gasteiger-port task.
 DEFERRED_DESCRIPTOR_NAMES: frozenset[str] = frozenset({
     "SPS",
-    "PEOE_VSA1", "PEOE_VSA2", "PEOE_VSA3", "PEOE_VSA4", "PEOE_VSA5",
-    "PEOE_VSA6", "PEOE_VSA7", "PEOE_VSA8", "PEOE_VSA9", "PEOE_VSA10",
-    "PEOE_VSA11", "PEOE_VSA12", "PEOE_VSA13", "PEOE_VSA14",
     "BCUT2D_CHGHI", "BCUT2D_CHGLO",
 })
 
@@ -214,13 +211,14 @@ ENABLED_DESCRIPTOR_NAMES: set[str] = {
     # PartialCharge (Task 11): Max/Min/MaxAbs/MinAbsPartialCharge reduce the shared
     # RDKit-Gasteiger charges per RDKit's _ChargeDescriptors semantics.
     "MaxPartialCharge", "MinPartialCharge", "MaxAbsPartialCharge", "MinAbsPartialCharge",
-    # PEOE_VSA1..14 deferred — they bucket the Gasteiger partial charges, the same
-    # model whose OpenEye-vs-RDKit divergence on cumulated-double-bond systems
-    # (azides, isocyanates, isothiocyanates, ...) and on elements RDKit has no
-    # Gasteiger parameters for (RDKit routes their NaN charge to the tail bin) also
-    # deferred the MaxPartialCharge family. Left missing like PartialCharge until a
-    # native RDKit-Gasteiger port lands; the other four VSA sub-families never touch
-    # Gasteiger and match RDKit within loose across the whole panel.
+    # PEOE_VSA1..14: bucket the RDKit-faithful Gasteiger charges by RDKit's chgBins
+    # and accumulate the Labute surface. The accessor now reproduces RDKit's
+    # molecule-wide NaN on no-parameter elements and hypervalent main-group atoms,
+    # so those charges route to the open tail bin (PEOE_VSA14) exactly like RDKit's
+    # bisect_right (verified on C[Na], O=[Se]=O, [SiH5-]). All 14 match within loose.
+    "PEOE_VSA1", "PEOE_VSA2", "PEOE_VSA3", "PEOE_VSA4", "PEOE_VSA5",
+    "PEOE_VSA6", "PEOE_VSA7", "PEOE_VSA8", "PEOE_VSA9", "PEOE_VSA10",
+    "PEOE_VSA11", "PEOE_VSA12", "PEOE_VSA13", "PEOE_VSA14",
     # "SPS" deferred — RDKit SpacialScore needs RDKit-internal potential-stereo +
     # hybridization models OpenEye doesn't expose; needs a dedicated deep-dive task.
 }
@@ -270,7 +268,7 @@ def test_full_214_surface_is_enabled_or_deferred():
         f"enabled/deferred overlap: {overlap}"
     assert ENABLED_DESCRIPTOR_NAMES | DEFERRED_DESCRIPTOR_NAMES == all_names, \
         f"missing from enabled+deferred: {missing_from_either}"
-    assert len(DEFERRED_DESCRIPTOR_NAMES) == 17, \
-        f"deferred count changed: {len(DEFERRED_DESCRIPTOR_NAMES)} (expected 17)"
-    assert len(ENABLED_DESCRIPTOR_NAMES) == 197, \
-        f"enabled count changed: {len(ENABLED_DESCRIPTOR_NAMES)} (expected 197)"
+    assert len(DEFERRED_DESCRIPTOR_NAMES) == 3, \
+        f"deferred count changed: {len(DEFERRED_DESCRIPTOR_NAMES)} (expected 3)"
+    assert len(ENABLED_DESCRIPTOR_NAMES) == 211, \
+        f"enabled count changed: {len(ENABLED_DESCRIPTOR_NAMES)} (expected 211)"

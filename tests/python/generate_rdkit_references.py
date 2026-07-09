@@ -230,10 +230,10 @@ RDKIT_TOLERANCE_TIERS: dict[str, str] = {
     # per-atom vectors (Labute surface, Crippen SlogP/SMR, EState) and RDKit's exact
     # bin bounds. Binning inherits the loose numeric tier of the underlying per-atom
     # models; coarse bucketing keeps the panel within loose. SlogP_VSA9, SMR_VSA8,
-    # EState_VSA11 are excluded. PEOE_VSA1..14 stay in the schema at the loose tier
-    # but are DEFERRED (uncomputed / out of the conformance ENABLED set) — they
-    # bucket the Gasteiger charges whose OpenEye-vs-RDKit divergence already deferred
-    # the PartialCharge family; a native RDKit-Gasteiger port is the prerequisite.
+    # EState_VSA11 are excluded. PEOE_VSA1..14 bucket the RDKit-faithful Gasteiger
+    # charges (whose accessor reproduces RDKit's molecule-wide NaN on no-parameter
+    # elements and hypervalent main-group atoms, routing those to the tail bin) and
+    # match RDKit within loose across the panel.
     **{f"SlogP_VSA{k}": "loose" for k in range(1, 13) if k != 9},
     **{f"SMR_VSA{k}": "loose" for k in range(1, 11) if k != 8},
     **{f"PEOE_VSA{k}": "loose" for k in range(1, 15)},

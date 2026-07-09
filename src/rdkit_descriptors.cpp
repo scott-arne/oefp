@@ -2498,14 +2498,13 @@ const std::vector<RDKitGroup>& rdkit_group_registry() {
                 set_float(builder, "MinAbsEStateIndex", min_abs);
             }});
 
-        // Group: rdkit:VSA — the surface-area-binned descriptors across five
-        // sub-families (40 emitted; the 14 PEOE_VSA bins are deferred, see the note
-        // below). Every family bins two SHARED per-atom context vectors
-        // (already memoized per heavy atom in one aligned order): the Labute
+        // Group: rdkit:VSA — the surface-area-binned descriptors across all five
+        // sub-families (54 emitted). Every family bins two SHARED per-atom context
+        // vectors (already memoized per heavy atom in one aligned order): the Labute
         // surface contributions (ctx.LabuteAtomContributions(), RDKit's
         // VSAContribs), the Crippen SlogP/SMR contributions
-        // (ctx.CrippenContributions()), the Gasteiger charges
-        // (ctx.GasteigerAtomCharges()), and the EState indices
+        // (ctx.CrippenContributions()), the RDKit-faithful Gasteiger charges
+        // (ctx.RDKitGasteigerAtomCharges()), and the EState indices
         // (ctx.EStateIndices()). SlogP/SMR/PEOE bin by their property and
         // accumulate the surface contribution; EState_VSA bins by EState and
         // accumulates surface; VSA_EState transposes that — it bins by surface and
@@ -2516,25 +2515,22 @@ const std::vector<RDKitGroup>& rdkit_group_registry() {
         // SlogP_VSA9, SMR_VSA8, and EState_VSA11 are structural zeros excluded from
         // the schema, so those bins are computed but not emitted.
         //
-        // PEOE_VSA deferred — its 14 bins bucket the Gasteiger partial charges,
-        // the SAME model whose OpenEye-vs-RDKit divergence on cumulated-double-bond
-        // systems (allenes, isocyanates, isothiocyanates, azides, ...) and on
-        // elements RDKit has no Gasteiger parameters for (RDKit assigns those a NaN
-        // charge that bisect_right routes to the open tail bin, PEOE_VSA14, whereas
-        // OpenEye returns a finite charge that lands in a middle bin) caused the
-        // MaxPartialCharge family to be deferred above. Binning inherits that
-        // divergence one-to-one (verified: every panel PEOE_VSA divergence is a
-        // cumulene or an unparametrized-element molecule; the other four VSA
-        // sub-families, which never touch Gasteiger, match RDKit within loose across
-        // the whole panel). The 14 PEOE_VSA columns therefore stay in the schema but
-        // are left uncomputed (missing) until a native RDKit-Gasteiger port lands,
-        // mirroring the PartialCharge deferral rather than shipping wrong bins.
+        // PEOE_VSA buckets the RDKit-faithful Gasteiger charges
+        // (ctx.RDKitGasteigerAtomCharges(), the sp-cumulene variant), which now
+        // reproduce RDKit's molecule-wide NaN on elements RDKit has no Gasteiger
+        // parameters for and on hypervalent main-group atoms. Those NaN charge keys
+        // route to the open tail bin (PEOE_VSA14) exactly like RDKit's bisect_right,
+        // so the whole family matches RDKit within the loose VSA tier across the
+        // panel (including C[Na], O=[Se]=O, and [SiH5-]).
         std::vector<std::string> vsa_columns;
         for (int k = 1; k <= 12; ++k) {
             if (k != 9) vsa_columns.push_back("SlogP_VSA" + std::to_string(k));
         }
         for (int k = 1; k <= 10; ++k) {
             if (k != 8) vsa_columns.push_back("SMR_VSA" + std::to_string(k));
+        }
+        for (int k = 1; k <= 14; ++k) {
+            vsa_columns.push_back("PEOE_VSA" + std::to_string(k));
         }
         for (int k = 1; k <= 10; ++k) {
             vsa_columns.push_back("EState_VSA" + std::to_string(k));
@@ -2560,14 +2556,16 @@ const std::vector<RDKitGroup>& rdkit_group_registry() {
                     {-0.39, 0.29, 0.717, 1.165, 1.54, 1.807, 2.05, 4.69, 9.17, 15.0}};
                 static constexpr std::array<double, 9> kVsaBins{
                     {4.78, 5.0, 5.41, 5.74, 6.0, 6.07, 6.45, 7.0, 11.0}};
+                static constexpr std::array<double, 13> kPeoeBins{
+                    {-0.30, -0.25, -0.20, -0.15, -0.10, -0.05, 0.0,
+                     0.05, 0.10, 0.15, 0.20, 0.25, 0.30}};
 
                 const std::vector<double>& surface = ctx.LabuteAtomContributions();
                 const auto& crippen = ctx.CrippenContributions();
                 const std::vector<double>& estate = ctx.EStateIndices();
 
                 // SlogP_VSA / SMR_VSA: bin by the Crippen property, accumulate the
-                // surface contribution. PEOE_VSA is deferred (see the note above),
-                // so the Gasteiger charges are intentionally not binned here.
+                // surface contribution.
                 if (const auto slogp =
                         rdkit_vsa_bin_accumulate(crippen.logp, surface, kSlogpBins)) {
                     rdkit_emit_vsa_family(builder, "SlogP_VSA", *slogp, 9);
@@ -2575,6 +2573,15 @@ const std::vector<RDKitGroup>& rdkit_group_registry() {
                 if (const auto smr =
                         rdkit_vsa_bin_accumulate(crippen.mr, surface, kSmrBins)) {
                     rdkit_emit_vsa_family(builder, "SMR_VSA", *smr, 8);
+                }
+                // PEOE_VSA: bin by the RDKit-faithful Gasteiger charge, accumulate
+                // the surface contribution. A molecule-wide NaN charge (RDKit's
+                // no-parameter behavior) routes every atom to the open tail bin
+                // (PEOE_VSA14), matching RDKit's bisect_right. All 14 bins emit.
+                const std::vector<double>& charge = ctx.RDKitGasteigerAtomCharges().charges;
+                if (const auto peoe =
+                        rdkit_vsa_bin_accumulate(charge, surface, kPeoeBins)) {
+                    rdkit_emit_vsa_family(builder, "PEOE_VSA", *peoe, 0);
                 }
                 // EState_VSA: bin by EState, accumulate surface.
                 if (const auto estate_vsa =

@@ -197,15 +197,17 @@ TEST(RDKitPruningEquivalenceTest, EStateSingleColumn) {
 // VSA per-sub-family single-column scenarios across the panel: requesting only
 // one bin of each sub-family must reproduce the full-schema value and leave every
 // other column (including its own sub-family siblings) missing, proving the VSA
-// group's emitted_columns list is correct under subtractive pruning. PEOE_VSA is
-// deferred (its Gasteiger-charge dependence diverges from RDKit like
-// PartialCharge), so it emits no columns and is intentionally not exercised here.
+// group's emitted_columns list is correct under subtractive pruning.
 TEST(RDKitPruningEquivalenceTest, SlogpVsaSingleColumn) {
     expect_column_matches_across_panel({"SlogP_VSA2"});
 }
 
 TEST(RDKitPruningEquivalenceTest, SmrVsaSingleColumn) {
     expect_column_matches_across_panel({"SMR_VSA1"});
+}
+
+TEST(RDKitPruningEquivalenceTest, PeoeVsaSingleColumnAcrossPanel) {
+    expect_column_matches_across_panel({"PEOE_VSA7"});
 }
 
 TEST(RDKitPruningEquivalenceTest, EstateVsaSingleColumn) {
