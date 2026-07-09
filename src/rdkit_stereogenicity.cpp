@@ -502,6 +502,75 @@ bool has_disqualifying_duplicate(const HeavyGraph& g, const RingStereo& rs,
     return false;
 }
 
+// One end of a double bond has distinguishable substituents when it has a single
+// non-partner heavy neighbour (trivially distinguishable) or two whose symmetry
+// classes differ. Mirrors the CIP-rank comparison in the legacy
+// findPotentialStereoBonds; plain symmetry classes stand in for assignAtomCIPRanks
+// (equal iff topologically equivalent, which is exactly the "ranks differ" test).
+bool double_bond_end_distinguishable(const HeavyGraph& g, std::size_t end,
+                                     std::size_t partner, const std::vector<int>& ranks) {
+    std::vector<int> subs;
+    for (const auto nbr : g.adjacency[end]) {
+        if (nbr != partner) {
+            subs.push_back(ranks[nbr]);
+        }
+    }
+    if (subs.empty()) {
+        return false;
+    }
+    if (subs.size() == 1u) {
+        return true;
+    }
+    return subs[0] != subs[1];
+}
+
+// Legacy MolOps::findPotentialStereoBonds (Chirality.cpp:2910), which SPS calls
+// via rdmolops.FindPotentialStereoBonds. Marks both endpoints of every double
+// bond that carries non-STEREONONE stereo afterwards: a non-ring double bond
+// whose two-substituent ends are rank-distinguishable (a one-substituent end is
+// trivially so), plus any double bond that already carries specified E/Z stereo
+// (any ring size). Unmarked ring double bonds are skipped entirely, at any size.
+std::vector<bool> compute_stereo_bond_atoms(const OEChem::OEMolBase& mol, const HeavyGraph& g) {
+    std::vector<bool> flags(g.atoms.size(), false);
+    const std::vector<int> plain_ranks = refine_symmetry_classes(g, std::vector<bool>(g.atoms.size(), false));
+
+    for (OESystem::OEIter<OEChem::OEBondBase> bond = mol.GetBonds(); bond; ++bond) {
+        if (bond->GetOrder() != 2u || bond->IsAromatic()) {
+            continue;
+        }
+        const auto* begin = bond->GetBgn();
+        const auto* end = bond->GetEnd();
+        if (begin == nullptr || end == nullptr || is_hydrogen(*begin) || is_hydrogen(*end)) {
+            continue;
+        }
+        const auto bi = g.index_by_oeidx.find(begin->GetIdx());
+        const auto ei = g.index_by_oeidx.find(end->GetIdx());
+        if (bi == g.index_by_oeidx.end() || ei == g.index_by_oeidx.end()) {
+            continue;
+        }
+        const std::size_t a = bi->second;
+        const std::size_t b = ei->second;
+        const bool specified = bond->HasStereoSpecified(OEChem::OEBondStereo::CisTrans);
+
+        bool flag = false;
+        if (bond->IsInRing()) {
+            flag = specified;  // ring double bonds are otherwise ignored, any size
+        } else {
+            const bool degree_ok = (g.heavy_degree[a] == 2 || g.heavy_degree[a] == 3)
+                                   && (g.heavy_degree[b] == 2 || g.heavy_degree[b] == 3);
+            flag = specified
+                   || (degree_ok
+                       && double_bond_end_distinguishable(g, a, b, plain_ranks)
+                       && double_bond_end_distinguishable(g, b, a, plain_ranks));
+        }
+        if (flag) {
+            flags[a] = true;
+            flags[b] = true;
+        }
+    }
+    return flags;
+}
+
 }  // namespace
 
 RDKitStereogenicity rdkit_potential_stereogenicity(const OEChem::OEMolBase& mol) {
@@ -578,11 +647,14 @@ RDKitStereogenicity rdkit_potential_stereogenicity(const OEChem::OEMolBase& mol)
         }
     }
 
+    const std::vector<bool> stereo_bond_atoms = compute_stereo_bond_atoms(mol, g);
+
     RDKitStereogenicity result;
     result.atom_is_potential_stereocenter.assign(n, false);
     result.atom_on_potential_stereo_bond.assign(n, false);
     for (std::size_t i = 0u; i < n; ++i) {
         result.atom_is_potential_stereocenter[i] = possible[i] && tetrahedral[i];
+        result.atom_on_potential_stereo_bond[i] = stereo_bond_atoms[i];
     }
     return result;
 }

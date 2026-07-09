@@ -26,6 +26,20 @@ std::set<std::size_t> stereo_atoms(const char* smiles) {
     return out;
 }
 
+std::set<std::size_t> stereo_bond_atoms(const char* smiles) {
+    OEChem::OEGraphMol mol;
+    EXPECT_TRUE(OEChem::OESmilesToMol(mol, smiles)) << smiles;
+    OEChem::OEFindRingAtomsAndBonds(mol);
+    OEChem::OEAssignAromaticFlags(mol);
+    OEChem::OEAssignHybridization(mol);
+    const auto flags = rdkit_potential_stereogenicity(mol);
+    std::set<std::size_t> out;
+    for (std::size_t i = 0u; i < flags.atom_on_potential_stereo_bond.size(); ++i) {
+        if (flags.atom_on_potential_stereo_bond[i]) out.insert(i);
+    }
+    return out;
+}
+
 }  // namespace
 
 TEST(RDKitStereogenicityTest, ClassicTetrahedralCenters) {
@@ -68,4 +82,41 @@ TEST(RDKitStereogenicityTest, SpecialGateCases) {
     EXPECT_EQ(stereo_atoms("C1CN2CCC1CC2"), (std::set<std::size_t>{2, 5}));  // bridgehead N (quinuclidine)
     EXPECT_EQ(stereo_atoms("O=S(C)CC"), (std::set<std::size_t>{1}));     // sulfoxide S lone pair
     EXPECT_TRUE(stereo_atoms("C[S+](C)C").empty());                      // sulfonium: 3 equal methyls
+}
+
+TEST(RDKitStereogenicityTest, PotentialStereoDoubleBonds) {
+    EXPECT_EQ(stereo_bond_atoms("CC=CCO"), (std::set<std::size_t>{1, 2}));    // crotyl
+    EXPECT_EQ(stereo_bond_atoms("CC=CC"), (std::set<std::size_t>{1, 2}));     // 2-butene
+    EXPECT_EQ(stereo_bond_atoms("O=CC=CC=O"), (std::set<std::size_t>{2, 3})); // but-2-enedial
+    EXPECT_EQ(stereo_bond_atoms("CN=NC"), (std::set<std::size_t>{1, 2}));     // diazene N=N
+    EXPECT_EQ(stereo_bond_atoms("c1ccccc1N=Nc1ccccc1"),
+              (std::set<std::size_t>{6, 7}));                                 // azobenzene N=N
+}
+
+TEST(RDKitStereogenicityTest, NonStereoDoubleBonds) {
+    EXPECT_TRUE(stereo_bond_atoms("C=C").empty());         // ethylene
+    EXPECT_TRUE(stereo_bond_atoms("CC=C").empty());        // propene (=CH2 end has 2 H)
+    EXPECT_TRUE(stereo_bond_atoms("CC(C)=C").empty());     // isobutene (2 identical CH3)
+    EXPECT_TRUE(stereo_bond_atoms("CC(C)=O").empty());     // acetone (terminal O)
+    EXPECT_TRUE(stereo_bond_atoms("c1ccccc1C=C").empty()); // styrene vinyl
+}
+
+// Additional fused/bridged/spiro topologies verified against the RDKit oracle,
+// guarding the port beyond the plan's pinned cages.
+TEST(RDKitStereogenicityTest, ExtraRingTopologies) {
+    EXPECT_EQ(stereo_atoms("C1CC2CCC1CC2"), (std::set<std::size_t>{2, 5}));       // bicyclo[2.2.2]octane
+    EXPECT_EQ(stereo_atoms("C1CCC2CCCCC2C1"), (std::set<std::size_t>{3, 8}));     // decalin ring fusion
+    EXPECT_EQ(stereo_atoms("C1CC2CCC3CC1CC(C2)C3"),
+              (std::set<std::size_t>{2, 5, 7, 9}));                              // diamantane bridgeheads
+    EXPECT_TRUE(stereo_atoms("C1CC2(CC1)CCCCC2").empty());                       // spiro (no dependent pair)
+    EXPECT_TRUE(stereo_atoms("C1CCC(CC1)C1CCCCC1").empty());                     // bicyclohexyl (single each)
+}
+
+// The legacy findPotentialStereoBonds ignores ring double bonds completely (any
+// size), so SPS never flags an unmarked ring C=C. The new-algorithm bond path
+// (ring>=8) would WRONGLY flag cyclooctene/cyclodecene -- this test guards that.
+TEST(RDKitStereogenicityTest, RingDoubleBondsNotFlagged) {
+    EXPECT_TRUE(stereo_bond_atoms("C1CCC=CC1").empty());     // cyclohexene (6)
+    EXPECT_TRUE(stereo_bond_atoms("C1CCCC=CCC1").empty());   // cyclooctene (8)
+    EXPECT_TRUE(stereo_bond_atoms("C1CCCC=CCCCC1").empty()); // cyclodecene (10)
 }
