@@ -159,3 +159,25 @@ TEST(ComputeContextTest, GasteigerNaNsMoleculesLackingParameters) {
         }
     }
 }
+
+// Beryllium in a bonded/linear ("sp") context has no RDKit Gasteiger parameter
+// (RDKit NaNs it), and OEFP's table has only Be sp2/sp3, so its lookup falls
+// back to the X/* default. The mode-aware no-parameter test NaNs C[Be]C's whole
+// component, matching RDKit; bare [Be] (degree 0) stays finite.
+TEST(ComputeContextTest, GasteigerNaNsBerylliumLackingModeParameter) {
+    OEChem::OEGraphMol be;
+    ASSERT_TRUE(OEChem::OESmilesToMol(be, "C[Be]C"));
+    OEFP::ComputeContext ctx_be(be);
+    const auto& be_charges = ctx_be.GasteigerAtomCharges().charges;
+    ASSERT_EQ(be_charges.size(), 3u);
+    for (double q : be_charges) {
+        EXPECT_TRUE(std::isnan(q));  // whole (single) component NaN
+    }
+
+    OEChem::OEGraphMol lone;
+    ASSERT_TRUE(OEChem::OESmilesToMol(lone, "[Be]"));
+    OEFP::ComputeContext ctx_lone(lone);
+    const auto& lone_charges = ctx_lone.GasteigerAtomCharges().charges;
+    ASSERT_EQ(lone_charges.size(), 1u);
+    EXPECT_FALSE(std::isnan(lone_charges[0]));  // bare atom, degree 0 -> finite
+}

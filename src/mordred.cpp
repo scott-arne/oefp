@@ -1512,6 +1512,15 @@ const char* gasteiger_mode(const OEChem::OEAtomBase& atom, bool has_conjugated_b
         return "sp2";
     }
 
+    // RDKit assigns sp to 2-coordinate beryllium with only single bonds (linear
+    // coordination, e.g. C[Be]C). OEAssignHybridization may leave this unassigned,
+    // falling through to the default sp3 below, but OEFP's Gasteiger table lacks
+    // "Be sp" parameters (only Be sp2/sp3), so the lookup would fall back and NaN
+    // the molecule, matching RDKit. Detect and assign sp to match RDKit's behavior.
+    if (atomic_number == 4u && atom.GetDegree() == 2u && !has_bond_order_at_least(atom, 2u)) {
+        return "sp";
+    }
+
     switch (atom.GetHyb()) {
     case OEChem::OEHybridization::sp3:
         return "sp3";
@@ -1775,14 +1784,6 @@ void split_gasteiger_formal_charges(
 // parameterized main-group atom exceeding four is hypervalent — RDKit types it
 // sp3d/sp3d2, hybridizations the sp/sp2/sp3 parameter set does not cover — so it
 // too has no parameter (e.g. the 5-coordinate silicon in [SiH5-]).
-bool rdkit_atom_lacks_gasteiger_parameters(const OEChem::OEAtomBase& atom) {
-    const auto atomic_number = static_cast<std::uint32_t>(atom.GetAtomicNum());
-    if (std::string(gasteiger_element_symbol(atomic_number)) == "X") {
-        return true;
-    }
-    return atom.GetDegree() > 4u;
-}
-
 // RDKit's Gasteiger NaNs only the connected COMPONENT containing an atom that
 // lacks a parameter (charge flows along bonds and cannot cross components), not
 // the whole (possibly multi-component) molecule. Return a per-atom mask marking
@@ -1790,7 +1791,8 @@ bool rdkit_atom_lacks_gasteiger_parameters(const OEChem::OEAtomBase& atom) {
 // Gasteiger parameter.
 std::vector<bool> rdkit_gasteiger_nan_atom_mask(
     const std::vector<OEChem::OEAtomBase*>& atoms,
-    const std::vector<std::vector<std::pair<std::size_t, const OEChem::OEBondBase*>>>& atom_bonds) {
+    const std::vector<std::vector<std::pair<std::size_t, const OEChem::OEBondBase*>>>& atom_bonds,
+    const std::vector<MordredGasteigerParameters>& atom_parameters) {
     // Label connected components by BFS over atom_bonds (drop the bond pointer).
     std::vector<int> component(atoms.size(), -1);
     int next_component = 0;
@@ -1815,8 +1817,14 @@ std::vector<bool> rdkit_gasteiger_nan_atom_mask(
     // Mark components that contain a charge-flowing atom lacking a parameter.
     std::vector<bool> bad_component(static_cast<std::size_t>(next_component), false);
     for (std::size_t i = 0u; i < atoms.size(); ++i) {
+        // An atom is unparametrized when its (element, mode) lookup fell back to
+        // the "X"/"*" default (element entirely absent like Na/Se, OR present but
+        // this mode missing like linear "Be sp"), or when it is hypervalent
+        // (degree > 4, e.g. the Si of [SiH5-], whose mode still resolves). RDKit
+        // NaNs such an atom's whole connected component.
         if (atoms[i] != nullptr && atoms[i]->GetDegree() > 0u
-            && rdkit_atom_lacks_gasteiger_parameters(*atoms[i])) {
+            && (std::string(atom_parameters[i].element) == "X"
+                || atoms[i]->GetDegree() > 4u)) {
             bad_component[static_cast<std::size_t>(component[i])] = true;
         }
     }
@@ -1952,7 +1960,7 @@ MordredGasteigerAtomCharges compute_gasteiger_atom_charges(
     // parameterless atom is NaN. Mordred 1.2.0 delegates to RDKit so it also
     // produces per-component NaN. OEFP matches this behavior. Downstream PEOE_VSA
     // binning routes NaN to the open tail bin (PEOE_VSA14).
-    const auto nan_mask = rdkit_gasteiger_nan_atom_mask(atoms, atom_bonds);
+    const auto nan_mask = rdkit_gasteiger_nan_atom_mask(atoms, atom_bonds, atom_parameters);
     for (std::size_t i = 0u; i < charges.size(); ++i) {
         if (nan_mask[i]) {
             charges[i] = std::numeric_limits<double>::quiet_NaN();
