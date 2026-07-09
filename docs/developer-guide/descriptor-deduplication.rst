@@ -75,7 +75,7 @@ The descriptor calculator is built from one or more **descriptor sources**:
   descriptors such as exact molecular weight, heavy atom count, and predicted
   logP (XLogP). Several OpenEye descriptors share ``canonical_id`` tags with
   their Mordred equivalents where computation is provably identical.
-- **RDKitDescriptorSource**: Exposes 214 RDKit 2D descriptors natively
+- **RDKitDescriptorSource**: Exposes 213 RDKit 2D descriptors natively
   reproduced in OEFP and matched to RDKit 2026.03.3 within per-descriptor
   tolerance tiers. RDKit is used only as a test-time conformance oracle, not a
   runtime dependency.
@@ -165,7 +165,7 @@ results as before — only faster.
 RDKit Descriptor Source
 ------------------------
 
-The **RDKitDescriptorSource** natively reproduces 214 descriptors from RDKit's
+The **RDKitDescriptorSource** natively reproduces 213 descriptors from RDKit's
 2D descriptor surface, matched to RDKit 2026.03.3 as a test-time conformance
 oracle. RDKit is **not** a runtime dependency; all computation is performed
 natively in OEFP, and RDKit is used only during testing to verify that the
@@ -219,27 +219,47 @@ RDKit's descriptor list includes three VSA bins that are structurally always
 zero for any molecule: ``SMR_VSA8``, ``SlogP_VSA9``, and ``EState_VSA11``.
 These bins correspond to fixed VSA boundary ranges that receive no atomic
 contribution from any element or hybridization state. Rather than ship them as
-constant-zero noise, OEFP **excludes** them entirely from the schema — the
-RDKit descriptor schema contains 214 columns, not 217.
+constant-zero noise, OEFP **excludes** them entirely from the schema. Together
+with ``SPS`` (excluded for a different reason, below), this leaves the RDKit
+descriptor schema at 213 columns, not 217.
 
 .. important::
 
-   The three excluded bins are **not in the schema** and are never emitted.
-   They are distinct from the one deferred descriptor described below, which
-   **is** present in the schema but returns missing values until native
-   follow-up work lands.
+   Excluded descriptors are **not in the schema** and are never emitted. There
+   are **no deferred** RDKit descriptors: every one of the 213 schema columns
+   is computed natively.
 
-Deferred Descriptors
-^^^^^^^^^^^^^^^^^^^^
+Excluded: SPS (SpacialScore)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Of the 214 descriptors in the schema, **213 are computed natively** and **1
-is deferred**, pending native follow-up work. Deferred descriptors are present
-in the schema but return ``None`` until their implementations are ported.
+All 213 schema descriptors are computed natively; there are **no deferred**
+RDKit descriptors. One further RDKit descriptor, **SPS** (``SpacialScore``), is
+**excluded** from the schema (like the always-zero VSA bins above) rather than
+shipped with known-wrong values.
 
-**SPS** (1 descriptor) — RDKit's spatial score (``SpacialScore``) depends on
-RDKit-internal potential-stereocenter and hybridization models that OpenEye
-does not expose. Porting this descriptor requires reproducing those models
-natively.
+``SPS`` sums a per-heavy-atom score whose terms include a non-aromatic-ring term
+and a potential-stereocenter term. OEFP implements a native, RDKit-faithful
+potential-stereogenicity model for the stereo term (retained in
+``src/rdkit_stereogenicity.{h,cpp}`` and unit-tested byte-identical to RDKit's
+``findPotentialStereo``/legacy ``findPotentialStereoBonds`` across the tested
+panel). The blocker is the **ring term**: it depends on RDKit's aromaticity
+perception, which differs from OpenEye's on some conjugated ring systems — e.g.
+certain porphyrin-like macrocycles RDKit treats as non-aromatic (ring term 2)
+but OpenEye treats as aromatic (ring term 1), doubling their contribution. A
+large-scale SureChEMBL value sweep found ``SPS`` diverging from RDKit on
+~0.15% of molecules, driven by this aromaticity-model difference (plus radicals
+and organometallic/coordination compounds). That difference cannot be
+reproduced without porting RDKit's aromaticity model, and cannot be detected at
+runtime without RDKit, so ``SPS`` is excluded rather than shipped approximate.
+
+.. note::
+
+   **Aromaticity-model limitation (general).** The RDKit descriptor source uses
+   OpenEye's aromaticity perception, which agrees with RDKit's on ordinary
+   drug-like rings but can diverge on unusual conjugated macrocycles. Any
+   aromaticity-dependent RDKit descriptor may therefore differ from RDKit on
+   such rare inputs. This is a known, pre-existing limitation of the native
+   reproduction, surfaced by the SPS value sweep.
 
 .. note::
 
@@ -251,17 +271,16 @@ natively.
    (RDKit types cumulene atoms as ``sp``). The Mordred source continues to use
    Mordred 1.2.0's ``sp2`` Gasteiger charges for its own PartialCharge family.
 
-The test ``test_full_214_surface_is_enabled_or_deferred`` asserts that the
-union of enabled (213) and deferred (1) descriptors equals the full
-214-descriptor schema, ensuring no descriptor is silently missing.
+The test ``test_full_213_surface_is_enabled_or_deferred`` asserts that the
+enabled descriptors equal the full 213-descriptor schema (the deferred set is
+empty), ensuring no descriptor is silently missing.
 
 .. note::
 
-   Missing values remain missing: if a deferred descriptor is requested, the
-   calculator emits ``None`` for that column, even if a later source could
-   compute it. This is the same missing-value behavior as Mordred descriptors
-   whose prerequisites are unsatisfied (e.g., 3D descriptors on no-conformer
-   molecules).
+   Missing values remain missing: if a source cannot compute a requested column
+   (e.g. a Mordred descriptor whose 3D-coordinate prerequisite is unsatisfied on
+   a no-conformer molecule), the calculator emits ``None`` for that column even
+   if a later source could compute it.
 
 Within-Source Naming Smell
 ---------------------------

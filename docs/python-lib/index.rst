@@ -723,19 +723,19 @@ Mordred-Compatible Descriptors
 
    Return the full RDKit 2D descriptor schema.
 
-   The schema includes 214 RDKit descriptors natively computed in OEFP and
-   matched to RDKit 2026.03.3 within per-descriptor tolerance tiers. Of the
-   214 descriptors, 193 are computed; 21 are deferred pending native
-   follow-ups.
+   The schema includes 213 RDKit descriptors natively computed in OEFP and
+   matched to RDKit 2026.03.3 within per-descriptor tolerance tiers. All 213
+   descriptors are computed natively; four of RDKit's 217 ``_descList``
+   descriptors are excluded from the schema (three always-zero VSA bins and
+   ``SPS``).
 
 .. function:: rdkit_descriptors(mol)
 
    Generate RDKit-compatible 2D descriptors as a schema-backed
    :class:`DescriptorSet`.
 
-   The row uses :func:`rdkit_schema`. Computed descriptors are filled with
-   typed values. Deferred descriptors (21 of 214) remain ``None`` until native
-   implementations are ported.
+   The row uses :func:`rdkit_schema`. All 213 schema descriptors are computed
+   and filled with typed values.
 
    OEFP does not generate 2D or 3D coordinates during descriptor calculation.
    Mordred descriptors whose local Mordred definitions require 3D coordinates

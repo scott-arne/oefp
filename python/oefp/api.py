@@ -3362,11 +3362,14 @@ class OpenEyePropertyDescriptorSource:
 class RDKitDescriptorSource:
     """Descriptor source reproducing RDKit 2D descriptors natively.
 
-    Exposes 214 descriptors from RDKit's 2D descriptor surface, matched to
-    RDKit 2026.03.3 within per-descriptor tolerance tiers. RDKit is used only
-    as a test-time conformance oracle, not a runtime dependency. Of the 214
-    descriptors, 193 are computed natively; 21 are deferred pending native
-    follow-ups (SPS and 20 Gasteiger-dependent descriptors).
+    Exposes 213 descriptors from RDKit's 2D descriptor surface, matched to
+    RDKit 2026.03.3 within per-descriptor tolerance tiers, and all computed
+    natively. RDKit is used only as a test-time conformance oracle, not a
+    runtime dependency. Four of RDKit's 217 ``_descList`` descriptors are
+    excluded from the schema: three structurally-always-zero VSA bins
+    (``SMR_VSA8``, ``SlogP_VSA9``, ``EState_VSA11``) and ``SPS``
+    (``SpacialScore``), whose exact reproduction depends on RDKit's aromaticity
+    model — OpenEye's perception differs on some conjugated ring systems.
     """
 
     def __init__(self) -> None:
