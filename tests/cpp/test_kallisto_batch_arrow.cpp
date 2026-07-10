@@ -2,6 +2,8 @@
 #include "oefp/atom_descriptor.h"
 #include "oefp/kallisto_descriptors.h"
 
+#include <arrow/api.h>
+
 #include <gtest/gtest.h>
 #include <oechem.h>
 
@@ -363,6 +365,225 @@ TEST(KallistoBatchArrow, BondDescriptorIpcRoundTrip) {
 
     ASSERT_EQ(reconstructed_batch.Size(), original_batch.Size());
     EXPECT_EQ(reconstructed_batch.BondCount(), original_batch.BondCount());
+}
+
+TEST(KallistoBatchArrow, AtomDescriptorRejectsSwappedColumns) {
+    auto mol = make_ethane();
+    const OEChem::OEMolBase& base = mol;
+    std::vector<const OEChem::OEMolBase*> mols{&base};
+
+    KallistoAtomDescriptorSource source;
+    const auto batch = source.CalculateBatch(mols);
+    const auto valid_rb = AtomDescriptorBatchToArrow(batch);
+
+    ASSERT_NE(valid_rb, nullptr);
+    ASSERT_GT(valid_rb->num_columns(), 3);
+
+    // Build a record batch with swapped feature columns (2 and 3)
+    std::vector<std::shared_ptr<arrow::Field>> swapped_fields;
+    std::vector<std::shared_ptr<arrow::Array>> swapped_arrays;
+
+    for (int i = 0; i < valid_rb->num_columns(); ++i) {
+        if (i == 2) {
+            swapped_fields.push_back(valid_rb->schema()->field(3));
+            swapped_arrays.push_back(valid_rb->column(3));
+        } else if (i == 3) {
+            swapped_fields.push_back(valid_rb->schema()->field(2));
+            swapped_arrays.push_back(valid_rb->column(2));
+        } else {
+            swapped_fields.push_back(valid_rb->schema()->field(i));
+            swapped_arrays.push_back(valid_rb->column(i));
+        }
+    }
+
+    auto swapped_schema = arrow::schema(swapped_fields, valid_rb->schema()->metadata());
+    auto swapped_rb = arrow::RecordBatch::Make(
+        swapped_schema, valid_rb->num_rows(), swapped_arrays);
+
+    EXPECT_THROW({
+        AtomDescriptorBatchFromArrow(swapped_rb);
+    }, std::invalid_argument);
+}
+
+TEST(KallistoBatchArrow, AtomDescriptorRejectsRenamedColumn) {
+    auto mol = make_ethane();
+    const OEChem::OEMolBase& base = mol;
+    std::vector<const OEChem::OEMolBase*> mols{&base};
+
+    KallistoAtomDescriptorSource source;
+    const auto batch = source.CalculateBatch(mols);
+    const auto valid_rb = AtomDescriptorBatchToArrow(batch);
+
+    ASSERT_NE(valid_rb, nullptr);
+    ASSERT_GT(valid_rb->num_columns(), 2);
+
+    // Build a record batch with a renamed feature column
+    std::vector<std::shared_ptr<arrow::Field>> renamed_fields;
+    std::vector<std::shared_ptr<arrow::Array>> renamed_arrays;
+
+    for (int i = 0; i < valid_rb->num_columns(); ++i) {
+        if (i == 2) {
+            renamed_fields.push_back(arrow::field("bogus_column", arrow::float64()));
+        } else {
+            renamed_fields.push_back(valid_rb->schema()->field(i));
+        }
+        renamed_arrays.push_back(valid_rb->column(i));
+    }
+
+    auto renamed_schema = arrow::schema(renamed_fields, valid_rb->schema()->metadata());
+    auto renamed_rb = arrow::RecordBatch::Make(
+        renamed_schema, valid_rb->num_rows(), renamed_arrays);
+
+    EXPECT_THROW({
+        AtomDescriptorBatchFromArrow(renamed_rb);
+    }, std::invalid_argument);
+}
+
+TEST(KallistoBatchArrow, AtomDescriptorRejectsWrongIdColumnType) {
+    auto mol = make_ethane();
+    const OEChem::OEMolBase& base = mol;
+    std::vector<const OEChem::OEMolBase*> mols{&base};
+
+    KallistoAtomDescriptorSource source;
+    const auto batch = source.CalculateBatch(mols);
+    const auto valid_rb = AtomDescriptorBatchToArrow(batch);
+
+    ASSERT_NE(valid_rb, nullptr);
+
+    // Build a record batch with molecule_id as int64 instead of uint32
+    std::vector<std::shared_ptr<arrow::Field>> wrong_type_fields;
+    std::vector<std::shared_ptr<arrow::Array>> wrong_type_arrays;
+
+    for (int i = 0; i < valid_rb->num_columns(); ++i) {
+        if (i == 0) {
+            wrong_type_fields.push_back(arrow::field("molecule_id", arrow::int64()));
+            // Convert uint32 array to int64
+            arrow::Int64Builder builder;
+            const auto uint32_array = std::dynamic_pointer_cast<arrow::UInt32Array>(valid_rb->column(0));
+            for (std::int64_t j = 0; j < uint32_array->length(); ++j) {
+                (void)builder.Append(static_cast<std::int64_t>(uint32_array->Value(j)));
+            }
+            std::shared_ptr<arrow::Array> int64_array;
+            (void)builder.Finish(&int64_array);
+            wrong_type_arrays.push_back(int64_array);
+        } else {
+            wrong_type_fields.push_back(valid_rb->schema()->field(i));
+            wrong_type_arrays.push_back(valid_rb->column(i));
+        }
+    }
+
+    auto wrong_type_schema = arrow::schema(wrong_type_fields, valid_rb->schema()->metadata());
+    auto wrong_type_rb = arrow::RecordBatch::Make(
+        wrong_type_schema, valid_rb->num_rows(), wrong_type_arrays);
+
+    EXPECT_THROW({
+        AtomDescriptorBatchFromArrow(wrong_type_rb);
+    }, std::invalid_argument);
+}
+
+TEST(KallistoBatchArrow, BondDescriptorRejectsSwappedColumns) {
+    auto mol = make_ethane();
+    const OEChem::OEMolBase& base = mol;
+    std::vector<const OEChem::OEMolBase*> mols{&base};
+
+    KallistoBondDescriptorSource source;
+    const auto batch = source.CalculateBatch(mols);
+    const auto valid_rb = BondDescriptorBatchToArrow(batch);
+
+    ASSERT_NE(valid_rb, nullptr);
+    ASSERT_GT(valid_rb->num_columns(), 4);
+
+    // Build a record batch with swapped feature columns (3 and 4)
+    std::vector<std::shared_ptr<arrow::Field>> swapped_fields;
+    std::vector<std::shared_ptr<arrow::Array>> swapped_arrays;
+
+    for (int i = 0; i < valid_rb->num_columns(); ++i) {
+        if (i == 3) {
+            swapped_fields.push_back(valid_rb->schema()->field(4));
+            swapped_arrays.push_back(valid_rb->column(4));
+        } else if (i == 4) {
+            swapped_fields.push_back(valid_rb->schema()->field(3));
+            swapped_arrays.push_back(valid_rb->column(3));
+        } else {
+            swapped_fields.push_back(valid_rb->schema()->field(i));
+            swapped_arrays.push_back(valid_rb->column(i));
+        }
+    }
+
+    auto swapped_schema = arrow::schema(swapped_fields, valid_rb->schema()->metadata());
+    auto swapped_rb = arrow::RecordBatch::Make(
+        swapped_schema, valid_rb->num_rows(), swapped_arrays);
+
+    EXPECT_THROW({
+        BondDescriptorBatchFromArrow(swapped_rb);
+    }, std::invalid_argument);
+}
+
+TEST(KallistoBatchArrow, BondDescriptorRejectsRenamedColumn) {
+    auto mol = make_ethane();
+    const OEChem::OEMolBase& base = mol;
+    std::vector<const OEChem::OEMolBase*> mols{&base};
+
+    KallistoBondDescriptorSource source;
+    const auto batch = source.CalculateBatch(mols);
+    const auto valid_rb = BondDescriptorBatchToArrow(batch);
+
+    ASSERT_NE(valid_rb, nullptr);
+    ASSERT_GT(valid_rb->num_columns(), 3);
+
+    // Build a record batch with a renamed feature column
+    std::vector<std::shared_ptr<arrow::Field>> renamed_fields;
+    std::vector<std::shared_ptr<arrow::Array>> renamed_arrays;
+
+    for (int i = 0; i < valid_rb->num_columns(); ++i) {
+        if (i == 3) {
+            renamed_fields.push_back(arrow::field("bogus_column", arrow::float64()));
+        } else {
+            renamed_fields.push_back(valid_rb->schema()->field(i));
+        }
+        renamed_arrays.push_back(valid_rb->column(i));
+    }
+
+    auto renamed_schema = arrow::schema(renamed_fields, valid_rb->schema()->metadata());
+    auto renamed_rb = arrow::RecordBatch::Make(
+        renamed_schema, valid_rb->num_rows(), renamed_arrays);
+
+    EXPECT_THROW({
+        BondDescriptorBatchFromArrow(renamed_rb);
+    }, std::invalid_argument);
+}
+
+TEST(KallistoBatchArrow, BondDescriptorRejectsWrongIdColumnName) {
+    auto mol = make_ethane();
+    const OEChem::OEMolBase& base = mol;
+    std::vector<const OEChem::OEMolBase*> mols{&base};
+
+    KallistoBondDescriptorSource source;
+    const auto batch = source.CalculateBatch(mols);
+    const auto valid_rb = BondDescriptorBatchToArrow(batch);
+
+    ASSERT_NE(valid_rb, nullptr);
+
+    // Build a record batch with begin renamed to start
+    std::vector<std::shared_ptr<arrow::Field>> wrong_name_fields;
+    std::vector<std::shared_ptr<arrow::Array>> wrong_name_arrays;
+
+    for (int i = 0; i < valid_rb->num_columns(); ++i) {
+        if (i == 1) {
+            wrong_name_fields.push_back(arrow::field("start", arrow::uint32()));
+        } else {
+            wrong_name_fields.push_back(valid_rb->schema()->field(i));
+        }
+        wrong_name_arrays.push_back(valid_rb->column(i));
+    }
+
+    auto wrong_name_schema = arrow::schema(wrong_name_fields, valid_rb->schema()->metadata());
+    auto wrong_name_rb = arrow::RecordBatch::Make(
+        wrong_name_schema, valid_rb->num_rows(), wrong_name_arrays);
+
+    EXPECT_THROW({
+        BondDescriptorBatchFromArrow(wrong_name_rb);
+    }, std::invalid_argument);
 }
 
 } // namespace

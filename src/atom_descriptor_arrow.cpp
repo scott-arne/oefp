@@ -323,29 +323,30 @@ AtomDescriptorBatch AtomDescriptorBatchFromArrow(
         throw std::invalid_argument("Arrow record batch must not be null.");
     }
 
-    const auto metadata = rb->schema()->metadata();
+    // Validate the record batch itself
+    const auto validate_status = rb->ValidateFull();
+    if (!validate_status.ok()) {
+        throw std::invalid_argument("Arrow record batch validation failed: " + validate_status.ToString());
+    }
+
+    const auto arrow_schema = rb->schema();
+    const auto metadata = arrow_schema->metadata();
     if (metadata == nullptr) {
         throw std::invalid_argument("Arrow schema is missing OEFP metadata.");
+    }
+
+    // Validate format version
+    if (!metadata->Contains(kFormatVersionKey)) {
+        throw std::invalid_argument("Arrow schema is missing format version metadata.");
+    }
+    const auto format_version = metadata->Get(kFormatVersionKey).ValueOrDie();
+    if (format_version != kFormatVersion) {
+        throw std::invalid_argument("Arrow format version '" + format_version + "' does not match expected '" + kFormatVersion + "'");
     }
 
     const auto molecule_count = parse_molecule_count(metadata);
     const auto column_names = SchemaJsonParser(
         metadata->Get(kDescriptorSchemaJsonKey).ValueOrDie()).Parse();
-
-    if (rb->num_columns() < 2) {
-        throw std::invalid_argument("Arrow record batch must have at least molecule_id and atom_index.");
-    }
-
-    const auto molecule_id_column = std::dynamic_pointer_cast<arrow::UInt32Array>(rb->column(0));
-    const auto atom_index_column = std::dynamic_pointer_cast<arrow::UInt32Array>(rb->column(1));
-
-    if (molecule_id_column == nullptr || atom_index_column == nullptr) {
-        throw std::invalid_argument("Arrow molecule_id or atom_index column has wrong type.");
-    }
-
-    if (static_cast<std::size_t>(rb->num_columns() - 2) != column_names.size()) {
-        throw std::invalid_argument("Arrow column count does not match schema.");
-    }
 
     // Use the native kallisto atom schema and validate Arrow data matches it
     auto schema = KallistoAtomDescriptorSchema();
@@ -360,6 +361,76 @@ AtomDescriptorBatch AtomDescriptorBatchFromArrow(
                 "Arrow column " + std::to_string(i) + " is '" + column_names[i] +
                 "' but kallisto atom schema expects '" + schema->Definition(i).name + "'");
         }
+    }
+
+    // Validate the physical Arrow schema fields
+    const auto expected_field_count = 2u + schema->Size();
+    if (static_cast<std::size_t>(arrow_schema->num_fields()) != expected_field_count) {
+        throw std::invalid_argument(
+            "Arrow schema has " + std::to_string(arrow_schema->num_fields()) +
+            " fields but expected " + std::to_string(expected_field_count));
+    }
+
+    // Validate ID columns (molecule_id, atom_index)
+    const auto molecule_id_field = arrow_schema->field(0);
+    if (molecule_id_field->name() != "molecule_id") {
+        throw std::invalid_argument(
+            "Arrow field 0 is named '" + molecule_id_field->name() + "' but expected 'molecule_id'");
+    }
+    if (!molecule_id_field->type()->Equals(arrow::uint32())) {
+        throw std::invalid_argument(
+            "Arrow field 'molecule_id' has type '" + molecule_id_field->type()->ToString() +
+            "' but expected UInt32");
+    }
+
+    const auto atom_index_field = arrow_schema->field(1);
+    if (atom_index_field->name() != "atom_index") {
+        throw std::invalid_argument(
+            "Arrow field 1 is named '" + atom_index_field->name() + "' but expected 'atom_index'");
+    }
+    if (!atom_index_field->type()->Equals(arrow::uint32())) {
+        throw std::invalid_argument(
+            "Arrow field 'atom_index' has type '" + atom_index_field->type()->ToString() +
+            "' but expected UInt32");
+    }
+
+    // Validate feature columns
+    for (std::size_t i = 0; i < schema->Size(); ++i) {
+        const auto field = arrow_schema->field(static_cast<int>(i + 2));
+        const auto& expected_name = schema->Definition(i).name;
+
+        if (field->name() != expected_name) {
+            throw std::invalid_argument(
+                "Arrow field " + std::to_string(i + 2) + " is named '" + field->name() +
+                "' but expected '" + expected_name + "'");
+        }
+
+        if (!field->type()->Equals(arrow::float64())) {
+            throw std::invalid_argument(
+                "Arrow field '" + field->name() + "' has type '" + field->type()->ToString() +
+                "' but expected Float64");
+        }
+
+        if (!field->nullable()) {
+            throw std::invalid_argument(
+                "Arrow field '" + field->name() + "' is not nullable but must be");
+        }
+    }
+
+    // Now read columns by position (validated above)
+    if (rb->num_columns() < 2) {
+        throw std::invalid_argument("Arrow record batch must have at least molecule_id and atom_index.");
+    }
+
+    const auto molecule_id_column = std::dynamic_pointer_cast<arrow::UInt32Array>(rb->column(0));
+    const auto atom_index_column = std::dynamic_pointer_cast<arrow::UInt32Array>(rb->column(1));
+
+    if (molecule_id_column == nullptr || atom_index_column == nullptr) {
+        throw std::invalid_argument("Arrow molecule_id or atom_index column has wrong type.");
+    }
+
+    if (static_cast<std::size_t>(rb->num_columns() - 2) != column_names.size()) {
+        throw std::invalid_argument("Arrow column count does not match schema.");
     }
 
     // Group rows by molecule_id
@@ -498,30 +569,30 @@ BondDescriptorBatch BondDescriptorBatchFromArrow(
         throw std::invalid_argument("Arrow record batch must not be null.");
     }
 
-    const auto metadata = rb->schema()->metadata();
+    // Validate the record batch itself
+    const auto validate_status = rb->ValidateFull();
+    if (!validate_status.ok()) {
+        throw std::invalid_argument("Arrow record batch validation failed: " + validate_status.ToString());
+    }
+
+    const auto arrow_schema = rb->schema();
+    const auto metadata = arrow_schema->metadata();
     if (metadata == nullptr) {
         throw std::invalid_argument("Arrow schema is missing OEFP metadata.");
+    }
+
+    // Validate format version
+    if (!metadata->Contains(kFormatVersionKey)) {
+        throw std::invalid_argument("Arrow schema is missing format version metadata.");
+    }
+    const auto format_version = metadata->Get(kFormatVersionKey).ValueOrDie();
+    if (format_version != kFormatVersion) {
+        throw std::invalid_argument("Arrow format version '" + format_version + "' does not match expected '" + kFormatVersion + "'");
     }
 
     const auto molecule_count = parse_molecule_count(metadata);
     const auto column_names = SchemaJsonParser(
         metadata->Get(kDescriptorSchemaJsonKey).ValueOrDie()).Parse();
-
-    if (rb->num_columns() < 3) {
-        throw std::invalid_argument("Arrow record batch must have molecule_id, begin, and end.");
-    }
-
-    const auto molecule_id_column = std::dynamic_pointer_cast<arrow::UInt32Array>(rb->column(0));
-    const auto begin_column = std::dynamic_pointer_cast<arrow::UInt32Array>(rb->column(1));
-    const auto end_column = std::dynamic_pointer_cast<arrow::UInt32Array>(rb->column(2));
-
-    if (molecule_id_column == nullptr || begin_column == nullptr || end_column == nullptr) {
-        throw std::invalid_argument("Arrow bond identifier columns have wrong type.");
-    }
-
-    if (static_cast<std::size_t>(rb->num_columns() - 3) != column_names.size()) {
-        throw std::invalid_argument("Arrow column count does not match schema.");
-    }
 
     // Use the native kallisto bond schema and validate Arrow data matches it
     auto schema = KallistoBondDescriptorSchema();
@@ -536,6 +607,88 @@ BondDescriptorBatch BondDescriptorBatchFromArrow(
                 "Arrow column " + std::to_string(i) + " is '" + column_names[i] +
                 "' but kallisto bond schema expects '" + schema->Definition(i).name + "'");
         }
+    }
+
+    // Validate the physical Arrow schema fields
+    const auto expected_field_count = 3u + schema->Size();
+    if (static_cast<std::size_t>(arrow_schema->num_fields()) != expected_field_count) {
+        throw std::invalid_argument(
+            "Arrow schema has " + std::to_string(arrow_schema->num_fields()) +
+            " fields but expected " + std::to_string(expected_field_count));
+    }
+
+    // Validate ID columns (molecule_id, begin, end)
+    const auto molecule_id_field = arrow_schema->field(0);
+    if (molecule_id_field->name() != "molecule_id") {
+        throw std::invalid_argument(
+            "Arrow field 0 is named '" + molecule_id_field->name() + "' but expected 'molecule_id'");
+    }
+    if (!molecule_id_field->type()->Equals(arrow::uint32())) {
+        throw std::invalid_argument(
+            "Arrow field 'molecule_id' has type '" + molecule_id_field->type()->ToString() +
+            "' but expected UInt32");
+    }
+
+    const auto begin_field = arrow_schema->field(1);
+    if (begin_field->name() != "begin") {
+        throw std::invalid_argument(
+            "Arrow field 1 is named '" + begin_field->name() + "' but expected 'begin'");
+    }
+    if (!begin_field->type()->Equals(arrow::uint32())) {
+        throw std::invalid_argument(
+            "Arrow field 'begin' has type '" + begin_field->type()->ToString() +
+            "' but expected UInt32");
+    }
+
+    const auto end_field = arrow_schema->field(2);
+    if (end_field->name() != "end") {
+        throw std::invalid_argument(
+            "Arrow field 2 is named '" + end_field->name() + "' but expected 'end'");
+    }
+    if (!end_field->type()->Equals(arrow::uint32())) {
+        throw std::invalid_argument(
+            "Arrow field 'end' has type '" + end_field->type()->ToString() +
+            "' but expected UInt32");
+    }
+
+    // Validate feature columns
+    for (std::size_t i = 0; i < schema->Size(); ++i) {
+        const auto field = arrow_schema->field(static_cast<int>(i + 3));
+        const auto& expected_name = schema->Definition(i).name;
+
+        if (field->name() != expected_name) {
+            throw std::invalid_argument(
+                "Arrow field " + std::to_string(i + 3) + " is named '" + field->name() +
+                "' but expected '" + expected_name + "'");
+        }
+
+        if (!field->type()->Equals(arrow::float64())) {
+            throw std::invalid_argument(
+                "Arrow field '" + field->name() + "' has type '" + field->type()->ToString() +
+                "' but expected Float64");
+        }
+
+        if (!field->nullable()) {
+            throw std::invalid_argument(
+                "Arrow field '" + field->name() + "' is not nullable but must be");
+        }
+    }
+
+    // Now read columns by position (validated above)
+    if (rb->num_columns() < 3) {
+        throw std::invalid_argument("Arrow record batch must have molecule_id, begin, and end.");
+    }
+
+    const auto molecule_id_column = std::dynamic_pointer_cast<arrow::UInt32Array>(rb->column(0));
+    const auto begin_column = std::dynamic_pointer_cast<arrow::UInt32Array>(rb->column(1));
+    const auto end_column = std::dynamic_pointer_cast<arrow::UInt32Array>(rb->column(2));
+
+    if (molecule_id_column == nullptr || begin_column == nullptr || end_column == nullptr) {
+        throw std::invalid_argument("Arrow bond identifier columns have wrong type.");
+    }
+
+    if (static_cast<std::size_t>(rb->num_columns() - 3) != column_names.size()) {
+        throw std::invalid_argument("Arrow column count does not match schema.");
     }
 
     // Group rows by molecule_id
