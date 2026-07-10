@@ -11,10 +11,10 @@ Molecule selection:
 
 from __future__ import annotations
 
+import argparse
 import os
+import sys
 from pathlib import Path
-
-KALLISTO_STRUCTURES = Path(os.environ.get("KALLISTO_STRUCTURES", "/Users/johnss51/Development/python/kallisto/tests/structures"))
 
 # Expected formal charge sums for the panel molecules (correctness requirement)
 EXPECTED_CHARGES = {
@@ -123,6 +123,36 @@ def _smiles_to_sdf(smiles: str, output_path: Path, title: str) -> None:
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser(description="Build kallisto SDF panel from kallisto test geometries.")
+    parser.add_argument(
+        "--kallisto-structures",
+        type=Path,
+        default=None,
+        help="Path to kallisto/tests/structures directory (or set KALLISTO_STRUCTURES env var)"
+    )
+    args = parser.parse_args()
+
+    # Resolve kallisto structures path: CLI arg > env var > fail
+    kallisto_structures = args.kallisto_structures or os.environ.get("KALLISTO_STRUCTURES")
+    if not kallisto_structures:
+        print("Error: kallisto structures directory not specified.", file=sys.stderr)
+        print("Provide via --kallisto-structures or set KALLISTO_STRUCTURES environment variable.", file=sys.stderr)
+        sys.exit(1)
+
+    kallisto_structures = Path(kallisto_structures)
+    if not kallisto_structures.is_dir():
+        print(f"Error: kallisto structures directory does not exist: {kallisto_structures}", file=sys.stderr)
+        sys.exit(1)
+
+    # Validate required xyz files exist before proceeding
+    required_files = ["Me.xyz", "Et.xyz", "alanine-glycine.xyz"]
+    missing_files = [f for f in required_files if not (kallisto_structures / f).exists()]
+    if missing_files:
+        print(f"Error: missing required xyz files in {kallisto_structures}:", file=sys.stderr)
+        for f in missing_files:
+            print(f"  - {f}", file=sys.stderr)
+        sys.exit(1)
+
     _apply_proxy()
 
     # Repo-relative panel dir
@@ -136,9 +166,9 @@ def main() -> None:
     _smiles_to_sdf("c1ccncc1", panel_dir / "pyridine.sdf", "pyridine")
 
     # Non-aromatics from kallisto xyz (charge-safe)
-    _xyz_to_sdf(KALLISTO_STRUCTURES / "Me.xyz", panel_dir / "methane.sdf", "methane")
-    _xyz_to_sdf(KALLISTO_STRUCTURES / "Et.xyz", panel_dir / "ethane.sdf", "ethane")
-    _xyz_to_sdf(KALLISTO_STRUCTURES / "alanine-glycine.xyz", panel_dir / "alanine-glycine.sdf", "alanine-glycine")
+    _xyz_to_sdf(kallisto_structures / "Me.xyz", panel_dir / "methane.sdf", "methane")
+    _xyz_to_sdf(kallisto_structures / "Et.xyz", panel_dir / "ethane.sdf", "ethane")
+    _xyz_to_sdf(kallisto_structures / "alanine-glycine.xyz", panel_dir / "alanine-glycine.sdf", "alanine-glycine")
 
     # Charged species (formal charge != 0): acetate anion
     _smiles_to_sdf("CC(=O)[O-]", panel_dir / "acetate.sdf", "acetate")

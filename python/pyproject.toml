@@ -16,4 +16,4 @@ dependencies = [
 packages = ["oefp"]
 
 [tool.setuptools.package-data]
-oefp = ["mordred_references.json", "rdkit_references.json", "py.typed"]
+oefp = ["mordred_references.json", "rdkit_references.json", "kallisto_references.json", "py.typed"]
