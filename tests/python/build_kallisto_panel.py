@@ -14,7 +14,19 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-KALLISTO_STRUCTURES = Path("/Users/johnss51/Development/python/kallisto/tests/structures")
+KALLISTO_STRUCTURES = Path(os.environ.get("KALLISTO_STRUCTURES", "/Users/johnss51/Development/python/kallisto/tests/structures"))
+
+# Expected formal charge sums for the panel molecules (correctness requirement)
+EXPECTED_CHARGES = {
+    "toluene": 0,
+    "pyridine": 0,
+    "methane": 0,
+    "ethane": 0,
+    "alanine-glycine": 0,
+    "acetate": -1,
+    "methanol": 0,
+    "methanethiol": 0,
+}
 
 
 def _apply_proxy() -> None:
@@ -26,7 +38,11 @@ def _apply_proxy() -> None:
 
 
 def _xyz_to_sdf(xyz_path: Path, output_path: Path, title: str) -> None:
-    """Read an xyz file, perceive bonds+charges via OpenEye, write SDF."""
+    """Read an xyz file, perceive bonds+charges via OpenEye, write SDF.
+
+    DEPRECATED: xyz-based builds can produce incorrect charges due to aromatic
+    perception failures. Prefer _smiles_to_sdf for aromatics.
+    """
     from openeye import oechem
 
     # Read the xyz file (element + coords)
@@ -58,6 +74,15 @@ def _xyz_to_sdf(xyz_path: Path, output_path: Path, title: str) -> None:
 
     mol.SetTitle(title)
 
+    # Verify formal charge sum
+    actual_charge = sum(atom.GetFormalCharge() for atom in mol.GetAtoms())
+    expected_charge = EXPECTED_CHARGES.get(title)
+    if expected_charge is not None and actual_charge != expected_charge:
+        raise ValueError(
+            f"Formal charge mismatch for {title}: expected {expected_charge}, "
+            f"got {actual_charge}. Rebuild from SMILES."
+        )
+
     # Write SDF
     ofs = oechem.oemolostream(str(output_path))
     oechem.OEWriteMolecule(ofs, mol)
@@ -82,6 +107,15 @@ def _smiles_to_sdf(smiles: str, output_path: Path, title: str) -> None:
 
     mol.SetTitle(title)
 
+    # Verify formal charge sum
+    actual_charge = sum(atom.GetFormalCharge() for atom in mol.GetAtoms())
+    expected_charge = EXPECTED_CHARGES.get(title)
+    if expected_charge is not None and actual_charge != expected_charge:
+        raise ValueError(
+            f"Formal charge mismatch for {title}: expected {expected_charge}, "
+            f"got {actual_charge}"
+        )
+
     # Write SDF
     ofs = oechem.oemolostream(str(output_path))
     oechem.OEWriteMolecule(ofs, mol)
@@ -91,12 +125,17 @@ def _smiles_to_sdf(smiles: str, output_path: Path, title: str) -> None:
 def main() -> None:
     _apply_proxy()
 
-    panel_dir = Path("/Users/johnss51/Development/cpp/oefp/tests/data/kallisto_panel")
+    # Repo-relative panel dir
+    script_dir = Path(__file__).resolve().parent
+    repo_root = script_dir.parent.parent
+    panel_dir = repo_root / "tests/data/kallisto_panel"
     panel_dir.mkdir(parents=True, exist_ok=True)
 
-    # From kallisto's test geometries (all neutral, varied elements)
-    _xyz_to_sdf(KALLISTO_STRUCTURES / "toluene.xyz", panel_dir / "toluene.sdf", "toluene")
-    _xyz_to_sdf(KALLISTO_STRUCTURES / "pyridine.xyz", panel_dir / "pyridine.sdf", "pyridine")
+    # Aromatics: SMILES builds for correct neutral charge + 3D conformer
+    _smiles_to_sdf("Cc1ccccc1", panel_dir / "toluene.sdf", "toluene")
+    _smiles_to_sdf("c1ccncc1", panel_dir / "pyridine.sdf", "pyridine")
+
+    # Non-aromatics from kallisto xyz (charge-safe)
     _xyz_to_sdf(KALLISTO_STRUCTURES / "Me.xyz", panel_dir / "methane.sdf", "methane")
     _xyz_to_sdf(KALLISTO_STRUCTURES / "Et.xyz", panel_dir / "ethane.sdf", "ethane")
     _xyz_to_sdf(KALLISTO_STRUCTURES / "alanine-glycine.xyz", panel_dir / "alanine-glycine.sdf", "alanine-glycine")
@@ -104,20 +143,7 @@ def main() -> None:
     # Charged species (formal charge != 0): acetate anion
     _smiles_to_sdf("CC(=O)[O-]", panel_dir / "acetate.sdf", "acetate")
 
-    # Additional element diversity: methanol (O), methylamine (N), methanethiol (S)
-    _xyz_to_sdf_with_fallback = lambda xyz, sdf, title: (
-        _xyz_to_sdf(KALLISTO_STRUCTURES / xyz, panel_dir / sdf, title)
-        if (KALLISTO_STRUCTURES / xyz).exists()
-        else _smiles_to_sdf(_smiles_fallback[title], panel_dir / sdf, title)
-    )
-
-    # Fallback SMILES if kallisto doesn't have these geometries
-    _smiles_fallback = {
-        "methanol": "CO",
-        "methanethiol": "CS",
-    }
-
-    # Use SMILES for these (kallisto doesn't have small O/S examples in structures/)
+    # Additional element diversity: methanol (O), methanethiol (S)
     _smiles_to_sdf("CO", panel_dir / "methanol.sdf", "methanol")
     _smiles_to_sdf("CS", panel_dir / "methanethiol.sdf", "methanethiol")
 

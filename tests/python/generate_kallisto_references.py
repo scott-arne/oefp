@@ -74,7 +74,7 @@ def _json_value(value: Any) -> Any:
     return number
 
 
-def _reference_payload() -> dict[str, Any]:
+def _reference_payload(panel_dir: Path) -> dict[str, Any]:
     import kallisto
     from kallisto.molecule import Molecule
     from kallisto.sterics import getClassicalSterimol
@@ -87,8 +87,11 @@ def _reference_payload() -> dict[str, Any]:
             f"Expected kallisto {EXPECTED_KALLISTO_VERSION}, imported {version!r}."
         )
 
-    panel_dir = Path("/Users/johnss51/Development/cpp/oefp/tests/data/kallisto_panel")
     sdf_files = sorted(panel_dir.glob("*.sdf"))
+    if not sdf_files:
+        raise RuntimeError(
+            f"No SDF files found in {panel_dir}. Run build_kallisto_panel.py first."
+        )
 
     # Atom schema (8 descriptors: 3 CN types, prox, eeq, alp, 2 vdW types)
     atom_schema = [
@@ -215,9 +218,19 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--output", type=Path, required=True,
                         help="Output JSON file path (tests/python/kallisto_references.json)")
+    parser.add_argument("--panel-dir", type=Path,
+                        help="Panel SDF directory (default: repo-relative tests/data/kallisto_panel)")
     args = parser.parse_args()
 
-    payload = _reference_payload()
+    # Repo-relative panel dir if not specified
+    if args.panel_dir:
+        panel_dir = args.panel_dir
+    else:
+        script_dir = Path(__file__).resolve().parent
+        repo_root = script_dir.parent.parent
+        panel_dir = repo_root / "tests/data/kallisto_panel"
+
+    payload = _reference_payload(panel_dir)
 
     # Write the fixture
     args.output.write_text(
@@ -226,7 +239,9 @@ def main() -> None:
     print(f"kallisto reference fixture written to {args.output}")
 
     # Copy to python/oefp/ (byte-identical)
-    package_copy = Path("python/oefp") / args.output.name
+    script_dir = Path(__file__).resolve().parent
+    repo_root = script_dir.parent.parent
+    package_copy = repo_root / "python/oefp" / args.output.name
     package_copy.write_bytes(args.output.read_bytes())
     print(f"Copied to {package_copy} (byte-identical)")
 

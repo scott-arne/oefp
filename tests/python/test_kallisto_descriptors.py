@@ -9,6 +9,18 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+# Expected formal charge sums for the panel molecules
+EXPECTED_CHARGES = {
+    "toluene": 0,
+    "pyridine": 0,
+    "methane": 0,
+    "ethane": 0,
+    "alanine-glycine": 0,
+    "acetate": -1,
+    "methanol": 0,
+    "methanethiol": 0,
+}
+
 
 def test_kallisto_fixture_structure() -> None:
     """Verify the kallisto fixture loads and has the expected structure."""
@@ -69,6 +81,14 @@ def test_kallisto_fixture_structure() -> None:
         assert "atomic_numbers" in mol
         assert "atom_values" in mol
         assert "bond_rows" in mol
+
+        # Verify formal charge sum
+        mol_id = mol["id"]
+        actual_charge = mol["charge"]
+        expected_charge = EXPECTED_CHARGES.get(mol_id)
+        assert expected_charge is not None, f"Unknown molecule {mol_id}"
+        assert actual_charge == expected_charge, \
+            f"Charge mismatch for {mol_id}: expected {expected_charge}, got {actual_charge}"
 
         atom_count = len(mol["atomic_numbers"])
         assert atom_count > 0
