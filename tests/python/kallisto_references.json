@@ -2222,7 +2222,7 @@
     "cn_cov": "tight",
     "cn_erf": "tight",
     "cn_exp": "tight",
-    "eeq": "loose",
+    "eeq": "tight",
     "prox": "tight",
     "sterimol_B1": "loose",
     "sterimol_B5": "loose",

@@ -56,6 +56,26 @@ std::vector<double> proximity_shells(
     std::pair<int, int> size = {2, 3}
 );
 
+/// Compute EEQ (electronegativity equilibration) atomic partial charges.
+///
+/// :param ctx: Geometry context for the molecule.
+/// :returns: Per-atom EEQ charges (in elementary charge units).
+///
+/// Builds an (N+1)×(N+1) Lagrange-augmented linear system encoding the
+/// electronegativity equilibration condition, then solves for atomic charges
+/// constrained to sum to the total molecular charge.
+///
+/// Diagonal: A[i][i] = eeq_gamm[Zi-1] + sqrt(2/π) / sqrt(alpha_i),
+///           where alpha_i = (eeq_alp[Zi-1])²
+/// Off-diagonal: A[i][j] = erf(r_ij / sqrt(alpha_i + alpha_j)) / r_ij
+/// RHS: X[i] = -eeq_en[Zi-1] + eeq_cnfak[Zi-1] * sqrt(covalent_cn[i])
+/// Lagrange row/column all 1, corner 0; X[N] = total charge.
+///
+/// Returns empty vector if ctx is ineligible or the system is singular.
+///
+/// Mirrors kallisto.methods.getAtomicPartialCharges.
+std::vector<double> eeq_charges(const KallistoGeometryContext& ctx);
+
 /// Return the descriptor schema for kallisto atom descriptors.
 ///
 /// :returns: Shared singleton schema instance.

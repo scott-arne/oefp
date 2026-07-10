@@ -188,7 +188,10 @@ const std::vector<double>& KallistoGeometryContext::CovalentCoordinationNumbers(
 }
 
 const std::vector<double>& KallistoGeometryContext::EeqCharges() const {
-    throw std::logic_error("EEQ charges not yet implemented (Task 6)");
+    if (!eeq_charges_cache_.has_value()) {
+        eeq_charges_cache_ = eeq_charges(*this);
+    }
+    return eeq_charges_cache_.value();
 }
 
 const std::vector<std::uint32_t>& KallistoGeometryContext::AtomIndices() const {

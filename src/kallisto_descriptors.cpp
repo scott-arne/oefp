@@ -196,10 +196,95 @@ std::vector<double> proximity_shells(
     return result;
 }
 
+std::vector<double> eeq_charges(const KallistoGeometryContext& ctx) {
+    // Return empty for ineligible contexts
+    if (!ctx.Eligible()) {
+        return std::vector<double>{};
+    }
+
+    const auto& atomic_numbers = ctx.AtomicNumbers();
+    const auto& coords = ctx.CoordsBohr();
+    const auto& covcn = ctx.CovalentCoordinationNumbers();
+    const std::size_t nat = atomic_numbers.size();
+
+    // Lagrange space is +1 in dimensionality
+    const std::size_t m = nat + 1;
+
+    // Build parameter arrays
+    const double sqrt2pi = std::sqrt(2.0 / M_PI);
+    std::vector<double> alpha(nat);
+    std::vector<double> gam(nat);
+    std::vector<double> xi(nat);
+    std::vector<double> kappa(nat);
+
+    for (std::size_t i = 0; i < nat; ++i) {
+        const int zi = atomic_numbers[i];
+        const int ia = zi - 1;  // 0-based index
+        alpha[i] = kallisto::EEQ_ALP[ia] * kallisto::EEQ_ALP[ia];  // Square it
+        gam[i] = kallisto::EEQ_GAMM[ia];
+        xi[i] = kallisto::EEQ_EN[ia];
+        kappa[i] = kallisto::EEQ_CNFAK[ia];
+    }
+
+    // Build A matrix (row-major)
+    std::vector<double> A(m * m, 0.0);
+
+    for (std::size_t i = 0; i < nat; ++i) {
+        const auto& ci = coords[i];
+
+        // Diagonal: A[i][i] = gam[i] + sqrt2pi / sqrt(alpha[i])
+        A[i * m + i] = gam[i] + sqrt2pi / std::sqrt(alpha[i]);
+
+        for (std::size_t j = 0; j < nat; ++j) {
+            if (i == j) continue;
+
+            const auto& cj = coords[j];
+            const double dx = cj[0] - ci[0];
+            const double dy = cj[1] - ci[1];
+            const double dz = cj[2] - ci[2];
+            const double r = std::sqrt(dx * dx + dy * dy + dz * dz);
+
+            // gamij = 1 / sqrt(alpha_i + alpha_j)
+            const double gamij = 1.0 / std::sqrt(alpha[i] + alpha[j]);
+
+            // Off-diagonal: A[i][j] = erf(gamij * r) / r
+            const double val = std::erf(gamij * r) / r;
+            A[i * m + j] = val;
+        }
+    }
+
+    // Lagrange augmentation: last row and column all 1, corner 0
+    for (std::size_t i = 0; i < nat; ++i) {
+        A[i * m + nat] = 1.0;      // Column nat
+        A[nat * m + i] = 1.0;      // Row nat
+    }
+    A[nat * m + nat] = 0.0;        // Corner
+
+    // Build X vector
+    std::vector<double> X(m, 0.0);
+    for (std::size_t i = 0; i < nat; ++i) {
+        X[i] = -xi[i] + kappa[i] * std::sqrt(covcn[i]);
+    }
+    X[nat] = static_cast<double>(ctx.Charge());
+
+    // Solve A q = X
+    auto solution = solve_dense_linear(A, X, m);
+
+    // If singular, return empty (degenerate case)
+    if (!solution.has_value()) {
+        return std::vector<double>{};
+    }
+
+    // Drop the Lagrange multiplier (last element)
+    std::vector<double> qs = solution.value();
+    qs.resize(nat);
+    return qs;
+}
+
 std::shared_ptr<const DescriptorSchema> KallistoAtomDescriptorSchema() {
     static const std::shared_ptr<const DescriptorSchema> schema = [] {
-        // Table of {name, units, description} for Task 5 columns
-        // Later tasks will append to this table
+        // Table of {name, units, description} for Task 5-6 columns
+        // Later tasks (7-9) will append to this table
         struct ColumnDef {
             const char* name;
             const char* units;
@@ -211,6 +296,7 @@ std::shared_ptr<const DescriptorSchema> KallistoAtomDescriptorSchema() {
             {"cn_cov", "", "Covalent coordination number (electronegativity-weighted)"},
             {"cn_exp", "", "Exponential coordination number"},
             {"prox", "", "Proximity shell difference (scale 2-3)"},
+            {"eeq", "e", "EEQ atomic partial charge (electronegativity equilibration)"},
         };
 
         std::vector<DescriptorDefinition> definitions;
@@ -251,25 +337,28 @@ AtomDescriptorSet MakeKallistoAtomDescriptors(
 
     const std::size_t atom_count = ctx.AtomCount();
 
-    // Compute all four columns
+    // Compute all five columns
     auto cn_erf_vals = coordination_numbers(ctx, "erf");
     auto cn_cov_vals = coordination_numbers(ctx, "cov");
     auto cn_exp_vals = coordination_numbers(ctx, "exp");
     auto prox_vals = proximity_shells(ctx, {2, 3});
+    auto eeq_vals = ctx.EeqCharges();
 
     // Build columns as [column][atom] of std::optional<double>
-    // Column order MUST match schema: cn_erf, cn_cov, cn_exp, prox
-    std::vector<std::vector<std::optional<double>>> columns(4);
+    // Column order MUST match schema: cn_erf, cn_cov, cn_exp, prox, eeq
+    std::vector<std::vector<std::optional<double>>> columns(5);
     columns[0].reserve(atom_count);
     columns[1].reserve(atom_count);
     columns[2].reserve(atom_count);
     columns[3].reserve(atom_count);
+    columns[4].reserve(atom_count);
 
     for (std::size_t i = 0; i < atom_count; ++i) {
         columns[0].push_back(cn_erf_vals[i]);
         columns[1].push_back(cn_cov_vals[i]);
         columns[2].push_back(cn_exp_vals[i]);
         columns[3].push_back(prox_vals[i]);
+        columns[4].push_back(eeq_vals[i]);
     }
 
     // Get OpenEye atom indices from context (guaranteed aligned with geometry)

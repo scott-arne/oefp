@@ -38,7 +38,7 @@ KALLISTO_TOLERANCE_TIERS: dict[str, str] = {
     "cn_cov": "tight",
     "cn_exp": "tight",
     "prox": "tight",
-    "eeq": "loose",
+    "eeq": "tight",
     "alp": "loose",
     "vdw_rahm": "loose",
     "vdw_truhlar": "loose",
@@ -75,7 +75,6 @@ def _json_value(value: Any) -> Any:
 
 
 def _reference_payload(panel_dir: Path) -> dict[str, Any]:
-    import kallisto
     from kallisto.molecule import Molecule
     from kallisto.sterics import getClassicalSterimol
     from kallisto.units import Bohr

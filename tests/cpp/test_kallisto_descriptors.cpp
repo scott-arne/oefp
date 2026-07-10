@@ -222,8 +222,8 @@ TEST(KallistoDescriptors, AtomDescriptorSchema) {
     auto schema = KallistoAtomDescriptorSchema();
     ASSERT_NE(schema, nullptr);
 
-    // Should have 4 columns for this task
-    ASSERT_EQ(schema->Size(), 4u);
+    // Should have 5 columns for Task 6
+    ASSERT_EQ(schema->Size(), 5u);
 
     // Check each column
     EXPECT_EQ(schema->Definition(0).name, "cn_erf");
@@ -249,6 +249,13 @@ TEST(KallistoDescriptors, AtomDescriptorSchema) {
     EXPECT_EQ(schema->Definition(3).group, "kallisto");
     EXPECT_EQ(schema->Definition(3).source_name, "kallisto");
     EXPECT_EQ(schema->Definition(3).prerequisites, kDescriptorPrerequisiteCoordinates3D);
+
+    EXPECT_EQ(schema->Definition(4).name, "eeq");
+    EXPECT_EQ(schema->Definition(4).value_kind, DescriptorValueKind::Float);
+    EXPECT_EQ(schema->Definition(4).group, "kallisto");
+    EXPECT_EQ(schema->Definition(4).source_name, "kallisto");
+    EXPECT_EQ(schema->Definition(4).units, "e");
+    EXPECT_EQ(schema->Definition(4).prerequisites, kDescriptorPrerequisiteCoordinates3D);
 }
 
 // Test that kernels return empty vectors for ineligible contexts (2D molecule)
@@ -398,6 +405,87 @@ TEST(KallistoDescriptors, NonContiguousAtomIndices) {
     EXPECT_EQ(result_indices[1], 1u);
     EXPECT_EQ(result_indices[2], 3u);
     EXPECT_EQ(result_indices[3], 4u);
+}
+
+// Test eeq_charges on water: charges sum to total charge and match kallisto values
+TEST(KallistoDescriptors, EeqChargesH2O) {
+    // H2O: O at (0,0,0), H at (1.8,0,0), H at (0,1.8,0) Bohr (same coords as CN test)
+    OEChem::OEGraphMol mol;
+    OEChem::OEAtomBase* o = mol.NewAtom(8);   // Oxygen
+    OEChem::OEAtomBase* h1 = mol.NewAtom(1);  // Hydrogen
+    OEChem::OEAtomBase* h2 = mol.NewAtom(1);
+    mol.NewBond(o, h1, 1);
+    mol.NewBond(o, h2, 1);
+
+    constexpr double bohr_to_angstrom = 0.5291772105437147;
+    const double coords_o[3] = {0.0, 0.0, 0.0};
+    const double coords_h1[3] = {1.8 * bohr_to_angstrom, 0.0, 0.0};
+    const double coords_h2[3] = {0.0, 1.8 * bohr_to_angstrom, 0.0};
+    mol.SetCoords(o, coords_o);
+    mol.SetCoords(h1, coords_h1);
+    mol.SetCoords(h2, coords_h2);
+    mol.SetDimension(3);
+
+    KallistoGeometryContext ctx(mol);
+    ASSERT_TRUE(ctx.Eligible());
+
+    // Get EEQ charges from the kernel
+    auto eeq = eeq_charges(ctx);
+    ASSERT_EQ(eeq.size(), 3u);
+
+    // Constraint: charges sum to total charge (neutral molecule = 0)
+    double charge_sum = eeq[0] + eeq[1] + eeq[2];
+    EXPECT_NEAR(charge_sum, 0.0, 1e-9);
+
+    // Expected values from kallisto 1.0.10 on same Bohr coords:
+    // python -c "from kallisto.molecule import Molecule; import numpy as np;
+    // m = Molecule(numbers=[8,1,1], positions=np.array([[0,0,0],[1.8,0,0],[0,1.8,0]]));
+    // print(m.get_eeq(0))"
+    // [-0.60062105  0.30031053  0.30031053]
+    EXPECT_NEAR(eeq[0], -0.60062105, 1e-6);
+    EXPECT_NEAR(eeq[1],  0.30031053, 1e-6);
+    EXPECT_NEAR(eeq[2],  0.30031053, 1e-6);
+}
+
+// Test that EeqCharges() cached accessor returns same as eeq_charges() kernel
+TEST(KallistoDescriptors, EeqChargesCaching) {
+    OEChem::OEGraphMol mol;
+    OEChem::OEAtomBase* o = mol.NewAtom(8);
+    OEChem::OEAtomBase* h1 = mol.NewAtom(1);
+    OEChem::OEAtomBase* h2 = mol.NewAtom(1);
+    mol.NewBond(o, h1, 1);
+    mol.NewBond(o, h2, 1);
+
+    constexpr double bohr_to_angstrom = 0.5291772105437147;
+    const double coords_o[3] = {0.0, 0.0, 0.0};
+    const double coords_h1[3] = {1.8 * bohr_to_angstrom, 0.0, 0.0};
+    const double coords_h2[3] = {0.0, 1.8 * bohr_to_angstrom, 0.0};
+    mol.SetCoords(o, coords_o);
+    mol.SetCoords(h1, coords_h1);
+    mol.SetCoords(h2, coords_h2);
+    mol.SetDimension(3);
+
+    KallistoGeometryContext ctx(mol);
+    ASSERT_TRUE(ctx.Eligible());
+
+    // Get EEQ via the kernel
+    auto eeq_kernel = eeq_charges(ctx);
+
+    // Get EEQ via the cached accessor
+    const auto& eeq_cached = ctx.EeqCharges();
+
+    // They should match
+    ASSERT_EQ(eeq_kernel.size(), eeq_cached.size());
+    for (std::size_t i = 0; i < eeq_kernel.size(); ++i) {
+        EXPECT_NEAR(eeq_kernel[i], eeq_cached[i], 1e-12);
+    }
+
+    // Call again to verify caching works
+    const auto& eeq_cached2 = ctx.EeqCharges();
+    ASSERT_EQ(eeq_cached.size(), eeq_cached2.size());
+    for (std::size_t i = 0; i < eeq_cached.size(); ++i) {
+        EXPECT_EQ(eeq_cached[i], eeq_cached2[i]);
+    }
 }
 
 }  // namespace
