@@ -353,12 +353,21 @@ AtomDescriptorSet MakeKallistoAtomDescriptors(
     columns[3].reserve(atom_count);
     columns[4].reserve(atom_count);
 
+    // Guard against singular solves: kernel functions (like eeq_charges) return
+    // an empty vector on degenerate cases. If a kernel result size doesn't match
+    // atom_count, emit that column as all-missing instead of indexing out-of-bounds.
+    const bool cn_erf_ok = cn_erf_vals.size() == atom_count;
+    const bool cn_cov_ok = cn_cov_vals.size() == atom_count;
+    const bool cn_exp_ok = cn_exp_vals.size() == atom_count;
+    const bool prox_ok = prox_vals.size() == atom_count;
+    const bool eeq_ok = eeq_vals.size() == atom_count;
+
     for (std::size_t i = 0; i < atom_count; ++i) {
-        columns[0].push_back(cn_erf_vals[i]);
-        columns[1].push_back(cn_cov_vals[i]);
-        columns[2].push_back(cn_exp_vals[i]);
-        columns[3].push_back(prox_vals[i]);
-        columns[4].push_back(eeq_vals[i]);
+        columns[0].push_back(cn_erf_ok ? std::optional<double>(cn_erf_vals[i]) : std::nullopt);
+        columns[1].push_back(cn_cov_ok ? std::optional<double>(cn_cov_vals[i]) : std::nullopt);
+        columns[2].push_back(cn_exp_ok ? std::optional<double>(cn_exp_vals[i]) : std::nullopt);
+        columns[3].push_back(prox_ok ? std::optional<double>(prox_vals[i]) : std::nullopt);
+        columns[4].push_back(eeq_ok ? std::optional<double>(eeq_vals[i]) : std::nullopt);
     }
 
     // Get OpenEye atom indices from context (guaranteed aligned with geometry)

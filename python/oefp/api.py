@@ -3722,9 +3722,12 @@ class KallistoAtomDescriptors:
 def kallisto_atom_schema() -> DescriptorSchema:
     """Return the descriptor schema for kallisto atom descriptors.
 
-    :returns: Descriptor schema with all kallisto atom columns from the fixture.
+    :returns: Descriptor schema matching the columns actually emitted by the native code.
     """
-    # Load schema from the kallisto references fixture
+    # Get emitted column names from native schema (single source of truth)
+    column_names = _native.KallistoAtomColumnNames()
+
+    # Load metadata from the kallisto references fixture
     resource = resources.files("oefp").joinpath("kallisto_references.json")
     if resource.is_file():
         with resource.open(encoding="utf-8") as handle:
@@ -3736,20 +3739,24 @@ def kallisto_atom_schema() -> DescriptorSchema:
         with fixture_path.open(encoding="utf-8") as handle:
             payload = json.load(handle)
 
+    # Build metadata lookup from fixture
     atom_schema = payload["atom_schema"]
+    metadata_by_name = {item["name"]: item for item in atom_schema}
+
+    # Build Python schema for the columns actually emitted (in native schema order)
     definitions = []
-    for item in atom_schema:
-        # Include all atom columns from the fixture
+    for name in column_names:
+        meta = metadata_by_name.get(name, {})
         definitions.append(
             DescriptorDefinition(
-                name=item["name"],
+                name=name,
                 value_type="float",
                 group="kallisto",
                 source_name="kallisto",
                 source_type="geometric",
                 source_version="kallisto-1.0.10",
-                description=item["description"],
-                units=item["units"],
+                description=meta.get("description", ""),
+                units=meta.get("units", ""),
                 prerequisites=DESCRIPTOR_PREREQUISITE_COORDINATES_3D,
             )
         )
@@ -3786,9 +3793,9 @@ def kallisto_atom_descriptors(mol: Any, charge: int | None = None) -> KallistoAt
 
     atom_count = batch.AtomCount()
 
-    # Column order from Task 6: cn_erf, cn_cov, cn_exp, prox, eeq
-    # (Later tasks will add alp, vdw_rahm, vdw_truhlar)
-    column_names = ["cn_erf", "cn_cov", "cn_exp", "prox", "eeq"]
+    # Column names derived from native schema (single source of truth)
+    # Tasks 7-9 will auto-grow this list as they append to the C++ schema
+    column_names = _native.KallistoAtomColumnNames()
 
     # Empty result for ineligible molecules
     if atom_count == 0:

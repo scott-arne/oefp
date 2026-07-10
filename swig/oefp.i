@@ -810,6 +810,7 @@ std::shared_ptr<const ::OEFP::DescriptorSchema> RDKitDescriptorSchema() {
 // Ignore all kallisto_descriptors.h content except what we expose via trampolines
 %ignore OEFP::coordination_numbers;
 %ignore OEFP::proximity_shells;
+%ignore OEFP::eeq_charges;
 %ignore OEFP::KallistoAtomDescriptorSchema;
 %ignore OEFP::MakeKallistoAtomDescriptorBatch;
 %ignore OEFP::MakeKallistoAtomDescriptors;
@@ -820,6 +821,15 @@ OEFP_GIL_RELEASE_EXCEPTION(MakeKallistoAtomDescriptorBatch)
 %inline %{
 std::shared_ptr<const ::OEFP::DescriptorSchema> KallistoAtomDescriptorSchema() {
     return ::OEFP::KallistoAtomDescriptorSchema();
+}
+std::vector<std::string> KallistoAtomColumnNames() {
+    auto schema = ::OEFP::KallistoAtomDescriptorSchema();
+    std::vector<std::string> names;
+    names.reserve(schema->Size());
+    for (std::size_t i = 0; i < schema->Size(); ++i) {
+        names.push_back(schema->Definition(i).name);
+    }
+    return names;
 }
 ::OEFP::AtomDescriptorBatch MakeKallistoAtomDescriptorBatch(const OEChem::OEMolBase& mol) {
     return ::OEFP::MakeKallistoAtomDescriptorBatch(mol);
