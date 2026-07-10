@@ -198,5 +198,49 @@ TEST(KallistoGeometryContext, ChargeOverride2DIneligible) {
     EXPECT_EQ(ctx.Charge(), -1);           // But override is honored
 }
 
+// Test eligibility: molecule with NaN coordinate is ineligible
+TEST(KallistoGeometryContext, IneligibleNaNCoordinate) {
+    OEChem::OEGraphMol mol;
+    OEChem::OESmilesToMol(mol, "CC");
+
+    // Set 3D coordinates with NaN in the first atom
+    unsigned int i = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom, ++i) {
+        if (i == 0) {
+            const double coords[3] = {std::numeric_limits<double>::quiet_NaN(), 0.0, 0.0};
+            mol.SetCoords(atom, coords);
+        } else {
+            const double coords[3] = {static_cast<double>(i) * 1.5, 0.0, 0.0};
+            mol.SetCoords(atom, coords);
+        }
+    }
+    mol.SetDimension(3);
+
+    KallistoGeometryContext ctx(mol);
+    EXPECT_FALSE(ctx.Eligible());
+}
+
+// Test eligibility: molecule with inf coordinate is ineligible
+TEST(KallistoGeometryContext, IneligibleInfCoordinate) {
+    OEChem::OEGraphMol mol;
+    OEChem::OESmilesToMol(mol, "CC");
+
+    // Set 3D coordinates with inf in the second atom
+    unsigned int i = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom, ++i) {
+        if (i == 1) {
+            const double coords[3] = {0.0, std::numeric_limits<double>::infinity(), 0.0};
+            mol.SetCoords(atom, coords);
+        } else {
+            const double coords[3] = {static_cast<double>(i) * 1.5, 0.0, 0.0};
+            mol.SetCoords(atom, coords);
+        }
+    }
+    mol.SetDimension(3);
+
+    KallistoGeometryContext ctx(mol);
+    EXPECT_FALSE(ctx.Eligible());
+}
+
 } // namespace
 } // namespace OEFP

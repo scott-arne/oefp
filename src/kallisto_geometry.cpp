@@ -148,6 +148,17 @@ KallistoGeometryContext::KallistoGeometryContext(
             return;
         }
 
+        // Check that all coordinate components are finite
+        if (!std::isfinite(coords_angstrom[0]) ||
+            !std::isfinite(coords_angstrom[1]) ||
+            !std::isfinite(coords_angstrom[2])) {
+            // Non-finite coordinate component: mark ineligible and return
+            atomic_numbers_.clear();
+            coords_bohr_.clear();
+            atom_indices_.clear();
+            return;
+        }
+
         // Convert Angstrom to Bohr
         std::array<double, 3> coords_bohr_atom = {
             coords_angstrom[0] / kallisto::BOHR_RADIUS_ANGSTROM,

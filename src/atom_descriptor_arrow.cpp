@@ -26,6 +26,7 @@ constexpr const char* kFormatVersion = "1";
 constexpr const char* kDescriptorSchemaJsonKey = "oefp.descriptor_schema_json";
 constexpr const char* kFormatVersionKey = "oefp.format_version";
 constexpr const char* kMoleculeCountKey = "oefp.kallisto.molecule_count";
+constexpr const char* kSchemaIdKey = "oefp.schema_id";
 
 void check_arrow_status(const arrow::Status& status) {
     if (!status.ok()) {
@@ -306,11 +307,12 @@ std::shared_ptr<arrow::RecordBatch> AtomDescriptorBatchToArrow(
     }
 
     auto metadata = arrow::KeyValueMetadata::Make(
-        {kDescriptorSchemaJsonKey, kFormatVersionKey, kMoleculeCountKey},
+        {kDescriptorSchemaJsonKey, kFormatVersionKey, kMoleculeCountKey, kSchemaIdKey},
         {
             schema_to_json(schema),
             kFormatVersion,
             std::to_string(molecule_count),
+            schema.SchemaId(),
         });
 
     auto arrow_schema = arrow::schema(std::move(fields), std::move(metadata));
@@ -367,6 +369,19 @@ AtomDescriptorBatch AtomDescriptorBatchFromArrow(
                 "Arrow column " + std::to_string(i) + " is '" + column_names[i] +
                 "' but kallisto atom schema expects '" + schema->Definition(i).name + "'");
         }
+    }
+
+    // Validate schema identity: persisted schema_id must match current native schema
+    if (!metadata->Contains(kSchemaIdKey)) {
+        throw std::invalid_argument("Arrow schema is missing schema identity metadata (oefp.schema_id).");
+    }
+    const auto persisted_schema_id = metadata->Get(kSchemaIdKey).ValueOrDie();
+    const auto native_schema_id = schema->SchemaId();
+    if (persisted_schema_id != native_schema_id) {
+        throw std::invalid_argument(
+            "Arrow schema identity mismatch (version drift): persisted schema_id '" +
+            persisted_schema_id + "' does not match current native schema_id '" +
+            native_schema_id + "'");
     }
 
     // Validate the physical Arrow schema fields
@@ -575,11 +590,12 @@ std::shared_ptr<arrow::RecordBatch> BondDescriptorBatchToArrow(
     }
 
     auto metadata = arrow::KeyValueMetadata::Make(
-        {kDescriptorSchemaJsonKey, kFormatVersionKey, kMoleculeCountKey},
+        {kDescriptorSchemaJsonKey, kFormatVersionKey, kMoleculeCountKey, kSchemaIdKey},
         {
             schema_to_json(schema),
             kFormatVersion,
             std::to_string(molecule_count),
+            schema.SchemaId(),
         });
 
     auto arrow_schema = arrow::schema(std::move(fields), std::move(metadata));
@@ -636,6 +652,19 @@ BondDescriptorBatch BondDescriptorBatchFromArrow(
                 "Arrow column " + std::to_string(i) + " is '" + column_names[i] +
                 "' but kallisto bond schema expects '" + schema->Definition(i).name + "'");
         }
+    }
+
+    // Validate schema identity: persisted schema_id must match current native schema
+    if (!metadata->Contains(kSchemaIdKey)) {
+        throw std::invalid_argument("Arrow schema is missing schema identity metadata (oefp.schema_id).");
+    }
+    const auto persisted_schema_id = metadata->Get(kSchemaIdKey).ValueOrDie();
+    const auto native_schema_id = schema->SchemaId();
+    if (persisted_schema_id != native_schema_id) {
+        throw std::invalid_argument(
+            "Arrow schema identity mismatch (version drift): persisted schema_id '" +
+            persisted_schema_id + "' does not match current native schema_id '" +
+            native_schema_id + "'");
     }
 
     // Validate the physical Arrow schema fields

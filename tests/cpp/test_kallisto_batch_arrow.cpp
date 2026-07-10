@@ -1063,5 +1063,133 @@ TEST(KallistoBatchArrow, BondDescriptorRejectsNoMetadata) {
     }, std::invalid_argument);
 }
 
+TEST(KallistoBatchArrow, AtomDescriptorRejectsTamperedSchemaId) {
+    auto mol = make_ethane();
+    const OEChem::OEMolBase& base = mol;
+    std::vector<const OEChem::OEMolBase*> mols{&base};
+
+    KallistoAtomDescriptorSource source;
+    const auto batch = source.CalculateBatch(mols);
+    const auto valid_rb = AtomDescriptorBatchToArrow(batch);
+
+    ASSERT_NE(valid_rb, nullptr);
+
+    // Tamper: replace oefp.schema_id with a bogus value (names/columns unchanged)
+    const auto original_metadata = valid_rb->schema()->metadata();
+    ASSERT_NE(original_metadata, nullptr);
+
+    auto tampered_metadata = arrow::KeyValueMetadata::Make({}, {});
+    for (std::int64_t i = 0; i < original_metadata->size(); ++i) {
+        const auto key = original_metadata->key(i);
+        if (key == "oefp.schema_id") {
+            (void)tampered_metadata->Append(key, "bogus_schema_id_xyz");
+        } else {
+            (void)tampered_metadata->Append(key, original_metadata->value(i));
+        }
+    }
+
+    auto tampered_schema = arrow::schema(valid_rb->schema()->fields(), tampered_metadata);
+    auto tampered_rb = arrow::RecordBatch::Make(tampered_schema, valid_rb->num_rows(), valid_rb->columns());
+
+    EXPECT_THROW({
+        AtomDescriptorBatchFromArrow(tampered_rb);
+    }, std::invalid_argument);
+}
+
+TEST(KallistoBatchArrow, AtomDescriptorRejectsMissingSchemaId) {
+    auto mol = make_ethane();
+    const OEChem::OEMolBase& base = mol;
+    std::vector<const OEChem::OEMolBase*> mols{&base};
+
+    KallistoAtomDescriptorSource source;
+    const auto batch = source.CalculateBatch(mols);
+    const auto valid_rb = AtomDescriptorBatchToArrow(batch);
+
+    ASSERT_NE(valid_rb, nullptr);
+
+    // Remove oefp.schema_id from metadata
+    const auto original_metadata = valid_rb->schema()->metadata();
+    ASSERT_NE(original_metadata, nullptr);
+
+    auto metadata_without_id = arrow::KeyValueMetadata::Make({}, {});
+    for (std::int64_t i = 0; i < original_metadata->size(); ++i) {
+        const auto key = original_metadata->key(i);
+        if (key != "oefp.schema_id") {
+            (void)metadata_without_id->Append(key, original_metadata->value(i));
+        }
+    }
+
+    auto schema = arrow::schema(valid_rb->schema()->fields(), metadata_without_id);
+    auto rb_without_id = arrow::RecordBatch::Make(schema, valid_rb->num_rows(), valid_rb->columns());
+
+    EXPECT_THROW({
+        AtomDescriptorBatchFromArrow(rb_without_id);
+    }, std::invalid_argument);
+}
+
+TEST(KallistoBatchArrow, BondDescriptorRejectsTamperedSchemaId) {
+    auto mol = make_ethane();
+    const OEChem::OEMolBase& base = mol;
+    std::vector<const OEChem::OEMolBase*> mols{&base};
+
+    KallistoBondDescriptorSource source;
+    const auto batch = source.CalculateBatch(mols);
+    const auto valid_rb = BondDescriptorBatchToArrow(batch);
+
+    ASSERT_NE(valid_rb, nullptr);
+
+    // Tamper: replace oefp.schema_id with a bogus value (names/columns unchanged)
+    const auto original_metadata = valid_rb->schema()->metadata();
+    ASSERT_NE(original_metadata, nullptr);
+
+    auto tampered_metadata = arrow::KeyValueMetadata::Make({}, {});
+    for (std::int64_t i = 0; i < original_metadata->size(); ++i) {
+        const auto key = original_metadata->key(i);
+        if (key == "oefp.schema_id") {
+            (void)tampered_metadata->Append(key, "bogus_schema_id_xyz");
+        } else {
+            (void)tampered_metadata->Append(key, original_metadata->value(i));
+        }
+    }
+
+    auto tampered_schema = arrow::schema(valid_rb->schema()->fields(), tampered_metadata);
+    auto tampered_rb = arrow::RecordBatch::Make(tampered_schema, valid_rb->num_rows(), valid_rb->columns());
+
+    EXPECT_THROW({
+        BondDescriptorBatchFromArrow(tampered_rb);
+    }, std::invalid_argument);
+}
+
+TEST(KallistoBatchArrow, BondDescriptorRejectsMissingSchemaId) {
+    auto mol = make_ethane();
+    const OEChem::OEMolBase& base = mol;
+    std::vector<const OEChem::OEMolBase*> mols{&base};
+
+    KallistoBondDescriptorSource source;
+    const auto batch = source.CalculateBatch(mols);
+    const auto valid_rb = BondDescriptorBatchToArrow(batch);
+
+    ASSERT_NE(valid_rb, nullptr);
+
+    // Remove oefp.schema_id from metadata
+    const auto original_metadata = valid_rb->schema()->metadata();
+    ASSERT_NE(original_metadata, nullptr);
+
+    auto metadata_without_id = arrow::KeyValueMetadata::Make({}, {});
+    for (std::int64_t i = 0; i < original_metadata->size(); ++i) {
+        const auto key = original_metadata->key(i);
+        if (key != "oefp.schema_id") {
+            (void)metadata_without_id->Append(key, original_metadata->value(i));
+        }
+    }
+
+    auto schema = arrow::schema(valid_rb->schema()->fields(), metadata_without_id);
+    auto rb_without_id = arrow::RecordBatch::Make(schema, valid_rb->num_rows(), valid_rb->columns());
+
+    EXPECT_THROW({
+        BondDescriptorBatchFromArrow(rb_without_id);
+    }, std::invalid_argument);
+}
+
 } // namespace
 } // namespace OEFP

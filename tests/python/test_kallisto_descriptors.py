@@ -326,6 +326,32 @@ def test_kallisto_atom_descriptors_ineligible() -> None:
     assert len(result_heavy["vdw_rahm"]) == 0
     assert len(result_heavy["vdw_truhlar"]) == 0
 
+    # Test 3: Molecule with NaN coordinate
+    mol_nan = oechem.OEGraphMol()
+    mol_nan.SetDimension(3)
+    c1 = mol_nan.NewAtom(6)  # Carbon
+    c2 = mol_nan.NewAtom(6)
+    mol_nan.SetCoords(c1, [float("nan"), 0.0, 0.0])
+    mol_nan.SetCoords(c2, [1.5, 0.0, 0.0])
+    mol_nan.NewBond(c1, c2)
+
+    result_nan = kallisto_atom_descriptors(mol_nan)
+    assert result_nan.atom_count == 0
+    assert len(result_nan["cn_erf"]) == 0
+
+    # Test 4: Molecule with inf coordinate
+    mol_inf = oechem.OEGraphMol()
+    mol_inf.SetDimension(3)
+    c1_inf = mol_inf.NewAtom(6)  # Carbon
+    c2_inf = mol_inf.NewAtom(6)
+    mol_inf.SetCoords(c1_inf, [0.0, float("inf"), 0.0])
+    mol_inf.SetCoords(c2_inf, [1.5, 0.0, 0.0])
+    mol_inf.NewBond(c1_inf, c2_inf)
+
+    result_inf = kallisto_atom_descriptors(mol_inf)
+    assert result_inf.atom_count == 0
+    assert len(result_inf["cn_erf"]) == 0
+
 
 @pytest.mark.skipif(not HAS_OPENEYE, reason="OpenEye not available")
 def test_kallisto_atom_descriptors_noncontiguous_indices() -> None:
