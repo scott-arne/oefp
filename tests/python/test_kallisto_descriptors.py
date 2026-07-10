@@ -183,9 +183,9 @@ TIERS = {
 def test_kallisto_atom_schema() -> None:
     """Verify the kallisto atom schema has expected columns."""
     schema = kallisto_atom_schema()
-    # Schema loaded from fixture includes all columns (8 for full kallisto)
-    assert len(schema.names) >= 6  # At least through Task 7 (alp)
-    assert schema.names[:6] == ("cn_erf", "cn_cov", "cn_exp", "prox", "eeq", "alp")
+    # Schema loaded from fixture includes all columns (8 for complete atom schema)
+    assert len(schema.names) >= 8  # At least through Task 8 (vdw_truhlar)
+    assert schema.names[:8] == ("cn_erf", "cn_cov", "cn_exp", "prox", "eeq", "alp", "vdw_rahm", "vdw_truhlar")
     for defn in schema.definitions:
         assert defn.group == "kallisto"
         assert defn.source_name == "kallisto"
@@ -200,22 +200,29 @@ def test_kallisto_atom_schema_metadata_consistency() -> None:
     The Python kallisto_atom_schema() derives column names from the native
     KallistoAtomDescriptorSchema() and metadata from kallisto_references.json.
     The native C++ schema is the single source of truth for units spelling.
-    This test asserts that the alp column uses the canonical "Bohr^3" spelling
-    (capital B), preventing C++/Python metadata divergence.
+    This test iterates all kallisto atom columns and asserts each column's units
+    match the expected canonical spelling (Bohr with capital B, etc.), preventing
+    native-vs-fixture units divergence.
     """
     python_schema = kallisto_atom_schema()
 
-    # Explicit check for the alp units spelling (canonical = "Bohr^3")
-    alp_idx = python_schema.names.index("alp")
-    alp_defn = python_schema.definitions[alp_idx]
-    assert alp_defn.units == "Bohr^3", \
-        f"alp units should be 'Bohr^3' (canonical spelling), got '{alp_defn.units}'"
+    # Expected canonical units spelling for each kallisto atom column
+    expected_units = {
+        "cn_erf": "",
+        "cn_cov": "",
+        "cn_exp": "",
+        "prox": "",
+        "eeq": "e",
+        "alp": "Bohr^3",
+        "vdw_rahm": "Bohr",
+        "vdw_truhlar": "Bohr",
+    }
 
-    # Also check eeq units (another column with units)
-    eeq_idx = python_schema.names.index("eeq")
-    eeq_defn = python_schema.definitions[eeq_idx]
-    assert eeq_defn.units == "e", \
-        f"eeq units should be 'e', got '{eeq_defn.units}'"
+    for col_name, expected_unit in expected_units.items():
+        col_idx = python_schema.names.index(col_name)
+        col_defn = python_schema.definitions[col_idx]
+        assert col_defn.units == expected_unit, \
+            f"{col_name} units should be '{expected_unit}' (canonical spelling), got '{col_defn.units}'"
 
 
 @pytest.mark.skipif(not HAS_OPENEYE, reason="OpenEye not available")
@@ -228,8 +235,8 @@ def test_kallisto_atom_descriptors_conformance() -> None:
     tiers = fixture["tiers"]
     sdf_base = Path("tests/data/kallisto_panel")
 
-    # Columns to test (Task 7 scope: cn_erf, cn_cov, cn_exp, prox, eeq, alp)
-    test_columns = ["cn_erf", "cn_cov", "cn_exp", "prox", "eeq", "alp"]
+    # Columns to test (Task 8 scope: all 8 atom columns)
+    test_columns = ["cn_erf", "cn_cov", "cn_exp", "prox", "eeq", "alp", "vdw_rahm", "vdw_truhlar"]
     max_deviations = {col: 0.0 for col in test_columns}
 
     for mol_data in molecules:
@@ -290,6 +297,8 @@ def test_kallisto_atom_descriptors_ineligible() -> None:
     assert len(result_2d["prox"]) == 0
     assert len(result_2d["eeq"]) == 0
     assert len(result_2d["alp"]) == 0
+    assert len(result_2d["vdw_rahm"]) == 0
+    assert len(result_2d["vdw_truhlar"]) == 0
 
     # Test 2: Molecule with Z > 86 (francium Z=87)
     mol_heavy = oechem.OEGraphMol()
@@ -306,6 +315,8 @@ def test_kallisto_atom_descriptors_ineligible() -> None:
     assert len(result_heavy["prox"]) == 0
     assert len(result_heavy["eeq"]) == 0
     assert len(result_heavy["alp"]) == 0
+    assert len(result_heavy["vdw_rahm"]) == 0
+    assert len(result_heavy["vdw_truhlar"]) == 0
 
 
 @pytest.mark.skipif(not HAS_OPENEYE, reason="OpenEye not available")

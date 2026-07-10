@@ -94,12 +94,31 @@ std::vector<double> eeq_charges(const KallistoGeometryContext& ctx);
 /// Mirrors kallisto.methods.getPolarizabilities.
 std::vector<double> polarizabilities(const KallistoGeometryContext& ctx);
 
+/// Compute van der Waals radii using atomic polarizabilities.
+///
+/// :param ctx: Geometry context for the molecule.
+/// :param vdwtype: van der Waals radius type ("rahm" or "truhlar").
+/// :returns: Per-atom van der Waals radii in Bohr.
+///
+/// Computes van der Waals radii from polarizabilities using the formula:
+/// vdw[i] = scale * theta_b * 2.54 * aw[i]^(1/7), where theta_b is the
+/// element-specific parameter from VDW_RAHM or VDW_TRUHLAR, aw is the
+/// atomic polarizability, and scale=1.0 for descriptors (Bohr units).
+///
+/// Returns empty vector if ctx is ineligible, polarizabilities are unavailable,
+/// vdwtype is invalid, or any result value is non-finite.
+///
+/// Mirrors kallisto.methods.getVanDerWaalsRadii.
+std::vector<double> van_der_waals_radii(
+    const KallistoGeometryContext& ctx,
+    const std::string& vdwtype
+);
+
 /// Return the descriptor schema for kallisto atom descriptors.
 ///
 /// :returns: Shared singleton schema instance.
 ///
-/// For Task 5, defines four columns: cn_erf, cn_cov, cn_exp, prox.
-/// Later tasks (6-9) will append additional columns (eeq, alp, vdw_rahm, vdw_truhlar).
+/// Defines eight columns: cn_erf, cn_cov, cn_exp, prox, eeq, alp, vdw_rahm, vdw_truhlar.
 /// All columns have value_kind Float, group "kallisto", source_name "kallisto",
 /// source_type "geometric", source_version "kallisto-1.0.10", and
 /// prerequisites kDescriptorPrerequisiteCoordinates3D.

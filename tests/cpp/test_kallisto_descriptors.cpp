@@ -222,8 +222,8 @@ TEST(KallistoDescriptors, AtomDescriptorSchema) {
     auto schema = KallistoAtomDescriptorSchema();
     ASSERT_NE(schema, nullptr);
 
-    // Should have 6 columns for Task 7
-    ASSERT_EQ(schema->Size(), 6u);
+    // Should have 8 columns for Task 8
+    ASSERT_EQ(schema->Size(), 8u);
 
     // Check each column
     EXPECT_EQ(schema->Definition(0).name, "cn_erf");
@@ -263,6 +263,20 @@ TEST(KallistoDescriptors, AtomDescriptorSchema) {
     EXPECT_EQ(schema->Definition(5).source_name, "kallisto");
     EXPECT_EQ(schema->Definition(5).units, "Bohr^3");
     EXPECT_EQ(schema->Definition(5).prerequisites, kDescriptorPrerequisiteCoordinates3D);
+
+    EXPECT_EQ(schema->Definition(6).name, "vdw_rahm");
+    EXPECT_EQ(schema->Definition(6).value_kind, DescriptorValueKind::Float);
+    EXPECT_EQ(schema->Definition(6).group, "kallisto");
+    EXPECT_EQ(schema->Definition(6).source_name, "kallisto");
+    EXPECT_EQ(schema->Definition(6).units, "Bohr");
+    EXPECT_EQ(schema->Definition(6).prerequisites, kDescriptorPrerequisiteCoordinates3D);
+
+    EXPECT_EQ(schema->Definition(7).name, "vdw_truhlar");
+    EXPECT_EQ(schema->Definition(7).value_kind, DescriptorValueKind::Float);
+    EXPECT_EQ(schema->Definition(7).group, "kallisto");
+    EXPECT_EQ(schema->Definition(7).source_name, "kallisto");
+    EXPECT_EQ(schema->Definition(7).units, "Bohr");
+    EXPECT_EQ(schema->Definition(7).prerequisites, kDescriptorPrerequisiteCoordinates3D);
 }
 
 // Test that kernels return empty vectors for ineligible contexts (2D molecule)
@@ -603,6 +617,68 @@ TEST(KallistoDescriptors, PolarizabilitiesNH3) {
     EXPECT_NEAR(alp[1], 1.44685267, 1e-5);
     EXPECT_NEAR(alp[2], 1.44685267, 1e-5);
     EXPECT_NEAR(alp[3], 1.44685267, 1e-5);
+}
+
+// Test van_der_waals_radii with vdwtype "rahm" on H2O
+TEST(KallistoDescriptors, VanDerWaalsRadiiRahmH2O) {
+    // H2O molecule: O at origin, H at (1.8,0,0), H at (0,1.8,0) Bohr
+    OEChem::OEGraphMol mol;
+    OEChem::OEAtomBase* o = mol.NewAtom(8);   // Oxygen
+    OEChem::OEAtomBase* h1 = mol.NewAtom(1);  // Hydrogen
+    OEChem::OEAtomBase* h2 = mol.NewAtom(1);
+    mol.NewBond(o, h1, 1);
+    mol.NewBond(o, h2, 1);
+
+    constexpr double bohr_to_angstrom = 0.5291772105437147;
+    const double coords_o[3] = {0.0, 0.0, 0.0};
+    const double coords_h1[3] = {1.8 * bohr_to_angstrom, 0.0, 0.0};
+    const double coords_h2[3] = {0.0, 1.8 * bohr_to_angstrom, 0.0};
+    mol.SetCoords(o, coords_o);
+    mol.SetCoords(h1, coords_h1);
+    mol.SetCoords(h2, coords_h2);
+    mol.SetDimension(3);
+
+    KallistoGeometryContext ctx(mol);
+    ASSERT_TRUE(ctx.Eligible());
+
+    auto vdw_rahm = van_der_waals_radii(ctx, "rahm");
+    ASSERT_EQ(vdw_rahm.size(), 3u);
+
+    // Expected from kallisto: [3.33756653 2.4081692  2.4081692]
+    EXPECT_NEAR(vdw_rahm[0], 3.33756653, 1e-5);
+    EXPECT_NEAR(vdw_rahm[1], 2.4081692, 1e-5);
+    EXPECT_NEAR(vdw_rahm[2], 2.4081692, 1e-5);
+}
+
+// Test van_der_waals_radii with vdwtype "truhlar" on H2O
+TEST(KallistoDescriptors, VanDerWaalsRadiiTruhlarH2O) {
+    // H2O molecule: O at origin, H at (1.8,0,0), H at (0,1.8,0) Bohr
+    OEChem::OEGraphMol mol;
+    OEChem::OEAtomBase* o = mol.NewAtom(8);   // Oxygen
+    OEChem::OEAtomBase* h1 = mol.NewAtom(1);  // Hydrogen
+    OEChem::OEAtomBase* h2 = mol.NewAtom(1);
+    mol.NewBond(o, h1, 1);
+    mol.NewBond(o, h2, 1);
+
+    constexpr double bohr_to_angstrom = 0.5291772105437147;
+    const double coords_o[3] = {0.0, 0.0, 0.0};
+    const double coords_h1[3] = {1.8 * bohr_to_angstrom, 0.0, 0.0};
+    const double coords_h2[3] = {0.0, 1.8 * bohr_to_angstrom, 0.0};
+    mol.SetCoords(o, coords_o);
+    mol.SetCoords(h1, coords_h1);
+    mol.SetCoords(h2, coords_h2);
+    mol.SetDimension(3);
+
+    KallistoGeometryContext ctx(mol);
+    ASSERT_TRUE(ctx.Eligible());
+
+    auto vdw_truhlar = van_der_waals_radii(ctx, "truhlar");
+    ASSERT_EQ(vdw_truhlar.size(), 3u);
+
+    // Expected from kallisto: [2.97043421 1.72012086 1.72012086]
+    EXPECT_NEAR(vdw_truhlar[0], 2.97043421, 1e-5);
+    EXPECT_NEAR(vdw_truhlar[1], 1.72012086, 1e-5);
+    EXPECT_NEAR(vdw_truhlar[2], 1.72012086, 1e-5);
 }
 
 }  // namespace

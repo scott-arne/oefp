@@ -448,10 +448,59 @@ std::vector<double> polarizabilities(const KallistoGeometryContext& ctx) {
     return result;
 }
 
+std::vector<double> van_der_waals_radii(
+    const KallistoGeometryContext& ctx,
+    const std::string& vdwtype
+) {
+    // Return empty for ineligible contexts
+    if (!ctx.Eligible()) {
+        return std::vector<double>{};
+    }
+
+    // Validate vdwtype
+    if (vdwtype != "rahm" && vdwtype != "truhlar") {
+        throw std::invalid_argument(
+            "van_der_waals_radii: vdwtype must be 'rahm' or 'truhlar', got '" + vdwtype + "'"
+        );
+    }
+
+    // Compute polarizabilities (prerequisite for vdW radii)
+    auto aw = polarizabilities(ctx);
+    if (aw.empty()) {
+        return std::vector<double>{};
+    }
+
+    const auto& atomic_numbers = ctx.AtomicNumbers();
+    const std::size_t nat = atomic_numbers.size();
+
+    // Parameters from kallisto
+    constexpr double scale = 1.0;      // Bohr units for descriptors
+    constexpr double theta_a = 2.54;
+    constexpr double osev = 1.0 / 7.0; // 1/7 power
+
+    std::vector<double> vdw(nat);
+
+    for (std::size_t i = 0; i < nat; ++i) {
+        const int zi = atomic_numbers[i];
+        // VDW_RAHM and VDW_TRUHLAR are Z-indexed (length 87, index by Z directly)
+        const double theta_b = (vdwtype == "rahm")
+            ? kallisto::VDW_RAHM[zi]
+            : kallisto::VDW_TRUHLAR[zi];
+
+        vdw[i] = scale * theta_b * theta_a * std::pow(aw[i], osev);
+
+        // Finiteness guard
+        if (!std::isfinite(vdw[i])) {
+            return std::vector<double>{};
+        }
+    }
+
+    return vdw;
+}
+
 std::shared_ptr<const DescriptorSchema> KallistoAtomDescriptorSchema() {
     static const std::shared_ptr<const DescriptorSchema> schema = [] {
-        // Table of {name, units, description} for Task 5-7 columns
-        // Later tasks (8-9) will append to this table
+        // Table of {name, units, description} for kallisto atom descriptors
         struct ColumnDef {
             const char* name;
             const char* units;
@@ -465,6 +514,8 @@ std::shared_ptr<const DescriptorSchema> KallistoAtomDescriptorSchema() {
             {"prox", "", "Proximity shell difference (scale 2-3)"},
             {"eeq", "e", "EEQ atomic partial charge (electronegativity equilibration)"},
             {"alp", "Bohr^3", "Atomic polarizability (charge-dependent, D4 method)"},
+            {"vdw_rahm", "Bohr", "van der Waals radius (Rahm parameters)"},
+            {"vdw_truhlar", "Bohr", "van der Waals radius (Truhlar parameters)"},
         };
 
         std::vector<DescriptorDefinition> definitions;
@@ -505,23 +556,27 @@ AtomDescriptorSet MakeKallistoAtomDescriptors(
 
     const std::size_t atom_count = ctx.AtomCount();
 
-    // Compute all six columns
+    // Compute all eight columns
     auto cn_erf_vals = coordination_numbers(ctx, "erf");
     auto cn_cov_vals = coordination_numbers(ctx, "cov");
     auto cn_exp_vals = coordination_numbers(ctx, "exp");
     auto prox_vals = proximity_shells(ctx, {2, 3});
     auto eeq_vals = ctx.EeqCharges();
     auto alp_vals = polarizabilities(ctx);
+    auto vdw_rahm_vals = van_der_waals_radii(ctx, "rahm");
+    auto vdw_truhlar_vals = van_der_waals_radii(ctx, "truhlar");
 
     // Build columns as [column][atom] of std::optional<double>
-    // Column order MUST match schema: cn_erf, cn_cov, cn_exp, prox, eeq, alp
-    std::vector<std::vector<std::optional<double>>> columns(6);
+    // Column order MUST match schema: cn_erf, cn_cov, cn_exp, prox, eeq, alp, vdw_rahm, vdw_truhlar
+    std::vector<std::vector<std::optional<double>>> columns(8);
     columns[0].reserve(atom_count);
     columns[1].reserve(atom_count);
     columns[2].reserve(atom_count);
     columns[3].reserve(atom_count);
     columns[4].reserve(atom_count);
     columns[5].reserve(atom_count);
+    columns[6].reserve(atom_count);
+    columns[7].reserve(atom_count);
 
     // Guard against singular solves: kernel functions (like eeq_charges) return
     // an empty vector on degenerate cases. If a kernel result size doesn't match
@@ -532,6 +587,8 @@ AtomDescriptorSet MakeKallistoAtomDescriptors(
     const bool prox_ok = prox_vals.size() == atom_count;
     const bool eeq_ok = eeq_vals.size() == atom_count;
     const bool alp_ok = alp_vals.size() == atom_count;
+    const bool vdw_rahm_ok = vdw_rahm_vals.size() == atom_count;
+    const bool vdw_truhlar_ok = vdw_truhlar_vals.size() == atom_count;
 
     for (std::size_t i = 0; i < atom_count; ++i) {
         columns[0].push_back(cn_erf_ok ? std::optional<double>(cn_erf_vals[i]) : std::nullopt);
@@ -540,6 +597,8 @@ AtomDescriptorSet MakeKallistoAtomDescriptors(
         columns[3].push_back(prox_ok ? std::optional<double>(prox_vals[i]) : std::nullopt);
         columns[4].push_back(eeq_ok ? std::optional<double>(eeq_vals[i]) : std::nullopt);
         columns[5].push_back(alp_ok ? std::optional<double>(alp_vals[i]) : std::nullopt);
+        columns[6].push_back(vdw_rahm_ok ? std::optional<double>(vdw_rahm_vals[i]) : std::nullopt);
+        columns[7].push_back(vdw_truhlar_ok ? std::optional<double>(vdw_truhlar_vals[i]) : std::nullopt);
     }
 
     // Get OpenEye atom indices from context (guaranteed aligned with geometry)

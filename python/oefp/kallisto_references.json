@@ -2227,7 +2227,7 @@
     "sterimol_B1": "loose",
     "sterimol_B5": "loose",
     "sterimol_L": "loose",
-    "vdw_rahm": "loose",
-    "vdw_truhlar": "loose"
+    "vdw_rahm": "tight",
+    "vdw_truhlar": "tight"
   }
 }
