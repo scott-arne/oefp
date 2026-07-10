@@ -961,5 +961,107 @@ TEST(KallistoBatchArrow, BondDescriptorParquetRoundTrip) {
     EXPECT_EQ(reconstructed_batch.Schema().SchemaId(), original_batch.Schema().SchemaId());
 }
 
+TEST(KallistoBatchArrow, AtomDescriptorRejectsMissingSchemaMetadata) {
+    auto mol = make_ethane();
+    const OEChem::OEMolBase& base = mol;
+    std::vector<const OEChem::OEMolBase*> mols{&base};
+
+    KallistoAtomDescriptorSource source;
+    const auto batch = source.CalculateBatch(mols);
+    const auto valid_rb = AtomDescriptorBatchToArrow(batch);
+
+    ASSERT_NE(valid_rb, nullptr);
+
+    // Build metadata without descriptor_schema_json key
+    const auto original_metadata = valid_rb->schema()->metadata();
+    ASSERT_NE(original_metadata, nullptr);
+
+    auto metadata_without_schema = arrow::KeyValueMetadata::Make({}, {});
+    for (std::int64_t i = 0; i < original_metadata->size(); ++i) {
+        const auto key = original_metadata->key(i);
+        if (key != "oefp.descriptor_schema_json") {
+            (void)metadata_without_schema->Append(key, original_metadata->value(i));
+        }
+    }
+
+    auto schema = arrow::schema(valid_rb->schema()->fields(), metadata_without_schema);
+    auto rb_without_schema = arrow::RecordBatch::Make(schema, valid_rb->num_rows(), valid_rb->columns());
+
+    EXPECT_THROW({
+        AtomDescriptorBatchFromArrow(rb_without_schema);
+    }, std::invalid_argument);
+}
+
+TEST(KallistoBatchArrow, AtomDescriptorRejectsNoMetadata) {
+    auto mol = make_ethane();
+    const OEChem::OEMolBase& base = mol;
+    std::vector<const OEChem::OEMolBase*> mols{&base};
+
+    KallistoAtomDescriptorSource source;
+    const auto batch = source.CalculateBatch(mols);
+    const auto valid_rb = AtomDescriptorBatchToArrow(batch);
+
+    ASSERT_NE(valid_rb, nullptr);
+
+    // Build record batch with no metadata at all
+    auto schema = arrow::schema(valid_rb->schema()->fields(), nullptr);
+    auto rb_without_metadata = arrow::RecordBatch::Make(schema, valid_rb->num_rows(), valid_rb->columns());
+
+    EXPECT_THROW({
+        AtomDescriptorBatchFromArrow(rb_without_metadata);
+    }, std::invalid_argument);
+}
+
+TEST(KallistoBatchArrow, BondDescriptorRejectsMissingSchemaMetadata) {
+    auto mol = make_ethane();
+    const OEChem::OEMolBase& base = mol;
+    std::vector<const OEChem::OEMolBase*> mols{&base};
+
+    KallistoBondDescriptorSource source;
+    const auto batch = source.CalculateBatch(mols);
+    const auto valid_rb = BondDescriptorBatchToArrow(batch);
+
+    ASSERT_NE(valid_rb, nullptr);
+
+    // Build metadata without descriptor_schema_json key
+    const auto original_metadata = valid_rb->schema()->metadata();
+    ASSERT_NE(original_metadata, nullptr);
+
+    auto metadata_without_schema = arrow::KeyValueMetadata::Make({}, {});
+    for (std::int64_t i = 0; i < original_metadata->size(); ++i) {
+        const auto key = original_metadata->key(i);
+        if (key != "oefp.descriptor_schema_json") {
+            (void)metadata_without_schema->Append(key, original_metadata->value(i));
+        }
+    }
+
+    auto schema = arrow::schema(valid_rb->schema()->fields(), metadata_without_schema);
+    auto rb_without_schema = arrow::RecordBatch::Make(schema, valid_rb->num_rows(), valid_rb->columns());
+
+    EXPECT_THROW({
+        BondDescriptorBatchFromArrow(rb_without_schema);
+    }, std::invalid_argument);
+}
+
+TEST(KallistoBatchArrow, BondDescriptorRejectsNoMetadata) {
+    auto mol = make_ethane();
+    const OEChem::OEMolBase& base = mol;
+    std::vector<const OEChem::OEMolBase*> mols{&base};
+
+    KallistoBondDescriptorSource source;
+    const auto batch = source.CalculateBatch(mols);
+    const auto valid_rb = BondDescriptorBatchToArrow(batch);
+
+    ASSERT_NE(valid_rb, nullptr);
+
+    // Build record batch with no metadata at all
+    auto schema = arrow::schema(valid_rb->schema()->fields(), nullptr);
+    auto rb_without_metadata = arrow::RecordBatch::Make(schema, valid_rb->num_rows(), valid_rb->columns());
+
+    EXPECT_THROW({
+        BondDescriptorBatchFromArrow(rb_without_metadata);
+    }, std::invalid_argument);
+}
+
 } // namespace
 } // namespace OEFP

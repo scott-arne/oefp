@@ -348,6 +348,9 @@ AtomDescriptorBatch AtomDescriptorBatchFromArrow(
     }
 
     const auto molecule_count = parse_molecule_count(metadata);
+    if (!metadata->Contains(kDescriptorSchemaJsonKey)) {
+        throw std::invalid_argument("Arrow schema is missing descriptor schema metadata.");
+    }
     const auto column_names = SchemaJsonParser(
         metadata->Get(kDescriptorSchemaJsonKey).ValueOrDie()).Parse();
 
@@ -614,6 +617,9 @@ BondDescriptorBatch BondDescriptorBatchFromArrow(
     }
 
     const auto molecule_count = parse_molecule_count(metadata);
+    if (!metadata->Contains(kDescriptorSchemaJsonKey)) {
+        throw std::invalid_argument("Arrow schema is missing descriptor schema metadata.");
+    }
     const auto column_names = SchemaJsonParser(
         metadata->Get(kDescriptorSchemaJsonKey).ValueOrDie()).Parse();
 
