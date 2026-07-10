@@ -1,5 +1,6 @@
 #include "oefp/kallisto_geometry.h"
 #include "oefp/kallisto_data.h"
+#include "oefp/kallisto_descriptors.h"
 
 #include <oechem.h>
 #include <algorithm>
@@ -174,7 +175,10 @@ int KallistoGeometryContext::Charge() const {
 }
 
 const std::vector<double>& KallistoGeometryContext::CovalentCoordinationNumbers() const {
-    throw std::logic_error("covalent CN not yet implemented (Task 5)");
+    if (!covalent_cn_cache_.has_value()) {
+        covalent_cn_cache_ = coordination_numbers(*this, "cov");
+    }
+    return covalent_cn_cache_.value();
 }
 
 const std::vector<double>& KallistoGeometryContext::EeqCharges() const {
