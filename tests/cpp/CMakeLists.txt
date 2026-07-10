@@ -10,6 +10,7 @@ FetchContent_MakeAvailable(googletest)
 
 add_executable(oefp_tests
     test_annotation.cpp
+    test_atom_descriptor.cpp
     test_atom_pair.cpp
     test_batch.cpp
     test_column_request.cpp
