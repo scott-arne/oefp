@@ -46,6 +46,32 @@ void check_molecule_index(std::size_t molecule, std::size_t molecule_count) {
     }
 }
 
+bool schemas_match(
+    const DescriptorSchema& lhs,
+    const DescriptorSchema& rhs) {
+    if (lhs.Size() != rhs.Size()) {
+        return false;
+    }
+    for (std::size_t i = 0; i < lhs.Size(); ++i) {
+        if (lhs.Definition(i).name != rhs.Definition(i).name) {
+            return false;
+        }
+    }
+    return true;
+}
+
+void validate_schema_match(
+    const std::shared_ptr<const DescriptorSchema>& batch_schema,
+    const DescriptorSchema& set_schema) {
+    if (!batch_schema) {
+        throw std::invalid_argument("Descriptor schema must not be null.");
+    }
+    if (!schemas_match(*batch_schema, set_schema)) {
+        throw std::invalid_argument(
+            "Appended set schema does not match batch schema.");
+    }
+}
+
 } // namespace
 
 // AtomDescriptorSet implementation
@@ -57,7 +83,17 @@ AtomDescriptorSet::AtomDescriptorSet(
     : schema_(std::move(schema)),
       atom_indices_(std::move(atom_indices)),
       columns_(std::move(columns)) {
+    if (!schema_) {
+        throw std::invalid_argument("Descriptor schema must not be null.");
+    }
     validate_column_count(columns_.size(), schema_->Size());
+    const auto expected_rows = atom_indices_.size();
+    for (std::size_t col = 0; col < columns_.size(); ++col) {
+        if (columns_[col].size() != expected_rows) {
+            throw std::invalid_argument(
+                "Column length does not match atom count.");
+        }
+    }
 }
 
 AtomDescriptorSet AtomDescriptorSet::Empty(
@@ -102,7 +138,17 @@ BondDescriptorSet::BondDescriptorSet(
     : schema_(std::move(schema)),
       bond_endpoints_(std::move(bond_endpoints)),
       columns_(std::move(columns)) {
+    if (!schema_) {
+        throw std::invalid_argument("Descriptor schema must not be null.");
+    }
     validate_column_count(columns_.size(), schema_->Size());
+    const auto expected_rows = bond_endpoints_.size();
+    for (std::size_t col = 0; col < columns_.size(); ++col) {
+        if (columns_[col].size() != expected_rows) {
+            throw std::invalid_argument(
+                "Column length does not match bond count.");
+        }
+    }
 }
 
 BondDescriptorSet BondDescriptorSet::Empty(
@@ -151,27 +197,49 @@ AtomDescriptorBatch AtomDescriptorBatch::Empty(
 }
 
 void AtomDescriptorBatch::Append(const AtomDescriptorSet& set) {
+    validate_schema_match(schema_, set.Schema());
+
     const auto atom_count = set.AtomCount();
     const auto& indices = set.AtomIndices();
 
-    // Append atom indices
-    atom_indices_.insert(atom_indices_.end(), indices.begin(), indices.end());
+    // Stage all appended data in local temporaries first
+    std::vector<std::uint32_t> staged_indices;
+    staged_indices.reserve(atom_count);
+    staged_indices.insert(staged_indices.end(), indices.begin(), indices.end());
 
-    // Append column values and validity
+    std::vector<std::vector<double>> staged_values(schema_->Size());
+    std::vector<std::vector<std::uint8_t>> staged_validity(schema_->Size());
+
     for (std::size_t col = 0; col < schema_->Size(); ++col) {
+        staged_values[col].reserve(atom_count);
+        staged_validity[col].reserve(atom_count);
+
         for (std::size_t atom = 0; atom < atom_count; ++atom) {
             const auto value = set.Value(atom, col);
             if (value.has_value()) {
-                column_values_[col].push_back(*value);
-                column_validity_[col].push_back(1u);
+                staged_values[col].push_back(*value);
+                staged_validity[col].push_back(1u);
             } else {
-                column_values_[col].push_back(0.0);  // placeholder
-                column_validity_[col].push_back(0u);
+                staged_values[col].push_back(0.0);  // placeholder
+                staged_validity[col].push_back(0u);
             }
         }
     }
 
-    // Append row offset
+    // Commit staged data to member vectors
+    atom_indices_.insert(atom_indices_.end(), staged_indices.begin(), staged_indices.end());
+
+    for (std::size_t col = 0; col < schema_->Size(); ++col) {
+        column_values_[col].insert(
+            column_values_[col].end(),
+            staged_values[col].begin(),
+            staged_values[col].end());
+        column_validity_[col].insert(
+            column_validity_[col].end(),
+            staged_validity[col].begin(),
+            staged_validity[col].end());
+    }
+
     const auto next_offset = static_cast<std::uint64_t>(atom_indices_.size());
     row_offsets_.push_back(next_offset);
 }
@@ -221,30 +289,56 @@ BondDescriptorBatch BondDescriptorBatch::Empty(
 }
 
 void BondDescriptorBatch::Append(const BondDescriptorSet& set) {
+    validate_schema_match(schema_, set.Schema());
+
     const auto bond_count = set.BondCount();
     const auto& endpoints = set.BondEndpoints();
 
-    // Append bond endpoints
+    // Stage all appended data in local temporaries first
+    std::vector<std::uint32_t> staged_begin;
+    std::vector<std::uint32_t> staged_end;
+    staged_begin.reserve(bond_count);
+    staged_end.reserve(bond_count);
+
     for (const auto& [begin, end] : endpoints) {
-        bond_begin_.push_back(begin);
-        bond_end_.push_back(end);
+        staged_begin.push_back(begin);
+        staged_end.push_back(end);
     }
 
-    // Append column values and validity
+    std::vector<std::vector<double>> staged_values(schema_->Size());
+    std::vector<std::vector<std::uint8_t>> staged_validity(schema_->Size());
+
     for (std::size_t col = 0; col < schema_->Size(); ++col) {
+        staged_values[col].reserve(bond_count);
+        staged_validity[col].reserve(bond_count);
+
         for (std::size_t bond = 0; bond < bond_count; ++bond) {
             const auto value = set.Value(bond, col);
             if (value.has_value()) {
-                column_values_[col].push_back(*value);
-                column_validity_[col].push_back(1u);
+                staged_values[col].push_back(*value);
+                staged_validity[col].push_back(1u);
             } else {
-                column_values_[col].push_back(0.0);  // placeholder
-                column_validity_[col].push_back(0u);
+                staged_values[col].push_back(0.0);  // placeholder
+                staged_validity[col].push_back(0u);
             }
         }
     }
 
-    // Append row offset
+    // Commit staged data to member vectors
+    bond_begin_.insert(bond_begin_.end(), staged_begin.begin(), staged_begin.end());
+    bond_end_.insert(bond_end_.end(), staged_end.begin(), staged_end.end());
+
+    for (std::size_t col = 0; col < schema_->Size(); ++col) {
+        column_values_[col].insert(
+            column_values_[col].end(),
+            staged_values[col].begin(),
+            staged_values[col].end());
+        column_validity_[col].insert(
+            column_validity_[col].end(),
+            staged_validity[col].begin(),
+            staged_validity[col].end());
+    }
+
     const auto next_offset = static_cast<std::uint64_t>(bond_begin_.size());
     row_offsets_.push_back(next_offset);
 }
