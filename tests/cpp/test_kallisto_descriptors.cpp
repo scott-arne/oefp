@@ -757,5 +757,197 @@ TEST(KallistoDescriptors, AlpVdwConsistencyInEmission) {
     }
 }
 
+// Test KallistoSterimol on CH4 with fixed geometry
+TEST(KallistoDescriptors, SterimolCH4) {
+    // CH4: C at origin, 4 H in tetrahedral geometry (Bohr coords)
+    OEChem::OEGraphMol mol;
+    OEChem::OEAtomBase* c = mol.NewAtom(6);   // Carbon
+    OEChem::OEAtomBase* h1 = mol.NewAtom(1);  // Hydrogen
+    OEChem::OEAtomBase* h2 = mol.NewAtom(1);
+    OEChem::OEAtomBase* h3 = mol.NewAtom(1);
+    OEChem::OEAtomBase* h4 = mol.NewAtom(1);
+
+    mol.NewBond(c, h1, 1);
+    mol.NewBond(c, h2, 1);
+    mol.NewBond(c, h3, 1);
+    mol.NewBond(c, h4, 1);
+
+    constexpr double bohr_to_angstrom = 0.5291772105437147;
+    const double coords_c[3] = {0.0, 0.0, 0.0};
+    const double coords_h1[3] = {1.2 * bohr_to_angstrom, 1.2 * bohr_to_angstrom, 1.2 * bohr_to_angstrom};
+    const double coords_h2[3] = {-1.2 * bohr_to_angstrom, -1.2 * bohr_to_angstrom, 1.2 * bohr_to_angstrom};
+    const double coords_h3[3] = {-1.2 * bohr_to_angstrom, 1.2 * bohr_to_angstrom, -1.2 * bohr_to_angstrom};
+    const double coords_h4[3] = {1.2 * bohr_to_angstrom, -1.2 * bohr_to_angstrom, -1.2 * bohr_to_angstrom};
+
+    mol.SetCoords(c, coords_c);
+    mol.SetCoords(h1, coords_h1);
+    mol.SetCoords(h2, coords_h2);
+    mol.SetCoords(h3, coords_h3);
+    mol.SetCoords(h4, coords_h4);
+    mol.SetDimension(3);
+
+    // Test both directions for C-H1 bond (positional indices 0,1 in the context)
+    // Expected values from kallisto 1.0.10:
+    // CH4 C(0)->H1(1): L=4.6605247297, B1=3.5655700256, B5=4.5416550338
+    // CH4 H1(1)->C(0): L=5.4742409055, B1=3.5630969690, B5=4.5416508654
+
+    auto s1 = KallistoSterimol(mol, 0, 1);  // C -> H1
+    ASSERT_TRUE(s1.has_value());
+    EXPECT_NEAR(s1->l, 4.6605247297, 1e-5);
+    EXPECT_NEAR(s1->b1, 3.5655700256, 1e-5);
+    EXPECT_NEAR(s1->b5, 4.5416550338, 1e-5);
+
+    auto s2 = KallistoSterimol(mol, 1, 0);  // H1 -> C
+    ASSERT_TRUE(s2.has_value());
+    EXPECT_NEAR(s2->l, 5.4742409055, 1e-5);
+    EXPECT_NEAR(s2->b1, 3.5630969690, 1e-5);
+    EXPECT_NEAR(s2->b5, 4.5416508654, 1e-5);
+}
+
+// Test MakeKallistoBondDescriptors on a toluene-like molecule with ring + acyclic bonds
+TEST(KallistoDescriptors, BondDescriptorsToluene) {
+    // Simplified toluene: benzene ring (6 carbons) + methyl group (C + 3 H)
+    OEChem::OEGraphMol mol;
+
+    // Ring carbons
+    OEChem::OEAtomBase* c0 = mol.NewAtom(6);
+    OEChem::OEAtomBase* c1 = mol.NewAtom(6);
+    OEChem::OEAtomBase* c2 = mol.NewAtom(6);
+    OEChem::OEAtomBase* c3 = mol.NewAtom(6);
+    OEChem::OEAtomBase* c4 = mol.NewAtom(6);
+    OEChem::OEAtomBase* c5 = mol.NewAtom(6);
+
+    // Methyl group
+    OEChem::OEAtomBase* c6 = mol.NewAtom(6);  // methyl carbon
+    OEChem::OEAtomBase* h7 = mol.NewAtom(1);
+    OEChem::OEAtomBase* h8 = mol.NewAtom(1);
+    OEChem::OEAtomBase* h9 = mol.NewAtom(1);
+
+    // Ring bonds
+    mol.NewBond(c0, c1, 1);
+    mol.NewBond(c1, c2, 1);
+    mol.NewBond(c2, c3, 1);
+    mol.NewBond(c3, c4, 1);
+    mol.NewBond(c4, c5, 1);
+    mol.NewBond(c5, c0, 1);
+
+    // Acyclic bonds (ring to methyl, methyl to H)
+    mol.NewBond(c0, c6, 1);
+    mol.NewBond(c6, h7, 1);
+    mol.NewBond(c6, h8, 1);
+    mol.NewBond(c6, h9, 1);
+
+    constexpr double bohr_to_angstrom = 0.5291772105437147;
+
+    // Ring coords (xy-plane)
+    const double coords_c0[3] = {2.65 * bohr_to_angstrom, 0.0, 0.0};
+    const double coords_c1[3] = {1.32 * bohr_to_angstrom, 2.29 * bohr_to_angstrom, 0.0};
+    const double coords_c2[3] = {-1.32 * bohr_to_angstrom, 2.29 * bohr_to_angstrom, 0.0};
+    const double coords_c3[3] = {-2.65 * bohr_to_angstrom, 0.0, 0.0};
+    const double coords_c4[3] = {-1.32 * bohr_to_angstrom, -2.29 * bohr_to_angstrom, 0.0};
+    const double coords_c5[3] = {1.32 * bohr_to_angstrom, -2.29 * bohr_to_angstrom, 0.0};
+
+    // Methyl coords (extending along x)
+    const double coords_c6[3] = {5.0 * bohr_to_angstrom, 0.0, 0.0};
+    const double coords_h7[3] = {5.8 * bohr_to_angstrom, 1.5 * bohr_to_angstrom, 0.8 * bohr_to_angstrom};
+    const double coords_h8[3] = {5.8 * bohr_to_angstrom, -1.5 * bohr_to_angstrom, 0.8 * bohr_to_angstrom};
+    const double coords_h9[3] = {5.8 * bohr_to_angstrom, 0.0, -1.6 * bohr_to_angstrom};
+
+    mol.SetCoords(c0, coords_c0);
+    mol.SetCoords(c1, coords_c1);
+    mol.SetCoords(c2, coords_c2);
+    mol.SetCoords(c3, coords_c3);
+    mol.SetCoords(c4, coords_c4);
+    mol.SetCoords(c5, coords_c5);
+    mol.SetCoords(c6, coords_c6);
+    mol.SetCoords(h7, coords_h7);
+    mol.SetCoords(h8, coords_h8);
+    mol.SetCoords(h9, coords_h9);
+    mol.SetDimension(3);
+
+    // Compute bond descriptors
+    auto bond_descs = MakeKallistoBondDescriptors(mol);
+
+    // Expected: 8 acyclic directed bonds (both directions):
+    // c0-c6, c6-c0, c6-h7, h7-c6, c6-h8, h8-c6, c6-h9, h9-c6
+    // Ring bonds should be EXCLUDED
+    ASSERT_EQ(bond_descs.BondCount(), 8u);
+
+    // Verify schema
+    const auto& schema = bond_descs.Schema();
+    ASSERT_EQ(schema.Size(), 3u);
+    EXPECT_EQ(schema.Definition(0).name, "sterimol_L");
+    EXPECT_EQ(schema.Definition(1).name, "sterimol_B1");
+    EXPECT_EQ(schema.Definition(2).name, "sterimol_B5");
+
+    // Verify that the c0-c6 bond (GetIdx 0 -> 6) is present with correct values
+    // Expected from kallisto: C0(0)->C6(6): L=5.7049095404, B1=3.4638196900, B5=5.7437998791
+    const auto& endpoints = bond_descs.BondEndpoints();
+    std::optional<std::size_t> c0_c6_row;
+    for (std::size_t i = 0; i < bond_descs.BondCount(); ++i) {
+        const auto [origin, partner] = endpoints[i];
+        if (origin == c0->GetIdx() && partner == c6->GetIdx()) {
+            c0_c6_row = i;
+            break;
+        }
+    }
+    ASSERT_TRUE(c0_c6_row.has_value()) << "c0->c6 bond not found";
+
+    auto l_val = bond_descs.Value(*c0_c6_row, 0);
+    auto b1_val = bond_descs.Value(*c0_c6_row, 1);
+    auto b5_val = bond_descs.Value(*c0_c6_row, 2);
+
+    ASSERT_TRUE(l_val.has_value());
+    ASSERT_TRUE(b1_val.has_value());
+    ASSERT_TRUE(b5_val.has_value());
+
+    EXPECT_NEAR(l_val.value(), 5.7049095404, 1e-5);
+    EXPECT_NEAR(b1_val.value(), 3.4638196900, 1e-5);
+    EXPECT_NEAR(b5_val.value(), 5.7437998791, 1e-5);
+
+    // Also verify reverse direction c6->c0
+    // Expected: C6(6)->C0(0): L=11.0994690152, B1=3.4638196900, B5=5.7437998791
+    std::optional<std::size_t> c6_c0_row;
+    for (std::size_t i = 0; i < bond_descs.BondCount(); ++i) {
+        const auto [origin, partner] = endpoints[i];
+        if (origin == c6->GetIdx() && partner == c0->GetIdx()) {
+            c6_c0_row = i;
+            break;
+        }
+    }
+    ASSERT_TRUE(c6_c0_row.has_value()) << "c6->c0 bond not found";
+
+    auto l_val2 = bond_descs.Value(*c6_c0_row, 0);
+    auto b1_val2 = bond_descs.Value(*c6_c0_row, 1);
+    auto b5_val2 = bond_descs.Value(*c6_c0_row, 2);
+
+    ASSERT_TRUE(l_val2.has_value());
+    ASSERT_TRUE(b1_val2.has_value());
+    ASSERT_TRUE(b5_val2.has_value());
+
+    EXPECT_NEAR(l_val2.value(), 11.0994690152, 1e-5);
+    EXPECT_NEAR(b1_val2.value(), 3.4638196900, 1e-5);
+    EXPECT_NEAR(b5_val2.value(), 5.7437998791, 1e-5);
+
+    // Verify consistency: for each bond row, KallistoSterimol should give the same values
+    for (std::size_t i = 0; i < bond_descs.BondCount(); ++i) {
+        const auto [origin, partner] = endpoints[i];
+        auto s = KallistoSterimol(mol, origin, partner);
+        ASSERT_TRUE(s.has_value()) << "KallistoSterimol failed for bond " << origin << "->" << partner;
+
+        auto l_table = bond_descs.Value(i, 0);
+        auto b1_table = bond_descs.Value(i, 1);
+        auto b5_table = bond_descs.Value(i, 2);
+
+        ASSERT_TRUE(l_table.has_value());
+        ASSERT_TRUE(b1_table.has_value());
+        ASSERT_TRUE(b5_table.has_value());
+
+        EXPECT_NEAR(l_table.value(), s->l, 1e-12) << "L mismatch for bond " << origin << "->" << partner;
+        EXPECT_NEAR(b1_table.value(), s->b1, 1e-12) << "B1 mismatch for bond " << origin << "->" << partner;
+        EXPECT_NEAR(b5_table.value(), s->b5, 1e-12) << "B5 mismatch for bond " << origin << "->" << partner;
+    }
+}
+
 }  // namespace
 }  // namespace OEFP

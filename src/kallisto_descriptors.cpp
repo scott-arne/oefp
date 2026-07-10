@@ -4,12 +4,180 @@
 
 #include <oechem.h>
 
+#include <array>
 #include <cmath>
 #include <stdexcept>
+#include <unordered_map>
 
 namespace OEFP {
 
 namespace {
+
+/// Compute Sterimol L/B1/B5 from precomputed coords and vdW radii.
+///
+/// :param coords: Atomic coordinates in Bohr (N x 3).
+/// :param vdw: van der Waals radii in Bohr (N).
+/// :param origin: Origin atom positional index.
+/// :param partner: Partner atom positional index.
+/// :returns: Sterimol L/B1/B5 in Bohr.
+///
+/// Transcribes kallisto.sterics.getClassicalSterimol exactly:
+/// - Shift coords so origin is at (0,0,0)
+/// - Construct quaternion q to align origin->partner with x-axis
+/// - Rotate all coords by q (scipy Rotation.from_quat convention)
+/// - L = max(projection along x + vdW)
+/// - B1/B5 = min/max of 360-slice y-z scan (each slice: max over atoms)
+Sterimol sterimol_from_geometry(
+    const std::vector<std::array<double, 3>>& coords,
+    const std::vector<double>& vdw,
+    std::size_t origin,
+    std::size_t partner
+) {
+    const std::size_t nat = coords.size();
+
+    // Shift coords to origin (make a copy)
+    std::vector<std::array<double, 3>> shifted_coords(nat);
+    const auto& origin_pos = coords[origin];
+    for (std::size_t i = 0; i < nat; ++i) {
+        shifted_coords[i][0] = coords[i][0] - origin_pos[0];
+        shifted_coords[i][1] = coords[i][1] - origin_pos[1];
+        shifted_coords[i][2] = coords[i][2] - origin_pos[2];
+    }
+
+    // Extract vector origin -> partner and normalize
+    auto& partner_pos = shifted_coords[partner];
+    const double vec_x = partner_pos[0];
+    const double vec_y = partner_pos[1];
+    const double vec_z = partner_pos[2];
+    const double norm_vec = std::sqrt(vec_x*vec_x + vec_y*vec_y + vec_z*vec_z);
+    const double unit_vec_x = vec_x / norm_vec;
+    const double unit_vec_y = vec_y / norm_vec;
+    const double unit_vec_z = vec_z / norm_vec;
+
+    // Align vector with x-axis using quaternion
+    // xaxis = [1, 0, 0], dot = unit_vec · xaxis + 1 = unit_vec_x + 1
+    const double dot = unit_vec_x + 1.0;
+    constexpr double epsilon = 1e-6;
+
+    double w_x, w_y, w_z;
+    if (dot < epsilon) {
+        // Antiparallel case: cross with zaxis or xaxis
+        // zaxis = [0, 0, 1], w = unit_vec × zaxis
+        w_x = unit_vec_y;
+        w_y = -unit_vec_x;
+        w_z = 0.0;
+        const double norm_w = std::sqrt(w_x*w_x + w_y*w_y);
+        if (norm_w < epsilon) {
+            // Cross with xaxis instead
+            w_x = 0.0;
+            w_y = unit_vec_z;
+            w_z = -unit_vec_y;
+        }
+    } else {
+        // w = unit_vec × xaxis
+        w_x = 0.0;
+        w_y = unit_vec_z;
+        w_z = -unit_vec_y;
+    }
+
+    // Quaternion q = [w_x, w_y, w_z, dot] (scipy [x, y, z, w] order)
+    // Normalize q
+    const double norm_q = std::sqrt(w_x*w_x + w_y*w_y + w_z*w_z + dot*dot);
+    const double q_x = w_x / norm_q;
+    const double q_y = w_y / norm_q;
+    const double q_z = w_z / norm_q;
+    const double q_w = dot / norm_q;
+
+    // Rotation matrix from quaternion (scipy convention: R applied as R @ point)
+    // For normalized q = (x, y, z, w):
+    // R = [[1-2(y²+z²),  2(xy-zw),   2(xz+yw)],
+    //      [2(xy+zw),   1-2(x²+z²),  2(yz-xw)],
+    //      [2(xz-yw),   2(yz+xw),   1-2(x²+y²)]]
+    const double xx = q_x * q_x;
+    const double yy = q_y * q_y;
+    const double zz = q_z * q_z;
+    const double xy = q_x * q_y;
+    const double xz = q_x * q_z;
+    const double yz = q_y * q_z;
+    const double xw = q_x * q_w;
+    const double yw = q_y * q_w;
+    const double zw = q_z * q_w;
+
+    const double r00 = 1.0 - 2.0 * (yy + zz);
+    const double r01 = 2.0 * (xy - zw);
+    const double r02 = 2.0 * (xz + yw);
+    const double r10 = 2.0 * (xy + zw);
+    const double r11 = 1.0 - 2.0 * (xx + zz);
+    const double r12 = 2.0 * (yz - xw);
+    const double r20 = 2.0 * (xz - yw);
+    const double r21 = 2.0 * (yz + xw);
+    const double r22 = 1.0 - 2.0 * (xx + yy);
+
+    // Rotate all coords by R
+    std::vector<std::array<double, 3>> rotated_coords(nat);
+    for (std::size_t i = 0; i < nat; ++i) {
+        const auto& c = shifted_coords[i];
+        rotated_coords[i][0] = r00*c[0] + r01*c[1] + r02*c[2];
+        rotated_coords[i][1] = r10*c[0] + r11*c[1] + r12*c[2];
+        rotated_coords[i][2] = r20*c[0] + r21*c[1] + r22*c[2];
+    }
+
+    // Compute unit vector along rotated partner (should be close to [1,0,0])
+    const auto& rotated_partner = rotated_coords[partner];
+    const double rp_norm = std::sqrt(
+        rotated_partner[0]*rotated_partner[0] +
+        rotated_partner[1]*rotated_partner[1] +
+        rotated_partner[2]*rotated_partner[2]
+    );
+    const double unit_x = rotated_partner[0] / rp_norm;
+    const double unit_y = rotated_partner[1] / rp_norm;
+    const double unit_z = rotated_partner[2] / rp_norm;
+
+    // L: max projection along unit vector + vdW
+    double lval = -std::numeric_limits<double>::infinity();
+    for (std::size_t i = 0; i < nat; ++i) {
+        const auto& c = rotated_coords[i];
+        const double proj = unit_x*c[0] + unit_y*c[1] + unit_z*c[2];
+        const double projected = proj + vdw[i];
+        if (projected > lval) {
+            lval = projected;
+        }
+    }
+
+    // B1/B5: 360-slice y-z scan
+    constexpr int slices = 360;
+    constexpr double pi = 3.141592653589793;
+    constexpr double step = 2.0 * pi / 359.0;  // linspace(0, 2π, 360) has 360 points, step = 2π/359
+
+    double bmin_val = std::numeric_limits<double>::infinity();
+    double bmax_val = -std::numeric_limits<double>::infinity();
+
+    for (int s = 0; s < slices; ++s) {
+        const double theta = s * step;
+        const double vec_y = std::cos(theta);
+        const double vec_z = std::sin(theta);
+
+        // Per-slice max over all atoms
+        double max_proj = -std::numeric_limits<double>::infinity();
+        for (std::size_t i = 0; i < nat; ++i) {
+            const auto& c = rotated_coords[i];
+            const double proj = vec_y*c[1] + vec_z*c[2];
+            const double projected = proj + vdw[i];
+            if (projected > max_proj) {
+                max_proj = projected;
+            }
+        }
+
+        if (max_proj < bmin_val) {
+            bmin_val = max_proj;
+        }
+        if (max_proj > bmax_val) {
+            bmax_val = max_proj;
+        }
+    }
+
+    return Sterimol{lval, bmin_val, bmax_val};
+}
 
 /// Charge scaling function for polarizabilities (from kallisto.utils.alpha.zeta).
 double zeta(double a, double c, double qref, double q) {
@@ -641,6 +809,137 @@ AtomDescriptorBatch MakeKallistoAtomDescriptorBatch(
     auto batch = AtomDescriptorBatch::Empty(KallistoAtomDescriptorSchema());
     batch.Append(set);
     return batch;
+}
+
+std::optional<Sterimol> KallistoSterimol(
+    const OEChem::OEMolBase& mol,
+    std::size_t origin,
+    std::size_t partner
+) {
+    // Build charge-0 geometry context
+    KallistoGeometryContext ctx(mol, 0);
+    if (!ctx.Eligible()) {
+        return std::nullopt;
+    }
+
+    const std::size_t nat = ctx.AtomicNumbers().size();
+
+    // Validate indices
+    if (origin >= nat || partner >= nat) {
+        return std::nullopt;
+    }
+
+    // Compute charge-0 rahm vdW radii
+    auto vdw = van_der_waals_radii(ctx, "rahm");
+    if (vdw.empty()) {
+        return std::nullopt;
+    }
+
+    // Call kernel
+    return sterimol_from_geometry(ctx.CoordsBohr(), vdw, origin, partner);
+}
+
+std::shared_ptr<const DescriptorSchema> KallistoBondDescriptorSchema() {
+    static auto schema = []() {
+        struct ColumnDef {
+            const char* name;
+            const char* description;
+        };
+
+        static constexpr ColumnDef kColumns[] = {
+            {"sterimol_L", "Sterimol L: maximum projection along bond axis + vdW"},
+            {"sterimol_B1", "Sterimol B1: minimum perpendicular radius"},
+            {"sterimol_B5", "Sterimol B5: maximum perpendicular radius"},
+        };
+
+        std::vector<DescriptorDefinition> definitions;
+        definitions.reserve(sizeof(kColumns) / sizeof(kColumns[0]));
+
+        for (const auto& col : kColumns) {
+            DescriptorDefinition def;
+            def.name = col.name;
+            def.value_kind = DescriptorValueKind::Float;
+            def.group = "kallisto";
+            def.source_name = "kallisto";
+            def.source_type = "geometric";
+            def.source_version = "kallisto-1.0.10";
+            def.units = "Bohr";
+            def.description = col.description;
+            def.prerequisites = kDescriptorPrerequisiteCoordinates3D;
+            definitions.push_back(std::move(def));
+        }
+
+        return std::make_shared<const DescriptorSchema>(std::move(definitions));
+    }();
+    return schema;
+}
+
+BondDescriptorSet MakeKallistoBondDescriptors(const OEChem::OEMolBase& mol) {
+    auto schema = KallistoBondDescriptorSchema();
+
+    // Build ONE charge-0 geometry context
+    KallistoGeometryContext ctx(mol, 0);
+    if (!ctx.Eligible()) {
+        return BondDescriptorSet::Empty(schema);
+    }
+
+    // Compute ONE charge-0 rahm vdW vector
+    auto vdw = van_der_waals_radii(ctx, "rahm");
+    if (vdw.empty()) {
+        return BondDescriptorSet::Empty(schema);
+    }
+
+    const auto& coords = ctx.CoordsBohr();
+    const auto& atom_indices = ctx.AtomIndices();
+
+    // Build GetIdx -> positional index map
+    std::unordered_map<std::uint32_t, std::size_t> idx_to_pos;
+    for (std::size_t pos = 0; pos < atom_indices.size(); ++pos) {
+        idx_to_pos[atom_indices[pos]] = pos;
+    }
+
+    // Enumerate acyclic directed bonds
+    OEChem::OEGraphMol mol_copy(mol);  // Local copy for ring perception
+    OEChem::OEFindRingAtomsAndBonds(mol_copy);
+
+    std::vector<std::pair<std::uint32_t, std::uint32_t>> bond_endpoints;
+    std::vector<std::vector<std::optional<double>>> columns(3);
+
+    for (OESystem::OEIter<OEChem::OEBondBase> bond = mol_copy.GetBonds(); bond; ++bond) {
+        if (bond->IsInRing()) {
+            continue;  // Skip ring bonds
+        }
+
+        // Emit both directions
+        const std::uint32_t idx_a = bond->GetBgn()->GetIdx();
+        const std::uint32_t idx_b = bond->GetEnd()->GetIdx();
+
+        // Direction A -> B
+        {
+            const std::size_t pos_a = idx_to_pos.at(idx_a);
+            const std::size_t pos_b = idx_to_pos.at(idx_b);
+            auto s = sterimol_from_geometry(coords, vdw, pos_a, pos_b);
+
+            bond_endpoints.emplace_back(idx_a, idx_b);
+            columns[0].push_back(s.l);
+            columns[1].push_back(s.b1);
+            columns[2].push_back(s.b5);
+        }
+
+        // Direction B -> A
+        {
+            const std::size_t pos_a = idx_to_pos.at(idx_a);
+            const std::size_t pos_b = idx_to_pos.at(idx_b);
+            auto s = sterimol_from_geometry(coords, vdw, pos_b, pos_a);
+
+            bond_endpoints.emplace_back(idx_b, idx_a);
+            columns[0].push_back(s.l);
+            columns[1].push_back(s.b1);
+            columns[2].push_back(s.b5);
+        }
+    }
+
+    return BondDescriptorSet(schema, std::move(bond_endpoints), std::move(columns));
 }
 
 } // namespace OEFP

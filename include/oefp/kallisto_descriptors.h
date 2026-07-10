@@ -124,12 +124,58 @@ std::vector<double> van_der_waals_radii(
 /// prerequisites kDescriptorPrerequisiteCoordinates3D.
 std::shared_ptr<const DescriptorSchema> KallistoAtomDescriptorSchema();
 
+/// Sterimol steric parameter result (L, B1, B5 in Bohr).
+struct Sterimol {
+    double l;   ///< L: maximum projection along origin-partner axis + vdW
+    double b1;  ///< B1: minimum perpendicular radius
+    double b5;  ///< B5: maximum perpendicular radius
+};
+
+/// Compute Sterimol steric parameters for a directed bond.
+///
+/// :param mol: Molecule with 3D coordinates.
+/// :param origin: Origin atom positional index (0-based in context atom order).
+/// :param partner: Partner atom positional index (0-based in context atom order).
+/// :returns: Sterimol L/B1/B5 in Bohr, or nullopt if ineligible/out-of-bounds.
+///
+/// Builds a single charge-0 geometry context, computes charge-0 rahm vdW radii,
+/// then applies the Sterimol kernel: shift coords to origin, quaternion-rotate
+/// to align origin->partner with x-axis, project all atoms along the bond axis
+/// (L = max projection + vdW), scan 360 slices in y-z plane (B1 = min radius,
+/// B5 = max radius).
+///
+/// origin and partner are POSITIONAL indices into the context's atom order
+/// (KallistoGeometryContext::AtomIndices()[pos] -> OE GetIdx). For contiguous
+/// molecules, positional index == GetIdx. For non-contiguous, use
+/// ctx.AtomIndices() to map GetIdx -> positional index.
+///
+/// Returns nullopt if molecule is ineligible, indices are out of bounds, or
+/// vdW radii computation fails.
+///
+/// Mirrors kallisto.sterics.getClassicalSterimol.
+std::optional<Sterimol> KallistoSterimol(
+    const OEChem::OEMolBase& mol,
+    std::size_t origin,
+    std::size_t partner
+);
+
+/// Return the descriptor schema for kallisto bond descriptors.
+///
+/// :returns: Shared singleton schema instance.
+///
+/// Defines three columns: sterimol_L, sterimol_B1, sterimol_B5.
+/// All columns have value_kind Float, group "kallisto", source_name "kallisto",
+/// source_type "geometric", source_version "kallisto-1.0.10", units "Bohr", and
+/// prerequisites kDescriptorPrerequisiteCoordinates3D.
+std::shared_ptr<const DescriptorSchema> KallistoBondDescriptorSchema();
+
 } // namespace OEFP
 
 // Forward declarations for OEFP namespace types needed by the free functions below
 namespace OEFP {
 class AtomDescriptorSet;
 class AtomDescriptorBatch;
+class BondDescriptorSet;
 }
 
 // Free functions in OEFP namespace for Python binding and internal use
@@ -185,6 +231,24 @@ private:
 AtomDescriptorBatch MakeKallistoAtomDescriptorBatch(
     const OEChem::OEMolBase& mol,
     std::optional<int> charge = std::nullopt
+);
+
+/// Compute kallisto bond descriptors for one molecule.
+///
+/// :param mol: Molecule to compute descriptors for.
+/// :returns: BondDescriptorSet with schema KallistoBondDescriptorSchema(),
+///           empty if molecule is ineligible.
+///
+/// Computes Sterimol L/B1/B5 for all acyclic directed bonds (both directions).
+/// Ring bonds are excluded. Each bond row is identified by (origin, partner)
+/// where both are OE GetIdx() values.
+///
+/// Builds ONE charge-0 geometry context and ONE charge-0 rahm vdW vector per
+/// molecule, reused across all bond rows (efficient).
+///
+/// Eligibility: same as KallistoAtomDescriptors (3D coords, Z <= 86).
+BondDescriptorSet MakeKallistoBondDescriptors(
+    const OEChem::OEMolBase& mol
 );
 
 } // namespace OEFP
