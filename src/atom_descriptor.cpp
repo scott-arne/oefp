@@ -197,51 +197,42 @@ AtomDescriptorBatch AtomDescriptorBatch::Empty(
 }
 
 void AtomDescriptorBatch::Append(const AtomDescriptorSet& set) {
+    // Strong exception guarantee: copy all members, mutate copies, then move-assign.
     validate_schema_match(schema_, set.Schema());
 
     const auto atom_count = set.AtomCount();
     const auto& indices = set.AtomIndices();
 
-    // Stage all appended data in local temporaries first
-    std::vector<std::uint32_t> staged_indices;
-    staged_indices.reserve(atom_count);
-    staged_indices.insert(staged_indices.end(), indices.begin(), indices.end());
+    // Copy all member vectors into locals
+    auto next_atom_indices = atom_indices_;
+    auto next_column_values = column_values_;
+    auto next_column_validity = column_validity_;
+    auto next_row_offsets = row_offsets_;
 
-    std::vector<std::vector<double>> staged_values(schema_->Size());
-    std::vector<std::vector<std::uint8_t>> staged_validity(schema_->Size());
+    // Insert appended data into the copies (all potentially-throwing ops here)
+    next_atom_indices.insert(next_atom_indices.end(), indices.begin(), indices.end());
 
     for (std::size_t col = 0; col < schema_->Size(); ++col) {
-        staged_values[col].reserve(atom_count);
-        staged_validity[col].reserve(atom_count);
-
         for (std::size_t atom = 0; atom < atom_count; ++atom) {
             const auto value = set.Value(atom, col);
             if (value.has_value()) {
-                staged_values[col].push_back(*value);
-                staged_validity[col].push_back(1u);
+                next_column_values[col].push_back(*value);
+                next_column_validity[col].push_back(1u);
             } else {
-                staged_values[col].push_back(0.0);  // placeholder
-                staged_validity[col].push_back(0u);
+                next_column_values[col].push_back(0.0);  // placeholder
+                next_column_validity[col].push_back(0u);
             }
         }
     }
 
-    // Commit staged data to member vectors
-    atom_indices_.insert(atom_indices_.end(), staged_indices.begin(), staged_indices.end());
+    const auto next_offset = static_cast<std::uint64_t>(next_atom_indices.size());
+    next_row_offsets.push_back(next_offset);
 
-    for (std::size_t col = 0; col < schema_->Size(); ++col) {
-        column_values_[col].insert(
-            column_values_[col].end(),
-            staged_values[col].begin(),
-            staged_values[col].end());
-        column_validity_[col].insert(
-            column_validity_[col].end(),
-            staged_validity[col].begin(),
-            staged_validity[col].end());
-    }
-
-    const auto next_offset = static_cast<std::uint64_t>(atom_indices_.size());
-    row_offsets_.push_back(next_offset);
+    // Commit via noexcept move-assignment
+    atom_indices_ = std::move(next_atom_indices);
+    column_values_ = std::move(next_column_values);
+    column_validity_ = std::move(next_column_validity);
+    row_offsets_ = std::move(next_row_offsets);
 }
 
 std::size_t AtomDescriptorBatch::Size() const {
@@ -289,58 +280,47 @@ BondDescriptorBatch BondDescriptorBatch::Empty(
 }
 
 void BondDescriptorBatch::Append(const BondDescriptorSet& set) {
+    // Strong exception guarantee: copy all members, mutate copies, then move-assign.
     validate_schema_match(schema_, set.Schema());
 
     const auto bond_count = set.BondCount();
     const auto& endpoints = set.BondEndpoints();
 
-    // Stage all appended data in local temporaries first
-    std::vector<std::uint32_t> staged_begin;
-    std::vector<std::uint32_t> staged_end;
-    staged_begin.reserve(bond_count);
-    staged_end.reserve(bond_count);
+    // Copy all member vectors into locals
+    auto next_bond_begin = bond_begin_;
+    auto next_bond_end = bond_end_;
+    auto next_column_values = column_values_;
+    auto next_column_validity = column_validity_;
+    auto next_row_offsets = row_offsets_;
 
+    // Insert appended data into the copies (all potentially-throwing ops here)
     for (const auto& [begin, end] : endpoints) {
-        staged_begin.push_back(begin);
-        staged_end.push_back(end);
+        next_bond_begin.push_back(begin);
+        next_bond_end.push_back(end);
     }
 
-    std::vector<std::vector<double>> staged_values(schema_->Size());
-    std::vector<std::vector<std::uint8_t>> staged_validity(schema_->Size());
-
     for (std::size_t col = 0; col < schema_->Size(); ++col) {
-        staged_values[col].reserve(bond_count);
-        staged_validity[col].reserve(bond_count);
-
         for (std::size_t bond = 0; bond < bond_count; ++bond) {
             const auto value = set.Value(bond, col);
             if (value.has_value()) {
-                staged_values[col].push_back(*value);
-                staged_validity[col].push_back(1u);
+                next_column_values[col].push_back(*value);
+                next_column_validity[col].push_back(1u);
             } else {
-                staged_values[col].push_back(0.0);  // placeholder
-                staged_validity[col].push_back(0u);
+                next_column_values[col].push_back(0.0);  // placeholder
+                next_column_validity[col].push_back(0u);
             }
         }
     }
 
-    // Commit staged data to member vectors
-    bond_begin_.insert(bond_begin_.end(), staged_begin.begin(), staged_begin.end());
-    bond_end_.insert(bond_end_.end(), staged_end.begin(), staged_end.end());
+    const auto next_offset = static_cast<std::uint64_t>(next_bond_begin.size());
+    next_row_offsets.push_back(next_offset);
 
-    for (std::size_t col = 0; col < schema_->Size(); ++col) {
-        column_values_[col].insert(
-            column_values_[col].end(),
-            staged_values[col].begin(),
-            staged_values[col].end());
-        column_validity_[col].insert(
-            column_validity_[col].end(),
-            staged_validity[col].begin(),
-            staged_validity[col].end());
-    }
-
-    const auto next_offset = static_cast<std::uint64_t>(bond_begin_.size());
-    row_offsets_.push_back(next_offset);
+    // Commit via noexcept move-assignment
+    bond_begin_ = std::move(next_bond_begin);
+    bond_end_ = std::move(next_bond_end);
+    column_values_ = std::move(next_column_values);
+    column_validity_ = std::move(next_column_validity);
+    row_offsets_ = std::move(next_row_offsets);
 }
 
 std::size_t BondDescriptorBatch::Size() const {
