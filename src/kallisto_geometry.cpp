@@ -29,39 +29,6 @@ std::optional<std::vector<double>> solve_dense_linear(
     // a is row-major: a[i*n + j] is row i, column j
     constexpr double epsilon = 1e-12;
 
-    std::vector<std::size_t> pivot(n);
-    for (std::size_t i = 0; i < n; ++i) {
-        pivot[i] = i;
-    }
-
-    // Forward elimination with partial pivoting
-    for (std::size_t col = 0; col < n; ++col) {
-        // Find pivot: max |a[row][col]| for row >= col
-        std::size_t pivot_row = col;
-        double max_val = std::abs(a[pivot[col] * n + col]);
-        for (std::size_t row = col + 1; row < n; ++row) {
-            double val = std::abs(a[pivot[row] * n + col]);
-            if (val > max_val) {
-                max_val = val;
-                pivot_row = row;
-            }
-        }
-
-        // Check for singularity
-        if (max_val < epsilon) {
-            return std::nullopt;
-        }
-
-        // Swap pivot rows in the pivot array
-        if (pivot_row != col) {
-            std::swap(pivot[col], pivot[col + 1 == n ? col : pivot_row]);
-            // Fix: need proper pivoting. Let me use the standard approach.
-        }
-
-        // Actually, let me use a cleaner in-place approach with row swaps
-    }
-
-    // Let me rewrite this with actual row swapping for clarity
     // Copy b for solving
     std::vector<double> x = b;
 

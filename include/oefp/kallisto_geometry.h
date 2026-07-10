@@ -43,8 +43,8 @@ std::optional<std::vector<double>> solve_dense_linear(
 /// Caches covalent coordination numbers and EEQ charges on first access (computed
 /// by kernels in Tasks 5 and 6).
 ///
-/// Thread-safe for read-only access from multiple threads (one context per
-/// molecule per thread). Mutable caches are protected by internal synchronization.
+/// NOT thread-safe for concurrent access to the same instance. Use one context
+/// per molecule per thread. Mutable caches are filled lazily without locking.
 class KallistoGeometryContext {
 public:
     /// Construct a geometry context from an OpenEye molecule.
