@@ -295,6 +295,39 @@ TEST(AtomDescriptorBatchTest, RejectsReorderedSchema) {
     EXPECT_THROW(batch.Append(set), std::invalid_argument);
 }
 
+TEST(AtomDescriptorBatchTest, RejectsSameNameDifferentMetadata) {
+    // Build schema with col_a, col_b (default metadata)
+    auto schema = test_schema();
+
+    // Build schema with same names but different metadata
+    DescriptorSchemaBuilder builder;
+    DescriptorDefinition col_a;
+    col_a.name = "col_a";
+    col_a.value_kind = DescriptorValueKind::Float;
+    col_a.units = "kcal/mol";  // different metadata
+    builder.Add(col_a);
+
+    DescriptorDefinition col_b;
+    col_b.name = "col_b";
+    col_b.value_kind = DescriptorValueKind::Float;
+    col_b.description = "Test description";  // different metadata
+    builder.Add(col_b);
+
+    auto different_metadata_schema = builder.Build();
+
+    // Verify the schemas actually have different SchemaIds
+    EXPECT_NE(schema->SchemaId(), different_metadata_schema->SchemaId());
+
+    std::vector<std::uint32_t> atoms = {0u};
+    std::vector<std::vector<std::optional<double>>> cols = {
+        {1.0}, {2.0}
+    };
+    AtomDescriptorSet set(different_metadata_schema, atoms, cols);
+
+    AtomDescriptorBatch batch = AtomDescriptorBatch::Empty(schema);
+    EXPECT_THROW(batch.Append(set), std::invalid_argument);
+}
+
 TEST(AtomDescriptorBatchTest, RejectedAppendLeavesStateUnchanged) {
     auto schema = test_schema();
 
@@ -378,6 +411,39 @@ TEST(BondDescriptorBatchTest, RejectsReorderedSchema) {
         {1.0}, {2.0}
     };
     BondDescriptorSet set(reordered_schema, bonds, cols);
+
+    BondDescriptorBatch batch = BondDescriptorBatch::Empty(schema);
+    EXPECT_THROW(batch.Append(set), std::invalid_argument);
+}
+
+TEST(BondDescriptorBatchTest, RejectsSameNameDifferentMetadata) {
+    // Build schema with col_a, col_b (default metadata)
+    auto schema = test_schema();
+
+    // Build schema with same names but different metadata
+    DescriptorSchemaBuilder builder;
+    DescriptorDefinition col_a;
+    col_a.name = "col_a";
+    col_a.value_kind = DescriptorValueKind::Float;
+    col_a.units = "Angstroms";  // different metadata
+    builder.Add(col_a);
+
+    DescriptorDefinition col_b;
+    col_b.name = "col_b";
+    col_b.value_kind = DescriptorValueKind::Float;
+    col_b.description = "Bond descriptor";  // different metadata
+    builder.Add(col_b);
+
+    auto different_metadata_schema = builder.Build();
+
+    // Verify the schemas actually have different SchemaIds
+    EXPECT_NE(schema->SchemaId(), different_metadata_schema->SchemaId());
+
+    std::vector<std::pair<std::uint32_t, std::uint32_t>> bonds = {{0u, 1u}};
+    std::vector<std::vector<std::optional<double>>> cols = {
+        {1.0}, {2.0}
+    };
+    BondDescriptorSet set(different_metadata_schema, bonds, cols);
 
     BondDescriptorBatch batch = BondDescriptorBatch::Empty(schema);
     EXPECT_THROW(batch.Append(set), std::invalid_argument);

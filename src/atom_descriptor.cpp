@@ -46,29 +46,15 @@ void check_molecule_index(std::size_t molecule, std::size_t molecule_count) {
     }
 }
 
-bool schemas_match(
-    const DescriptorSchema& lhs,
-    const DescriptorSchema& rhs) {
-    if (lhs.Size() != rhs.Size()) {
-        return false;
-    }
-    for (std::size_t i = 0; i < lhs.Size(); ++i) {
-        if (lhs.Definition(i).name != rhs.Definition(i).name) {
-            return false;
-        }
-    }
-    return true;
-}
-
 void validate_schema_match(
     const std::shared_ptr<const DescriptorSchema>& batch_schema,
     const DescriptorSchema& set_schema) {
     if (!batch_schema) {
         throw std::invalid_argument("Descriptor schema must not be null.");
     }
-    if (!schemas_match(*batch_schema, set_schema)) {
+    if (batch_schema->SchemaId() != set_schema.SchemaId()) {
         throw std::invalid_argument(
-            "Appended set schema does not match batch schema.");
+            "Descriptor set schema does not match batch schema.");
     }
 }
 
