@@ -883,8 +883,15 @@ std::vector<double> KallistoSterimol(const OEChem::OEMolBase& mol, std::size_t o
 
 // Batch calculations (GIL-released)
 ::OEFP::AtomDescriptorBatch KallistoAtomDescriptorCalculateBatch(
+    const std::vector<const OEChem::OEMolBase*>& mols
+) {
+    ::OEFP::KallistoAtomDescriptorSource source;
+    return source.CalculateBatch(mols);
+}
+
+::OEFP::AtomDescriptorBatch KallistoAtomDescriptorCalculateBatch(
     const std::vector<const OEChem::OEMolBase*>& mols,
-    std::optional<int> charge = std::nullopt
+    int charge
 ) {
     ::OEFP::KallistoAtomDescriptorSource source(charge);
     return source.CalculateBatch(mols);

@@ -787,3 +787,127 @@ def test_kallisto_batch_threaded_smoke() -> None:
         bond_seg = bond_batch[i]
         # Sterimol may be empty if no acyclic bonds, but the segment should exist
         assert "sterimol_L" in bond_seg
+
+
+@pytest.mark.skipif(not HAS_OPENEYE, reason="OpenEye not available")
+def test_kallisto_atom_descriptors_batch_charge_override() -> None:
+    """Verify atom descriptor batch charge override matches single-molecule charge override."""
+    # Create a simple 3D molecule
+    mol = oechem.OEGraphMol()
+    mol.SetDimension(3)
+    atoms = []
+    for i in range(3):
+        atom = mol.NewAtom(6)  # Carbon
+        mol.SetCoords(atom, [float(i), 0.0, 0.0])
+        atoms.append(atom)
+    mol.NewBond(atoms[0], atoms[1])
+    mol.NewBond(atoms[1], atoms[2])
+
+    # Compute with charge override for single molecule
+    result_single = kallisto_atom_descriptors(mol, charge=0)
+
+    # Compute with charge override for batch
+    batch = kallisto_atom_descriptors_batch([mol], charge=0)
+    assert len(batch) == 1
+    segment = batch[0]
+
+    # Both should produce identical results
+    column_names = ["cn_erf", "cn_cov", "cn_exp", "prox", "eeq", "alp", "vdw_rahm", "vdw_truhlar"]
+    for col in column_names:
+        np.testing.assert_array_equal(
+            segment[col], result_single[col],
+            err_msg=f"Batch charge override {col} should match single-molecule charge override"
+        )
+        np.testing.assert_array_equal(
+            segment["validity"][col], result_single.validity[col],
+            err_msg=f"Batch charge override validity[{col}] should match single-molecule"
+        )
+
+
+@pytest.mark.skipif(not HAS_OPENEYE, reason="OpenEye not available")
+def test_sterimol_namedtuple_unpacking() -> None:
+    """Verify Sterimol result is a NamedTuple supporting tuple unpacking."""
+    # Create a simple 3D molecule with a bond
+    mol = oechem.OEGraphMol()
+    mol.SetDimension(3)
+    atoms = []
+    for i in range(2):
+        atom = mol.NewAtom(6)  # Carbon
+        mol.SetCoords(atom, [float(i), 0.0, 0.0])
+        atoms.append(atom)
+    mol.NewBond(atoms[0], atoms[1])
+
+    # Compute sterimol
+    result = sterimol(mol, 0, 1)
+    assert result is not None
+
+    # Test tuple unpacking
+    L, B1, B5 = result
+    assert isinstance(L, float)
+    assert isinstance(B1, float)
+    assert isinstance(B5, float)
+
+    # Test attribute access
+    assert result.L == L
+    assert result.B1 == B1
+    assert result.B5 == B5
+
+    # Verify fixture row also matches (use first bond from fixture)
+    fixture_path = Path("tests/python/kallisto_references.json")
+    fixture = json.loads(fixture_path.read_text(encoding="utf-8"))
+    mol_data = fixture["molecules"][0]
+
+    if len(mol_data["bond_rows"]) > 0:
+        bond_row = mol_data["bond_rows"][0]
+        mol_id = mol_data["id"]
+        sdf_path = Path("tests/data/kallisto_panel") / f"{mol_id}.sdf"
+
+        ifs = oechem.oemolistream(str(sdf_path))
+        mol_fixture = oechem.OEGraphMol()
+        oechem.OEReadMolecule(ifs, mol_fixture)
+
+        origin = bond_row["origin"]
+        partner = bond_row["partner"]
+        result_fixture = sterimol(mol_fixture, origin, partner)
+        assert result_fixture is not None
+
+        # Test unpacking with fixture values
+        L_fix, B1_fix, B5_fix = result_fixture
+
+        # Verify unpacked values match attributes
+        assert L_fix == result_fixture.L
+        assert B1_fix == result_fixture.B1
+        assert B5_fix == result_fixture.B5
+
+        # Verify against fixture (use tight tier tolerance)
+        tier = fixture["tiers"]["sterimol_L"]
+        tol = TIERS[tier]
+        assert abs(L_fix - bond_row["sterimol_L"]) <= tol
+        assert abs(B1_fix - bond_row["sterimol_B1"]) <= tol
+        assert abs(B5_fix - bond_row["sterimol_B5"]) <= tol
+
+
+@pytest.mark.skipif(not HAS_OPENEYE, reason="OpenEye not available")
+def test_kallisto_source_classes_not_public() -> None:
+    """Verify KallistoAtomDescriptorSource and KallistoBondDescriptorSource are not public."""
+    import oefp
+
+    # These should NOT be in the public API
+    assert "KallistoAtomDescriptorSource" not in dir(oefp)
+    assert "KallistoBondDescriptorSource" not in dir(oefp)
+
+    # These SHOULD be in the public API (convenience/batch functions)
+    assert "kallisto_atom_descriptors" in dir(oefp)
+    assert "kallisto_atom_descriptors_batch" in dir(oefp)
+    assert "kallisto_bond_descriptors" in dir(oefp)
+    assert "kallisto_bond_descriptors_batch" in dir(oefp)
+    assert "sterimol" in dir(oefp)
+    assert "kallisto_atom_schema" in dir(oefp)
+    assert "kallisto_bond_schema" in dir(oefp)
+
+    # Result classes should be public
+    assert "KallistoAtomDescriptors" in dir(oefp)
+    assert "KallistoAtomDescriptorsBatch" in dir(oefp)
+    assert "KallistoBondDescriptors" in dir(oefp)
+    assert "KallistoBondDescriptorsBatch" in dir(oefp)
+    assert "Sterimol" in dir(oefp)

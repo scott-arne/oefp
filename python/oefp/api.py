@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import typing
 from importlib import resources
 from collections.abc import Callable, Iterable, Iterator, Mapping, Sequence
 from dataclasses import dataclass
@@ -3751,6 +3752,21 @@ class KallistoAtomDescriptors:
         return tuple(self._columns.keys())
 
 
+# ============================================================================
+# Kallisto atom/bond descriptors
+# ============================================================================
+# Public Python API: convenience/batch functions + result wrappers + schemas
+# - kallisto_atom_descriptors, kallisto_atom_descriptors_batch, kallisto_atom_schema
+# - kallisto_bond_descriptors, kallisto_bond_descriptors_batch, kallisto_bond_schema
+# - sterimol (Sterimol bond parameter function + NamedTuple result)
+# - Result classes: KallistoAtomDescriptors, KallistoAtomDescriptorsBatch,
+#                   KallistoBondDescriptors, KallistoBondDescriptorsBatch
+#
+# The C++ source classes (KallistoAtomDescriptorSource, KallistoBondDescriptorSource)
+# are internal implementation details and are NOT part of the Python API.
+# ============================================================================
+
+
 def kallisto_atom_schema() -> DescriptorSchema:
     """Return the descriptor schema for kallisto atom descriptors.
 
@@ -4313,9 +4329,11 @@ def kallisto_bond_descriptors_batch(mols: Sequence[Any]) -> KallistoBondDescript
     return KallistoBondDescriptorsBatch(native_batch)
 
 
-@dataclass(frozen=True)
-class Sterimol:
+class Sterimol(typing.NamedTuple):
     """Sterimol steric parameters for a directed bond.
+
+    Supports both tuple unpacking (``L, B1, B5 = sterimol(...)``) and
+    attribute access (``result.L``).
 
     :ivar L: Maximum projection along bond axis plus van der Waals radius (Bohr).
     :ivar B1: Minimum perpendicular radius (Bohr).
