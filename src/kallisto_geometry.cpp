@@ -91,6 +91,17 @@ KallistoGeometryContext::KallistoGeometryContext(
 {
     atom_count_ = mol.NumAtoms();
 
+    // Resolve charge first: use override if provided, otherwise sum formal charges
+    if (charge.has_value()) {
+        charge_ = charge.value();
+    } else {
+        int summed_formal_charge = 0;
+        for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+            summed_formal_charge += atom->GetFormalCharge();
+        }
+        charge_ = summed_formal_charge;
+    }
+
     // Empty molecule is ineligible
     if (atom_count_ == 0) {
         return;
@@ -106,7 +117,6 @@ KallistoGeometryContext::KallistoGeometryContext(
     coords_bohr_.reserve(atom_count_);
 
     double coords_angstrom[3];
-    int summed_formal_charge = 0;
 
     for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
         // Get atomic number (1-based Z)
@@ -137,13 +147,7 @@ KallistoGeometryContext::KallistoGeometryContext(
             coords_angstrom[2] / kallisto::BOHR_RADIUS_ANGSTROM
         };
         coords_bohr_.push_back(coords_bohr_atom);
-
-        // Sum formal charges
-        summed_formal_charge += atom->GetFormalCharge();
     }
-
-    // Resolve charge: use override if provided, otherwise use summed formal charge
-    charge_ = charge.value_or(summed_formal_charge);
 
     // All checks passed: molecule is eligible
     eligible_ = true;

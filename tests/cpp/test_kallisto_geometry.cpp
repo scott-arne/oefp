@@ -162,5 +162,41 @@ TEST(KallistoGeometryContext, ChargeHonorsOverride) {
     EXPECT_EQ(ctx.Charge(), 2);
 }
 
+// Test charge resolution for ineligible 2D molecule with formal charge
+TEST(KallistoGeometryContext, ChargeResolved2DIneligible) {
+    OEChem::OEGraphMol mol;
+    OEChem::OESmilesToMol(mol, "[NH4+]");
+
+    // Set 2D coordinates
+    unsigned int i = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom, ++i) {
+        const double coords[3] = {static_cast<double>(i) * 1.5, 0.0, 0.0};
+        mol.SetCoords(atom, coords);
+    }
+    mol.SetDimension(2);
+
+    KallistoGeometryContext ctx(mol);
+    EXPECT_FALSE(ctx.Eligible());  // 2D is ineligible
+    EXPECT_EQ(ctx.Charge(), 1);    // But charge is still resolved correctly
+}
+
+// Test charge resolution for ineligible 2D molecule with charge override
+TEST(KallistoGeometryContext, ChargeOverride2DIneligible) {
+    OEChem::OEGraphMol mol;
+    OEChem::OESmilesToMol(mol, "CC");
+
+    // Set 2D coordinates
+    unsigned int i = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom, ++i) {
+        const double coords[3] = {static_cast<double>(i) * 1.5, 0.0, 0.0};
+        mol.SetCoords(atom, coords);
+    }
+    mol.SetDimension(2);
+
+    KallistoGeometryContext ctx(mol, -1);  // Override charge to -1
+    EXPECT_FALSE(ctx.Eligible());          // 2D is ineligible
+    EXPECT_EQ(ctx.Charge(), -1);           // But override is honored
+}
+
 } // namespace
 } // namespace OEFP
