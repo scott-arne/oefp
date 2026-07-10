@@ -949,5 +949,134 @@ TEST(KallistoDescriptors, BondDescriptorsToluene) {
     }
 }
 
+// Test MakeKallistoBondDescriptors with NON-CONTIGUOUS atom GetIdx
+// Regression test for the copy-renumbering bug: OEGraphMol copy constructor
+// renumbers atom IDs to 0..N-1, even if the original has non-contiguous IDs
+// after DeleteAtom. This test verifies that MakeKallistoBondDescriptors:
+// (1) does not crash/throw when original has non-contiguous IDs,
+// (2) emits bond row_ids using the ORIGINAL non-contiguous GetIdx,
+// (3) computes Sterimol values matching KallistoSterimol for the same bonds.
+TEST(KallistoDescriptors, BondDescriptorsNonContiguousAtomIDs) {
+    // Build a 5-atom chain with 3D coords, then delete the middle atom (idx 2)
+    // to create non-contiguous atom IDs: original {0,1,2,3,4} -> remaining {0,1,3,4}.
+    OEChem::OEGraphMol mol;
+    OEChem::OEAtomBase* c0 = mol.NewAtom(6);  // Carbon
+    OEChem::OEAtomBase* c1 = mol.NewAtom(6);
+    OEChem::OEAtomBase* c2 = mol.NewAtom(6);  // Will be deleted
+    OEChem::OEAtomBase* c3 = mol.NewAtom(6);
+    OEChem::OEAtomBase* c4 = mol.NewAtom(6);
+
+    mol.NewBond(c0, c1, 1);
+    mol.NewBond(c1, c2, 1);
+    mol.NewBond(c2, c3, 1);
+    mol.NewBond(c3, c4, 1);
+
+    constexpr double bohr_to_angstrom = 0.5291772105437147;
+    const double coords_0[3] = {0.0, 0.0, 0.0};
+    const double coords_1[3] = {2.8 * bohr_to_angstrom, 0.0, 0.0};
+    const double coords_2[3] = {5.6 * bohr_to_angstrom, 0.0, 0.0};
+    const double coords_3[3] = {8.4 * bohr_to_angstrom, 0.0, 0.0};
+    const double coords_4[3] = {11.2 * bohr_to_angstrom, 0.0, 0.0};
+    mol.SetCoords(c0, coords_0);
+    mol.SetCoords(c1, coords_1);
+    mol.SetCoords(c2, coords_2);
+    mol.SetCoords(c3, coords_3);
+    mol.SetCoords(c4, coords_4);
+    mol.SetDimension(3);
+
+    // Verify initial contiguous indices
+    EXPECT_EQ(c0->GetIdx(), 0u);
+    EXPECT_EQ(c1->GetIdx(), 1u);
+    EXPECT_EQ(c2->GetIdx(), 2u);
+    EXPECT_EQ(c3->GetIdx(), 3u);
+    EXPECT_EQ(c4->GetIdx(), 4u);
+
+    // Delete the middle atom (c2, idx 2)
+    mol.DeleteAtom(c2);
+
+    // Collect remaining atom indices via iteration (OpenEye order)
+    std::vector<unsigned int> remaining_indices;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        remaining_indices.push_back(atom->GetIdx());
+    }
+
+    // Verify non-contiguous: {0,1,3,4} NOT {0,1,2,3}
+    ASSERT_EQ(remaining_indices.size(), 4u);
+    EXPECT_EQ(remaining_indices[0], 0u);
+    EXPECT_EQ(remaining_indices[1], 1u);
+    EXPECT_EQ(remaining_indices[2], 3u);  // Not 2!
+    EXPECT_EQ(remaining_indices[3], 4u);  // Not 3!
+
+    // Compute bond descriptors (should NOT throw/crash)
+    auto bond_descs = MakeKallistoBondDescriptors(mol);
+
+    // After deleting c2, remaining bonds: c0-c1, c3-c4 (both acyclic, non-ring).
+    // Expected: 4 directed bonds (both directions): c0->c1, c1->c0, c3->c4, c4->c3
+    ASSERT_EQ(bond_descs.BondCount(), 4u);
+
+    const auto& endpoints = bond_descs.BondEndpoints();
+
+    // Verify that the row_ids use the ORIGINAL non-contiguous GetIdx (not renumbered 0..3)
+    // Expected pairs (in any order):
+    // (0,1), (1,0) for c0-c1 bond
+    // (3,4), (4,3) for c3-c4 bond
+    // NO pair should contain idx 2 (deleted), and row_ids should NOT be (0,1), (1,0), (2,3), (3,2)
+    // (which would occur if using renumbered copy IDs).
+
+    std::set<std::pair<std::uint32_t, std::uint32_t>> emitted_pairs;
+    for (std::size_t i = 0; i < bond_descs.BondCount(); ++i) {
+        emitted_pairs.insert(endpoints[i]);
+    }
+
+    // Verify expected pairs are present
+    EXPECT_TRUE(emitted_pairs.count({0, 1}) == 1) << "c0->c1 bond missing";
+    EXPECT_TRUE(emitted_pairs.count({1, 0}) == 1) << "c1->c0 bond missing";
+    EXPECT_TRUE(emitted_pairs.count({3, 4}) == 1) << "c3->c4 bond missing";
+    EXPECT_TRUE(emitted_pairs.count({4, 3}) == 1) << "c4->c3 bond missing";
+
+    // Verify NO pair contains the deleted idx 2
+    for (const auto& [origin, partner] : endpoints) {
+        EXPECT_NE(origin, 2u) << "Row_id origin contains deleted idx 2";
+        EXPECT_NE(partner, 2u) << "Row_id partner contains deleted idx 2";
+    }
+
+    // Verify Sterimol values match KallistoSterimol for the same POSITIONAL bonds.
+    // For each bond row_id (origin, partner), the Sterimol values should match
+    // KallistoSterimol(mol, origin, partner) using the ORIGINAL GetIdx.
+    for (std::size_t i = 0; i < bond_descs.BondCount(); ++i) {
+        const auto [origin, partner] = endpoints[i];
+
+        // KallistoSterimol takes POSITIONAL indices (context array position).
+        // The context array was built by iterating the original mol.GetAtoms()
+        // in order, so the POSITIONAL index for GetIdx X is the position of X
+        // in the remaining atoms after deletion.
+        // For our molecule: GetIdx 0 -> position 0, GetIdx 1 -> position 1,
+        //                   GetIdx 3 -> position 2, GetIdx 4 -> position 3.
+        std::unordered_map<std::uint32_t, std::size_t> idx_to_position;
+        std::size_t pos = 0;
+        for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+            idx_to_position[atom->GetIdx()] = pos++;
+        }
+
+        const std::size_t pos_origin = idx_to_position.at(origin);
+        const std::size_t pos_partner = idx_to_position.at(partner);
+
+        auto s = KallistoSterimol(mol, pos_origin, pos_partner);
+        ASSERT_TRUE(s.has_value()) << "KallistoSterimol failed for bond " << origin << "->" << partner;
+
+        auto l_table = bond_descs.Value(i, 0);
+        auto b1_table = bond_descs.Value(i, 1);
+        auto b5_table = bond_descs.Value(i, 2);
+
+        ASSERT_TRUE(l_table.has_value());
+        ASSERT_TRUE(b1_table.has_value());
+        ASSERT_TRUE(b5_table.has_value());
+
+        EXPECT_NEAR(l_table.value(), s->l, 1e-12) << "L mismatch for bond " << origin << "->" << partner;
+        EXPECT_NEAR(b1_table.value(), s->b1, 1e-12) << "B1 mismatch for bond " << origin << "->" << partner;
+        EXPECT_NEAR(b5_table.value(), s->b5, 1e-12) << "B5 mismatch for bond " << origin << "->" << partner;
+    }
+}
+
 }  // namespace
 }  // namespace OEFP

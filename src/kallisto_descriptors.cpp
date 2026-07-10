@@ -877,13 +877,16 @@ std::shared_ptr<const DescriptorSchema> KallistoBondDescriptorSchema() {
 BondDescriptorSet MakeKallistoBondDescriptors(const OEChem::OEMolBase& mol) {
     auto schema = KallistoBondDescriptorSchema();
 
-    // Build ONE charge-0 geometry context
+    // Build ONE charge-0 geometry context (once-per-molecule, not per-bond).
+    // The context precomputes coords and EEQ charges; polarizabilities (via the
+    // van_der_waals_radii call below) are also computed once, and only the
+    // Sterimol kernel (sterimol_from_geometry) is invoked per bond.
     KallistoGeometryContext ctx(mol, 0);
     if (!ctx.Eligible()) {
         return BondDescriptorSet::Empty(schema);
     }
 
-    // Compute ONE charge-0 rahm vdW vector
+    // Compute ONE charge-0 rahm vdW vector (once-per-molecule, not per-bond)
     auto vdw = van_der_waals_radii(ctx, "rahm");
     if (vdw.empty()) {
         return BondDescriptorSet::Empty(schema);
@@ -892,15 +895,28 @@ BondDescriptorSet MakeKallistoBondDescriptors(const OEChem::OEMolBase& mol) {
     const auto& coords = ctx.CoordsBohr();
     const auto& atom_indices = ctx.AtomIndices();
 
-    // Build GetIdx -> positional index map
-    std::unordered_map<std::uint32_t, std::size_t> idx_to_pos;
-    for (std::size_t pos = 0; pos < atom_indices.size(); ++pos) {
-        idx_to_pos[atom_indices[pos]] = pos;
-    }
-
-    // Enumerate acyclic directed bonds
-    OEChem::OEGraphMol mol_copy(mol);  // Local copy for ring perception
+    // Enumerate acyclic directed bonds.
+    // We make a local copy of mol for ring perception (OEFindRingAtomsAndBonds
+    // mutates the molecule by setting IsInRing() flags). The OEGraphMol copy
+    // constructor preserves atom ITERATION ORDER but renumbers atom GetIdx to
+    // contiguous 0..N-1 (even if the original molecule has non-contiguous IDs
+    // after DeleteAtom). The KallistoGeometryContext was built by iterating the
+    // original mol.GetAtoms() in order, so context array position i corresponds
+    // to the SAME atom as mol_copy position i. Because mol_copy is contiguous,
+    // copy GetIdx() == copy position == context array position. Therefore:
+    // - bond.GetBgn().GetIdx() and bond.GetEnd().GetIdx() (from the copy) are
+    //   directly the POSITIONAL indices for coords[i] and vdw[i].
+    // - To recover the ORIGINAL atom GetIdx for the row_id, we map position i
+    //   to the original via ctx.AtomIndices()[i].
+    OEChem::OEGraphMol mol_copy(mol);
     OEChem::OEFindRingAtomsAndBonds(mol_copy);
+
+    // Sanity check: copy is contiguous and matches context size
+    const std::size_t nat = mol_copy.NumAtoms();
+    if (nat != atom_indices.size()) {
+        // Degenerate case: mol_copy atom count doesn't match context (should not happen)
+        return BondDescriptorSet::Empty(schema);
+    }
 
     std::vector<std::pair<std::uint32_t, std::uint32_t>> bond_endpoints;
     std::vector<std::vector<std::optional<double>>> columns(3);
@@ -910,17 +926,24 @@ BondDescriptorSet MakeKallistoBondDescriptors(const OEChem::OEMolBase& mol) {
             continue;  // Skip ring bonds
         }
 
-        // Emit both directions
-        const std::uint32_t idx_a = bond->GetBgn()->GetIdx();
-        const std::uint32_t idx_b = bond->GetEnd()->GetIdx();
+        // Emit both directions.
+        // Copy atom GetIdx is the POSITIONAL index (== context array position).
+        const std::uint32_t pos_a = bond->GetBgn()->GetIdx();
+        const std::uint32_t pos_b = bond->GetEnd()->GetIdx();
+
+        // Bounds check (defensive: should never fire for a valid copy)
+        if (pos_a >= nat || pos_b >= nat) {
+            continue;
+        }
+
+        // Recover the ORIGINAL atom GetIdx for the row_id (origin, partner)
+        const std::uint32_t origin_a = atom_indices[pos_a];
+        const std::uint32_t origin_b = atom_indices[pos_b];
 
         // Direction A -> B
         {
-            const std::size_t pos_a = idx_to_pos.at(idx_a);
-            const std::size_t pos_b = idx_to_pos.at(idx_b);
             auto s = sterimol_from_geometry(coords, vdw, pos_a, pos_b);
-
-            bond_endpoints.emplace_back(idx_a, idx_b);
+            bond_endpoints.emplace_back(origin_a, origin_b);
             columns[0].push_back(s.l);
             columns[1].push_back(s.b1);
             columns[2].push_back(s.b5);
@@ -928,11 +951,8 @@ BondDescriptorSet MakeKallistoBondDescriptors(const OEChem::OEMolBase& mol) {
 
         // Direction B -> A
         {
-            const std::size_t pos_a = idx_to_pos.at(idx_a);
-            const std::size_t pos_b = idx_to_pos.at(idx_b);
             auto s = sterimol_from_geometry(coords, vdw, pos_b, pos_a);
-
-            bond_endpoints.emplace_back(idx_b, idx_a);
+            bond_endpoints.emplace_back(origin_b, origin_a);
             columns[0].push_back(s.l);
             columns[1].push_back(s.b1);
             columns[2].push_back(s.b5);
