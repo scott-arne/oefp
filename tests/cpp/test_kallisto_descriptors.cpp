@@ -261,7 +261,7 @@ TEST(KallistoDescriptors, AtomDescriptorSchema) {
     EXPECT_EQ(schema->Definition(5).value_kind, DescriptorValueKind::Float);
     EXPECT_EQ(schema->Definition(5).group, "kallisto");
     EXPECT_EQ(schema->Definition(5).source_name, "kallisto");
-    EXPECT_EQ(schema->Definition(5).units, "bohr^3");
+    EXPECT_EQ(schema->Definition(5).units, "Bohr^3");
     EXPECT_EQ(schema->Definition(5).prerequisites, kDescriptorPrerequisiteCoordinates3D);
 }
 

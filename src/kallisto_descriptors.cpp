@@ -464,7 +464,7 @@ std::shared_ptr<const DescriptorSchema> KallistoAtomDescriptorSchema() {
             {"cn_exp", "", "Exponential coordination number"},
             {"prox", "", "Proximity shell difference (scale 2-3)"},
             {"eeq", "e", "EEQ atomic partial charge (electronegativity equilibration)"},
-            {"alp", "bohr^3", "Atomic polarizability (charge-dependent, D4 method)"},
+            {"alp", "Bohr^3", "Atomic polarizability (charge-dependent, D4 method)"},
         };
 
         std::vector<DescriptorDefinition> definitions;

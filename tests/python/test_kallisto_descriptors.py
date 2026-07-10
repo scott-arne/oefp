@@ -194,6 +194,31 @@ def test_kallisto_atom_schema() -> None:
 
 
 @pytest.mark.skipif(not HAS_OPENEYE, reason="OpenEye not available")
+def test_kallisto_atom_schema_metadata_consistency() -> None:
+    """Verify Python schema metadata uses canonical units spelling.
+
+    The Python kallisto_atom_schema() derives column names from the native
+    KallistoAtomDescriptorSchema() and metadata from kallisto_references.json.
+    The native C++ schema is the single source of truth for units spelling.
+    This test asserts that the alp column uses the canonical "Bohr^3" spelling
+    (capital B), preventing C++/Python metadata divergence.
+    """
+    python_schema = kallisto_atom_schema()
+
+    # Explicit check for the alp units spelling (canonical = "Bohr^3")
+    alp_idx = python_schema.names.index("alp")
+    alp_defn = python_schema.definitions[alp_idx]
+    assert alp_defn.units == "Bohr^3", \
+        f"alp units should be 'Bohr^3' (canonical spelling), got '{alp_defn.units}'"
+
+    # Also check eeq units (another column with units)
+    eeq_idx = python_schema.names.index("eeq")
+    eeq_defn = python_schema.definitions[eeq_idx]
+    assert eeq_defn.units == "e", \
+        f"eeq units should be 'e', got '{eeq_defn.units}'"
+
+
+@pytest.mark.skipif(not HAS_OPENEYE, reason="OpenEye not available")
 def test_kallisto_atom_descriptors_conformance() -> None:
     """Compare kallisto atom descriptor results against kallisto 1.0.10 oracle."""
     fixture_path = Path("tests/python/kallisto_references.json")
