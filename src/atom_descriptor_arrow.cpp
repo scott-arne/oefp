@@ -5,6 +5,9 @@
 #include <arrow/io/file.h>
 #include <arrow/ipc/reader.h>
 #include <arrow/ipc/writer.h>
+#include <arrow/table.h>
+#include <parquet/arrow/reader.h>
+#include <parquet/arrow/writer.h>
 
 #include <cstddef>
 #include <cstdint>
@@ -276,9 +279,9 @@ std::shared_ptr<arrow::RecordBatch> AtomDescriptorBatchToArrow(
     fields.reserve(2u + schema.Size());
     arrays.reserve(2u + schema.Size());
 
-    fields.push_back(arrow::field("molecule_id", arrow::uint32()));
+    fields.push_back(arrow::field("molecule_id", arrow::uint32(), /*nullable=*/false));
     arrays.push_back(std::move(molecule_id_array));
-    fields.push_back(arrow::field("atom_index", arrow::uint32()));
+    fields.push_back(arrow::field("atom_index", arrow::uint32(), /*nullable=*/false));
     arrays.push_back(std::move(atom_index_array));
 
     for (std::size_t col = 0; col < schema.Size(); ++col) {
@@ -382,6 +385,10 @@ AtomDescriptorBatch AtomDescriptorBatchFromArrow(
             "Arrow field 'molecule_id' has type '" + molecule_id_field->type()->ToString() +
             "' but expected UInt32");
     }
+    if (molecule_id_field->nullable()) {
+        throw std::invalid_argument(
+            "Arrow field 'molecule_id' must not be nullable (identifier columns cannot contain nulls)");
+    }
 
     const auto atom_index_field = arrow_schema->field(1);
     if (atom_index_field->name() != "atom_index") {
@@ -392,6 +399,10 @@ AtomDescriptorBatch AtomDescriptorBatchFromArrow(
         throw std::invalid_argument(
             "Arrow field 'atom_index' has type '" + atom_index_field->type()->ToString() +
             "' but expected UInt32");
+    }
+    if (atom_index_field->nullable()) {
+        throw std::invalid_argument(
+            "Arrow field 'atom_index' must not be nullable (identifier columns cannot contain nulls)");
     }
 
     // Validate feature columns
@@ -427,6 +438,18 @@ AtomDescriptorBatch AtomDescriptorBatchFromArrow(
 
     if (molecule_id_column == nullptr || atom_index_column == nullptr) {
         throw std::invalid_argument("Arrow molecule_id or atom_index column has wrong type.");
+    }
+
+    // Verify identifier columns contain no nulls
+    if (molecule_id_column->null_count() != 0) {
+        throw std::invalid_argument(
+            "Arrow 'molecule_id' column contains " + std::to_string(molecule_id_column->null_count()) +
+            " null value(s); identifier columns must not contain nulls");
+    }
+    if (atom_index_column->null_count() != 0) {
+        throw std::invalid_argument(
+            "Arrow 'atom_index' column contains " + std::to_string(atom_index_column->null_count()) +
+            " null value(s); identifier columns must not contain nulls");
     }
 
     if (static_cast<std::size_t>(rb->num_columns() - 2) != column_names.size()) {
@@ -520,11 +543,11 @@ std::shared_ptr<arrow::RecordBatch> BondDescriptorBatchToArrow(
     fields.reserve(3u + schema.Size());
     arrays.reserve(3u + schema.Size());
 
-    fields.push_back(arrow::field("molecule_id", arrow::uint32()));
+    fields.push_back(arrow::field("molecule_id", arrow::uint32(), /*nullable=*/false));
     arrays.push_back(std::move(molecule_id_array));
-    fields.push_back(arrow::field("begin", arrow::uint32()));
+    fields.push_back(arrow::field("begin", arrow::uint32(), /*nullable=*/false));
     arrays.push_back(std::move(begin_array));
-    fields.push_back(arrow::field("end", arrow::uint32()));
+    fields.push_back(arrow::field("end", arrow::uint32(), /*nullable=*/false));
     arrays.push_back(std::move(end_array));
 
     for (std::size_t col = 0; col < schema.Size(); ++col) {
@@ -628,6 +651,10 @@ BondDescriptorBatch BondDescriptorBatchFromArrow(
             "Arrow field 'molecule_id' has type '" + molecule_id_field->type()->ToString() +
             "' but expected UInt32");
     }
+    if (molecule_id_field->nullable()) {
+        throw std::invalid_argument(
+            "Arrow field 'molecule_id' must not be nullable (identifier columns cannot contain nulls)");
+    }
 
     const auto begin_field = arrow_schema->field(1);
     if (begin_field->name() != "begin") {
@@ -639,6 +666,10 @@ BondDescriptorBatch BondDescriptorBatchFromArrow(
             "Arrow field 'begin' has type '" + begin_field->type()->ToString() +
             "' but expected UInt32");
     }
+    if (begin_field->nullable()) {
+        throw std::invalid_argument(
+            "Arrow field 'begin' must not be nullable (identifier columns cannot contain nulls)");
+    }
 
     const auto end_field = arrow_schema->field(2);
     if (end_field->name() != "end") {
@@ -649,6 +680,10 @@ BondDescriptorBatch BondDescriptorBatchFromArrow(
         throw std::invalid_argument(
             "Arrow field 'end' has type '" + end_field->type()->ToString() +
             "' but expected UInt32");
+    }
+    if (end_field->nullable()) {
+        throw std::invalid_argument(
+            "Arrow field 'end' must not be nullable (identifier columns cannot contain nulls)");
     }
 
     // Validate feature columns
@@ -685,6 +720,23 @@ BondDescriptorBatch BondDescriptorBatchFromArrow(
 
     if (molecule_id_column == nullptr || begin_column == nullptr || end_column == nullptr) {
         throw std::invalid_argument("Arrow bond identifier columns have wrong type.");
+    }
+
+    // Verify identifier columns contain no nulls
+    if (molecule_id_column->null_count() != 0) {
+        throw std::invalid_argument(
+            "Arrow 'molecule_id' column contains " + std::to_string(molecule_id_column->null_count()) +
+            " null value(s); identifier columns must not contain nulls");
+    }
+    if (begin_column->null_count() != 0) {
+        throw std::invalid_argument(
+            "Arrow 'begin' column contains " + std::to_string(begin_column->null_count()) +
+            " null value(s); identifier columns must not contain nulls");
+    }
+    if (end_column->null_count() != 0) {
+        throw std::invalid_argument(
+            "Arrow 'end' column contains " + std::to_string(end_column->null_count()) +
+            " null value(s); identifier columns must not contain nulls");
     }
 
     if (static_cast<std::size_t>(rb->num_columns() - 3) != column_names.size()) {
@@ -781,6 +833,64 @@ BondDescriptorBatch ReadKallistoBondIpc(const std::string& path) {
         throw std::invalid_argument("Arrow IPC file must contain exactly one record batch.");
     }
     auto record_batch = unwrap_arrow_result(reader->ReadRecordBatch(0));
+    check_arrow_status(input->Close());
+    return BondDescriptorBatchFromArrow(record_batch);
+}
+
+void WriteKallistoAtomParquet(const AtomDescriptorBatch& batch, const std::string& path) {
+    const auto record_batch = AtomDescriptorBatchToArrow(batch);
+    auto table = unwrap_arrow_result(arrow::Table::FromRecordBatches({record_batch}));
+    auto output = unwrap_arrow_result(arrow::io::FileOutputStream::Open(path));
+    parquet::ArrowWriterProperties::Builder properties_builder;
+    const auto arrow_properties = properties_builder.store_schema()->build();
+
+    check_arrow_status(parquet::arrow::WriteTable(
+        *table,
+        arrow::default_memory_pool(),
+        output,
+        parquet::DEFAULT_MAX_ROW_GROUP_LENGTH,
+        parquet::default_writer_properties(),
+        arrow_properties));
+    check_arrow_status(output->Close());
+}
+
+AtomDescriptorBatch ReadKallistoAtomParquet(const std::string& path) {
+    auto input = unwrap_arrow_result(arrow::io::ReadableFile::Open(path));
+    parquet::arrow::FileReaderBuilder builder;
+    check_arrow_status(builder.Open(input));
+    auto reader = unwrap_arrow_result(builder.Build());
+    auto table = unwrap_arrow_result(reader->ReadTable());
+    auto record_batch = unwrap_arrow_result(table->CombineChunksToBatch(arrow::default_memory_pool()));
+
+    check_arrow_status(input->Close());
+    return AtomDescriptorBatchFromArrow(record_batch);
+}
+
+void WriteKallistoBondParquet(const BondDescriptorBatch& batch, const std::string& path) {
+    const auto record_batch = BondDescriptorBatchToArrow(batch);
+    auto table = unwrap_arrow_result(arrow::Table::FromRecordBatches({record_batch}));
+    auto output = unwrap_arrow_result(arrow::io::FileOutputStream::Open(path));
+    parquet::ArrowWriterProperties::Builder properties_builder;
+    const auto arrow_properties = properties_builder.store_schema()->build();
+
+    check_arrow_status(parquet::arrow::WriteTable(
+        *table,
+        arrow::default_memory_pool(),
+        output,
+        parquet::DEFAULT_MAX_ROW_GROUP_LENGTH,
+        parquet::default_writer_properties(),
+        arrow_properties));
+    check_arrow_status(output->Close());
+}
+
+BondDescriptorBatch ReadKallistoBondParquet(const std::string& path) {
+    auto input = unwrap_arrow_result(arrow::io::ReadableFile::Open(path));
+    parquet::arrow::FileReaderBuilder builder;
+    check_arrow_status(builder.Open(input));
+    auto reader = unwrap_arrow_result(builder.Build());
+    auto table = unwrap_arrow_result(reader->ReadTable());
+    auto record_batch = unwrap_arrow_result(table->CombineChunksToBatch(arrow::default_memory_pool()));
+
     check_arrow_status(input->Close());
     return BondDescriptorBatchFromArrow(record_batch);
 }

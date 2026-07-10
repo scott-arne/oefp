@@ -92,6 +92,36 @@ void WriteKallistoBondIpc(const BondDescriptorBatch& batch, const std::string& p
 /// \throws std::runtime_error: When Arrow cannot read the file.
 BondDescriptorBatch ReadKallistoBondIpc(const std::string& path);
 
+/// \brief Write an atom descriptor batch to a Parquet file.
+///
+/// \param batch Atom descriptor batch to write.
+/// \param path Destination file path.
+/// \throws std::runtime_error: When Arrow cannot write the file.
+void WriteKallistoAtomParquet(const AtomDescriptorBatch& batch, const std::string& path);
+
+/// \brief Read an atom descriptor batch from a Parquet file.
+///
+/// \param path Source file path.
+/// \returns Atom descriptor batch reconstructed from Parquet data.
+/// \throws std::invalid_argument: When required metadata or column types are invalid.
+/// \throws std::runtime_error: When Arrow cannot read the file.
+AtomDescriptorBatch ReadKallistoAtomParquet(const std::string& path);
+
+/// \brief Write a bond descriptor batch to a Parquet file.
+///
+/// \param batch Bond descriptor batch to write.
+/// \param path Destination file path.
+/// \throws std::runtime_error: When Arrow cannot write the file.
+void WriteKallistoBondParquet(const BondDescriptorBatch& batch, const std::string& path);
+
+/// \brief Read a bond descriptor batch from a Parquet file.
+///
+/// \param path Source file path.
+/// \returns Bond descriptor batch reconstructed from Parquet data.
+/// \throws std::invalid_argument: When required metadata or column types are invalid.
+/// \throws std::runtime_error: When Arrow cannot read the file.
+BondDescriptorBatch ReadKallistoBondParquet(const std::string& path);
+
 } // namespace OEFP
 
 #endif // OEFP_ATOM_DESCRIPTOR_ARROW_H

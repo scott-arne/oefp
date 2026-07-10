@@ -586,5 +586,380 @@ TEST(KallistoBatchArrow, BondDescriptorRejectsWrongIdColumnName) {
     }, std::invalid_argument);
 }
 
+TEST(KallistoBatchArrow, AtomDescriptorRejectsNullMoleculeId) {
+    auto mol = make_ethane();
+    const OEChem::OEMolBase& base = mol;
+    std::vector<const OEChem::OEMolBase*> mols{&base};
+
+    KallistoAtomDescriptorSource source;
+    const auto batch = source.CalculateBatch(mols);
+    const auto valid_rb = AtomDescriptorBatchToArrow(batch);
+
+    ASSERT_NE(valid_rb, nullptr);
+    ASSERT_GT(valid_rb->num_rows(), 0);
+
+    // Build a record batch with a null molecule_id in the first row
+    std::vector<std::shared_ptr<arrow::Field>> fields;
+    std::vector<std::shared_ptr<arrow::Array>> arrays;
+
+    arrow::UInt32Builder molecule_id_builder;
+    (void)molecule_id_builder.AppendNull();  // First row: null
+    for (std::int64_t i = 1; i < valid_rb->num_rows(); ++i) {
+        (void)molecule_id_builder.Append(
+            std::dynamic_pointer_cast<arrow::UInt32Array>(valid_rb->column(0))->Value(i));
+    }
+    std::shared_ptr<arrow::Array> molecule_id_array;
+    (void)molecule_id_builder.Finish(&molecule_id_array);
+
+    fields.push_back(arrow::field("molecule_id", arrow::uint32()));  // nullable
+    arrays.push_back(molecule_id_array);
+
+    // Copy remaining columns
+    for (int i = 1; i < valid_rb->num_columns(); ++i) {
+        fields.push_back(valid_rb->schema()->field(i));
+        arrays.push_back(valid_rb->column(i));
+    }
+
+    auto schema = arrow::schema(fields, valid_rb->schema()->metadata());
+    auto rb_with_null = arrow::RecordBatch::Make(schema, valid_rb->num_rows(), arrays);
+
+    EXPECT_THROW({
+        AtomDescriptorBatchFromArrow(rb_with_null);
+    }, std::invalid_argument);
+}
+
+TEST(KallistoBatchArrow, AtomDescriptorRejectsNullAtomIndex) {
+    auto mol = make_ethane();
+    const OEChem::OEMolBase& base = mol;
+    std::vector<const OEChem::OEMolBase*> mols{&base};
+
+    KallistoAtomDescriptorSource source;
+    const auto batch = source.CalculateBatch(mols);
+    const auto valid_rb = AtomDescriptorBatchToArrow(batch);
+
+    ASSERT_NE(valid_rb, nullptr);
+    ASSERT_GT(valid_rb->num_rows(), 0);
+
+    // Build a record batch with a null atom_index in the first row
+    std::vector<std::shared_ptr<arrow::Field>> fields;
+    std::vector<std::shared_ptr<arrow::Array>> arrays;
+
+    fields.push_back(valid_rb->schema()->field(0));
+    arrays.push_back(valid_rb->column(0));
+
+    arrow::UInt32Builder atom_index_builder;
+    (void)atom_index_builder.AppendNull();  // First row: null
+    for (std::int64_t i = 1; i < valid_rb->num_rows(); ++i) {
+        (void)atom_index_builder.Append(
+            std::dynamic_pointer_cast<arrow::UInt32Array>(valid_rb->column(1))->Value(i));
+    }
+    std::shared_ptr<arrow::Array> atom_index_array;
+    (void)atom_index_builder.Finish(&atom_index_array);
+
+    fields.push_back(arrow::field("atom_index", arrow::uint32()));  // nullable
+    arrays.push_back(atom_index_array);
+
+    // Copy remaining columns
+    for (int i = 2; i < valid_rb->num_columns(); ++i) {
+        fields.push_back(valid_rb->schema()->field(i));
+        arrays.push_back(valid_rb->column(i));
+    }
+
+    auto schema = arrow::schema(fields, valid_rb->schema()->metadata());
+    auto rb_with_null = arrow::RecordBatch::Make(schema, valid_rb->num_rows(), arrays);
+
+    EXPECT_THROW({
+        AtomDescriptorBatchFromArrow(rb_with_null);
+    }, std::invalid_argument);
+}
+
+TEST(KallistoBatchArrow, BondDescriptorRejectsNullMoleculeId) {
+    auto mol = make_ethane();
+    const OEChem::OEMolBase& base = mol;
+    std::vector<const OEChem::OEMolBase*> mols{&base};
+
+    KallistoBondDescriptorSource source;
+    const auto batch = source.CalculateBatch(mols);
+    const auto valid_rb = BondDescriptorBatchToArrow(batch);
+
+    ASSERT_NE(valid_rb, nullptr);
+    ASSERT_GT(valid_rb->num_rows(), 0);
+
+    // Build a record batch with a null molecule_id in the first row
+    std::vector<std::shared_ptr<arrow::Field>> fields;
+    std::vector<std::shared_ptr<arrow::Array>> arrays;
+
+    arrow::UInt32Builder molecule_id_builder;
+    (void)molecule_id_builder.AppendNull();  // First row: null
+    for (std::int64_t i = 1; i < valid_rb->num_rows(); ++i) {
+        (void)molecule_id_builder.Append(
+            std::dynamic_pointer_cast<arrow::UInt32Array>(valid_rb->column(0))->Value(i));
+    }
+    std::shared_ptr<arrow::Array> molecule_id_array;
+    (void)molecule_id_builder.Finish(&molecule_id_array);
+
+    fields.push_back(arrow::field("molecule_id", arrow::uint32()));  // nullable
+    arrays.push_back(molecule_id_array);
+
+    // Copy remaining columns
+    for (int i = 1; i < valid_rb->num_columns(); ++i) {
+        fields.push_back(valid_rb->schema()->field(i));
+        arrays.push_back(valid_rb->column(i));
+    }
+
+    auto schema = arrow::schema(fields, valid_rb->schema()->metadata());
+    auto rb_with_null = arrow::RecordBatch::Make(schema, valid_rb->num_rows(), arrays);
+
+    EXPECT_THROW({
+        BondDescriptorBatchFromArrow(rb_with_null);
+    }, std::invalid_argument);
+}
+
+TEST(KallistoBatchArrow, BondDescriptorRejectsNullBegin) {
+    auto mol = make_ethane();
+    const OEChem::OEMolBase& base = mol;
+    std::vector<const OEChem::OEMolBase*> mols{&base};
+
+    KallistoBondDescriptorSource source;
+    const auto batch = source.CalculateBatch(mols);
+    const auto valid_rb = BondDescriptorBatchToArrow(batch);
+
+    ASSERT_NE(valid_rb, nullptr);
+    ASSERT_GT(valid_rb->num_rows(), 0);
+
+    // Build a record batch with a null begin in the first row
+    std::vector<std::shared_ptr<arrow::Field>> fields;
+    std::vector<std::shared_ptr<arrow::Array>> arrays;
+
+    fields.push_back(valid_rb->schema()->field(0));
+    arrays.push_back(valid_rb->column(0));
+
+    arrow::UInt32Builder begin_builder;
+    (void)begin_builder.AppendNull();  // First row: null
+    for (std::int64_t i = 1; i < valid_rb->num_rows(); ++i) {
+        (void)begin_builder.Append(
+            std::dynamic_pointer_cast<arrow::UInt32Array>(valid_rb->column(1))->Value(i));
+    }
+    std::shared_ptr<arrow::Array> begin_array;
+    (void)begin_builder.Finish(&begin_array);
+
+    fields.push_back(arrow::field("begin", arrow::uint32()));  // nullable
+    arrays.push_back(begin_array);
+
+    // Copy remaining columns
+    for (int i = 2; i < valid_rb->num_columns(); ++i) {
+        fields.push_back(valid_rb->schema()->field(i));
+        arrays.push_back(valid_rb->column(i));
+    }
+
+    auto schema = arrow::schema(fields, valid_rb->schema()->metadata());
+    auto rb_with_null = arrow::RecordBatch::Make(schema, valid_rb->num_rows(), arrays);
+
+    EXPECT_THROW({
+        BondDescriptorBatchFromArrow(rb_with_null);
+    }, std::invalid_argument);
+}
+
+TEST(KallistoBatchArrow, BondDescriptorRejectsNullEnd) {
+    auto mol = make_ethane();
+    const OEChem::OEMolBase& base = mol;
+    std::vector<const OEChem::OEMolBase*> mols{&base};
+
+    KallistoBondDescriptorSource source;
+    const auto batch = source.CalculateBatch(mols);
+    const auto valid_rb = BondDescriptorBatchToArrow(batch);
+
+    ASSERT_NE(valid_rb, nullptr);
+    ASSERT_GT(valid_rb->num_rows(), 0);
+
+    // Build a record batch with a null end in the first row
+    std::vector<std::shared_ptr<arrow::Field>> fields;
+    std::vector<std::shared_ptr<arrow::Array>> arrays;
+
+    fields.push_back(valid_rb->schema()->field(0));
+    arrays.push_back(valid_rb->column(0));
+    fields.push_back(valid_rb->schema()->field(1));
+    arrays.push_back(valid_rb->column(1));
+
+    arrow::UInt32Builder end_builder;
+    (void)end_builder.AppendNull();  // First row: null
+    for (std::int64_t i = 1; i < valid_rb->num_rows(); ++i) {
+        (void)end_builder.Append(
+            std::dynamic_pointer_cast<arrow::UInt32Array>(valid_rb->column(2))->Value(i));
+    }
+    std::shared_ptr<arrow::Array> end_array;
+    (void)end_builder.Finish(&end_array);
+
+    fields.push_back(arrow::field("end", arrow::uint32()));  // nullable
+    arrays.push_back(end_array);
+
+    // Copy remaining columns
+    for (int i = 3; i < valid_rb->num_columns(); ++i) {
+        fields.push_back(valid_rb->schema()->field(i));
+        arrays.push_back(valid_rb->column(i));
+    }
+
+    auto schema = arrow::schema(fields, valid_rb->schema()->metadata());
+    auto rb_with_null = arrow::RecordBatch::Make(schema, valid_rb->num_rows(), arrays);
+
+    EXPECT_THROW({
+        BondDescriptorBatchFromArrow(rb_with_null);
+    }, std::invalid_argument);
+}
+
+TEST(KallistoBatchArrow, AtomDescriptorParquetRoundTrip) {
+    // Build batch: [valid, skipped (2D), valid]
+    auto mol1 = make_ethane();
+    auto mol2 = make_2d_molecule();
+    auto mol3 = make_ethane();
+
+    const OEChem::OEMolBase& base1 = mol1;
+    const OEChem::OEMolBase& base2 = mol2;
+    const OEChem::OEMolBase& base3 = mol3;
+    std::vector<const OEChem::OEMolBase*> mols{&base1, &base2, &base3};
+
+    KallistoAtomDescriptorSource source;
+    const auto original_batch = source.CalculateBatch(mols);
+
+    ASSERT_EQ(original_batch.Size(), 3u);
+    EXPECT_GT(original_batch.SegmentAtomCount(0), 0u);
+    EXPECT_EQ(original_batch.SegmentAtomCount(1), 0u);  // Empty (skipped 2D)
+    EXPECT_GT(original_batch.SegmentAtomCount(2), 0u);
+
+    const auto original_atom_count = original_batch.AtomCount();
+    EXPECT_GT(original_atom_count, 0u);
+
+    // Write to Parquet and read back
+    const std::string path = "/tmp/kallisto_atom_parquet_test.parquet";
+    WriteKallistoAtomParquet(original_batch, path);
+    const auto reconstructed_batch = ReadKallistoAtomParquet(path);
+
+    // Verify round-trip preserves structure
+    ASSERT_EQ(reconstructed_batch.Size(), original_batch.Size());
+    EXPECT_EQ(reconstructed_batch.AtomCount(), original_atom_count);
+
+    for (std::size_t mol = 0; mol < original_batch.Size(); ++mol) {
+        EXPECT_EQ(reconstructed_batch.SegmentAtomCount(mol),
+                  original_batch.SegmentAtomCount(mol))
+            << "Segment " << mol << " atom count mismatch";
+    }
+
+    // Verify atom indices
+    const auto* orig_indices = reinterpret_cast<const std::uint32_t*>(
+        original_batch.AtomIndexDataAddress());
+    const auto* recon_indices = reinterpret_cast<const std::uint32_t*>(
+        reconstructed_batch.AtomIndexDataAddress());
+
+    for (std::size_t i = 0; i < original_atom_count; ++i) {
+        EXPECT_EQ(recon_indices[i], orig_indices[i])
+            << "Atom index " << i << " mismatch";
+    }
+
+    // Verify descriptor values and validity
+    const auto& schema = original_batch.Schema();
+    for (std::size_t col = 0; col < schema.Size(); ++col) {
+        const auto* orig_values = reinterpret_cast<const double*>(
+            original_batch.ColumnDataAddress(col));
+        const auto* recon_values = reinterpret_cast<const double*>(
+            reconstructed_batch.ColumnDataAddress(col));
+        const auto* orig_validity = reinterpret_cast<const std::uint8_t*>(
+            original_batch.ColumnValidityAddress(col));
+        const auto* recon_validity = reinterpret_cast<const std::uint8_t*>(
+            reconstructed_batch.ColumnValidityAddress(col));
+
+        for (std::size_t i = 0; i < original_atom_count; ++i) {
+            EXPECT_EQ(recon_validity[i], orig_validity[i])
+                << "Column " << col << " atom " << i << " validity mismatch";
+            if (orig_validity[i] != 0u) {
+                EXPECT_DOUBLE_EQ(recon_values[i], orig_values[i])
+                    << "Column " << col << " atom " << i << " value mismatch";
+            }
+        }
+    }
+
+    // Verify schema ID is preserved
+    EXPECT_EQ(reconstructed_batch.Schema().SchemaId(), original_batch.Schema().SchemaId());
+}
+
+TEST(KallistoBatchArrow, BondDescriptorParquetRoundTrip) {
+    // Build batch: [valid, skipped (heavy), valid]
+    auto mol1 = make_ethane();
+    auto mol2 = make_heavy_molecule();
+    auto mol3 = make_ethane();
+
+    const OEChem::OEMolBase& base1 = mol1;
+    const OEChem::OEMolBase& base2 = mol2;
+    const OEChem::OEMolBase& base3 = mol3;
+    std::vector<const OEChem::OEMolBase*> mols{&base1, &base2, &base3};
+
+    KallistoBondDescriptorSource source;
+    const auto original_batch = source.CalculateBatch(mols);
+
+    ASSERT_EQ(original_batch.Size(), 3u);
+    EXPECT_GT(original_batch.SegmentBondCount(0), 0u);
+    EXPECT_EQ(original_batch.SegmentBondCount(1), 0u);  // Empty (skipped heavy)
+    EXPECT_GT(original_batch.SegmentBondCount(2), 0u);
+
+    const auto original_bond_count = original_batch.BondCount();
+    EXPECT_GT(original_bond_count, 0u);
+
+    // Write to Parquet and read back
+    const std::string path = "/tmp/kallisto_bond_parquet_test.parquet";
+    WriteKallistoBondParquet(original_batch, path);
+    const auto reconstructed_batch = ReadKallistoBondParquet(path);
+
+    // Verify round-trip preserves structure
+    ASSERT_EQ(reconstructed_batch.Size(), original_batch.Size());
+    EXPECT_EQ(reconstructed_batch.BondCount(), original_bond_count);
+
+    for (std::size_t mol = 0; mol < original_batch.Size(); ++mol) {
+        EXPECT_EQ(reconstructed_batch.SegmentBondCount(mol),
+                  original_batch.SegmentBondCount(mol))
+            << "Segment " << mol << " bond count mismatch";
+    }
+
+    // Verify bond endpoints
+    const auto* orig_begin = reinterpret_cast<const std::uint32_t*>(
+        original_batch.BondBeginDataAddress());
+    const auto* recon_begin = reinterpret_cast<const std::uint32_t*>(
+        reconstructed_batch.BondBeginDataAddress());
+    const auto* orig_end = reinterpret_cast<const std::uint32_t*>(
+        original_batch.BondEndDataAddress());
+    const auto* recon_end = reinterpret_cast<const std::uint32_t*>(
+        reconstructed_batch.BondEndDataAddress());
+
+    for (std::size_t i = 0; i < original_bond_count; ++i) {
+        EXPECT_EQ(recon_begin[i], orig_begin[i])
+            << "Bond " << i << " begin index mismatch";
+        EXPECT_EQ(recon_end[i], orig_end[i])
+            << "Bond " << i << " end index mismatch";
+    }
+
+    // Verify descriptor values and validity
+    const auto& schema = original_batch.Schema();
+    for (std::size_t col = 0; col < schema.Size(); ++col) {
+        const auto* orig_values = reinterpret_cast<const double*>(
+            original_batch.ColumnDataAddress(col));
+        const auto* recon_values = reinterpret_cast<const double*>(
+            reconstructed_batch.ColumnDataAddress(col));
+        const auto* orig_validity = reinterpret_cast<const std::uint8_t*>(
+            original_batch.ColumnValidityAddress(col));
+        const auto* recon_validity = reinterpret_cast<const std::uint8_t*>(
+            reconstructed_batch.ColumnValidityAddress(col));
+
+        for (std::size_t i = 0; i < original_bond_count; ++i) {
+            EXPECT_EQ(recon_validity[i], orig_validity[i])
+                << "Column " << col << " bond " << i << " validity mismatch";
+            if (orig_validity[i] != 0u) {
+                EXPECT_DOUBLE_EQ(recon_values[i], orig_values[i])
+                    << "Column " << col << " bond " << i << " value mismatch";
+            }
+        }
+    }
+
+    // Verify schema ID is preserved
+    EXPECT_EQ(reconstructed_batch.Schema().SchemaId(), original_batch.Schema().SchemaId());
+}
+
 } // namespace
 } // namespace OEFP
