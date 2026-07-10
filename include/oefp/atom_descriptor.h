@@ -130,6 +130,9 @@ public:
     /// \param set Descriptor set to append.
     void Append(const AtomDescriptorSet& set);
 
+    /// \brief Return the descriptor schema.
+    const DescriptorSchema& Schema() const;
+
     /// \brief Return the number of molecule segments.
     std::size_t Size() const;
 
@@ -185,6 +188,9 @@ public:
     ///
     /// \param set Descriptor set to append.
     void Append(const BondDescriptorSet& set);
+
+    /// \brief Return the descriptor schema.
+    const DescriptorSchema& Schema() const;
 
     /// \brief Return the number of molecule segments.
     std::size_t Size() const;

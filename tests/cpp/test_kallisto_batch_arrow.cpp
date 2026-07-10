@@ -1,0 +1,271 @@
+#include "oefp/atom_descriptor_arrow.h"
+#include "oefp/atom_descriptor.h"
+#include "oefp/kallisto_descriptors.h"
+
+#include <gtest/gtest.h>
+#include <oechem.h>
+
+#include <cmath>
+#include <memory>
+#include <optional>
+#include <vector>
+
+namespace OEFP {
+namespace {
+
+// Helper: build a 3D ethane molecule
+OEChem::OEGraphMol make_ethane() {
+    OEChem::OEGraphMol mol;
+    auto* c1 = mol.NewAtom(6);  // Carbon
+    auto* c2 = mol.NewAtom(6);
+    auto* h1 = mol.NewAtom(1);  // Hydrogen
+    auto* h2 = mol.NewAtom(1);
+    auto* h3 = mol.NewAtom(1);
+    auto* h4 = mol.NewAtom(1);
+    auto* h5 = mol.NewAtom(1);
+    auto* h6 = mol.NewAtom(1);
+
+    mol.NewBond(c1, c2, 1);
+    mol.NewBond(c1, h1, 1);
+    mol.NewBond(c1, h2, 1);
+    mol.NewBond(c1, h3, 1);
+    mol.NewBond(c2, h4, 1);
+    mol.NewBond(c2, h5, 1);
+    mol.NewBond(c2, h6, 1);
+
+    constexpr double bohr_to_angstrom = 0.5291772105437147;
+    const double cc_dist = 1.54 / bohr_to_angstrom;  // C-C in Bohr
+    const double ch_dist = 1.09 / bohr_to_angstrom;  // C-H in Bohr
+
+    const double coords_c1[3] = {-cc_dist * 0.5, 0.0, 0.0};
+    const double coords_c2[3] = {cc_dist * 0.5, 0.0, 0.0};
+    const double coords_h1[3] = {-cc_dist * 0.5 - ch_dist, 0.0, 0.0};
+    const double coords_h2[3] = {-cc_dist * 0.5, ch_dist * 0.866, ch_dist * 0.5};
+    const double coords_h3[3] = {-cc_dist * 0.5, -ch_dist * 0.866, ch_dist * 0.5};
+    const double coords_h4[3] = {cc_dist * 0.5 + ch_dist, 0.0, 0.0};
+    const double coords_h5[3] = {cc_dist * 0.5, ch_dist * 0.866, -ch_dist * 0.5};
+    const double coords_h6[3] = {cc_dist * 0.5, -ch_dist * 0.866, -ch_dist * 0.5};
+
+    mol.SetCoords(c1, coords_c1);
+    mol.SetCoords(c2, coords_c2);
+    mol.SetCoords(h1, coords_h1);
+    mol.SetCoords(h2, coords_h2);
+    mol.SetCoords(h3, coords_h3);
+    mol.SetCoords(h4, coords_h4);
+    mol.SetCoords(h5, coords_h5);
+    mol.SetCoords(h6, coords_h6);
+
+    mol.SetDimension(3);
+    return mol;
+}
+
+// Helper: build a 2D molecule (ineligible)
+OEChem::OEGraphMol make_2d_molecule() {
+    OEChem::OEGraphMol mol;
+    mol.NewAtom(6);  // Carbon
+    mol.SetDimension(2);
+    return mol;
+}
+
+// Helper: build a molecule with Z > 86 (ineligible)
+OEChem::OEGraphMol make_heavy_molecule() {
+    OEChem::OEGraphMol mol;
+    auto* atom = mol.NewAtom(92);  // Uranium (Z=92 > 86)
+    const double coords[3] = {0.0, 0.0, 0.0};
+    mol.SetCoords(atom, coords);
+    mol.SetDimension(3);
+    return mol;
+}
+
+TEST(KallistoBatchArrow, AtomDescriptorRoundTripWithEmptySegments) {
+    // Build batch: [valid, skipped (2D), valid]
+    auto mol1 = make_ethane();
+    auto mol2 = make_2d_molecule();
+    auto mol3 = make_ethane();
+
+    const OEChem::OEMolBase& base1 = mol1;
+    const OEChem::OEMolBase& base2 = mol2;
+    const OEChem::OEMolBase& base3 = mol3;
+    std::vector<const OEChem::OEMolBase*> mols{&base1, &base2, &base3};
+
+    KallistoAtomDescriptorSource source;
+    const auto original_batch = source.CalculateBatch(mols);
+
+    ASSERT_EQ(original_batch.Size(), 3u);
+    EXPECT_GT(original_batch.SegmentAtomCount(0), 0u);
+    EXPECT_EQ(original_batch.SegmentAtomCount(1), 0u);  // Empty (skipped 2D)
+    EXPECT_GT(original_batch.SegmentAtomCount(2), 0u);
+
+    const auto original_atom_count = original_batch.AtomCount();
+    EXPECT_GT(original_atom_count, 0u);
+
+    // Convert to Arrow and back
+    const auto arrow_rb = AtomDescriptorBatchToArrow(original_batch);
+    ASSERT_NE(arrow_rb, nullptr);
+
+    const auto reconstructed_batch = AtomDescriptorBatchFromArrow(arrow_rb);
+
+    // Verify round-trip
+    ASSERT_EQ(reconstructed_batch.Size(), original_batch.Size());
+    EXPECT_EQ(reconstructed_batch.AtomCount(), original_atom_count);
+
+    for (std::size_t mol = 0; mol < original_batch.Size(); ++mol) {
+        EXPECT_EQ(reconstructed_batch.SegmentAtomCount(mol),
+                  original_batch.SegmentAtomCount(mol))
+            << "Segment " << mol << " atom count mismatch";
+    }
+
+    // Verify atom indices
+    const auto* orig_indices = reinterpret_cast<const std::uint32_t*>(
+        original_batch.AtomIndexDataAddress());
+    const auto* recon_indices = reinterpret_cast<const std::uint32_t*>(
+        reconstructed_batch.AtomIndexDataAddress());
+
+    for (std::size_t i = 0; i < original_atom_count; ++i) {
+        EXPECT_EQ(recon_indices[i], orig_indices[i])
+            << "Atom index " << i << " mismatch";
+    }
+
+    // Verify descriptor values and validity for each column
+    const auto& schema = original_batch.Schema();
+    for (std::size_t col = 0; col < schema.Size(); ++col) {
+        const auto* orig_values = reinterpret_cast<const double*>(
+            original_batch.ColumnDataAddress(col));
+        const auto* recon_values = reinterpret_cast<const double*>(
+            reconstructed_batch.ColumnDataAddress(col));
+        const auto* orig_validity = reinterpret_cast<const std::uint8_t*>(
+            original_batch.ColumnValidityAddress(col));
+        const auto* recon_validity = reinterpret_cast<const std::uint8_t*>(
+            reconstructed_batch.ColumnValidityAddress(col));
+
+        for (std::size_t i = 0; i < original_atom_count; ++i) {
+            EXPECT_EQ(recon_validity[i], orig_validity[i])
+                << "Column " << col << " atom " << i << " validity mismatch";
+            if (orig_validity[i] != 0u) {
+                EXPECT_DOUBLE_EQ(recon_values[i], orig_values[i])
+                    << "Column " << col << " atom " << i << " value mismatch";
+            }
+        }
+    }
+}
+
+TEST(KallistoBatchArrow, BondDescriptorRoundTripWithEmptySegments) {
+    // Build batch: [valid, skipped (heavy), valid]
+    auto mol1 = make_ethane();
+    auto mol2 = make_heavy_molecule();
+    auto mol3 = make_ethane();
+
+    const OEChem::OEMolBase& base1 = mol1;
+    const OEChem::OEMolBase& base2 = mol2;
+    const OEChem::OEMolBase& base3 = mol3;
+    std::vector<const OEChem::OEMolBase*> mols{&base1, &base2, &base3};
+
+    KallistoBondDescriptorSource source;
+    const auto original_batch = source.CalculateBatch(mols);
+
+    ASSERT_EQ(original_batch.Size(), 3u);
+    EXPECT_GT(original_batch.SegmentBondCount(0), 0u);
+    EXPECT_EQ(original_batch.SegmentBondCount(1), 0u);  // Empty (skipped heavy)
+    EXPECT_GT(original_batch.SegmentBondCount(2), 0u);
+
+    const auto original_bond_count = original_batch.BondCount();
+    EXPECT_GT(original_bond_count, 0u);
+
+    // Convert to Arrow and back
+    const auto arrow_rb = BondDescriptorBatchToArrow(original_batch);
+    ASSERT_NE(arrow_rb, nullptr);
+
+    const auto reconstructed_batch = BondDescriptorBatchFromArrow(arrow_rb);
+
+    // Verify round-trip
+    ASSERT_EQ(reconstructed_batch.Size(), original_batch.Size());
+    EXPECT_EQ(reconstructed_batch.BondCount(), original_bond_count);
+
+    for (std::size_t mol = 0; mol < original_batch.Size(); ++mol) {
+        EXPECT_EQ(reconstructed_batch.SegmentBondCount(mol),
+                  original_batch.SegmentBondCount(mol))
+            << "Segment " << mol << " bond count mismatch";
+    }
+
+    // Verify bond endpoints
+    const auto* orig_begin = reinterpret_cast<const std::uint32_t*>(
+        original_batch.BondBeginDataAddress());
+    const auto* orig_end = reinterpret_cast<const std::uint32_t*>(
+        original_batch.BondEndDataAddress());
+    const auto* recon_begin = reinterpret_cast<const std::uint32_t*>(
+        reconstructed_batch.BondBeginDataAddress());
+    const auto* recon_end = reinterpret_cast<const std::uint32_t*>(
+        reconstructed_batch.BondEndDataAddress());
+
+    for (std::size_t i = 0; i < original_bond_count; ++i) {
+        EXPECT_EQ(recon_begin[i], orig_begin[i])
+            << "Bond " << i << " begin mismatch";
+        EXPECT_EQ(recon_end[i], orig_end[i])
+            << "Bond " << i << " end mismatch";
+    }
+
+    // Verify descriptor values and validity for each column
+    const auto& schema = original_batch.Schema();
+    for (std::size_t col = 0; col < schema.Size(); ++col) {
+        const auto* orig_values = reinterpret_cast<const double*>(
+            original_batch.ColumnDataAddress(col));
+        const auto* recon_values = reinterpret_cast<const double*>(
+            reconstructed_batch.ColumnDataAddress(col));
+        const auto* orig_validity = reinterpret_cast<const std::uint8_t*>(
+            original_batch.ColumnValidityAddress(col));
+        const auto* recon_validity = reinterpret_cast<const std::uint8_t*>(
+            reconstructed_batch.ColumnValidityAddress(col));
+
+        for (std::size_t i = 0; i < original_bond_count; ++i) {
+            EXPECT_EQ(recon_validity[i], orig_validity[i])
+                << "Column " << col << " bond " << i << " validity mismatch";
+            if (orig_validity[i] != 0u) {
+                EXPECT_DOUBLE_EQ(recon_values[i], orig_values[i])
+                    << "Column " << col << " bond " << i << " value mismatch";
+            }
+        }
+    }
+}
+
+TEST(KallistoBatchArrow, AtomDescriptorIpcRoundTrip) {
+    auto mol1 = make_ethane();
+    auto mol2 = make_2d_molecule();
+
+    const OEChem::OEMolBase& base1 = mol1;
+    const OEChem::OEMolBase& base2 = mol2;
+    std::vector<const OEChem::OEMolBase*> mols{&base1, &base2};
+
+    KallistoAtomDescriptorSource source;
+    const auto original_batch = source.CalculateBatch(mols);
+
+    const std::string path = "/tmp/kallisto_atom_test.arrow";
+    WriteKallistoAtomIpc(original_batch, path);
+
+    const auto reconstructed_batch = ReadKallistoAtomIpc(path);
+
+    ASSERT_EQ(reconstructed_batch.Size(), original_batch.Size());
+    EXPECT_EQ(reconstructed_batch.AtomCount(), original_batch.AtomCount());
+}
+
+TEST(KallistoBatchArrow, BondDescriptorIpcRoundTrip) {
+    auto mol1 = make_ethane();
+    auto mol2 = make_heavy_molecule();
+
+    const OEChem::OEMolBase& base1 = mol1;
+    const OEChem::OEMolBase& base2 = mol2;
+    std::vector<const OEChem::OEMolBase*> mols{&base1, &base2};
+
+    KallistoBondDescriptorSource source;
+    const auto original_batch = source.CalculateBatch(mols);
+
+    const std::string path = "/tmp/kallisto_bond_test.arrow";
+    WriteKallistoBondIpc(original_batch, path);
+
+    const auto reconstructed_batch = ReadKallistoBondIpc(path);
+
+    ASSERT_EQ(reconstructed_batch.Size(), original_batch.Size());
+    EXPECT_EQ(reconstructed_batch.BondCount(), original_batch.BondCount());
+}
+
+} // namespace
+} // namespace OEFP

@@ -30,6 +30,7 @@ add_executable(oefp_tests
     test_descriptor_value.cpp
     test_fingerprint.cpp
     test_input_normalization.cpp
+    test_kallisto_batch_arrow.cpp
     test_kallisto_data.cpp
     test_kallisto_descriptors.cpp
     test_kallisto_geometry.cpp

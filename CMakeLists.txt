@@ -144,6 +144,7 @@ endif()
 set(OEFP_SOURCES
     src/annotation.cpp
     src/atom_descriptor.cpp
+    src/atom_descriptor_arrow.cpp
     src/atom_pair.cpp
     src/batch.cpp
     src/column_request.cpp

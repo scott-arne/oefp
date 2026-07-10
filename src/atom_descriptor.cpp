@@ -221,6 +221,10 @@ void AtomDescriptorBatch::Append(const AtomDescriptorSet& set) {
     row_offsets_ = std::move(next_row_offsets);
 }
 
+const DescriptorSchema& AtomDescriptorBatch::Schema() const {
+    return *schema_;
+}
+
 std::size_t AtomDescriptorBatch::Size() const {
     return row_offsets_.empty() ? 0u : row_offsets_.size() - 1u;
 }
@@ -307,6 +311,10 @@ void BondDescriptorBatch::Append(const BondDescriptorSet& set) {
     column_values_ = std::move(next_column_values);
     column_validity_ = std::move(next_column_validity);
     row_offsets_ = std::move(next_row_offsets);
+}
+
+const DescriptorSchema& BondDescriptorBatch::Schema() const {
+    return *schema_;
 }
 
 std::size_t BondDescriptorBatch::Size() const {
