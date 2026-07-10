@@ -9,6 +9,24 @@
 
 namespace OEFP {
 
+namespace {
+
+/// Charge scaling function for polarizabilities (from kallisto.utils.alpha.zeta).
+double zeta(double a, double c, double qref, double q) {
+    if (q <= 0.0) {
+        return std::exp(a);
+    } else {
+        return std::exp(a * (1.0 - std::exp(c * (1.0 - qref / q))));
+    }
+}
+
+/// Gaussian weighting factor for reference systems (from kallisto.utils.alpha.cngw).
+double cngw(double wf, double cn, double cnref) {
+    return std::exp(-wf * (cn - cnref) * (cn - cnref));
+}
+
+}  // namespace
+
 std::vector<double> coordination_numbers(
     const KallistoGeometryContext& ctx,
     const std::string& cntype
@@ -290,10 +308,150 @@ std::vector<double> eeq_charges(const KallistoGeometryContext& ctx) {
     return qs;
 }
 
+std::vector<double> polarizabilities(const KallistoGeometryContext& ctx) {
+    // Return empty for ineligible contexts
+    if (!ctx.Eligible()) {
+        return std::vector<double>{};
+    }
+
+    const auto& atomic_numbers = ctx.AtomicNumbers();
+    const auto& covcn = ctx.CovalentCoordinationNumbers();
+    const auto& qs = ctx.EeqCharges();
+    const std::size_t nat = atomic_numbers.size();
+
+    // Guard: EEQ charges must be available and match atom count
+    if (qs.size() != nat || covcn.size() != nat) {
+        return std::vector<double>{};
+    }
+
+    // Parameters
+    constexpr double g_a = 3.0;
+    constexpr double g_c = 2.0;
+    constexpr double wf = 6.0;
+
+    // Get dimensionality (sum of refn over all atoms)
+    std::size_t ndim = 0;
+    for (std::size_t i = 0; i < nat; ++i) {
+        const int zi = atomic_numbers[i];
+        const int ia = zi - 1;
+        ndim += kallisto::D4_REFN[ia];
+    }
+
+    // Index table itbl[7][nat]: maps (reference index, atom index) -> flat index
+    std::vector<std::vector<int>> itbl(7, std::vector<int>(nat, 0));
+    int k = 0;
+    for (std::size_t i = 0; i < nat; ++i) {
+        const int zi = atomic_numbers[i];
+        const int ia = zi - 1;
+        for (int ii = 0; ii < kallisto::D4_REFN[ia]; ++ii) {
+            itbl[ii][i] = k;
+            k++;
+        }
+    }
+
+    // Setup ncount[7][86] and charge-scaled polarizabilities alphar[23][7][86]
+    std::vector<std::vector<int>> ncount(7, std::vector<int>(86, 0));
+    std::vector<double> alpha(23, 0.0);
+    std::vector<std::vector<std::vector<double>>> alphar(23, std::vector<std::vector<double>>(7, std::vector<double>(86, 0.0)));
+
+    for (std::size_t i = 0; i < nat; ++i) {
+        std::vector<int> cncount(18, 0);
+        cncount[0] = 1;
+        const int zi = atomic_numbers[i];
+        const int ia = zi - 1;
+
+        for (int j = 0; j < kallisto::D4_REFN[ia]; ++j) {
+            // refis = refsys[j][ia] - 1 (converts from 1-based to 0-based index)
+            const int refis = kallisto::D4_REFSYS[j][ia] - 1;
+            const double refiz = static_cast<double>(kallisto::D4_ZEFF[refis]);
+
+            // Compute alpha[jj] for this reference system
+            for (int jj = 0; jj < 23; ++jj) {
+                alpha[jj] = kallisto::D4_SSCALE[refis]
+                          * kallisto::D4_SECIW[jj][refis]
+                          * zeta(g_a, g_c * kallisto::D4_GAM[refis], refiz, kallisto::D4_REFH[j][ia] + refiz);
+            }
+
+            // Update cncount
+            const int icn = static_cast<int>(std::rint(kallisto::D4_REFCN[j][ia]));
+            cncount[icn] += 1;
+
+            // Compute alphar[jj][j][ia]
+            for (int jj = 0; jj < 23; ++jj) {
+                alphar[jj][j][ia] = std::max(
+                    kallisto::D4_ASCALE[j][ia] * (kallisto::D4_ALPHAIW[jj][j][ia] - kallisto::D4_HCOUNT[j][ia] * alpha[jj]),
+                    0.0
+                );
+            }
+        }
+
+        // Compute ncount[j][ia]
+        for (int j = 0; j < kallisto::D4_REFN[ia]; ++j) {
+            const int icn = cncount[static_cast<int>(std::rint(kallisto::D4_REFCN[j][ia]))];
+            ncount[j][ia] = icn * (icn + 1) / 2;
+        }
+    }
+
+    // Weights gw[ndim]
+    std::vector<double> gw(ndim, 0.0);
+    for (std::size_t i = 0; i < nat; ++i) {
+        const int zi = atomic_numbers[i];
+        const int ia = zi - 1;
+        double norm = 0.0;
+
+        // Compute normalization factor
+        for (int ii = 0; ii < kallisto::D4_REFN[ia]; ++ii) {
+            for (int iii = 0; iii < ncount[ii][ia]; ++iii) {
+                const double twf = (iii + 1) * wf;
+                norm += cngw(twf, covcn[i], kallisto::D4_REFCN[ii][ia]);
+            }
+        }
+        norm = 1.0 / norm;
+
+        // Compute weights
+        for (int ii = 0; ii < kallisto::D4_REFN[ia]; ++ii) {
+            k = itbl[ii][i];
+            for (int iii = 0; iii < ncount[ii][ia]; ++iii) {
+                const double twf = (iii + 1) * wf;
+                gw[k] += cngw(twf, covcn[i], kallisto::D4_REFCN[ii][ia]) * norm;
+            }
+        }
+    }
+
+    // Polarizabilities
+    std::vector<double> zetvec(ndim, 0.0);
+    std::vector<std::vector<double>> aw(23, std::vector<double>(nat, 0.0));
+
+    for (std::size_t i = 0; i < nat; ++i) {
+        const int zi = atomic_numbers[i];
+        const int ia = zi - 1;
+        const double iz = static_cast<double>(kallisto::D4_ZEFF[ia]);
+
+        for (int ii = 0; ii < kallisto::D4_REFN[ia]; ++ii) {
+            k = itbl[ii][i];
+            zetvec[k] = gw[k] * zeta(g_a, g_c * kallisto::D4_GAM[ia], kallisto::D4_REFX[ii][ia] + iz, qs[i] + iz);
+            for (int iii = 0; iii < 23; ++iii) {
+                aw[iii][i] += zetvec[k] * alphar[iii][ii][ia];
+            }
+        }
+    }
+
+    // Extract static polarizability aw[0] and check finiteness
+    std::vector<double> result(nat);
+    for (std::size_t i = 0; i < nat; ++i) {
+        result[i] = aw[0][i];
+        if (!std::isfinite(result[i])) {
+            return std::vector<double>{};
+        }
+    }
+
+    return result;
+}
+
 std::shared_ptr<const DescriptorSchema> KallistoAtomDescriptorSchema() {
     static const std::shared_ptr<const DescriptorSchema> schema = [] {
-        // Table of {name, units, description} for Task 5-6 columns
-        // Later tasks (7-9) will append to this table
+        // Table of {name, units, description} for Task 5-7 columns
+        // Later tasks (8-9) will append to this table
         struct ColumnDef {
             const char* name;
             const char* units;
@@ -306,6 +464,7 @@ std::shared_ptr<const DescriptorSchema> KallistoAtomDescriptorSchema() {
             {"cn_exp", "", "Exponential coordination number"},
             {"prox", "", "Proximity shell difference (scale 2-3)"},
             {"eeq", "e", "EEQ atomic partial charge (electronegativity equilibration)"},
+            {"alp", "bohr^3", "Atomic polarizability (charge-dependent, D4 method)"},
         };
 
         std::vector<DescriptorDefinition> definitions;
@@ -346,21 +505,23 @@ AtomDescriptorSet MakeKallistoAtomDescriptors(
 
     const std::size_t atom_count = ctx.AtomCount();
 
-    // Compute all five columns
+    // Compute all six columns
     auto cn_erf_vals = coordination_numbers(ctx, "erf");
     auto cn_cov_vals = coordination_numbers(ctx, "cov");
     auto cn_exp_vals = coordination_numbers(ctx, "exp");
     auto prox_vals = proximity_shells(ctx, {2, 3});
     auto eeq_vals = ctx.EeqCharges();
+    auto alp_vals = polarizabilities(ctx);
 
     // Build columns as [column][atom] of std::optional<double>
-    // Column order MUST match schema: cn_erf, cn_cov, cn_exp, prox, eeq
-    std::vector<std::vector<std::optional<double>>> columns(5);
+    // Column order MUST match schema: cn_erf, cn_cov, cn_exp, prox, eeq, alp
+    std::vector<std::vector<std::optional<double>>> columns(6);
     columns[0].reserve(atom_count);
     columns[1].reserve(atom_count);
     columns[2].reserve(atom_count);
     columns[3].reserve(atom_count);
     columns[4].reserve(atom_count);
+    columns[5].reserve(atom_count);
 
     // Guard against singular solves: kernel functions (like eeq_charges) return
     // an empty vector on degenerate cases. If a kernel result size doesn't match
@@ -370,6 +531,7 @@ AtomDescriptorSet MakeKallistoAtomDescriptors(
     const bool cn_exp_ok = cn_exp_vals.size() == atom_count;
     const bool prox_ok = prox_vals.size() == atom_count;
     const bool eeq_ok = eeq_vals.size() == atom_count;
+    const bool alp_ok = alp_vals.size() == atom_count;
 
     for (std::size_t i = 0; i < atom_count; ++i) {
         columns[0].push_back(cn_erf_ok ? std::optional<double>(cn_erf_vals[i]) : std::nullopt);
@@ -377,6 +539,7 @@ AtomDescriptorSet MakeKallistoAtomDescriptors(
         columns[2].push_back(cn_exp_ok ? std::optional<double>(cn_exp_vals[i]) : std::nullopt);
         columns[3].push_back(prox_ok ? std::optional<double>(prox_vals[i]) : std::nullopt);
         columns[4].push_back(eeq_ok ? std::optional<double>(eeq_vals[i]) : std::nullopt);
+        columns[5].push_back(alp_ok ? std::optional<double>(alp_vals[i]) : std::nullopt);
     }
 
     // Get OpenEye atom indices from context (guaranteed aligned with geometry)

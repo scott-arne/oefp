@@ -184,8 +184,8 @@ def test_kallisto_atom_schema() -> None:
     """Verify the kallisto atom schema has expected columns."""
     schema = kallisto_atom_schema()
     # Schema loaded from fixture includes all columns (8 for full kallisto)
-    assert len(schema.names) >= 5  # At least through Task 6 (eeq)
-    assert schema.names[:5] == ("cn_erf", "cn_cov", "cn_exp", "prox", "eeq")
+    assert len(schema.names) >= 6  # At least through Task 7 (alp)
+    assert schema.names[:6] == ("cn_erf", "cn_cov", "cn_exp", "prox", "eeq", "alp")
     for defn in schema.definitions:
         assert defn.group == "kallisto"
         assert defn.source_name == "kallisto"
@@ -203,8 +203,8 @@ def test_kallisto_atom_descriptors_conformance() -> None:
     tiers = fixture["tiers"]
     sdf_base = Path("tests/data/kallisto_panel")
 
-    # Columns to test (Task 6 scope: cn_erf, cn_cov, cn_exp, prox, eeq)
-    test_columns = ["cn_erf", "cn_cov", "cn_exp", "prox", "eeq"]
+    # Columns to test (Task 7 scope: cn_erf, cn_cov, cn_exp, prox, eeq, alp)
+    test_columns = ["cn_erf", "cn_cov", "cn_exp", "prox", "eeq", "alp"]
     max_deviations = {col: 0.0 for col in test_columns}
 
     for mol_data in molecules:
@@ -264,6 +264,7 @@ def test_kallisto_atom_descriptors_ineligible() -> None:
     assert len(result_2d["cn_exp"]) == 0
     assert len(result_2d["prox"]) == 0
     assert len(result_2d["eeq"]) == 0
+    assert len(result_2d["alp"]) == 0
 
     # Test 2: Molecule with Z > 86 (francium Z=87)
     mol_heavy = oechem.OEGraphMol()
@@ -279,6 +280,7 @@ def test_kallisto_atom_descriptors_ineligible() -> None:
     assert len(result_heavy["cn_exp"]) == 0
     assert len(result_heavy["prox"]) == 0
     assert len(result_heavy["eeq"]) == 0
+    assert len(result_heavy["alp"]) == 0
 
 
 @pytest.mark.skipif(not HAS_OPENEYE, reason="OpenEye not available")

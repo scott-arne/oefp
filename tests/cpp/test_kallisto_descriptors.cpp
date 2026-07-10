@@ -222,8 +222,8 @@ TEST(KallistoDescriptors, AtomDescriptorSchema) {
     auto schema = KallistoAtomDescriptorSchema();
     ASSERT_NE(schema, nullptr);
 
-    // Should have 5 columns for Task 6
-    ASSERT_EQ(schema->Size(), 5u);
+    // Should have 6 columns for Task 7
+    ASSERT_EQ(schema->Size(), 6u);
 
     // Check each column
     EXPECT_EQ(schema->Definition(0).name, "cn_erf");
@@ -256,6 +256,13 @@ TEST(KallistoDescriptors, AtomDescriptorSchema) {
     EXPECT_EQ(schema->Definition(4).source_name, "kallisto");
     EXPECT_EQ(schema->Definition(4).units, "e");
     EXPECT_EQ(schema->Definition(4).prerequisites, kDescriptorPrerequisiteCoordinates3D);
+
+    EXPECT_EQ(schema->Definition(5).name, "alp");
+    EXPECT_EQ(schema->Definition(5).value_kind, DescriptorValueKind::Float);
+    EXPECT_EQ(schema->Definition(5).group, "kallisto");
+    EXPECT_EQ(schema->Definition(5).source_name, "kallisto");
+    EXPECT_EQ(schema->Definition(5).units, "bohr^3");
+    EXPECT_EQ(schema->Definition(5).prerequisites, kDescriptorPrerequisiteCoordinates3D);
 }
 
 // Test that kernels return empty vectors for ineligible contexts (2D molecule)
@@ -486,6 +493,116 @@ TEST(KallistoDescriptors, EeqChargesCaching) {
     for (std::size_t i = 0; i < eeq_cached.size(); ++i) {
         EXPECT_EQ(eeq_cached[i], eeq_cached2[i]);
     }
+}
+
+// Test polarizabilities on water: verify against kallisto 1.0.10 values
+TEST(KallistoDescriptors, PolarizabilitiesH2O) {
+    // H2O: O at (0,0,0), H at (1.8,0,0), H at (0,1.8,0) Bohr
+    OEChem::OEGraphMol mol;
+    OEChem::OEAtomBase* o = mol.NewAtom(8);
+    OEChem::OEAtomBase* h1 = mol.NewAtom(1);
+    OEChem::OEAtomBase* h2 = mol.NewAtom(1);
+    mol.NewBond(o, h1, 1);
+    mol.NewBond(o, h2, 1);
+
+    constexpr double bohr_to_angstrom = 0.5291772105437147;
+    const double coords_o[3] = {0.0, 0.0, 0.0};
+    const double coords_h1[3] = {1.8 * bohr_to_angstrom, 0.0, 0.0};
+    const double coords_h2[3] = {0.0, 1.8 * bohr_to_angstrom, 0.0};
+    mol.SetCoords(o, coords_o);
+    mol.SetCoords(h1, coords_h1);
+    mol.SetCoords(h2, coords_h2);
+    mol.SetDimension(3);
+
+    KallistoGeometryContext ctx(mol);
+    ASSERT_TRUE(ctx.Eligible());
+
+    // Get polarizabilities from the kernel
+    auto alp = polarizabilities(ctx);
+    ASSERT_EQ(alp.size(), 3u);
+
+    // Expected values from kallisto 1.0.10 on same Bohr coords:
+    // [6.76353129 1.33254911 1.33254911]
+    EXPECT_NEAR(alp[0], 6.76353129, 1e-5);
+    EXPECT_NEAR(alp[1], 1.33254911, 1e-5);
+    EXPECT_NEAR(alp[2], 1.33254911, 1e-5);
+}
+
+// Test polarizabilities on methane
+TEST(KallistoDescriptors, PolarizabilitiesCH4) {
+    // CH4: C at (0,0,0), H at various positions
+    OEChem::OEGraphMol mol;
+    OEChem::OEAtomBase* c = mol.NewAtom(6);
+    OEChem::OEAtomBase* h1 = mol.NewAtom(1);
+    OEChem::OEAtomBase* h2 = mol.NewAtom(1);
+    OEChem::OEAtomBase* h3 = mol.NewAtom(1);
+    OEChem::OEAtomBase* h4 = mol.NewAtom(1);
+    mol.NewBond(c, h1, 1);
+    mol.NewBond(c, h2, 1);
+    mol.NewBond(c, h3, 1);
+    mol.NewBond(c, h4, 1);
+
+    constexpr double bohr_to_angstrom = 0.5291772105437147;
+    const double coords_c[3] = {0.0, 0.0, 0.0};
+    const double coords_h1[3] = {2.05 * bohr_to_angstrom, 0.0, 0.0};
+    const double coords_h2[3] = {0.0, 2.05 * bohr_to_angstrom, 0.0};
+    const double coords_h3[3] = {0.0, 0.0, 2.05 * bohr_to_angstrom};
+    const double coords_h4[3] = {-1.5 * bohr_to_angstrom, -1.5 * bohr_to_angstrom, -1.5 * bohr_to_angstrom};
+    mol.SetCoords(c, coords_c);
+    mol.SetCoords(h1, coords_h1);
+    mol.SetCoords(h2, coords_h2);
+    mol.SetCoords(h3, coords_h3);
+    mol.SetCoords(h4, coords_h4);
+    mol.SetDimension(3);
+
+    KallistoGeometryContext ctx(mol);
+    ASSERT_TRUE(ctx.Eligible());
+
+    auto alp = polarizabilities(ctx);
+    ASSERT_EQ(alp.size(), 5u);
+
+    // Expected from kallisto: [9.60182599 2.17481057 2.17481057 2.17481057 2.56391108]
+    EXPECT_NEAR(alp[0], 9.60182599, 1e-5);
+    EXPECT_NEAR(alp[1], 2.17481057, 1e-5);
+    EXPECT_NEAR(alp[2], 2.17481057, 1e-5);
+    EXPECT_NEAR(alp[3], 2.17481057, 1e-5);
+    EXPECT_NEAR(alp[4], 2.56391108, 1e-5);
+}
+
+// Test polarizabilities on ammonia (heteroatom)
+TEST(KallistoDescriptors, PolarizabilitiesNH3) {
+    // NH3: N at (0,0,0), H at various positions
+    OEChem::OEGraphMol mol;
+    OEChem::OEAtomBase* n = mol.NewAtom(7);
+    OEChem::OEAtomBase* h1 = mol.NewAtom(1);
+    OEChem::OEAtomBase* h2 = mol.NewAtom(1);
+    OEChem::OEAtomBase* h3 = mol.NewAtom(1);
+    mol.NewBond(n, h1, 1);
+    mol.NewBond(n, h2, 1);
+    mol.NewBond(n, h3, 1);
+
+    constexpr double bohr_to_angstrom = 0.5291772105437147;
+    const double coords_n[3] = {0.0, 0.0, 0.0};
+    const double coords_h1[3] = {1.9 * bohr_to_angstrom, 0.0, 0.0};
+    const double coords_h2[3] = {0.0, 1.9 * bohr_to_angstrom, 0.0};
+    const double coords_h3[3] = {0.0, 0.0, 1.9 * bohr_to_angstrom};
+    mol.SetCoords(n, coords_n);
+    mol.SetCoords(h1, coords_h1);
+    mol.SetCoords(h2, coords_h2);
+    mol.SetCoords(h3, coords_h3);
+    mol.SetDimension(3);
+
+    KallistoGeometryContext ctx(mol);
+    ASSERT_TRUE(ctx.Eligible());
+
+    auto alp = polarizabilities(ctx);
+    ASSERT_EQ(alp.size(), 4u);
+
+    // Expected from kallisto: [9.52888686 1.44685267 1.44685267 1.44685267]
+    EXPECT_NEAR(alp[0], 9.52888686, 1e-5);
+    EXPECT_NEAR(alp[1], 1.44685267, 1e-5);
+    EXPECT_NEAR(alp[2], 1.44685267, 1e-5);
+    EXPECT_NEAR(alp[3], 1.44685267, 1e-5);
 }
 
 }  // namespace

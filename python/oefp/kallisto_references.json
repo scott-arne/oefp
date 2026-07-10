@@ -2218,7 +2218,7 @@
     }
   ],
   "tiers": {
-    "alp": "loose",
+    "alp": "tight",
     "cn_cov": "tight",
     "cn_erf": "tight",
     "cn_exp": "tight",

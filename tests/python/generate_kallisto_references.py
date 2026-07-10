@@ -39,7 +39,7 @@ KALLISTO_TOLERANCE_TIERS: dict[str, str] = {
     "cn_exp": "tight",
     "prox": "tight",
     "eeq": "tight",
-    "alp": "loose",
+    "alp": "tight",
     "vdw_rahm": "loose",
     "vdw_truhlar": "loose",
     # Bond descriptors (Sterimol L, B1, B5)

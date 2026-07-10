@@ -76,6 +76,24 @@ std::vector<double> proximity_shells(
 /// Mirrors kallisto.methods.getAtomicPartialCharges.
 std::vector<double> eeq_charges(const KallistoGeometryContext& ctx);
 
+/// Compute atomic-charge dependent dynamic polarizabilities (D4 method).
+///
+/// :param ctx: Geometry context for the molecule.
+/// :returns: Per-atom static polarizabilities in Bohr³.
+///
+/// Computes charge-scaled atomic polarizabilities using the DFT-D4 damping
+/// functions and reference polarizabilities. For each atom, builds weighted
+/// averages over reference systems using Gaussian weighting of covalent CN,
+/// then applies charge scaling via zeta functions on EEQ charges.
+///
+/// Returns the static (ω=0) polarizability aw[0] for each atom.
+///
+/// Returns empty vector if ctx is ineligible, EEQ charges are unavailable,
+/// or any result value is non-finite.
+///
+/// Mirrors kallisto.methods.getPolarizabilities.
+std::vector<double> polarizabilities(const KallistoGeometryContext& ctx);
+
 /// Return the descriptor schema for kallisto atom descriptors.
 ///
 /// :returns: Shared singleton schema instance.
