@@ -4370,6 +4370,10 @@ def sterimol(mol: Any, origin: int, partner: int) -> Sterimol | None:
         ...
     """
     try:
+        # Return None for self-pairs (origin == partner)
+        if int(origin) == int(partner):
+            return None
+
         # Build GetIdx -> position map (position == iteration order)
         idx_to_pos = {atom.GetIdx(): pos for pos, atom in enumerate(mol.GetAtoms())}
 
@@ -4380,7 +4384,16 @@ def sterimol(mol: Any, origin: int, partner: int) -> Sterimol | None:
         if origin_pos is None or partner_pos is None:
             return None
 
+        # Sterimol is a general geometric primitive for any two distinct atoms,
+        # not restricted to bonded pairs. The acyclic-bond requirement applies
+        # only to the per-bond table (kallisto_bond_descriptors), not to this
+        # on-demand sterimol() primitive.
         values = _native.KallistoSterimol(mol, origin_pos, partner_pos)
+
+        # Return None if any value is non-finite (defensive guard against degenerate geometry)
+        if not all(np.isfinite([values[0], values[1], values[2]])):
+            return None
+
         return Sterimol(L=values[0], B1=values[1], B5=values[2])
     except (RuntimeError, ValueError, IndexError):
         return None

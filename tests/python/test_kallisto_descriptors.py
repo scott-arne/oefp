@@ -976,3 +976,58 @@ def test_kallisto_source_classes_not_public() -> None:
     assert "KallistoBondDescriptors" in dir(oefp)
     assert "KallistoBondDescriptorsBatch" in dir(oefp)
     assert "Sterimol" in dir(oefp)
+
+
+@pytest.mark.skipif(not HAS_OPENEYE, reason="OpenEye not available")
+def test_sterimol_self_pair_returns_none() -> None:
+    """Verify sterimol(mol, i, i) returns None for self-pair (origin == partner)."""
+    # Create a simple 3D molecule with several atoms
+    mol = oechem.OEGraphMol()
+    mol.SetDimension(3)
+    atoms = []
+    for i in range(3):
+        atom = mol.NewAtom(6)  # Carbon
+        mol.SetCoords(atom, [float(i), 0.0, 0.0])
+        atoms.append(atom)
+    mol.NewBond(atoms[0], atoms[1])
+    mol.NewBond(atoms[1], atoms[2])
+
+    # Test self-pair (origin == partner)
+    result_self = sterimol(mol, 0, 0)
+    assert result_self is None, "sterimol(mol, 0, 0) should return None for self-pair"
+
+    # Verify distinct pairs still work
+    result_valid = sterimol(mol, 0, 1)
+    assert result_valid is not None, "sterimol(mol, 0, 1) should return finite values for distinct pair"
+
+
+@pytest.mark.skipif(not HAS_OPENEYE, reason="OpenEye not available")
+def test_sterimol_non_bonded_pair_returns_finite() -> None:
+    """Verify sterimol() is a general primitive: distinct but non-bonded pairs return finite values.
+
+    This test documents the intentional behavior: sterimol(mol, i, j) computes
+    Sterimol along the i->j axis for ANY two distinct atoms, not just bonded pairs.
+    The acyclic-bond restriction applies only to the per-bond table
+    (kallisto_bond_descriptors), not to the on-demand sterimol() primitive.
+    """
+    # Create a 3-atom chain: 0-1-2
+    mol = oechem.OEGraphMol()
+    mol.SetDimension(3)
+    atoms = []
+    for i in range(3):
+        atom = mol.NewAtom(6)  # Carbon
+        mol.SetCoords(atom, [float(i), 0.0, 0.0])
+        atoms.append(atom)
+    mol.NewBond(atoms[0], atoms[1])
+    mol.NewBond(atoms[1], atoms[2])
+
+    # Atoms 0 and 2 are DISTINCT but NOT directly bonded
+    # sterimol should still return finite values (general geometric primitive)
+    result_nonbonded = sterimol(mol, 0, 2)
+    assert result_nonbonded is not None, \
+        "sterimol(mol, 0, 2) should return values for distinct non-bonded pair (general primitive)"
+
+    # Verify all values are finite
+    assert np.isfinite(result_nonbonded.L), "sterimol.L should be finite for non-bonded pair"
+    assert np.isfinite(result_nonbonded.B1), "sterimol.B1 should be finite for non-bonded pair"
+    assert np.isfinite(result_nonbonded.B5), "sterimol.B5 should be finite for non-bonded pair"
