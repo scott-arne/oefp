@@ -681,5 +681,81 @@ TEST(KallistoDescriptors, VanDerWaalsRadiiTruhlarH2O) {
     EXPECT_NEAR(vdw_truhlar[2], 1.72012086, 1e-5);
 }
 
+// Test that MakeKallistoAtomDescriptors emits mutually consistent alp/vdw columns.
+// This guards against future duplication of the polarizability kernel: the columns
+// can only be consistent if they derive from the SAME underlying polarizability vector.
+TEST(KallistoDescriptors, AlpVdwConsistencyInEmission) {
+    // CH4: multi-atom molecule with varying atomic numbers
+    OEChem::OEGraphMol mol;
+    OEChem::OEAtomBase* c = mol.NewAtom(6);
+    OEChem::OEAtomBase* h1 = mol.NewAtom(1);
+    OEChem::OEAtomBase* h2 = mol.NewAtom(1);
+    OEChem::OEAtomBase* h3 = mol.NewAtom(1);
+    OEChem::OEAtomBase* h4 = mol.NewAtom(1);
+    mol.NewBond(c, h1, 1);
+    mol.NewBond(c, h2, 1);
+    mol.NewBond(c, h3, 1);
+    mol.NewBond(c, h4, 1);
+
+    constexpr double bohr_to_angstrom = 0.5291772105437147;
+    const double coords_c[3] = {0.0, 0.0, 0.0};
+    const double coords_h1[3] = {2.05 * bohr_to_angstrom, 0.0, 0.0};
+    const double coords_h2[3] = {0.0, 2.05 * bohr_to_angstrom, 0.0};
+    const double coords_h3[3] = {0.0, 0.0, 2.05 * bohr_to_angstrom};
+    const double coords_h4[3] = {-1.5 * bohr_to_angstrom, -1.5 * bohr_to_angstrom, -1.5 * bohr_to_angstrom};
+    mol.SetCoords(c, coords_c);
+    mol.SetCoords(h1, coords_h1);
+    mol.SetCoords(h2, coords_h2);
+    mol.SetCoords(h3, coords_h3);
+    mol.SetCoords(h4, coords_h4);
+    mol.SetDimension(3);
+
+    // Emit the full descriptor set
+    auto descriptors = MakeKallistoAtomDescriptors(mol);
+    ASSERT_EQ(descriptors.AtomCount(), 5u);
+
+    // Consistency check: for each atom i, verify
+    //   vdw_rahm[i] == VDW_RAHM[Z_i] * 2.54 * alp[i]^(1/7)
+    //   vdw_truhlar[i] == VDW_TRUHLAR[Z_i] * 2.54 * alp[i]^(1/7)
+    // to high precision (1e-12).
+    // This only holds if the same polarizability vector underlies both columns.
+    constexpr double theta_a = 2.54;
+    constexpr double osev = 1.0 / 7.0;
+
+    // Column indices: alp=5, vdw_rahm=6, vdw_truhlar=7
+    constexpr std::size_t alp_col = 5;
+    constexpr std::size_t vdw_rahm_col = 6;
+    constexpr std::size_t vdw_truhlar_col = 7;
+
+    // Atomic numbers for CH4: C=6, H=1 (4 times)
+    const int zs[5] = {6, 1, 1, 1, 1};
+
+    for (std::size_t i = 0; i < 5; ++i) {
+        const auto alp_val = descriptors.Value(i, alp_col);
+        const auto vdw_rahm_val = descriptors.Value(i, vdw_rahm_col);
+        const auto vdw_truhlar_val = descriptors.Value(i, vdw_truhlar_col);
+
+        ASSERT_TRUE(alp_val.has_value()) << "alp missing at atom " << i;
+        ASSERT_TRUE(vdw_rahm_val.has_value()) << "vdw_rahm missing at atom " << i;
+        ASSERT_TRUE(vdw_truhlar_val.has_value()) << "vdw_truhlar missing at atom " << i;
+
+        const double alp = alp_val.value();
+        const double vdw_rahm = vdw_rahm_val.value();
+        const double vdw_truhlar = vdw_truhlar_val.value();
+
+        const int zi = zs[i];
+        const double theta_rahm = kallisto::VDW_RAHM[zi];
+        const double theta_truhlar = kallisto::VDW_TRUHLAR[zi];
+
+        const double expected_rahm = theta_rahm * theta_a * std::pow(alp, osev);
+        const double expected_truhlar = theta_truhlar * theta_a * std::pow(alp, osev);
+
+        EXPECT_NEAR(vdw_rahm, expected_rahm, 1e-12)
+            << "vdw_rahm inconsistent with alp at atom " << i;
+        EXPECT_NEAR(vdw_truhlar, expected_truhlar, 1e-12)
+            << "vdw_truhlar inconsistent with alp at atom " << i;
+    }
+}
+
 }  // namespace
 }  // namespace OEFP

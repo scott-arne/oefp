@@ -25,6 +25,53 @@ double cngw(double wf, double cn, double cnref) {
     return std::exp(-wf * (cn - cnref) * (cn - cnref));
 }
 
+/// Compute van der Waals radii from precomputed polarizabilities.
+///
+/// :param atomic_numbers: Atomic numbers for each atom.
+/// :param aw: Atomic polarizabilities (Bohr^3).
+/// :param vdwtype: van der Waals radius type ("rahm" or "truhlar").
+/// :returns: Per-atom van der Waals radii in Bohr.
+///
+/// Returns empty if aw is empty, vdwtype is invalid, or any result is non-finite.
+std::vector<double> van_der_waals_radii_from_polarizabilities(
+    const std::vector<int>& atomic_numbers,
+    const std::vector<double>& aw,
+    const std::string& vdwtype
+) {
+    if (aw.empty()) {
+        return std::vector<double>{};
+    }
+
+    if (vdwtype != "rahm" && vdwtype != "truhlar") {
+        throw std::invalid_argument(
+            "van_der_waals_radii_from_polarizabilities: vdwtype must be 'rahm' or 'truhlar', got '" + vdwtype + "'"
+        );
+    }
+
+    const std::size_t nat = atomic_numbers.size();
+
+    constexpr double scale = 1.0;      // Bohr units for descriptors
+    constexpr double theta_a = 2.54;
+    constexpr double osev = 1.0 / 7.0; // 1/7 power
+
+    std::vector<double> vdw(nat);
+
+    for (std::size_t i = 0; i < nat; ++i) {
+        const int zi = atomic_numbers[i];
+        const double theta_b = (vdwtype == "rahm")
+            ? kallisto::VDW_RAHM[zi]
+            : kallisto::VDW_TRUHLAR[zi];
+
+        vdw[i] = scale * theta_b * theta_a * std::pow(aw[i], osev);
+
+        if (!std::isfinite(vdw[i])) {
+            return std::vector<double>{};
+        }
+    }
+
+    return vdw;
+}
+
 }  // namespace
 
 std::vector<double> coordination_numbers(
@@ -452,50 +499,16 @@ std::vector<double> van_der_waals_radii(
     const KallistoGeometryContext& ctx,
     const std::string& vdwtype
 ) {
-    // Return empty for ineligible contexts
     if (!ctx.Eligible()) {
         return std::vector<double>{};
     }
 
-    // Validate vdwtype
-    if (vdwtype != "rahm" && vdwtype != "truhlar") {
-        throw std::invalid_argument(
-            "van_der_waals_radii: vdwtype must be 'rahm' or 'truhlar', got '" + vdwtype + "'"
-        );
-    }
-
-    // Compute polarizabilities (prerequisite for vdW radii)
     auto aw = polarizabilities(ctx);
     if (aw.empty()) {
         return std::vector<double>{};
     }
 
-    const auto& atomic_numbers = ctx.AtomicNumbers();
-    const std::size_t nat = atomic_numbers.size();
-
-    // Parameters from kallisto
-    constexpr double scale = 1.0;      // Bohr units for descriptors
-    constexpr double theta_a = 2.54;
-    constexpr double osev = 1.0 / 7.0; // 1/7 power
-
-    std::vector<double> vdw(nat);
-
-    for (std::size_t i = 0; i < nat; ++i) {
-        const int zi = atomic_numbers[i];
-        // VDW_RAHM and VDW_TRUHLAR are Z-indexed (length 87, index by Z directly)
-        const double theta_b = (vdwtype == "rahm")
-            ? kallisto::VDW_RAHM[zi]
-            : kallisto::VDW_TRUHLAR[zi];
-
-        vdw[i] = scale * theta_b * theta_a * std::pow(aw[i], osev);
-
-        // Finiteness guard
-        if (!std::isfinite(vdw[i])) {
-            return std::vector<double>{};
-        }
-    }
-
-    return vdw;
+    return van_der_waals_radii_from_polarizabilities(ctx.AtomicNumbers(), aw, vdwtype);
 }
 
 std::shared_ptr<const DescriptorSchema> KallistoAtomDescriptorSchema() {
@@ -556,15 +569,17 @@ AtomDescriptorSet MakeKallistoAtomDescriptors(
 
     const std::size_t atom_count = ctx.AtomCount();
 
-    // Compute all eight columns
+    // Compute all eight columns.
+    // Compute polarizabilities ONCE and reuse for alp, vdw_rahm, and vdw_truhlar
+    // to avoid 3× recomputation of the expensive D4 kernel.
     auto cn_erf_vals = coordination_numbers(ctx, "erf");
     auto cn_cov_vals = coordination_numbers(ctx, "cov");
     auto cn_exp_vals = coordination_numbers(ctx, "exp");
     auto prox_vals = proximity_shells(ctx, {2, 3});
     auto eeq_vals = ctx.EeqCharges();
     auto alp_vals = polarizabilities(ctx);
-    auto vdw_rahm_vals = van_der_waals_radii(ctx, "rahm");
-    auto vdw_truhlar_vals = van_der_waals_radii(ctx, "truhlar");
+    auto vdw_rahm_vals = van_der_waals_radii_from_polarizabilities(ctx.AtomicNumbers(), alp_vals, "rahm");
+    auto vdw_truhlar_vals = van_der_waals_radii_from_polarizabilities(ctx.AtomicNumbers(), alp_vals, "truhlar");
 
     // Build columns as [column][atom] of std::optional<double>
     // Column order MUST match schema: cn_erf, cn_cov, cn_exp, prox, eeq, alp, vdw_rahm, vdw_truhlar
