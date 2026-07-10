@@ -160,6 +160,7 @@ set(OEFP_SOURCES
     src/descriptor_value.cpp
     src/fingerprint.cpp
     src/input_normalization.cpp
+    src/kallisto_data.cpp
     src/metric.cpp
     src/molecular_properties.cpp
     src/mordred.cpp
