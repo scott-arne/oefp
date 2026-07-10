@@ -16,8 +16,10 @@ import pytest
 # OEFP binding must be importable (fail-closed, not skip-on-missing)
 from oefp import (
     kallisto_atom_descriptors,
+    kallisto_atom_descriptors_batch,
     kallisto_atom_schema,
     kallisto_bond_descriptors,
+    kallisto_bond_descriptors_batch,
     kallisto_bond_schema,
     sterimol,
 )
@@ -579,3 +581,209 @@ def test_sterimol_function() -> None:
     # Test ineligible call
     result_bad = sterimol(mol, 999, 1000)
     assert result_bad is None
+
+
+@pytest.mark.skipif(not HAS_OPENEYE, reason="OpenEye not available")
+def test_kallisto_atom_descriptors_batch() -> None:
+    """Verify atom descriptor batch with valid, skipped, valid molecules."""
+    # Create 3 molecules: valid 3D, skipped (2D), valid 3D
+    mol_valid_1 = oechem.OEGraphMol()
+    mol_valid_1.SetDimension(3)
+    # Simple 3-atom chain
+    atoms_1 = []
+    for i in range(3):
+        atom = mol_valid_1.NewAtom(6)  # Carbon
+        mol_valid_1.SetCoords(atom, [float(i), 0.0, 0.0])
+        atoms_1.append(atom)
+    mol_valid_1.NewBond(atoms_1[0], atoms_1[1])
+    mol_valid_1.NewBond(atoms_1[1], atoms_1[2])
+
+    mol_skipped = oechem.OEGraphMol()
+    oechem.OESmilesToMol(mol_skipped, "CCN")  # 2D, no coords
+
+    mol_valid_2 = oechem.OEGraphMol()
+    mol_valid_2.SetDimension(3)
+    # Simple 2-atom chain
+    atoms_2 = []
+    for i in range(2):
+        atom = mol_valid_2.NewAtom(6)  # Carbon
+        mol_valid_2.SetCoords(atom, [float(i), 0.0, 0.0])
+        atoms_2.append(atom)
+    mol_valid_2.NewBond(atoms_2[0], atoms_2[1])
+
+    # Compute batch
+    mols = [mol_valid_1, mol_skipped, mol_valid_2]
+    batch = kallisto_atom_descriptors_batch(mols)
+
+    # Check batch size
+    assert len(batch) == 3
+    assert batch.Size() == 3
+
+    # Segment 0: valid molecule → should match single-molecule result
+    result_single_0 = kallisto_atom_descriptors(mol_valid_1)
+    segment_0 = batch[0]
+
+    assert len(segment_0["cn_erf"]) == result_single_0.atom_count
+    assert len(segment_0["atom_indices"]) == result_single_0.atom_count
+    np.testing.assert_array_equal(segment_0["atom_indices"], result_single_0.atom_indices)
+
+    # Check all columns match
+    column_names = ["cn_erf", "cn_cov", "cn_exp", "prox", "eeq", "alp", "vdw_rahm", "vdw_truhlar"]
+    for col in column_names:
+        np.testing.assert_array_equal(
+            segment_0[col], result_single_0[col],
+            err_msg=f"Segment 0 {col} should match single-molecule result"
+        )
+        # Check validity matches
+        np.testing.assert_array_equal(
+            segment_0["validity"][col], result_single_0.validity[col],
+            err_msg=f"Segment 0 validity[{col}] should match single-molecule result"
+        )
+
+    # Segment 1: skipped molecule → empty arrays
+    segment_1 = batch[1]
+    assert len(segment_1["cn_erf"]) == 0
+    assert len(segment_1["atom_indices"]) == 0
+    for col in column_names:
+        assert len(segment_1[col]) == 0
+        assert len(segment_1["validity"][col]) == 0
+
+    # Segment 2: valid molecule → should match single-molecule result
+    result_single_2 = kallisto_atom_descriptors(mol_valid_2)
+    segment_2 = batch[2]
+
+    assert len(segment_2["cn_erf"]) == result_single_2.atom_count
+    assert len(segment_2["atom_indices"]) == result_single_2.atom_count
+    np.testing.assert_array_equal(segment_2["atom_indices"], result_single_2.atom_indices)
+
+    for col in column_names:
+        np.testing.assert_array_equal(
+            segment_2[col], result_single_2[col],
+            err_msg=f"Segment 2 {col} should match single-molecule result"
+        )
+        np.testing.assert_array_equal(
+            segment_2["validity"][col], result_single_2.validity[col],
+            err_msg=f"Segment 2 validity[{col}] should match single-molecule result"
+        )
+
+
+@pytest.mark.skipif(not HAS_OPENEYE, reason="OpenEye not available")
+def test_kallisto_bond_descriptors_batch() -> None:
+    """Verify bond descriptor batch with valid, skipped, valid molecules."""
+    # Create 3 molecules: valid 3D, skipped (2D), valid 3D
+    mol_valid_1 = oechem.OEGraphMol()
+    mol_valid_1.SetDimension(3)
+    # Simple 3-atom chain
+    atoms_1 = []
+    for i in range(3):
+        atom = mol_valid_1.NewAtom(6)  # Carbon
+        mol_valid_1.SetCoords(atom, [float(i), 0.0, 0.0])
+        atoms_1.append(atom)
+    mol_valid_1.NewBond(atoms_1[0], atoms_1[1])
+    mol_valid_1.NewBond(atoms_1[1], atoms_1[2])
+
+    mol_skipped = oechem.OEGraphMol()
+    oechem.OESmilesToMol(mol_skipped, "CCN")  # 2D, no coords
+
+    mol_valid_2 = oechem.OEGraphMol()
+    mol_valid_2.SetDimension(3)
+    # Simple 2-atom chain
+    atoms_2 = []
+    for i in range(2):
+        atom = mol_valid_2.NewAtom(6)  # Carbon
+        mol_valid_2.SetCoords(atom, [float(i), 0.0, 0.0])
+        atoms_2.append(atom)
+    mol_valid_2.NewBond(atoms_2[0], atoms_2[1])
+
+    # Compute batch
+    mols = [mol_valid_1, mol_skipped, mol_valid_2]
+    batch = kallisto_bond_descriptors_batch(mols)
+
+    # Check batch size
+    assert len(batch) == 3
+    assert batch.Size() == 3
+
+    # Segment 0: valid molecule → should match single-molecule result
+    result_single_0 = kallisto_bond_descriptors(mol_valid_1)
+    segment_0 = batch[0]
+
+    assert len(segment_0["sterimol_L"]) == result_single_0.bond_count
+    assert len(segment_0["begin"]) == result_single_0.bond_count
+    assert len(segment_0["end"]) == result_single_0.bond_count
+    np.testing.assert_array_equal(segment_0["begin"], result_single_0.begin)
+    np.testing.assert_array_equal(segment_0["end"], result_single_0.end)
+
+    # Check all columns match
+    column_names = ["sterimol_L", "sterimol_B1", "sterimol_B5"]
+    for col in column_names:
+        np.testing.assert_array_equal(
+            segment_0[col], result_single_0[col],
+            err_msg=f"Segment 0 {col} should match single-molecule result"
+        )
+        np.testing.assert_array_equal(
+            segment_0["validity"][col], result_single_0.validity[col],
+            err_msg=f"Segment 0 validity[{col}] should match single-molecule result"
+        )
+
+    # Segment 1: skipped molecule → empty arrays
+    segment_1 = batch[1]
+    assert len(segment_1["sterimol_L"]) == 0
+    assert len(segment_1["begin"]) == 0
+    assert len(segment_1["end"]) == 0
+    for col in column_names:
+        assert len(segment_1[col]) == 0
+        assert len(segment_1["validity"][col]) == 0
+
+    # Segment 2: valid molecule → should match single-molecule result
+    result_single_2 = kallisto_bond_descriptors(mol_valid_2)
+    segment_2 = batch[2]
+
+    assert len(segment_2["sterimol_L"]) == result_single_2.bond_count
+    assert len(segment_2["begin"]) == result_single_2.bond_count
+    assert len(segment_2["end"]) == result_single_2.bond_count
+    np.testing.assert_array_equal(segment_2["begin"], result_single_2.begin)
+    np.testing.assert_array_equal(segment_2["end"], result_single_2.end)
+
+    for col in column_names:
+        np.testing.assert_array_equal(
+            segment_2[col], result_single_2[col],
+            err_msg=f"Segment 2 {col} should match single-molecule result"
+        )
+        np.testing.assert_array_equal(
+            segment_2["validity"][col], result_single_2.validity[col],
+            err_msg=f"Segment 2 validity[{col}] should match single-molecule result"
+        )
+
+
+@pytest.mark.skipif(not HAS_OPENEYE, reason="OpenEye not available")
+def test_kallisto_batch_threaded_smoke() -> None:
+    """Verify batch functions run without error (GIL-released smoke test)."""
+    # Create a few valid 3D molecules
+    mols = []
+    for n_atoms in [3, 2, 4, 5]:
+        mol = oechem.OEGraphMol()
+        mol.SetDimension(3)
+        atoms = []
+        for i in range(n_atoms):
+            atom = mol.NewAtom(6)  # Carbon
+            mol.SetCoords(atom, [float(i), 0.0, 0.0])
+            atoms.append(atom)
+        for i in range(n_atoms - 1):
+            mol.NewBond(atoms[i], atoms[i + 1])
+        mols.append(mol)
+
+    # Call batch functions (GIL is released in the native trampoline)
+    atom_batch = kallisto_atom_descriptors_batch(mols)
+    assert len(atom_batch) == 4
+
+    bond_batch = kallisto_bond_descriptors_batch(mols)
+    assert len(bond_batch) == 4
+
+    # Verify all segments are non-empty (all molecules are valid 3D)
+    for i in range(4):
+        atom_seg = atom_batch[i]
+        assert len(atom_seg["cn_erf"]) > 0
+
+        bond_seg = bond_batch[i]
+        # Sterimol may be empty if no acyclic bonds, but the segment should exist
+        assert "sterimol_L" in bond_seg

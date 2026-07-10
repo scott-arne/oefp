@@ -4052,6 +4052,267 @@ def kallisto_bond_descriptors(mol: Any) -> KallistoBondDescriptors:
     )
 
 
+class KallistoAtomDescriptorsBatch:
+    """Per-atom kallisto descriptors for multiple molecules.
+
+    A multi-segment batch where each segment corresponds to one molecule's
+    per-atom descriptor arrays. Molecules that do not satisfy the prerequisites
+    (3D coordinates, Z <= 86) are represented as empty segments.
+
+    Segments are accessible via indexing (e.g., ``batch[0]``) and return a
+    dictionary of per-atom arrays for that molecule: descriptor columns,
+    validity masks, and atom_indices.
+
+    :ivar batch: Native batch object (held for lifetime and zero-copy views).
+    """
+
+    def __init__(self, batch: Any):
+        self._batch = batch
+        self._size = batch.Size()
+        self._column_names = _native.KallistoAtomColumnNames()
+
+    def __len__(self) -> int:
+        """Return the number of molecules in the batch."""
+        return self._size
+
+    def Size(self) -> int:
+        """Return the number of molecules in the batch."""
+        return self._size
+
+    def __getitem__(self, segment_idx: int) -> dict[str, np.ndarray]:
+        """Return per-atom arrays for molecule segment_idx.
+
+        :param segment_idx: Molecule index in the batch.
+        :returns: Dictionary with keys:
+            - Per-column float64 arrays (e.g., "cn_erf")
+            - "validity": dict of column_name -> bool array
+            - "atom_indices": uint32 array of OpenEye GetIdx values
+        """
+        if segment_idx < 0 or segment_idx >= self._size:
+            raise IndexError(f"Segment index {segment_idx} out of range [0, {self._size})")
+
+        # Get the row offsets (CSR-style: Size()+1 uint64 offsets)
+        row_offset_addr = self._batch.RowOffsetDataAddress()
+        row_offsets = readonly_array_from_address(
+            self._batch, row_offset_addr, (self._size + 1,), np.uint64
+        )
+
+        start = int(row_offsets[segment_idx])
+        end = int(row_offsets[segment_idx + 1])
+        atom_count = end - start
+
+        # Empty segment (ineligible molecule)
+        if atom_count == 0:
+            empty_columns = {name: np.array([], dtype=np.float64) for name in self._column_names}
+            empty_validity = {name: np.array([], dtype=bool) for name in self._column_names}
+            return {
+                **empty_columns,
+                "validity": empty_validity,
+                "atom_indices": np.array([], dtype=np.uint32),
+            }
+
+        # Read columns (sliced from the flat batch arrays)
+        columns = {}
+        validity = {}
+
+        for i, name in enumerate(self._column_names):
+            # Read value array (full flat array, then slice)
+            value_addr = self._batch.ColumnDataAddress(i)
+            flat_values = readonly_array_from_address(
+                self._batch, value_addr, (end,), np.float64
+            )
+            columns[name] = flat_values[start:end]
+
+            # Read validity array
+            validity_addr = self._batch.ColumnValidityAddress(i)
+            flat_validity_u8 = readonly_array_from_address(
+                self._batch, validity_addr, (end,), np.uint8
+            )
+            validity[name] = flat_validity_u8[start:end].astype(bool)
+
+        # Read atom indices
+        atom_index_addr = self._batch.AtomIndexDataAddress()
+        flat_atom_indices = readonly_array_from_address(
+            self._batch, atom_index_addr, (end,), np.uint32
+        )
+        atom_indices = flat_atom_indices[start:end]
+
+        return {
+            **columns,
+            "validity": validity,
+            "atom_indices": atom_indices,
+        }
+
+
+def kallisto_atom_descriptors_batch(
+    mols: Sequence[Any], charge: int | None = None
+) -> KallistoAtomDescriptorsBatch:
+    """Compute kallisto atom descriptors for multiple molecules.
+
+    Computes coordination numbers, proximity shells, and EEQ charges for all
+    atoms in each molecule. Molecules that do not satisfy prerequisites (3D
+    coordinates, Z <= 86) are represented as empty segments in the batch.
+
+    :param mols: Sequence of OpenEye molecules (OEMolBase).
+    :param charge: Optional override for molecular charge (defaults to formal charge).
+    :returns: KallistoAtomDescriptorsBatch with per-molecule segments.
+
+    Example:
+
+        >>> from openeye import oechem
+        >>> from oefp import kallisto_atom_descriptors_batch
+        >>> mols = [oechem.OEGraphMol(), oechem.OEGraphMol()]
+        >>> for mol in mols:
+        ...     oechem.OESmilesToMol(mol, "CC")
+        ...     oechem.OEAddExplicitHydrogens(mol)
+        ...     oechem.OEGenerate3DCoordinates(mol)
+        >>> batch = kallisto_atom_descriptors_batch(mols)
+        >>> len(batch)
+        2
+        >>> segment_0 = batch[0]
+        >>> segment_0["cn_erf"]
+        array([...])
+    """
+    if charge is not None:
+        native_batch = _native.KallistoAtomDescriptorCalculateBatch(mols, int(charge))
+    else:
+        native_batch = _native.KallistoAtomDescriptorCalculateBatch(mols)
+
+    return KallistoAtomDescriptorsBatch(native_batch)
+
+
+class KallistoBondDescriptorsBatch:
+    """Per-bond kallisto descriptors for multiple molecules.
+
+    A multi-segment batch where each segment corresponds to one molecule's
+    per-bond descriptor arrays. Molecules that do not satisfy the prerequisites
+    (3D coordinates, Z <= 86) are represented as empty segments.
+
+    Segments are accessible via indexing (e.g., ``batch[0]``) and return a
+    dictionary of per-bond arrays for that molecule: descriptor columns,
+    validity masks, bond begin/end indices.
+
+    :ivar batch: Native batch object (held for lifetime and zero-copy views).
+    """
+
+    def __init__(self, batch: Any):
+        self._batch = batch
+        self._size = batch.Size()
+        self._column_names = _native.KallistoBondColumnNames()
+
+    def __len__(self) -> int:
+        """Return the number of molecules in the batch."""
+        return self._size
+
+    def Size(self) -> int:
+        """Return the number of molecules in the batch."""
+        return self._size
+
+    def __getitem__(self, segment_idx: int) -> dict[str, np.ndarray]:
+        """Return per-bond arrays for molecule segment_idx.
+
+        :param segment_idx: Molecule index in the batch.
+        :returns: Dictionary with keys:
+            - Per-column float64 arrays (e.g., "sterimol_L")
+            - "validity": dict of column_name -> bool array
+            - "begin": uint32 array of bond begin atom indices (GetIdx)
+            - "end": uint32 array of bond end atom indices (GetIdx)
+        """
+        if segment_idx < 0 or segment_idx >= self._size:
+            raise IndexError(f"Segment index {segment_idx} out of range [0, {self._size})")
+
+        # Get the row offsets (CSR-style: Size()+1 uint64 offsets)
+        row_offset_addr = self._batch.RowOffsetDataAddress()
+        row_offsets = readonly_array_from_address(
+            self._batch, row_offset_addr, (self._size + 1,), np.uint64
+        )
+
+        start = int(row_offsets[segment_idx])
+        end = int(row_offsets[segment_idx + 1])
+        bond_count = end - start
+
+        # Empty segment (ineligible molecule)
+        if bond_count == 0:
+            empty_columns = {name: np.array([], dtype=np.float64) for name in self._column_names}
+            empty_validity = {name: np.array([], dtype=bool) for name in self._column_names}
+            return {
+                **empty_columns,
+                "validity": empty_validity,
+                "begin": np.array([], dtype=np.uint32),
+                "end": np.array([], dtype=np.uint32),
+            }
+
+        # Read columns (sliced from the flat batch arrays)
+        columns = {}
+        validity = {}
+
+        for i, name in enumerate(self._column_names):
+            # Read value array (full flat array, then slice)
+            value_addr = self._batch.ColumnDataAddress(i)
+            flat_values = readonly_array_from_address(
+                self._batch, value_addr, (end,), np.float64
+            )
+            columns[name] = flat_values[start:end]
+
+            # Read validity array
+            validity_addr = self._batch.ColumnValidityAddress(i)
+            flat_validity_u8 = readonly_array_from_address(
+                self._batch, validity_addr, (end,), np.uint8
+            )
+            validity[name] = flat_validity_u8[start:end].astype(bool)
+
+        # Read bond begin/end indices
+        begin_addr = self._batch.BondBeginDataAddress()
+        flat_begin = readonly_array_from_address(
+            self._batch, begin_addr, (end,), np.uint32
+        )
+        begin = flat_begin[start:end]
+
+        end_addr = self._batch.BondEndDataAddress()
+        flat_end = readonly_array_from_address(
+            self._batch, end_addr, (end,), np.uint32
+        )
+        end_array = flat_end[start:end]
+
+        return {
+            **columns,
+            "validity": validity,
+            "begin": begin,
+            "end": end_array,
+        }
+
+
+def kallisto_bond_descriptors_batch(mols: Sequence[Any]) -> KallistoBondDescriptorsBatch:
+    """Compute kallisto bond descriptors for multiple molecules.
+
+    Computes Sterimol steric parameters for all acyclic directed bonds (both
+    directions) in each molecule. Ring bonds are excluded. Molecules that do
+    not satisfy prerequisites (3D coordinates, Z <= 86) are represented as
+    empty segments in the batch.
+
+    :param mols: Sequence of OpenEye molecules (OEMolBase).
+    :returns: KallistoBondDescriptorsBatch with per-molecule segments.
+
+    Example:
+
+        >>> from openeye import oechem
+        >>> from oefp import kallisto_bond_descriptors_batch
+        >>> mols = [oechem.OEGraphMol(), oechem.OEGraphMol()]
+        >>> for mol in mols:
+        ...     oechem.OESmilesToMol(mol, "CC")
+        ...     oechem.OEAddExplicitHydrogens(mol)
+        ...     oechem.OEGenerate3DCoordinates(mol)
+        >>> batch = kallisto_bond_descriptors_batch(mols)
+        >>> len(batch)
+        2
+        >>> segment_0 = batch[0]
+        >>> segment_0["sterimol_L"]
+        array([...])
+    """
+    native_batch = _native.KallistoBondDescriptorCalculateBatch(mols)
+    return KallistoBondDescriptorsBatch(native_batch)
+
+
 @dataclass(frozen=True)
 class Sterimol:
     """Sterimol steric parameters for a directed bond.
