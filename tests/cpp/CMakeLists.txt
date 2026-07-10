@@ -31,6 +31,7 @@ add_executable(oefp_tests
     test_fingerprint.cpp
     test_input_normalization.cpp
     test_kallisto_data.cpp
+    test_kallisto_geometry.cpp
     test_metric.cpp
     test_molecular_properties.cpp
     test_mordred.cpp

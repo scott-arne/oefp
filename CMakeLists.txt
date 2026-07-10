@@ -162,6 +162,7 @@ set(OEFP_SOURCES
     src/fingerprint.cpp
     src/input_normalization.cpp
     src/kallisto_data.cpp
+    src/kallisto_geometry.cpp
     src/metric.cpp
     src/molecular_properties.cpp
     src/mordred.cpp
