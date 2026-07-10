@@ -3692,15 +3692,13 @@ def to_openeye_fingerprint(fp: OEFP) -> Any:
     return exported
 
 
-@dataclass
 class KallistoAtomDescriptors:
     """Per-atom kallisto descriptors for a single molecule.
 
-    :ivar cn_erf: Error-function coordination numbers.
-    :ivar cn_cov: Covalent coordination numbers (electronegativity-weighted).
-    :ivar cn_exp: Exponential coordination numbers.
-    :ivar prox: Proximity shell difference (scale 2-3).
-    :ivar eeq: EEQ atomic partial charges (electronegativity equilibration).
+    Columns are accessible via both attribute access (e.g., ``result.cn_erf``)
+    and mapping access (e.g., ``result["cn_erf"]``). The set of available columns
+    grows automatically as native schema columns are added.
+
     :ivar validity: Per-column validity masks (dict of column_name -> bool array).
     :ivar atom_count: Number of atoms.
     :ivar atom_indices: Read-only array of OpenEye atom indices (GetIdx) parallel
@@ -3709,14 +3707,48 @@ class KallistoAtomDescriptors:
         than forcing a 0..N-1 labeling.
     """
 
-    cn_erf: np.ndarray
-    cn_cov: np.ndarray
-    cn_exp: np.ndarray
-    prox: np.ndarray
-    eeq: np.ndarray
-    validity: dict[str, np.ndarray]
-    atom_count: int
-    atom_indices: np.ndarray
+    def __init__(
+        self,
+        columns: dict[str, np.ndarray],
+        validity: dict[str, np.ndarray],
+        atom_count: int,
+        atom_indices: np.ndarray,
+    ):
+        self._columns = columns
+        self.validity = validity
+        self.atom_count = atom_count
+        self.atom_indices = atom_indices
+
+    def __getitem__(self, name: str) -> np.ndarray:
+        """Return a descriptor column by name.
+
+        :param name: Column name (e.g., "cn_erf").
+        :returns: NumPy array of descriptor values.
+        :raises KeyError: When the column name is not present.
+        """
+        return self._columns[name]
+
+    def __getattr__(self, name: str) -> np.ndarray:
+        """Return a descriptor column by attribute access.
+
+        :param name: Column name (e.g., "cn_erf").
+        :returns: NumPy array of descriptor values.
+        :raises AttributeError: When the column name is not present.
+        """
+        if name.startswith("_"):
+            raise AttributeError(f"No attribute {name!r}")
+        try:
+            return self._columns[name]
+        except KeyError:
+            raise AttributeError(f"No descriptor column {name!r}") from None
+
+    @property
+    def column_names(self) -> tuple[str, ...]:
+        """Return the names of all available columns.
+
+        :returns: Tuple of column names in the order returned by the native schema.
+        """
+        return tuple(self._columns.keys())
 
 
 def kallisto_atom_schema() -> DescriptorSchema:
@@ -3799,19 +3831,11 @@ def kallisto_atom_descriptors(mol: Any, charge: int | None = None) -> KallistoAt
 
     # Empty result for ineligible molecules
     if atom_count == 0:
+        empty_columns = {name: np.array([], dtype=np.float64) for name in column_names}
+        empty_validity = {name: np.array([], dtype=bool) for name in column_names}
         return KallistoAtomDescriptors(
-            cn_erf=np.array([], dtype=np.float64),
-            cn_cov=np.array([], dtype=np.float64),
-            cn_exp=np.array([], dtype=np.float64),
-            prox=np.array([], dtype=np.float64),
-            eeq=np.array([], dtype=np.float64),
-            validity={
-                "cn_erf": np.array([], dtype=bool),
-                "cn_cov": np.array([], dtype=bool),
-                "cn_exp": np.array([], dtype=bool),
-                "prox": np.array([], dtype=bool),
-                "eeq": np.array([], dtype=bool),
-            },
+            columns=empty_columns,
+            validity=empty_validity,
             atom_count=0,
             atom_indices=np.array([], dtype=np.uint32),
         )
@@ -3841,7 +3865,7 @@ def kallisto_atom_descriptors(mol: Any, charge: int | None = None) -> KallistoAt
     )
 
     return KallistoAtomDescriptors(
-        **columns,
+        columns=columns,
         validity=validity,
         atom_count=atom_count,
         atom_indices=atom_indices,

@@ -278,6 +278,15 @@ std::vector<double> eeq_charges(const KallistoGeometryContext& ctx) {
     // Drop the Lagrange multiplier (last element)
     std::vector<double> qs = solution.value();
     qs.resize(nat);
+
+    // Guard against non-finite charges (degenerate geometry → NaN/inf in solution)
+    // For example: two atoms at identical coordinates → r=0 → erf(0)/0 = NaN
+    for (const double charge : qs) {
+        if (!std::isfinite(charge)) {
+            return std::vector<double>{};
+        }
+    }
+
     return qs;
 }
 

@@ -259,11 +259,11 @@ def test_kallisto_atom_descriptors_ineligible() -> None:
     oechem.OESmilesToMol(mol_2d, "CCO")
     result_2d = kallisto_atom_descriptors(mol_2d)
     assert result_2d.atom_count == 0
-    assert len(result_2d.cn_erf) == 0
-    assert len(result_2d.cn_cov) == 0
-    assert len(result_2d.cn_exp) == 0
-    assert len(result_2d.prox) == 0
-    assert len(result_2d.eeq) == 0
+    assert len(result_2d["cn_erf"]) == 0
+    assert len(result_2d["cn_cov"]) == 0
+    assert len(result_2d["cn_exp"]) == 0
+    assert len(result_2d["prox"]) == 0
+    assert len(result_2d["eeq"]) == 0
 
     # Test 2: Molecule with Z > 86 (francium Z=87)
     mol_heavy = oechem.OEGraphMol()
@@ -274,11 +274,11 @@ def test_kallisto_atom_descriptors_ineligible() -> None:
 
     result_heavy = kallisto_atom_descriptors(mol_heavy)
     assert result_heavy.atom_count == 0
-    assert len(result_heavy.cn_erf) == 0
-    assert len(result_heavy.cn_cov) == 0
-    assert len(result_heavy.cn_exp) == 0
-    assert len(result_heavy.prox) == 0
-    assert len(result_heavy.eeq) == 0
+    assert len(result_heavy["cn_erf"]) == 0
+    assert len(result_heavy["cn_cov"]) == 0
+    assert len(result_heavy["cn_exp"]) == 0
+    assert len(result_heavy["prox"]) == 0
+    assert len(result_heavy["eeq"]) == 0
 
 
 @pytest.mark.skipif(not HAS_OPENEYE, reason="OpenEye not available")
@@ -339,3 +339,44 @@ def test_kallisto_atom_descriptors_noncontiguous_indices() -> None:
         expected_indices,
         err_msg="atom_indices should preserve OpenEye GetIdx [0,1,3,4], not renumber to [0,1,2,3]"
     )
+
+
+@pytest.mark.skipif(not HAS_OPENEYE, reason="OpenEye not available")
+def test_kallisto_eeq_overlapping_coordinates() -> None:
+    """Verify EEQ emits missing values (not NaN) for degenerate geometry.
+
+    When two atoms occupy identical coordinates (r=0), the EEQ matrix assembly
+    contains NaN terms (erf(0)/0 = NaN). The native code must detect this and
+    emit the eeq column as all-missing rather than valid-looking NaN charges.
+    """
+    # Build a molecule with two carbon atoms at IDENTICAL 3D coordinates
+    mol = oechem.OEGraphMol()
+    mol.SetDimension(3)
+
+    # Create two carbon atoms at the SAME position
+    atom1 = mol.NewAtom(6)  # Carbon
+    atom2 = mol.NewAtom(6)  # Carbon
+    identical_coords = [0.0, 0.0, 0.0]
+    mol.SetCoords(atom1, identical_coords)
+    mol.SetCoords(atom2, identical_coords)
+
+    # Compute kallisto atom descriptors
+    result = kallisto_atom_descriptors(mol)
+
+    # Should have 2 atoms
+    assert result.atom_count == 2
+
+    # CN/prox may still have values (they don't break on r=0 the same way),
+    # but EEQ must be marked as all-missing
+    eeq_validity = result.validity["eeq"]
+    assert len(eeq_validity) == 2
+    assert not np.any(eeq_validity), \
+        "EEQ should be all-missing for overlapping coordinates, not valid NaN"
+
+    # Verify no present value is NaN (all values should be marked invalid)
+    eeq_vals = result["eeq"]
+    for i in range(2):
+        if eeq_validity[i]:
+            # If somehow marked valid, verify it's not NaN
+            assert np.isfinite(eeq_vals[i]), \
+                f"EEQ value {i} is marked valid but contains NaN/inf"
