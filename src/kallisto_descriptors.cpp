@@ -1,3 +1,7 @@
+// Kallisto atom/bond descriptor algorithms ported from kallisto (Apache 2.0).
+// AstraZeneca; Caldeweyher, Meli, Pracht.
+// See THIRD_PARTY_NOTICES for license details.
+
 #include "oefp/kallisto_descriptors.h"
 #include "oefp/kallisto_data.h"
 #include "oefp/atom_descriptor.h"

@@ -3,12 +3,13 @@
 kallisto (Apache 2.0, AstraZeneca; Caldeweyher, Meli, Pracht) atomic parameter
 tables ported verbatim for use in OEFP (MIT). This script imports kallisto's
 data module and emits C++ constexpr arrays in namespace OEFP::kallisto.
+
+See THIRD_PARTY_NOTICES for kallisto license details.
 """
 
 from __future__ import annotations
 
 import argparse
-import sys
 from pathlib import Path
 from typing import Any
 
@@ -112,7 +113,7 @@ def _generate_cpp_data(output: Path) -> None:
         "namespace OEFP {",
         "namespace kallisto {",
         "",
-        f"// BOHR_RADIUS_ANGSTROM is defined inline in the header",
+        "// BOHR_RADIUS_ANGSTROM is defined inline in the header",
         "",
     ]
 

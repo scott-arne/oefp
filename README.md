@@ -258,6 +258,75 @@ combined = batch + batch
 print(combined.size)
 ```
 
+Work with kallisto atom and bond descriptors:
+
+```python
+from openeye import oechem
+import oefp
+
+# Load a molecule with pre-existing 3D coordinates.
+mol = oechem.OEGraphMol()
+ifs = oechem.oemolistream("tests/data/kallisto_panel/ethane.sdf")
+oechem.OEReadMolecule(ifs, mol)
+
+# Compute per-atom descriptors: coordination numbers (cn_erf, cn_cov, cn_exp),
+# proximity (prox), EEQ partial charge (eeq), dynamic polarizability (alp),
+# and van der Waals radii (vdw_rahm, vdw_truhlar).
+atom_result = oefp.kallisto_atom_descriptors(mol)
+print(atom_result.atom_count)  # 8 atoms in ethane
+print(atom_result["eeq"])  # Array of EEQ partial charges in atomic units (e)
+print(atom_result["cn_erf"])  # erf coordination numbers (dimensionless)
+print(atom_result.eeq)  # Column access via attribute
+
+# Compute per-bond descriptors: Sterimol L/B1/B5 (bond length and cross-sections).
+bond_result = oefp.kallisto_bond_descriptors(mol)
+print(bond_result.bond_count)  # 14 directed bonds in ethane
+print(bond_result["sterimol_L"])  # Sterimol L values in Bohr
+
+# Access schema information.
+atom_schema = oefp.kallisto_atom_schema()
+bond_schema = oefp.kallisto_bond_schema()
+print(atom_schema.names)  # ('cn_erf', 'cn_cov', 'cn_exp', 'prox', 'eeq', 'alp', 'vdw_rahm', 'vdw_truhlar')
+print(bond_schema.names)  # ('sterimol_L', 'sterimol_B1', 'sterimol_B5')
+
+# Compute Sterimol for a specific bond (origin and partner are atom indices).
+origin = 0  # First carbon in ethane
+partner = 1  # Second carbon in ethane
+L, B1, B5 = oefp.sterimol(mol, origin, partner)
+print(f"Sterimol L={L:.3f} B1={B1:.3f} B5={B5:.3f}")  # Values in Bohr
+
+# Batch compute for multiple molecules.
+mols = []
+for sdf_name in ["methane.sdf", "ethane.sdf", "methanethiol.sdf"]:
+    m = oechem.OEGraphMol()
+    ifs = oechem.oemolistream(f"tests/data/kallisto_panel/{sdf_name}")
+    oechem.OEReadMolecule(ifs, m)
+    mols.append(m)
+
+atom_batch = oefp.kallisto_atom_descriptors_batch(mols)
+bond_batch = oefp.kallisto_bond_descriptors_batch(mols)
+print(len(atom_batch))  # 3 segments (one per molecule)
+print(len(atom_batch[0]["eeq"]))  # 5 atoms in methane
+print(len(bond_batch[1]["sterimol_L"]))  # 14 directed bonds in ethane
+```
+
+Kallisto atom and bond descriptors require molecules with pre-existing 3D
+coordinates. OEFP never generates coordinates; if a molecule lacks 3D
+coordinates or contains any atom with atomic number greater than 86, that
+molecule is skipped and yields an empty result for both atom and bond
+descriptors.
+
+All descriptor values are returned in kallisto's native atomic units:
+- Coordination numbers (cn_erf, cn_cov, cn_exp) and proximity (prox) are dimensionless
+- EEQ partial charges (eeq) are in elementary charge units (e)
+- Dynamic polarizabilities (alp) are in cubic Bohr (Bohr^3)
+- van der Waals radii (vdw_rahm, vdw_truhlar) and Sterimol parameters (L, B1, B5) are in Bohr
+
+The kallisto port reproduces kallisto 1.0.10 parameter tables and numeric
+methods. kallisto is used as a test-time conformance oracle only and is not a
+runtime dependency of OEFP. For more information about kallisto, see
+https://github.com/AstraZeneca/kallisto
+
 ### C++
 
 ```cpp
@@ -299,6 +368,7 @@ int main() {
 | Distance Atom Pair | Reserved | Requires existing 3D coordinates and is not implemented yet |
 | Mordred-compatible | Schema-backed named descriptor rows | Full Mordred 1.2.0 schema with implemented values filled and unsupported or unavailable values left missing |
 | RDKit-compatible | Schema-backed named descriptor rows | 213 of RDKit's 2D descriptors reproduced natively and matched to RDKit within tolerance |
+| Kallisto atom and bond | Per-atom and per-bond geometric descriptors | Coordination numbers, EEQ partial charges, dynamic polarizabilities, van der Waals radii, and Sterimol parameters; requires pre-existing 3D coordinates |
 
 Morgan supports both ECFP-style and FCFP-style pharfingerprints
 via `use_features=True` (Donor, Acceptor, Aromatic, Halogen, Basic, Acidic), 

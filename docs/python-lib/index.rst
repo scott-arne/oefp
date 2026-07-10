@@ -769,6 +769,113 @@ Mordred-Compatible Descriptors
       mw = batch.float_column("MW")
       geom_present = batch.column_validity("GeomDiameter")
 
+Kallisto Atom and Bond Descriptors
+-----------------------------------
+
+OEFP provides kallisto-compatible per-atom and per-bond geometric descriptors
+ported from kallisto 1.0.10 (AstraZeneca, Apache 2.0). These descriptors
+require molecules with pre-existing 3D coordinates and cover elements with
+atomic number 1 through 86.
+
+Atom descriptors include:
+
+- Coordination numbers: ``cn_erf``, ``cn_cov``, ``cn_exp``
+- Proximity: ``prox``
+- EEQ atomic partial charges: ``eeq``
+- Dynamic polarizabilities: ``alp``
+- van der Waals radii: ``vdw_rahm``, ``vdw_truhlar``
+
+Bond descriptors include Sterimol parameters:
+
+- ``sterimol_L``: Bond length parameter
+- ``sterimol_B1``: Minimum width
+- ``sterimol_B5``: Maximum width
+
+All descriptor values use kallisto's native atomic units: coordination numbers
+and proximity are dimensionless, partial charges are in elementary charge units
+(e), polarizabilities are in cubic Bohr, and radii and Sterimol values are in
+Bohr.
+
+.. function:: kallisto_atom_schema()
+
+   Return the kallisto atom descriptor schema with 8 descriptors.
+
+.. function:: kallisto_bond_schema()
+
+   Return the kallisto bond descriptor schema with 3 Sterimol descriptors.
+
+.. function:: kallisto_atom_descriptors(mol)
+
+   Compute per-atom descriptors for a molecule with pre-existing 3D
+   coordinates.
+
+   Returns a :class:`KallistoAtomDescriptors` object with named column access.
+   If the molecule lacks 3D coordinates or contains any atom with Z > 86, the
+   result is empty.
+
+   Example::
+
+      from openeye import oechem
+      import oefp
+
+      mol = oechem.OEGraphMol()
+      ifs = oechem.oemolistream("ethane.sdf")
+      oechem.OEReadMolecule(ifs, mol)
+
+      result = oefp.kallisto_atom_descriptors(mol)
+      print(result.atom_count)  # 8 atoms
+      print(result["eeq"])      # Array of EEQ partial charges
+      print(result.cn_erf)      # Column access via attribute
+
+.. function:: kallisto_bond_descriptors(mol)
+
+   Compute per-bond Sterimol descriptors for a molecule with pre-existing 3D
+   coordinates.
+
+   Returns a :class:`KallistoBondDescriptors` object with named column access.
+   Bond descriptors are computed for all directed bonds (both orientations for
+   each undirected bond). If the molecule is not eligible, the result is empty.
+
+   Example::
+
+      result = oefp.kallisto_bond_descriptors(mol)
+      print(result.bond_count)     # 14 directed bonds in ethane
+      print(result["sterimol_L"])  # Sterimol L values in Bohr
+
+.. function:: sterimol(mol, origin, partner)
+
+   Compute Sterimol L/B1/B5 for a specific bond defined by two atom indices.
+
+   :param mol: Input molecule with pre-existing 3D coordinates
+   :param origin: Origin atom index (from ``OEAtomBase.GetIdx()``)
+   :param partner: Partner atom index (from ``OEAtomBase.GetIdx()``)
+   :returns: Tuple ``(L, B1, B5)`` in Bohr
+
+   Example::
+
+      L, B1, B5 = oefp.sterimol(mol, 0, 1)
+      print(f"Sterimol L={L:.3f} B1={B1:.3f} B5={B5:.3f}")
+
+.. function:: kallisto_atom_descriptors_batch(mols)
+
+   Compute atom descriptors for multiple molecules. Returns a list of
+   descriptor dictionaries, one per molecule.
+
+   Example::
+
+      batch = oefp.kallisto_atom_descriptors_batch(mols)
+      print(len(batch))  # Number of molecules
+      print(len(batch[0]["eeq"]))  # Atom count for first molecule
+
+.. function:: kallisto_bond_descriptors_batch(mols)
+
+   Compute bond descriptors for multiple molecules. Returns a list of
+   descriptor dictionaries, one per molecule.
+
+OEFP uses kallisto as a test-time conformance oracle only; kallisto is not a
+runtime dependency. For more information about kallisto, see
+https://github.com/AstraZeneca/kallisto
+
 Mapping Results
 ---------------
 

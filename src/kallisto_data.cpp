@@ -5,6 +5,7 @@
 //   AstraZeneca; Caldeweyher, Meli, Pracht
 //   https://github.com/AstraZeneca/kallisto
 // kallisto version: 1.0.10
+// See THIRD_PARTY_NOTICES for license details.
 //
 // INDEXING CONVENTION:
 //   - All tables except chemical_symbols and vdw_* are indexed [Z-1]
