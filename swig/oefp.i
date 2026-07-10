@@ -799,26 +799,39 @@ std::shared_ptr<const ::OEFP::DescriptorSchema> RDKitDescriptorSchema() {
 
 // kallisto_descriptors.h: Same OEFP::OEFP collision pattern as RDKit above.
 // Ignore the namespaced free functions and provide global-scope trampolines.
-// Expose only AtomDescriptorBatch (renamed) with minimal methods for Python zero-copy read
+// Expose AtomDescriptorBatch and BondDescriptorBatch (renamed) with minimal methods for Python zero-copy read
 %ignore OEFP::AtomDescriptorSet;
 %ignore OEFP::BondDescriptorSet;
-%ignore OEFP::BondDescriptorBatch;
-// Ignore Append method (internal use only)
+// Ignore Append methods (internal use only)
 %ignore OEFP::AtomDescriptorBatch::Append;
+%ignore OEFP::BondDescriptorBatch::Append;
 %rename(_NativeAtomDescriptorBatch) OEFP::AtomDescriptorBatch;
+%rename(_NativeBondDescriptorBatch) OEFP::BondDescriptorBatch;
 %include "oefp/atom_descriptor.h"
 // Ignore all kallisto_descriptors.h content except what we expose via trampolines
 %ignore OEFP::coordination_numbers;
 %ignore OEFP::proximity_shells;
 %ignore OEFP::eeq_charges;
+%ignore OEFP::polarizabilities;
+%ignore OEFP::van_der_waals_radii;
 %ignore OEFP::KallistoAtomDescriptorSchema;
+%ignore OEFP::KallistoBondDescriptorSchema;
 %ignore OEFP::MakeKallistoAtomDescriptorBatch;
 %ignore OEFP::MakeKallistoAtomDescriptors;
+%ignore OEFP::MakeKallistoBondDescriptors;
+%ignore OEFP::KallistoSterimol;
+%ignore OEFP::Sterimol;
 %ignore OEFP::KallistoAtomDescriptorSource;
+%ignore OEFP::KallistoBondDescriptorSource;
 %include "oefp/kallisto_descriptors.h"
-// Apply GIL-release to the global trampoline (must appear before %inline)
+// Apply GIL-release to the global trampolines (must appear before %inline)
 OEFP_GIL_RELEASE_EXCEPTION(MakeKallistoAtomDescriptorBatch)
+OEFP_GIL_RELEASE_EXCEPTION(MakeKallistoBondDescriptorBatch)
+OEFP_GIL_RELEASE_EXCEPTION(KallistoAtomDescriptorCalculateBatch)
+OEFP_GIL_RELEASE_EXCEPTION(KallistoBondDescriptorCalculateBatch)
+OEFP_GIL_RELEASE_EXCEPTION(KallistoSterimol)
 %inline %{
+// Atom descriptors
 std::shared_ptr<const ::OEFP::DescriptorSchema> KallistoAtomDescriptorSchema() {
     return ::OEFP::KallistoAtomDescriptorSchema();
 }
@@ -836,6 +849,52 @@ std::vector<std::string> KallistoAtomColumnNames() {
 }
 ::OEFP::AtomDescriptorBatch MakeKallistoAtomDescriptorBatch(const OEChem::OEMolBase& mol, int charge) {
     return ::OEFP::MakeKallistoAtomDescriptorBatch(mol, charge);
+}
+
+// Bond descriptors
+std::shared_ptr<const ::OEFP::DescriptorSchema> KallistoBondDescriptorSchema() {
+    return ::OEFP::KallistoBondDescriptorSchema();
+}
+std::vector<std::string> KallistoBondColumnNames() {
+    auto schema = ::OEFP::KallistoBondDescriptorSchema();
+    std::vector<std::string> names;
+    names.reserve(schema->Size());
+    for (std::size_t i = 0; i < schema->Size(); ++i) {
+        names.push_back(schema->Definition(i).name);
+    }
+    return names;
+}
+::OEFP::BondDescriptorBatch MakeKallistoBondDescriptorBatch(const OEChem::OEMolBase& mol) {
+    ::OEFP::BondDescriptorSet set = ::OEFP::MakeKallistoBondDescriptors(mol);
+    auto schema = ::OEFP::KallistoBondDescriptorSchema();
+    ::OEFP::BondDescriptorBatch batch = ::OEFP::BondDescriptorBatch::Empty(schema);
+    batch.Append(set);
+    return batch;
+}
+
+// Sterimol for a directed bond (returns a 3-tuple or throws if ineligible)
+std::vector<double> KallistoSterimol(const OEChem::OEMolBase& mol, std::size_t origin, std::size_t partner) {
+    auto result = ::OEFP::KallistoSterimol(mol, origin, partner);
+    if (!result) {
+        throw std::invalid_argument("KallistoSterimol: molecule ineligible, indices out of bounds, or vdW computation failed");
+    }
+    return {result->l, result->b1, result->b5};
+}
+
+// Batch calculations (GIL-released)
+::OEFP::AtomDescriptorBatch KallistoAtomDescriptorCalculateBatch(
+    const std::vector<const OEChem::OEMolBase*>& mols,
+    std::optional<int> charge = std::nullopt
+) {
+    ::OEFP::KallistoAtomDescriptorSource source(charge);
+    return source.CalculateBatch(mols);
+}
+
+::OEFP::BondDescriptorBatch KallistoBondDescriptorCalculateBatch(
+    const std::vector<const OEChem::OEMolBase*>& mols
+) {
+    ::OEFP::KallistoBondDescriptorSource source;
+    return source.CalculateBatch(mols);
 }
 %}
 

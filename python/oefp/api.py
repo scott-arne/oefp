@@ -3870,3 +3870,228 @@ def kallisto_atom_descriptors(mol: Any, charge: int | None = None) -> KallistoAt
         atom_count=atom_count,
         atom_indices=atom_indices,
     )
+
+
+class KallistoBondDescriptors:
+    """Per-bond kallisto descriptors for a single molecule.
+
+    Columns are accessible via both attribute access (e.g., ``result.sterimol_L``)
+    and mapping access (e.g., ``result["sterimol_L"]``).
+
+    :ivar validity: Per-column validity masks (dict of column_name -> bool array).
+    :ivar bond_count: Number of bonds.
+    :ivar begin: Read-only array of bond begin atom indices (GetIdx) parallel
+        to the descriptor arrays.
+    :ivar end: Read-only array of bond end atom indices (GetIdx) parallel
+        to the descriptor arrays.
+    """
+
+    def __init__(
+        self,
+        columns: dict[str, np.ndarray],
+        validity: dict[str, np.ndarray],
+        bond_count: int,
+        begin: np.ndarray,
+        end: np.ndarray,
+    ):
+        self._columns = columns
+        self.validity = validity
+        self.bond_count = bond_count
+        self.begin = begin
+        self.end = end
+
+    def __getitem__(self, name: str) -> np.ndarray:
+        """Return a descriptor column by name.
+
+        :param name: Column name (e.g., "sterimol_L").
+        :returns: NumPy array of descriptor values.
+        :raises KeyError: When the column name is not present.
+        """
+        return self._columns[name]
+
+    def __getattr__(self, name: str) -> np.ndarray:
+        """Return a descriptor column by attribute access.
+
+        :param name: Column name (e.g., "sterimol_L").
+        :returns: NumPy array of descriptor values.
+        :raises AttributeError: When the column name is not present.
+        """
+        if name.startswith("_"):
+            raise AttributeError(f"No attribute {name!r}")
+        try:
+            return self._columns[name]
+        except KeyError:
+            raise AttributeError(f"No descriptor column {name!r}") from None
+
+    @property
+    def column_names(self) -> tuple[str, ...]:
+        """Return the names of all available columns.
+
+        :returns: Tuple of column names in the order returned by the native schema.
+        """
+        return tuple(self._columns.keys())
+
+
+def kallisto_bond_schema() -> DescriptorSchema:
+    """Return the descriptor schema for kallisto bond descriptors.
+
+    :returns: Descriptor schema matching the columns actually emitted by the native code.
+    """
+    # Get emitted column names from native schema (single source of truth)
+    column_names = _native.KallistoBondColumnNames()
+
+    # Load metadata from the kallisto references fixture
+    resource = resources.files("oefp").joinpath("kallisto_references.json")
+    if resource.is_file():
+        with resource.open(encoding="utf-8") as handle:
+            payload = json.load(handle)
+    else:
+        # Fallback to test fixture
+        import pathlib
+        fixture_path = pathlib.Path(__file__).resolve().parents[2] / "tests" / "python" / "kallisto_references.json"
+        with fixture_path.open(encoding="utf-8") as handle:
+            payload = json.load(handle)
+
+    # Build metadata lookup from fixture
+    bond_schema = payload["bond_schema"]
+    metadata_by_name = {item["name"]: item for item in bond_schema}
+
+    # Build Python schema for the columns actually emitted (in native schema order)
+    definitions = []
+    for name in column_names:
+        meta = metadata_by_name.get(name, {})
+        definitions.append(
+            DescriptorDefinition(
+                name=name,
+                value_type="float",
+                group="kallisto",
+                source_name="kallisto",
+                source_type="geometric",
+                source_version="kallisto-1.0.10",
+                description=meta.get("description", ""),
+                units=meta.get("units", ""),
+                prerequisites=DESCRIPTOR_PREREQUISITE_COORDINATES_3D,
+            )
+        )
+    return DescriptorSchema(definitions)
+
+
+def kallisto_bond_descriptors(mol: Any) -> KallistoBondDescriptors:
+    """Compute kallisto bond descriptors for a 3D molecule.
+
+    Computes Sterimol steric parameters (L, B1, B5) for all acyclic directed bonds
+    (both directions). Ring bonds are excluded. Requires 3D coordinates and all
+    atoms with Z <= 86. Ineligible molecules return empty arrays.
+
+    :param mol: OpenEye molecule (OEMolBase).
+    :returns: KallistoBondDescriptors with per-bond arrays and validity masks.
+
+    Example:
+
+        >>> from openeye import oechem
+        >>> from oefp import kallisto_bond_descriptors
+        >>> mol = oechem.OEGraphMol()
+        >>> oechem.OESmilesToMol(mol, "CC")
+        >>> oechem.OEAddExplicitHydrogens(mol)
+        >>> oechem.OEGenerate3DCoordinates(mol)
+        >>> result = kallisto_bond_descriptors(mol)
+        >>> result.sterimol_L
+        array([...])
+    """
+    batch = _native.MakeKallistoBondDescriptorBatch(mol)
+
+    bond_count = batch.BondCount()
+
+    # Column names derived from native schema (single source of truth)
+    column_names = _native.KallistoBondColumnNames()
+
+    # Empty result for ineligible molecules
+    if bond_count == 0:
+        empty_columns = {name: np.array([], dtype=np.float64) for name in column_names}
+        empty_validity = {name: np.array([], dtype=bool) for name in column_names}
+        return KallistoBondDescriptors(
+            columns=empty_columns,
+            validity=empty_validity,
+            bond_count=0,
+            begin=np.array([], dtype=np.uint32),
+            end=np.array([], dtype=np.uint32),
+        )
+
+    # Read all columns
+    columns = {}
+    validity = {}
+
+    for i, name in enumerate(column_names):
+        # Read value array
+        value_addr = batch.ColumnDataAddress(i)
+        columns[name] = readonly_array_from_address(
+            batch, value_addr, (bond_count,), np.float64
+        )
+
+        # Read validity array
+        validity_addr = batch.ColumnValidityAddress(i)
+        validity_u8 = readonly_array_from_address(
+            batch, validity_addr, (bond_count,), np.uint8
+        )
+        validity[name] = validity_u8.astype(bool)
+
+    # Read bond begin/end indices (preserves OpenEye GetIdx)
+    begin = readonly_array_from_address(
+        batch, batch.BondBeginDataAddress(), (bond_count,), np.uint32
+    )
+    end = readonly_array_from_address(
+        batch, batch.BondEndDataAddress(), (bond_count,), np.uint32
+    )
+
+    return KallistoBondDescriptors(
+        columns=columns,
+        validity=validity,
+        bond_count=bond_count,
+        begin=begin,
+        end=end,
+    )
+
+
+@dataclass(frozen=True)
+class Sterimol:
+    """Sterimol steric parameters for a directed bond.
+
+    :ivar L: Maximum projection along bond axis plus van der Waals radius (Bohr).
+    :ivar B1: Minimum perpendicular radius (Bohr).
+    :ivar B5: Maximum perpendicular radius (Bohr).
+    """
+    L: float
+    B1: float
+    B5: float
+
+
+def sterimol(mol: Any, origin: int, partner: int) -> Sterimol | None:
+    """Compute Sterimol steric parameters for a directed bond.
+
+    Computes L (maximum projection), B1 (minimum perpendicular radius), and
+    B5 (maximum perpendicular radius) for the bond origin->partner. All values
+    are in Bohr. Returns None if the molecule is ineligible, indices are out of
+    bounds, or vdW radii computation fails.
+
+    :param mol: OpenEye molecule (OEMolBase).
+    :param origin: Origin atom positional index (0-based).
+    :param partner: Partner atom positional index (0-based).
+    :returns: Sterimol namedtuple (L, B1, B5) or None if ineligible.
+
+    Example:
+
+        >>> from openeye import oechem
+        >>> from oefp import sterimol
+        >>> mol = oechem.OEGraphMol()
+        >>> oechem.OESmilesToMol(mol, "CC")
+        >>> oechem.OEAddExplicitHydrogens(mol)
+        >>> oechem.OEGenerate3DCoordinates(mol)
+        >>> result = sterimol(mol, 0, 1)
+        >>> result.L
+        ...
+    """
+    try:
+        values = _native.KallistoSterimol(mol, int(origin), int(partner))
+        return Sterimol(L=values[0], B1=values[1], B5=values[2])
+    except (RuntimeError, ValueError, IndexError):
+        return None

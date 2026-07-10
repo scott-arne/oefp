@@ -14,7 +14,13 @@ import numpy as np
 import pytest
 
 # OEFP binding must be importable (fail-closed, not skip-on-missing)
-from oefp import kallisto_atom_descriptors, kallisto_atom_schema
+from oefp import (
+    kallisto_atom_descriptors,
+    kallisto_atom_schema,
+    kallisto_bond_descriptors,
+    kallisto_bond_schema,
+    sterimol,
+)
 
 # OpenEye is optional (skip tests if missing)
 try:
@@ -418,3 +424,158 @@ def test_kallisto_eeq_overlapping_coordinates() -> None:
             # If somehow marked valid, verify it's not NaN
             assert np.isfinite(eeq_vals[i]), \
                 f"EEQ value {i} is marked valid but contains NaN/inf"
+
+
+@pytest.mark.skipif(not HAS_OPENEYE, reason="OpenEye not available")
+def test_kallisto_bond_schema() -> None:
+    """Verify the kallisto bond schema has expected columns."""
+    schema = kallisto_bond_schema()
+    # Schema loaded from fixture includes 3 bond columns (Sterimol L/B1/B5)
+    assert len(schema.names) == 3
+    assert schema.names == ("sterimol_L", "sterimol_B1", "sterimol_B5")
+    for defn in schema.definitions:
+        assert defn.group == "kallisto"
+        assert defn.source_name == "kallisto"
+        assert defn.source_type == "geometric"
+        assert defn.source_version == "kallisto-1.0.10"
+        assert defn.units == "Bohr"
+
+
+@pytest.mark.skipif(not HAS_OPENEYE, reason="OpenEye not available")
+def test_kallisto_bond_descriptors_conformance() -> None:
+    """Compare kallisto bond descriptor results against kallisto 1.0.10 oracle."""
+    fixture_path = Path("tests/python/kallisto_references.json")
+    fixture = json.loads(fixture_path.read_text(encoding="utf-8"))
+
+    molecules = fixture["molecules"]
+    tiers = fixture["tiers"]
+    sdf_base = Path("tests/data/kallisto_panel")
+
+    # Columns to test (all 3 bond columns)
+    test_columns = ["sterimol_L", "sterimol_B1", "sterimol_B5"]
+    max_deviations = {col: 0.0 for col in test_columns}
+
+    for mol_data in molecules:
+        mol_id = mol_data["id"]
+        sdf_path = sdf_base / f"{mol_id}.sdf"
+        assert sdf_path.exists(), f"SDF not found for {mol_id}: {sdf_path}"
+
+        # Load molecule from SDF
+        ifs = oechem.oemolistream(str(sdf_path))
+        mol = oechem.OEGraphMol()
+        oechem.OEReadMolecule(ifs, mol)
+
+        # Compute kallisto bond descriptors
+        result = kallisto_bond_descriptors(mol)
+
+        # Build a lookup by (begin, end) for comparison
+        bond_map = {}
+        for i in range(result.bond_count):
+            begin = int(result.begin[i])
+            end = int(result.end[i])
+            bond_map[(begin, end)] = {
+                col: result[col][i] for col in test_columns
+            }
+
+        # Check that the emitted bond set matches the fixture bond_rows
+        fixture_bonds = mol_data["bond_rows"]
+        fixture_bond_keys = {(row["origin"], row["partner"]) for row in fixture_bonds}
+        result_bond_keys = set(bond_map.keys())
+
+        # The result should emit exactly the same (origin, partner) set as the fixture
+        assert result_bond_keys == fixture_bond_keys, \
+            f"{mol_id}: emitted bond set {result_bond_keys} != fixture {fixture_bond_keys}"
+
+        # Compare each bond row against fixture
+        for bond_row in fixture_bonds:
+            origin = bond_row["origin"]
+            partner = bond_row["partner"]
+            key = (origin, partner)
+
+            assert key in bond_map, \
+                f"{mol_id}: missing bond ({origin}, {partner}) in result"
+
+            result_vals = bond_map[key]
+
+            for col_name in test_columns:
+                expected_val = bond_row[col_name]
+                actual_val = result_vals[col_name]
+                tier = tiers[col_name]
+                tol = TIERS[tier]
+
+                deviation = abs(actual_val - expected_val)
+                max_deviations[col_name] = max(max_deviations[col_name], deviation)
+
+                assert abs(actual_val - expected_val) <= tol, \
+                    f"{mol_id} bond ({origin},{partner}) {col_name}: " \
+                    f"deviation {deviation:.2e} exceeds tier {tier} tolerance {tol:.2e}"
+
+    print(f"\n✓ Kallisto bond descriptor conformance: {len(molecules)} molecules")
+    for col_name in test_columns:
+        tier = tiers[col_name]
+        print(f"  {col_name}: max deviation {max_deviations[col_name]:.2e} (tier {tier})")
+
+
+@pytest.mark.skipif(not HAS_OPENEYE, reason="OpenEye not available")
+def test_kallisto_bond_descriptors_ineligible() -> None:
+    """Verify ineligible molecules return empty bond results."""
+    # Test 1: 2D molecule (no 3D coords)
+    mol_2d = oechem.OEGraphMol()
+    oechem.OESmilesToMol(mol_2d, "CCO")
+    result_2d = kallisto_bond_descriptors(mol_2d)
+    assert result_2d.bond_count == 0
+    assert len(result_2d["sterimol_L"]) == 0
+    assert len(result_2d["sterimol_B1"]) == 0
+    assert len(result_2d["sterimol_B5"]) == 0
+
+    # Test 2: Molecule with Z > 86
+    mol_heavy = oechem.OEGraphMol()
+    fr = mol_heavy.NewAtom(87)  # Francium, Z=87 > 86
+    mol_heavy.SetDimension(3)
+    coords = [0.0, 0.0, 0.0]
+    mol_heavy.SetCoords(fr, coords)
+
+    result_heavy = kallisto_bond_descriptors(mol_heavy)
+    assert result_heavy.bond_count == 0
+    assert len(result_heavy["sterimol_L"]) == 0
+    assert len(result_heavy["sterimol_B1"]) == 0
+    assert len(result_heavy["sterimol_B5"]) == 0
+
+
+@pytest.mark.skipif(not HAS_OPENEYE, reason="OpenEye not available")
+def test_sterimol_function() -> None:
+    """Verify the sterimol function matches bond descriptor results."""
+    fixture_path = Path("tests/python/kallisto_references.json")
+    fixture = json.loads(fixture_path.read_text(encoding="utf-8"))
+
+    # Test on the first molecule with bonds
+    mol_data = fixture["molecules"][0]
+    mol_id = mol_data["id"]
+    sdf_path = Path("tests/data/kallisto_panel") / f"{mol_id}.sdf"
+
+    # Load molecule from SDF
+    ifs = oechem.oemolistream(str(sdf_path))
+    mol = oechem.OEGraphMol()
+    oechem.OEReadMolecule(ifs, mol)
+
+    # Get a bond from fixture
+    if len(mol_data["bond_rows"]) > 0:
+        bond_row = mol_data["bond_rows"][0]
+        origin = bond_row["origin"]
+        partner = bond_row["partner"]
+
+        # Compute via sterimol function
+        result = sterimol(mol, origin, partner)
+        assert result is not None, f"sterimol({origin}, {partner}) returned None"
+
+        # Compare against fixture
+        tier = fixture["tiers"]["sterimol_L"]
+        tol = TIERS[tier]
+
+        assert abs(result.L - bond_row["sterimol_L"]) <= tol
+        assert abs(result.B1 - bond_row["sterimol_B1"]) <= tol
+        assert abs(result.B5 - bond_row["sterimol_B5"]) <= tol
+
+    # Test ineligible call
+    result_bad = sterimol(mol, 999, 1000)
+    assert result_bad is None
