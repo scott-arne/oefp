@@ -1,6 +1,7 @@
 #include "oefp/kallisto_descriptors.h"
 #include "oefp/kallisto_data.h"
 #include "oefp/atom_descriptor.h"
+#include "thread_pool.h"
 
 #include <oechem.h>
 
@@ -8,6 +9,7 @@
 #include <cmath>
 #include <stdexcept>
 #include <unordered_map>
+#include <vector>
 
 namespace OEFP {
 
@@ -801,6 +803,42 @@ AtomDescriptorSet KallistoAtomDescriptorSource::Compute(const OEChem::OEMolBase&
     return MakeKallistoAtomDescriptors(mol, charge_);
 }
 
+AtomDescriptorBatch KallistoAtomDescriptorSource::CalculateBatch(
+    const std::vector<const OEChem::OEMolBase*>& mols) const {
+    // Reject null molecules up front: worker threads dereference each pointer,
+    // so a null here would be undefined behavior rather than a typed error.
+    for (const auto* mol : mols) {
+        if (mol == nullptr) {
+            throw std::invalid_argument(
+                "KallistoAtomDescriptorSource::CalculateBatch molecule pointers must not be null.");
+        }
+    }
+
+    // Compute each molecule's result in parallel; each result is written at a
+    // disjoint index and Compute is a pure function of its molecule, so no
+    // locking is required for the per-row work.
+    // Pre-populate with Empty() sets to avoid default-constructor requirement.
+    std::vector<AtomDescriptorSet> results;
+    results.reserve(mols.size());
+    for (std::size_t i = 0; i < mols.size(); ++i) {
+        results.push_back(AtomDescriptorSet::Empty(Schema()));
+    }
+
+    detail::ParallelFor(0, mols.size(), 1, 0, [&](std::size_t begin, std::size_t end) {
+        for (std::size_t i = begin; i < end; ++i) {
+            results[i] = Compute(*mols[i]);
+        }
+    });
+
+    // Assemble serially to preserve input order and because Append mutates
+    // shared batch state (Append is not thread-safe).
+    auto batch = AtomDescriptorBatch::Empty(Schema());
+    for (const auto& r : results) {
+        batch.Append(r);
+    }
+    return batch;
+}
+
 AtomDescriptorBatch MakeKallistoAtomDescriptorBatch(
     const OEChem::OEMolBase& mol,
     std::optional<int> charge
@@ -960,6 +998,50 @@ BondDescriptorSet MakeKallistoBondDescriptors(const OEChem::OEMolBase& mol) {
     }
 
     return BondDescriptorSet(schema, std::move(bond_endpoints), std::move(columns));
+}
+
+std::shared_ptr<const DescriptorSchema> KallistoBondDescriptorSource::Schema() const {
+    return KallistoBondDescriptorSchema();
+}
+
+BondDescriptorSet KallistoBondDescriptorSource::Compute(const OEChem::OEMolBase& mol) const {
+    return MakeKallistoBondDescriptors(mol);
+}
+
+BondDescriptorBatch KallistoBondDescriptorSource::CalculateBatch(
+    const std::vector<const OEChem::OEMolBase*>& mols) const {
+    // Reject null molecules up front: worker threads dereference each pointer,
+    // so a null here would be undefined behavior rather than a typed error.
+    for (const auto* mol : mols) {
+        if (mol == nullptr) {
+            throw std::invalid_argument(
+                "KallistoBondDescriptorSource::CalculateBatch molecule pointers must not be null.");
+        }
+    }
+
+    // Compute each molecule's result in parallel; each result is written at a
+    // disjoint index and Compute is a pure function of its molecule, so no
+    // locking is required for the per-row work.
+    // Pre-populate with Empty() sets to avoid default-constructor requirement.
+    std::vector<BondDescriptorSet> results;
+    results.reserve(mols.size());
+    for (std::size_t i = 0; i < mols.size(); ++i) {
+        results.push_back(BondDescriptorSet::Empty(Schema()));
+    }
+
+    detail::ParallelFor(0, mols.size(), 1, 0, [&](std::size_t begin, std::size_t end) {
+        for (std::size_t i = begin; i < end; ++i) {
+            results[i] = Compute(*mols[i]);
+        }
+    });
+
+    // Assemble serially to preserve input order and because Append mutates
+    // shared batch state (Append is not thread-safe).
+    auto batch = BondDescriptorBatch::Empty(Schema());
+    for (const auto& r : results) {
+        batch.Append(r);
+    }
+    return batch;
 }
 
 } // namespace OEFP

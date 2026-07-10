@@ -1078,5 +1078,319 @@ TEST(KallistoDescriptors, BondDescriptorsNonContiguousAtomIDs) {
     }
 }
 
+// Test MakeKallistoAtomDescriptors on eligible 3D molecule fills all 8 columns
+TEST(KallistoDescriptors, MakeKallistoAtomDescriptorsEligible) {
+    // H2O: O at (0,0,0), H at (1.8,0,0), H at (0,1.8,0) Bohr
+    OEChem::OEGraphMol mol;
+    OEChem::OEAtomBase* o = mol.NewAtom(8);
+    OEChem::OEAtomBase* h1 = mol.NewAtom(1);
+    OEChem::OEAtomBase* h2 = mol.NewAtom(1);
+    mol.NewBond(o, h1, 1);
+    mol.NewBond(o, h2, 1);
+
+    constexpr double bohr_to_angstrom = 0.5291772105437147;
+    const double coords_o[3] = {0.0, 0.0, 0.0};
+    const double coords_h1[3] = {1.8 * bohr_to_angstrom, 0.0, 0.0};
+    const double coords_h2[3] = {0.0, 1.8 * bohr_to_angstrom, 0.0};
+    mol.SetCoords(o, coords_o);
+    mol.SetCoords(h1, coords_h1);
+    mol.SetCoords(h2, coords_h2);
+    mol.SetDimension(3);
+
+    auto result = MakeKallistoAtomDescriptors(mol);
+
+    // Verify AtomCount > 0 and schema size = 8
+    EXPECT_EQ(result.AtomCount(), 3u);
+    EXPECT_EQ(result.Schema().Size(), 8u);
+
+    // Verify all columns have values for all atoms
+    for (std::size_t atom = 0; atom < result.AtomCount(); ++atom) {
+        for (std::size_t col = 0; col < 8; ++col) {
+            auto val = result.Value(atom, col);
+            EXPECT_TRUE(val.has_value()) << "Missing value at atom " << atom << " col " << col;
+        }
+    }
+}
+
+// Test MakeKallistoAtomDescriptors on 2D molecule returns Empty()
+TEST(KallistoDescriptors, MakeKallistoAtomDescriptors2D) {
+    // 2D molecule
+    OEChem::OEGraphMol mol;
+    OEChem::OEAtomBase* c1 = mol.NewAtom(6);
+    OEChem::OEAtomBase* c2 = mol.NewAtom(6);
+    mol.NewBond(c1, c2, 1);
+
+    const double coords_c1[3] = {0.0, 0.0, 0.0};
+    const double coords_c2[3] = {1.5, 0.0, 0.0};
+    mol.SetCoords(c1, coords_c1);
+    mol.SetCoords(c2, coords_c2);
+    mol.SetDimension(2);
+
+    auto result = MakeKallistoAtomDescriptors(mol);
+    EXPECT_EQ(result.AtomCount(), 0u);
+}
+
+// Test MakeKallistoAtomDescriptors on Z>86 molecule returns Empty()
+TEST(KallistoDescriptors, MakeKallistoAtomDescriptorsHeavyElement) {
+    // Francium, Z=87 > 86
+    OEChem::OEGraphMol mol;
+    OEChem::OEAtomBase* fr = mol.NewAtom(87);
+    mol.SetDimension(3);
+
+    constexpr double coords[3] = {0.0, 0.0, 0.0};
+    mol.SetCoords(fr, coords);
+
+    auto result = MakeKallistoAtomDescriptors(mol);
+    EXPECT_EQ(result.AtomCount(), 0u);
+}
+
+// Test KallistoAtomDescriptorSource::CalculateBatch over [valid, skipped(2D), valid]
+// Verify: Size()==3, SegmentAtomCount(1)==0 (empty middle), total AtomCount == sum of valid,
+// segment values match single-molecule Compute
+TEST(KallistoDescriptors, AtomDescriptorSourceCalculateBatch) {
+    // Build three molecules: H2O (valid), 2D C2 (skipped), H2O (valid)
+    OEChem::OEGraphMol mol1;
+    OEChem::OEAtomBase* o1 = mol1.NewAtom(8);
+    OEChem::OEAtomBase* h1_1 = mol1.NewAtom(1);
+    OEChem::OEAtomBase* h1_2 = mol1.NewAtom(1);
+    mol1.NewBond(o1, h1_1, 1);
+    mol1.NewBond(o1, h1_2, 1);
+
+    constexpr double bohr_to_angstrom = 0.5291772105437147;
+    const double coords_o[3] = {0.0, 0.0, 0.0};
+    const double coords_h1[3] = {1.8 * bohr_to_angstrom, 0.0, 0.0};
+    const double coords_h2[3] = {0.0, 1.8 * bohr_to_angstrom, 0.0};
+    mol1.SetCoords(o1, coords_o);
+    mol1.SetCoords(h1_1, coords_h1);
+    mol1.SetCoords(h1_2, coords_h2);
+    mol1.SetDimension(3);
+
+    // 2D molecule (skipped)
+    OEChem::OEGraphMol mol2;
+    OEChem::OEAtomBase* c2_1 = mol2.NewAtom(6);
+    OEChem::OEAtomBase* c2_2 = mol2.NewAtom(6);
+    mol2.NewBond(c2_1, c2_2, 1);
+    const double coords_2d_c1[3] = {0.0, 0.0, 0.0};
+    const double coords_2d_c2[3] = {1.5, 0.0, 0.0};
+    mol2.SetCoords(c2_1, coords_2d_c1);
+    mol2.SetCoords(c2_2, coords_2d_c2);
+    mol2.SetDimension(2);
+
+    // Another H2O (valid)
+    OEChem::OEGraphMol mol3;
+    OEChem::OEAtomBase* o3 = mol3.NewAtom(8);
+    OEChem::OEAtomBase* h3_1 = mol3.NewAtom(1);
+    OEChem::OEAtomBase* h3_2 = mol3.NewAtom(1);
+    mol3.NewBond(o3, h3_1, 1);
+    mol3.NewBond(o3, h3_2, 1);
+    mol3.SetCoords(o3, coords_o);
+    mol3.SetCoords(h3_1, coords_h1);
+    mol3.SetCoords(h3_2, coords_h2);
+    mol3.SetDimension(3);
+
+    // Build pointer vector (create base references for proper type conversion)
+    const OEChem::OEMolBase& base1 = mol1;
+    const OEChem::OEMolBase& base2 = mol2;
+    const OEChem::OEMolBase& base3 = mol3;
+    std::vector<const OEChem::OEMolBase*> mols{&base1, &base2, &base3};
+
+    KallistoAtomDescriptorSource source;
+    auto batch = source.CalculateBatch(mols);
+
+    // Verify batch shape
+    EXPECT_EQ(batch.Size(), 3u);
+    EXPECT_EQ(batch.SegmentAtomCount(0), 3u);  // mol1 has 3 atoms
+    EXPECT_EQ(batch.SegmentAtomCount(1), 0u);  // mol2 is skipped (empty segment)
+    EXPECT_EQ(batch.SegmentAtomCount(2), 3u);  // mol3 has 3 atoms
+    EXPECT_EQ(batch.AtomCount(), 6u);          // total = 3 + 0 + 3
+
+    // Verify segment values match single-molecule Compute
+    auto set1 = source.Compute(mol1);
+    auto set3 = source.Compute(mol3);
+
+    ASSERT_EQ(set1.AtomCount(), 3u);
+    ASSERT_EQ(set3.AtomCount(), 3u);
+
+    // Compare values for first segment (atoms 0-2 in batch)
+    for (std::size_t atom = 0; atom < 3; ++atom) {
+        for (std::size_t col = 0; col < 8; ++col) {
+            auto batch_val = batch.ColumnDataAddress(col);
+            auto batch_valid = batch.ColumnValidityAddress(col);
+            auto set_val = set1.Value(atom, col);
+
+            // Access batch value at position atom (first segment starts at offset 0)
+            const double* batch_vals = reinterpret_cast<const double*>(batch_val);
+            const std::uint8_t* batch_valids = reinterpret_cast<const std::uint8_t*>(batch_valid);
+
+            if (set_val.has_value()) {
+                EXPECT_TRUE(batch_valids[atom] != 0) << "Validity mismatch at atom " << atom << " col " << col;
+                EXPECT_NEAR(batch_vals[atom], set_val.value(), 1e-12) << "Value mismatch at atom " << atom << " col " << col;
+            } else {
+                EXPECT_TRUE(batch_valids[atom] == 0) << "Validity mismatch at atom " << atom << " col " << col;
+            }
+        }
+    }
+
+    // Compare values for third segment (atoms 3-5 in batch, offset by 3)
+    for (std::size_t atom = 0; atom < 3; ++atom) {
+        for (std::size_t col = 0; col < 8; ++col) {
+            auto batch_val = batch.ColumnDataAddress(col);
+            auto batch_valid = batch.ColumnValidityAddress(col);
+            auto set_val = set3.Value(atom, col);
+
+            const double* batch_vals = reinterpret_cast<const double*>(batch_val);
+            const std::uint8_t* batch_valids = reinterpret_cast<const std::uint8_t*>(batch_valid);
+
+            if (set_val.has_value()) {
+                EXPECT_TRUE(batch_valids[atom + 3] != 0) << "Validity mismatch at atom " << atom + 3 << " col " << col;
+                EXPECT_NEAR(batch_vals[atom + 3], set_val.value(), 1e-12) << "Value mismatch at atom " << atom + 3 << " col " << col;
+            } else {
+                EXPECT_TRUE(batch_valids[atom + 3] == 0) << "Validity mismatch at atom " << atom + 3 << " col " << col;
+            }
+        }
+    }
+}
+
+// Test KallistoAtomDescriptorSource::CalculateBatch throws on null pointer
+TEST(KallistoDescriptors, AtomDescriptorSourceCalculateBatchNullPointer) {
+    OEChem::OEGraphMol mol1;
+    OEChem::OEAtomBase* o1 = mol1.NewAtom(8);
+    mol1.SetDimension(3);
+    const double coords[3] = {0.0, 0.0, 0.0};
+    mol1.SetCoords(o1, coords);
+
+    const OEChem::OEMolBase& base1 = mol1;
+    std::vector<const OEChem::OEMolBase*> mols{&base1, nullptr};
+
+    KallistoAtomDescriptorSource source;
+    EXPECT_THROW(source.CalculateBatch(mols), std::invalid_argument);
+}
+
+// Test KallistoBondDescriptorSource::CalculateBatch over [valid, skipped(2D), valid]
+TEST(KallistoDescriptors, BondDescriptorSourceCalculateBatch) {
+    // Build three molecules: simple acyclic chain (valid), 2D (skipped), another chain (valid)
+
+    // Mol1: 3-atom acyclic chain C-C-C with 3D coords
+    OEChem::OEGraphMol mol1;
+    OEChem::OEAtomBase* c1_0 = mol1.NewAtom(6);
+    OEChem::OEAtomBase* c1_1 = mol1.NewAtom(6);
+    OEChem::OEAtomBase* c1_2 = mol1.NewAtom(6);
+    mol1.NewBond(c1_0, c1_1, 1);
+    mol1.NewBond(c1_1, c1_2, 1);
+
+    constexpr double bohr_to_angstrom = 0.5291772105437147;
+    const double coords_0[3] = {0.0, 0.0, 0.0};
+    const double coords_1[3] = {2.8 * bohr_to_angstrom, 0.0, 0.0};
+    const double coords_2[3] = {5.6 * bohr_to_angstrom, 0.0, 0.0};
+    mol1.SetCoords(c1_0, coords_0);
+    mol1.SetCoords(c1_1, coords_1);
+    mol1.SetCoords(c1_2, coords_2);
+    mol1.SetDimension(3);
+
+    // Mol2: 2D (skipped)
+    OEChem::OEGraphMol mol2;
+    OEChem::OEAtomBase* c2_1 = mol2.NewAtom(6);
+    OEChem::OEAtomBase* c2_2 = mol2.NewAtom(6);
+    mol2.NewBond(c2_1, c2_2, 1);
+    const double coords_2d_c1[3] = {0.0, 0.0, 0.0};
+    const double coords_2d_c2[3] = {1.5, 0.0, 0.0};
+    mol2.SetCoords(c2_1, coords_2d_c1);
+    mol2.SetCoords(c2_2, coords_2d_c2);
+    mol2.SetDimension(2);
+
+    // Mol3: another 3-atom acyclic chain
+    OEChem::OEGraphMol mol3;
+    OEChem::OEAtomBase* c3_0 = mol3.NewAtom(6);
+    OEChem::OEAtomBase* c3_1 = mol3.NewAtom(6);
+    OEChem::OEAtomBase* c3_2 = mol3.NewAtom(6);
+    mol3.NewBond(c3_0, c3_1, 1);
+    mol3.NewBond(c3_1, c3_2, 1);
+    mol3.SetCoords(c3_0, coords_0);
+    mol3.SetCoords(c3_1, coords_1);
+    mol3.SetCoords(c3_2, coords_2);
+    mol3.SetDimension(3);
+
+    const OEChem::OEMolBase& base1 = mol1;
+    const OEChem::OEMolBase& base2 = mol2;
+    const OEChem::OEMolBase& base3 = mol3;
+    std::vector<const OEChem::OEMolBase*> mols{&base1, &base2, &base3};
+
+    KallistoBondDescriptorSource source;
+    auto batch = source.CalculateBatch(mols);
+
+    // Verify batch shape
+    // mol1 has 2 acyclic bonds (c0-c1, c1-c2) × 2 directions = 4 bond rows
+    // mol2 is skipped → 0 bond rows
+    // mol3 has 2 acyclic bonds × 2 directions = 4 bond rows
+    EXPECT_EQ(batch.Size(), 3u);
+    EXPECT_EQ(batch.SegmentBondCount(0), 4u);
+    EXPECT_EQ(batch.SegmentBondCount(1), 0u);  // empty middle segment
+    EXPECT_EQ(batch.SegmentBondCount(2), 4u);
+    EXPECT_EQ(batch.BondCount(), 8u);  // total = 4 + 0 + 4
+
+    // Verify segment values match single-molecule Compute
+    auto set1 = source.Compute(mol1);
+    auto set3 = source.Compute(mol3);
+
+    ASSERT_EQ(set1.BondCount(), 4u);
+    ASSERT_EQ(set3.BondCount(), 4u);
+
+    // Compare values for first segment (bonds 0-3 in batch)
+    for (std::size_t bond = 0; bond < 4; ++bond) {
+        for (std::size_t col = 0; col < 3; ++col) {
+            auto batch_val = batch.ColumnDataAddress(col);
+            auto batch_valid = batch.ColumnValidityAddress(col);
+            auto set_val = set1.Value(bond, col);
+
+            const double* batch_vals = reinterpret_cast<const double*>(batch_val);
+            const std::uint8_t* batch_valids = reinterpret_cast<const std::uint8_t*>(batch_valid);
+
+            if (set_val.has_value()) {
+                EXPECT_TRUE(batch_valids[bond] != 0) << "Validity mismatch at bond " << bond << " col " << col;
+                EXPECT_NEAR(batch_vals[bond], set_val.value(), 1e-12) << "Value mismatch at bond " << bond << " col " << col;
+            } else {
+                EXPECT_TRUE(batch_valids[bond] == 0) << "Validity mismatch at bond " << bond << " col " << col;
+            }
+        }
+    }
+
+    // Compare values for third segment (bonds 4-7 in batch, offset by 4)
+    for (std::size_t bond = 0; bond < 4; ++bond) {
+        for (std::size_t col = 0; col < 3; ++col) {
+            auto batch_val = batch.ColumnDataAddress(col);
+            auto batch_valid = batch.ColumnValidityAddress(col);
+            auto set_val = set3.Value(bond, col);
+
+            const double* batch_vals = reinterpret_cast<const double*>(batch_val);
+            const std::uint8_t* batch_valids = reinterpret_cast<const std::uint8_t*>(batch_valid);
+
+            if (set_val.has_value()) {
+                EXPECT_TRUE(batch_valids[bond + 4] != 0) << "Validity mismatch at bond " << bond + 4 << " col " << col;
+                EXPECT_NEAR(batch_vals[bond + 4], set_val.value(), 1e-12) << "Value mismatch at bond " << bond + 4 << " col " << col;
+            } else {
+                EXPECT_TRUE(batch_valids[bond + 4] == 0) << "Validity mismatch at bond " << bond + 4 << " col " << col;
+            }
+        }
+    }
+}
+
+// Test KallistoBondDescriptorSource::CalculateBatch throws on null pointer
+TEST(KallistoDescriptors, BondDescriptorSourceCalculateBatchNullPointer) {
+    OEChem::OEGraphMol mol1;
+    OEChem::OEAtomBase* c1 = mol1.NewAtom(6);
+    OEChem::OEAtomBase* c2 = mol1.NewAtom(6);
+    mol1.NewBond(c1, c2, 1);
+    mol1.SetDimension(3);
+    const double coords[3] = {0.0, 0.0, 0.0};
+    mol1.SetCoords(c1, coords);
+    mol1.SetCoords(c2, coords);
+
+    const OEChem::OEMolBase& base1 = mol1;
+    std::vector<const OEChem::OEMolBase*> mols{&base1, nullptr};
+
+    KallistoBondDescriptorSource source;
+    EXPECT_THROW(source.CalculateBatch(mols), std::invalid_argument);
+}
+
 }  // namespace
 }  // namespace OEFP

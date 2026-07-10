@@ -176,6 +176,7 @@ namespace OEFP {
 class AtomDescriptorSet;
 class AtomDescriptorBatch;
 class BondDescriptorSet;
+class BondDescriptorBatch;
 }
 
 // Free functions in OEFP namespace for Python binding and internal use
@@ -215,6 +216,16 @@ public:
     ///           empty if molecule is ineligible.
     AtomDescriptorSet Compute(const OEChem::OEMolBase& mol) const;
 
+    /// Compute descriptors for a batch of molecules in parallel.
+    ///
+    /// :param mols: Vector of molecule pointers (must not be null).
+    /// :returns: AtomDescriptorBatch with one segment per molecule (may be empty for ineligible).
+    /// :throws std::invalid_argument: When any molecule pointer is null.
+    ///
+    /// Note: MakeKallistoAtomDescriptors already uses one KallistoGeometryContext per molecule
+    /// (covcn/eeq/polarizabilities computed once per molecule).
+    AtomDescriptorBatch CalculateBatch(const std::vector<const OEChem::OEMolBase*>& mols) const;
+
 private:
     std::optional<int> charge_;
 };
@@ -250,6 +261,33 @@ AtomDescriptorBatch MakeKallistoAtomDescriptorBatch(
 BondDescriptorSet MakeKallistoBondDescriptors(
     const OEChem::OEMolBase& mol
 );
+
+/// Descriptor source for kallisto bond descriptors.
+///
+/// Computes Sterimol L/B1/B5 for all acyclic directed bonds (both directions).
+/// Ring bonds are excluded. 3D coordinates required, Z <= 86.
+class KallistoBondDescriptorSource {
+public:
+    /// Construct a kallisto bond descriptor source.
+    KallistoBondDescriptorSource() = default;
+
+    /// Return the descriptor schema.
+    std::shared_ptr<const DescriptorSchema> Schema() const;
+
+    /// Compute descriptors for one molecule.
+    ///
+    /// :param mol: Molecule to compute descriptors for.
+    /// :returns: BondDescriptorSet with schema KallistoBondDescriptorSchema(),
+    ///           empty if molecule is ineligible.
+    BondDescriptorSet Compute(const OEChem::OEMolBase& mol) const;
+
+    /// Compute descriptors for a batch of molecules in parallel.
+    ///
+    /// :param mols: Vector of molecule pointers (must not be null).
+    /// :returns: BondDescriptorBatch with one segment per molecule (may be empty for ineligible).
+    /// :throws std::invalid_argument: When any molecule pointer is null.
+    BondDescriptorBatch CalculateBatch(const std::vector<const OEChem::OEMolBase*>& mols) const;
+};
 
 } // namespace OEFP
 
