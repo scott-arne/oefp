@@ -3702,6 +3702,10 @@ class KallistoAtomDescriptors:
     :ivar prox: Proximity shell difference (scale 2-3).
     :ivar validity: Per-column validity masks (dict of column_name -> bool array).
     :ivar atom_count: Number of atoms.
+    :ivar atom_indices: Read-only array of OpenEye atom indices (GetIdx) parallel
+        to the descriptor arrays. For molecules with non-contiguous atom IDs
+        (e.g. after DeleteAtom), this preserves the actual atom indices rather
+        than forcing a 0..N-1 labeling.
     """
 
     cn_erf: np.ndarray
@@ -3710,6 +3714,7 @@ class KallistoAtomDescriptors:
     prox: np.ndarray
     validity: dict[str, np.ndarray]
     atom_count: int
+    atom_indices: np.ndarray
 
 
 def kallisto_atom_schema() -> DescriptorSchema:
@@ -3794,6 +3799,7 @@ def kallisto_atom_descriptors(mol: Any, charge: int | None = None) -> KallistoAt
                 "prox": np.array([], dtype=bool),
             },
             atom_count=0,
+            atom_indices=np.array([], dtype=np.uint32),
         )
 
     # Column order from schema: cn_erf, cn_cov, cn_exp, prox
@@ -3815,6 +3821,11 @@ def kallisto_atom_descriptors(mol: Any, charge: int | None = None) -> KallistoAt
         )
         validity[name] = validity_u8.astype(bool)
 
+    # Read atom indices (preserves OpenEye GetIdx for non-contiguous atoms)
+    atom_indices = readonly_array_from_address(
+        batch, batch.AtomIndexDataAddress(), (atom_count,), np.uint32
+    )
+
     return KallistoAtomDescriptors(
         cn_erf=columns["cn_erf"],
         cn_cov=columns["cn_cov"],
@@ -3822,4 +3833,5 @@ def kallisto_atom_descriptors(mol: Any, charge: int | None = None) -> KallistoAt
         prox=columns["prox"],
         validity=validity,
         atom_count=atom_count,
+        atom_indices=atom_indices,
     )

@@ -276,3 +276,63 @@ def test_kallisto_atom_descriptors_ineligible() -> None:
     assert len(result_heavy.cn_cov) == 0
     assert len(result_heavy.cn_exp) == 0
     assert len(result_heavy.prox) == 0
+
+
+@pytest.mark.skipif(not HAS_OPENEYE, reason="OpenEye not available")
+def test_kallisto_atom_descriptors_noncontiguous_indices() -> None:
+    """Verify atom_indices preserves OpenEye GetIdx after DeleteAtom.
+
+    Regression test: after deleting a middle atom, the C++ side preserves each
+    atom's actual OpenEye GetIdx (e.g. [0,1,3,4]), and Python exposes it so
+    callers don't silently get 0..N-1 labels when atom IDs are non-contiguous.
+    """
+    # Build a 5-atom molecule with simple 3D coordinates
+    mol = oechem.OEGraphMol()
+    mol.SetDimension(3)
+
+    # Create 5 carbon atoms in a line
+    atoms = []
+    for i in range(5):
+        atom = mol.NewAtom(6)  # Carbon
+        atoms.append(atom)
+        # Simple linear coordinates
+        mol.SetCoords(atom, [float(i), 0.0, 0.0])
+
+    # Add bonds between consecutive atoms
+    for i in range(4):
+        mol.NewBond(atoms[i], atoms[i + 1])
+
+    # Collect all atom indices before deletion
+    all_atoms_before = list(mol.GetAtoms())
+    assert len(all_atoms_before) == 5
+
+    # Delete the 3rd atom (index 2) → GetIdx becomes [0,1,3,4] for the 4 remaining
+    atom_to_delete = atoms[2]
+    mol.DeleteAtom(atom_to_delete)
+
+    # Re-collect atoms (should be 4 now)
+    all_atoms_after = list(mol.GetAtoms())
+    assert len(all_atoms_after) == 4
+
+    # Expected OpenEye GetIdx sequence (non-contiguous: [0,1,3,4])
+    expected_indices = np.array([a.GetIdx() for a in all_atoms_after], dtype=np.uint32)
+    assert expected_indices[0] == 0
+    assert expected_indices[1] == 1
+    assert expected_indices[2] == 3  # NOT 2 (that atom was deleted)
+    assert expected_indices[3] == 4
+
+    # Compute kallisto atom descriptors
+    result = kallisto_atom_descriptors(mol)
+
+    # Verify atom_count matches
+    assert result.atom_count == 4
+
+    # Verify atom_indices has the same length
+    assert len(result.atom_indices) == 4
+
+    # The returned atom_indices should be [0,1,3,4], NOT [0,1,2,3]
+    np.testing.assert_array_equal(
+        result.atom_indices,
+        expected_indices,
+        err_msg="atom_indices should preserve OpenEye GetIdx [0,1,3,4], not renumber to [0,1,2,3]"
+    )
