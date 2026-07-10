@@ -69,4 +69,67 @@ std::shared_ptr<const DescriptorSchema> KallistoAtomDescriptorSchema();
 
 } // namespace OEFP
 
+// Forward declarations for OEFP namespace types needed by the free functions below
+namespace OEFP {
+class AtomDescriptorSet;
+class AtomDescriptorBatch;
+}
+
+// Free functions in OEFP namespace for Python binding and internal use
+namespace OEFP {
+
+/// Compute kallisto atom descriptors for one molecule.
+///
+/// :param mol: Molecule to compute descriptors for.
+/// :param charge: Optional override for molecular charge (defaults to formal charge).
+/// :returns: AtomDescriptorSet with schema KallistoAtomDescriptorSchema(),
+///           empty if molecule is ineligible.
+///
+/// Eligibility: GetDimension()==3, GetCoords succeeds for every atom, and every
+/// atom Z is 1..86. Ineligible molecules return AtomDescriptorSet::Empty(...).
+AtomDescriptorSet MakeKallistoAtomDescriptors(
+    const OEChem::OEMolBase& mol,
+    std::optional<int> charge = std::nullopt
+);
+
+/// Descriptor source for kallisto atom descriptors.
+///
+/// Computes cn_erf, cn_cov, cn_exp, and prox for 3D molecules with Z <= 86.
+class KallistoAtomDescriptorSource {
+public:
+    /// Construct a kallisto atom descriptor source.
+    ///
+    /// :param charge: Optional override for molecular charge.
+    explicit KallistoAtomDescriptorSource(std::optional<int> charge = std::nullopt);
+
+    /// Return the descriptor schema.
+    std::shared_ptr<const DescriptorSchema> Schema() const;
+
+    /// Compute descriptors for one molecule.
+    ///
+    /// :param mol: Molecule to compute descriptors for.
+    /// :returns: AtomDescriptorSet with schema KallistoAtomDescriptorSchema(),
+    ///           empty if molecule is ineligible.
+    AtomDescriptorSet Compute(const OEChem::OEMolBase& mol) const;
+
+private:
+    std::optional<int> charge_;
+};
+
+/// Compute kallisto atom descriptors as a single-segment batch (minimal Python binding helper).
+///
+/// :param mol: Molecule to compute descriptors for.
+/// :param charge: Optional override for molecular charge.
+/// :returns: AtomDescriptorBatch with one segment (may be empty if ineligible).
+///
+/// This helper exists solely to provide Python with zero-copy access to kallisto atom
+/// descriptors for a single molecule via the batch's column data/validity address APIs.
+/// Task 10 will add threaded batching.
+AtomDescriptorBatch MakeKallistoAtomDescriptorBatch(
+    const OEChem::OEMolBase& mol,
+    std::optional<int> charge = std::nullopt
+);
+
+} // namespace OEFP
+
 #endif // OEFP_KALLISTO_DESCRIPTORS_H

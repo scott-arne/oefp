@@ -7,6 +7,8 @@
 #include "oefp/descriptor_source.h"
 #include "oefp/descriptor_calculator.h"
 #include "oefp/rdkit_descriptors.h"
+#include "oefp/atom_descriptor.h"
+#include "oefp/kallisto_descriptors.h"
 #include <oechem.h>
 #include <oegrid.h>
 %}
@@ -792,6 +794,38 @@ std::shared_ptr<const ::OEFP::DescriptorSchema> RDKitDescriptorSchema() {
 }
 ::OEFP::DescriptorSet MakeRDKitDescriptors(const OEChem::OEMolBase& mol) {
     return ::OEFP::MakeRDKitDescriptors(mol);
+}
+%}
+
+// kallisto_descriptors.h: Same OEFP::OEFP collision pattern as RDKit above.
+// Ignore the namespaced free functions and provide global-scope trampolines.
+// Expose only AtomDescriptorBatch (renamed) with minimal methods for Python zero-copy read
+%ignore OEFP::AtomDescriptorSet;
+%ignore OEFP::BondDescriptorSet;
+%ignore OEFP::BondDescriptorBatch;
+// Ignore Append method (internal use only)
+%ignore OEFP::AtomDescriptorBatch::Append;
+%rename(_NativeAtomDescriptorBatch) OEFP::AtomDescriptorBatch;
+%include "oefp/atom_descriptor.h"
+// Ignore all kallisto_descriptors.h content except what we expose via trampolines
+%ignore OEFP::coordination_numbers;
+%ignore OEFP::proximity_shells;
+%ignore OEFP::KallistoAtomDescriptorSchema;
+%ignore OEFP::MakeKallistoAtomDescriptorBatch;
+%ignore OEFP::MakeKallistoAtomDescriptors;
+%ignore OEFP::KallistoAtomDescriptorSource;
+%include "oefp/kallisto_descriptors.h"
+// Apply GIL-release to the global trampoline (must appear before %inline)
+OEFP_GIL_RELEASE_EXCEPTION(MakeKallistoAtomDescriptorBatch)
+%inline %{
+std::shared_ptr<const ::OEFP::DescriptorSchema> KallistoAtomDescriptorSchema() {
+    return ::OEFP::KallistoAtomDescriptorSchema();
+}
+::OEFP::AtomDescriptorBatch MakeKallistoAtomDescriptorBatch(const OEChem::OEMolBase& mol) {
+    return ::OEFP::MakeKallistoAtomDescriptorBatch(mol);
+}
+::OEFP::AtomDescriptorBatch MakeKallistoAtomDescriptorBatch(const OEChem::OEMolBase& mol, int charge) {
+    return ::OEFP::MakeKallistoAtomDescriptorBatch(mol, charge);
 }
 %}
 

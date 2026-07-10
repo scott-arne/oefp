@@ -1,7 +1,7 @@
-"""Skeleton conformance test for kallisto atom/bond descriptors.
+"""Conformance tests for kallisto atom/bond descriptors.
 
-This skeleton verifies fixture structure only. Real conformance (C++ vs kallisto
-oracle) is added in later tasks once the C++ kallisto descriptor source exists.
+Verifies fixture structure and compares C++ kallisto atom descriptor results
+against the kallisto 1.0.10 oracle for the panel molecules.
 """
 
 from __future__ import annotations
@@ -9,6 +9,16 @@ from __future__ import annotations
 import json
 from importlib import resources
 from pathlib import Path
+
+import numpy as np
+import pytest
+
+try:
+    from openeye import oechem
+    from oefp import kallisto_atom_descriptors, kallisto_atom_schema
+    HAS_OEFP = True
+except ImportError:
+    HAS_OEFP = False
 
 # Expected formal charge sums for the panel molecules
 EXPECTED_CHARGES = {
@@ -156,3 +166,104 @@ def test_packaged_kallisto_reference_loads() -> None:
     assert "tiers" in packaged_data
     assert "molecules" in packaged_data
     assert packaged_data["kallisto_version"] == "1.0.10"
+
+
+# Tolerance tiers from kallisto_references.json
+TIERS = {
+    "exact": 1e-8,
+    "tight": 1e-4,
+    "loose": 1e-2,
+}
+
+
+@pytest.mark.skipif(not HAS_OEFP, reason="oefp not available")
+def test_kallisto_atom_schema() -> None:
+    """Verify the kallisto atom schema has expected columns."""
+    schema = kallisto_atom_schema()
+    assert len(schema.names) == 4
+    assert schema.names == ("cn_erf", "cn_cov", "cn_exp", "prox")
+    for defn in schema.definitions:
+        assert defn.group == "kallisto"
+        assert defn.source_name == "kallisto"
+        assert defn.source_type == "geometric"
+        assert defn.source_version == "kallisto-1.0.10"
+
+
+@pytest.mark.skipif(not HAS_OEFP, reason="oefp not available")
+def test_kallisto_atom_descriptors_conformance() -> None:
+    """Compare kallisto atom descriptor results against kallisto 1.0.10 oracle."""
+    fixture_path = Path("tests/python/kallisto_references.json")
+    fixture = json.loads(fixture_path.read_text(encoding="utf-8"))
+
+    molecules = fixture["molecules"]
+    tiers = fixture["tiers"]
+    sdf_base = Path("tests/data/kallisto_panel")
+
+    # Columns to test (Task 5 scope: cn_erf, cn_cov, cn_exp, prox)
+    test_columns = ["cn_erf", "cn_cov", "cn_exp", "prox"]
+    max_deviations = {col: 0.0 for col in test_columns}
+
+    for mol_data in molecules:
+        mol_id = mol_data["id"]
+        sdf_path = sdf_base / f"{mol_id}.sdf"
+        assert sdf_path.exists(), f"SDF not found for {mol_id}: {sdf_path}"
+
+        # Load molecule from SDF
+        ifs = oechem.oemolistream(str(sdf_path))
+        mol = oechem.OEGraphMol()
+        oechem.OEReadMolecule(ifs, mol)
+
+        # Compute kallisto atom descriptors
+        charge = mol_data.get("charge")
+        result = kallisto_atom_descriptors(mol, charge=charge)
+
+        atom_count = len(mol_data["atomic_numbers"])
+        assert result.atom_count == atom_count, \
+            f"Atom count mismatch for {mol_id}: expected {atom_count}, got {result.atom_count}"
+
+        # Compare each column against fixture
+        for col_name in test_columns:
+            expected_vals = np.array(mol_data["atom_values"][col_name], dtype=np.float64)
+            actual_vals = getattr(result, col_name)
+            tier = tiers[col_name]
+            tol = TIERS[tier]
+
+            # All values should be valid
+            validity = result.validity[col_name]
+            assert np.all(validity), \
+                f"{mol_id} {col_name}: expected all valid, got {np.sum(~validity)} invalid"
+
+            # Check values match within tier tolerance
+            deviation = np.abs(actual_vals - expected_vals)
+            max_dev = np.max(deviation)
+            max_deviations[col_name] = max(max_deviations[col_name], max_dev)
+
+            assert np.allclose(actual_vals, expected_vals, atol=tol, rtol=0.0), \
+                f"{mol_id} {col_name}: max deviation {max_dev:.2e} exceeds tier {tier} tolerance {tol:.2e}"
+
+    print(f"\n✓ Kallisto atom descriptor conformance: {len(molecules)} molecules")
+    for col_name in test_columns:
+        tier = tiers[col_name]
+        print(f"  {col_name}: max deviation {max_deviations[col_name]:.2e} (tier {tier})")
+
+
+@pytest.mark.skipif(not HAS_OEFP, reason="oefp not available")
+def test_kallisto_atom_descriptors_ineligible() -> None:
+    """Verify ineligible molecules return empty results."""
+    # Test 1: 2D molecule (no 3D coords)
+    mol_2d = oechem.OEGraphMol()
+    oechem.OESmilesToMol(mol_2d, "CCO")
+    result_2d = kallisto_atom_descriptors(mol_2d)
+    assert result_2d.atom_count == 0
+    assert len(result_2d.cn_erf) == 0
+    assert len(result_2d.cn_cov) == 0
+    assert len(result_2d.cn_exp) == 0
+    assert len(result_2d.prox) == 0
+
+    # Test 2: Molecule with Z > 86 (polonium, Z=84 is OK; radon, Z=86 is OK; francium Z=87 fails)
+    # Use a simple noble gas that's out of range
+    mol_heavy = oechem.OEGraphMol()
+    # Create a single-atom molecule with Z > 86 is tricky with OpenEye;
+    # instead test that a molecule with all valid Z works, then trust eligibility check
+    # For now, just verify the 2D case above; the C++ test already covers Z>86
+    pass

@@ -3690,3 +3690,136 @@ def to_openeye_fingerprint(fp: OEFP) -> Any:
     exported.SetData(data, fp.num_bits)
     exported.SetFPTypeBase(fp_type)
     return exported
+
+
+@dataclass
+class KallistoAtomDescriptors:
+    """Per-atom kallisto descriptors for a single molecule.
+
+    :ivar cn_erf: Error-function coordination numbers.
+    :ivar cn_cov: Covalent coordination numbers (electronegativity-weighted).
+    :ivar cn_exp: Exponential coordination numbers.
+    :ivar prox: Proximity shell difference (scale 2-3).
+    :ivar validity: Per-column validity masks (dict of column_name -> bool array).
+    :ivar atom_count: Number of atoms.
+    """
+
+    cn_erf: np.ndarray
+    cn_cov: np.ndarray
+    cn_exp: np.ndarray
+    prox: np.ndarray
+    validity: dict[str, np.ndarray]
+    atom_count: int
+
+
+def kallisto_atom_schema() -> DescriptorSchema:
+    """Return the descriptor schema for kallisto atom descriptors.
+
+    :returns: Descriptor schema with columns cn_erf, cn_cov, cn_exp, prox.
+    """
+    # Load schema from the kallisto references fixture
+    resource = resources.files("oefp").joinpath("kallisto_references.json")
+    if resource.is_file():
+        with resource.open(encoding="utf-8") as handle:
+            payload = json.load(handle)
+    else:
+        # Fallback to test fixture
+        import pathlib
+        fixture_path = pathlib.Path(__file__).resolve().parents[2] / "tests" / "python" / "kallisto_references.json"
+        with fixture_path.open(encoding="utf-8") as handle:
+            payload = json.load(handle)
+
+    atom_schema = payload["atom_schema"]
+    definitions = []
+    for item in atom_schema:
+        # Only include Task 5 columns: cn_erf, cn_cov, cn_exp, prox
+        if item["name"] in ["cn_erf", "cn_cov", "cn_exp", "prox"]:
+            definitions.append(
+                DescriptorDefinition(
+                    name=item["name"],
+                    value_type="float",
+                    group="kallisto",
+                    source_name="kallisto",
+                    source_type="geometric",
+                    source_version="kallisto-1.0.10",
+                    description=item["description"],
+                    units=item["units"],
+                    prerequisites=DESCRIPTOR_PREREQUISITE_COORDINATES_3D,
+                )
+            )
+    return DescriptorSchema(definitions)
+
+
+def kallisto_atom_descriptors(mol: Any, charge: int | None = None) -> KallistoAtomDescriptors:
+    """Compute kallisto atom descriptors for a 3D molecule.
+
+    Computes coordination numbers (erf/cov/exp) and proximity shells for all atoms
+    in a molecule. Requires 3D coordinates and all atoms with Z <= 86. Ineligible
+    molecules return empty arrays.
+
+    :param mol: OpenEye molecule (OEMolBase).
+    :param charge: Optional override for molecular charge (defaults to formal charge).
+    :returns: KallistoAtomDescriptors with per-atom arrays and validity masks.
+
+    Example:
+
+        >>> from openeye import oechem
+        >>> from oefp import kallisto_atom_descriptors
+        >>> mol = oechem.OEGraphMol()
+        >>> oechem.OESmilesToMol(mol, "CC")
+        >>> oechem.OEAddExplicitHydrogens(mol)
+        >>> oechem.OEGenerate3DCoordinates(mol)
+        >>> result = kallisto_atom_descriptors(mol)
+        >>> result.cn_erf
+        array([...])
+    """
+    if charge is not None:
+        batch = _native.MakeKallistoAtomDescriptorBatch(mol, int(charge))
+    else:
+        batch = _native.MakeKallistoAtomDescriptorBatch(mol)
+
+    atom_count = batch.AtomCount()
+
+    # Empty result for ineligible molecules
+    if atom_count == 0:
+        return KallistoAtomDescriptors(
+            cn_erf=np.array([], dtype=np.float64),
+            cn_cov=np.array([], dtype=np.float64),
+            cn_exp=np.array([], dtype=np.float64),
+            prox=np.array([], dtype=np.float64),
+            validity={
+                "cn_erf": np.array([], dtype=bool),
+                "cn_cov": np.array([], dtype=bool),
+                "cn_exp": np.array([], dtype=bool),
+                "prox": np.array([], dtype=bool),
+            },
+            atom_count=0,
+        )
+
+    # Column order from schema: cn_erf, cn_cov, cn_exp, prox
+    column_names = ["cn_erf", "cn_cov", "cn_exp", "prox"]
+    columns = {}
+    validity = {}
+
+    for i, name in enumerate(column_names):
+        # Read value array
+        value_addr = batch.ColumnDataAddress(i)
+        columns[name] = readonly_array_from_address(
+            batch, value_addr, (atom_count,), np.float64
+        )
+
+        # Read validity array
+        validity_addr = batch.ColumnValidityAddress(i)
+        validity_u8 = readonly_array_from_address(
+            batch, validity_addr, (atom_count,), np.uint8
+        )
+        validity[name] = validity_u8.astype(bool)
+
+    return KallistoAtomDescriptors(
+        cn_erf=columns["cn_erf"],
+        cn_cov=columns["cn_cov"],
+        cn_exp=columns["cn_exp"],
+        prox=columns["prox"],
+        validity=validity,
+        atom_count=atom_count,
+    )

@@ -1,5 +1,8 @@
 #include "oefp/kallisto_descriptors.h"
 #include "oefp/kallisto_data.h"
+#include "oefp/atom_descriptor.h"
+
+#include <oechem.h>
 
 #include <cmath>
 #include <stdexcept>
@@ -220,6 +223,73 @@ std::shared_ptr<const DescriptorSchema> KallistoAtomDescriptorSchema() {
         return std::make_shared<const DescriptorSchema>(std::move(definitions));
     }();
     return schema;
+}
+
+AtomDescriptorSet MakeKallistoAtomDescriptors(
+    const OEChem::OEMolBase& mol,
+    std::optional<int> charge
+) {
+    auto schema = KallistoAtomDescriptorSchema();
+
+    // Build geometry context
+    KallistoGeometryContext ctx(mol, charge);
+
+    // Ineligible -> empty set
+    if (!ctx.Eligible()) {
+        return AtomDescriptorSet::Empty(schema);
+    }
+
+    const std::size_t atom_count = ctx.AtomCount();
+
+    // Compute all four columns
+    auto cn_erf_vals = coordination_numbers(ctx, "erf");
+    auto cn_cov_vals = coordination_numbers(ctx, "cov");
+    auto cn_exp_vals = coordination_numbers(ctx, "exp");
+    auto prox_vals = proximity_shells(ctx, {2, 3});
+
+    // Build columns as [column][atom] of std::optional<double>
+    // Column order MUST match schema: cn_erf, cn_cov, cn_exp, prox
+    std::vector<std::vector<std::optional<double>>> columns(4);
+    columns[0].reserve(atom_count);
+    columns[1].reserve(atom_count);
+    columns[2].reserve(atom_count);
+    columns[3].reserve(atom_count);
+
+    for (std::size_t i = 0; i < atom_count; ++i) {
+        columns[0].push_back(cn_erf_vals[i]);
+        columns[1].push_back(cn_cov_vals[i]);
+        columns[2].push_back(cn_exp_vals[i]);
+        columns[3].push_back(prox_vals[i]);
+    }
+
+    // Build atom indices 0..N-1
+    std::vector<std::uint32_t> atom_indices(atom_count);
+    for (std::size_t i = 0; i < atom_count; ++i) {
+        atom_indices[i] = static_cast<std::uint32_t>(i);
+    }
+
+    return AtomDescriptorSet(schema, std::move(atom_indices), std::move(columns));
+}
+
+KallistoAtomDescriptorSource::KallistoAtomDescriptorSource(std::optional<int> charge)
+    : charge_(charge) {}
+
+std::shared_ptr<const DescriptorSchema> KallistoAtomDescriptorSource::Schema() const {
+    return KallistoAtomDescriptorSchema();
+}
+
+AtomDescriptorSet KallistoAtomDescriptorSource::Compute(const OEChem::OEMolBase& mol) const {
+    return MakeKallistoAtomDescriptors(mol, charge_);
+}
+
+AtomDescriptorBatch MakeKallistoAtomDescriptorBatch(
+    const OEChem::OEMolBase& mol,
+    std::optional<int> charge
+) {
+    auto set = MakeKallistoAtomDescriptors(mol, charge);
+    auto batch = AtomDescriptorBatch::Empty(KallistoAtomDescriptorSchema());
+    batch.Append(set);
+    return batch;
 }
 
 } // namespace OEFP
