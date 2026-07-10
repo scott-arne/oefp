@@ -4353,8 +4353,8 @@ def sterimol(mol: Any, origin: int, partner: int) -> Sterimol | None:
     bounds, or vdW radii computation fails.
 
     :param mol: OpenEye molecule (OEMolBase).
-    :param origin: Origin atom positional index (0-based).
-    :param partner: Partner atom positional index (0-based).
+    :param origin: Origin atom index (OpenEye GetIdx, consistent with kallisto_bond_descriptors).
+    :param partner: Partner atom index (OpenEye GetIdx, consistent with kallisto_bond_descriptors).
     :returns: Sterimol namedtuple (L, B1, B5) or None if ineligible.
 
     Example:
@@ -4370,7 +4370,17 @@ def sterimol(mol: Any, origin: int, partner: int) -> Sterimol | None:
         ...
     """
     try:
-        values = _native.KallistoSterimol(mol, int(origin), int(partner))
+        # Build GetIdx -> position map (position == iteration order)
+        idx_to_pos = {atom.GetIdx(): pos for pos, atom in enumerate(mol.GetAtoms())}
+
+        # Translate GetIdx to positional indices
+        origin_pos = idx_to_pos.get(int(origin))
+        partner_pos = idx_to_pos.get(int(partner))
+
+        if origin_pos is None or partner_pos is None:
+            return None
+
+        values = _native.KallistoSterimol(mol, origin_pos, partner_pos)
         return Sterimol(L=values[0], B1=values[1], B5=values[2])
     except (RuntimeError, ValueError, IndexError):
         return None

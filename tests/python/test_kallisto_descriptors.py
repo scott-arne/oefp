@@ -584,6 +584,71 @@ def test_sterimol_function() -> None:
 
 
 @pytest.mark.skipif(not HAS_OPENEYE, reason="OpenEye not available")
+def test_sterimol_noncontiguous_getidx() -> None:
+    """Verify sterimol() uses GetIdx (consistent with bond rows) after DeleteAtom.
+
+    Regression test: after deleting a middle atom, kallisto_bond_descriptors()
+    emits bond rows using OpenEye GetIdx (e.g. [0,2,3]), and sterimol(mol, begin, end)
+    should accept the same GetIdx values and return matching Sterimol results.
+    """
+    # Build a 5-atom chain with 3D coordinates
+    mol = oechem.OEGraphMol()
+    mol.SetDimension(3)
+
+    atoms = []
+    for i in range(5):
+        atom = mol.NewAtom(6)  # Carbon
+        atoms.append(atom)
+        mol.SetCoords(atom, [float(i), 0.0, 0.0])
+
+    # Add bonds between consecutive atoms
+    for i in range(4):
+        mol.NewBond(atoms[i], atoms[i + 1])
+
+    # Delete the 3rd atom (index 2) → GetIdx becomes [0,1,3,4] for the 4 remaining
+    atom_to_delete = atoms[2]
+    mol.DeleteAtom(atom_to_delete)
+
+    # Verify atom GetIdx is non-contiguous
+    all_atoms_after = list(mol.GetAtoms())
+    assert len(all_atoms_after) == 4
+    expected_indices = [a.GetIdx() for a in all_atoms_after]
+    assert expected_indices[0] == 0
+    assert expected_indices[1] == 1
+    assert expected_indices[2] == 3  # NOT 2 (that atom was deleted)
+    assert expected_indices[3] == 4
+
+    # Compute kallisto bond descriptors
+    result = kallisto_bond_descriptors(mol)
+
+    # Should have at least one bond (the acyclic chain has bonds)
+    assert result.bond_count > 0, "Expected at least one bond in non-contiguous molecule"
+
+    # Tolerance for loose tier (Sterimol uses loose tier)
+    tol = TIERS["loose"]
+
+    # For each emitted bond row, verify sterimol(mol, begin, end) returns matching values
+    for i in range(result.bond_count):
+        row_begin = int(result.begin[i])
+        row_end = int(result.end[i])
+
+        # Call sterimol with the GetIdx-based begin/end from the bond row
+        sterimol_result = sterimol(mol, row_begin, row_end)
+
+        # Should not be None (the bond is valid)
+        assert sterimol_result is not None, \
+            f"sterimol({row_begin}, {row_end}) returned None for valid bond row {i}"
+
+        # Verify sterimol values match the bond row (loose tier tolerance)
+        assert abs(sterimol_result.L - result["sterimol_L"][i]) <= tol, \
+            f"Bond {i} ({row_begin},{row_end}): sterimol.L mismatch"
+        assert abs(sterimol_result.B1 - result["sterimol_B1"][i]) <= tol, \
+            f"Bond {i} ({row_begin},{row_end}): sterimol.B1 mismatch"
+        assert abs(sterimol_result.B5 - result["sterimol_B5"][i]) <= tol, \
+            f"Bond {i} ({row_begin},{row_end}): sterimol.B5 mismatch"
+
+
+@pytest.mark.skipif(not HAS_OPENEYE, reason="OpenEye not available")
 def test_kallisto_atom_descriptors_batch() -> None:
     """Verify atom descriptor batch with valid, skipped, valid molecules."""
     # Create 3 molecules: valid 3D, skipped (2D), valid 3D
