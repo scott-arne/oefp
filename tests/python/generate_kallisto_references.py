@@ -93,22 +93,26 @@ def _reference_payload(panel_dir: Path) -> dict[str, Any]:
         )
 
     # Atom schema (8 descriptors: 3 CN types, prox, eeq, alp, 2 vdW types)
+    # Descriptions MUST match the native C++ schema in src/kallisto_descriptors.cpp
+    # (single source of truth for SchemaId equality).
     atom_schema = [
-        {"name": "cn_erf", "units": "", "description": "Coordination number (erf)"},
-        {"name": "cn_cov", "units": "", "description": "Coordination number (cov)"},
-        {"name": "cn_exp", "units": "", "description": "Coordination number (exp)"},
-        {"name": "prox", "units": "", "description": "Proximity shell (2,3)"},
-        {"name": "eeq", "units": "e", "description": "EEQ partial charge"},
-        {"name": "alp", "units": "Bohr^3", "description": "Atomic polarizability"},
-        {"name": "vdw_rahm", "units": "Bohr", "description": "vdW radius (Rahm)"},
-        {"name": "vdw_truhlar", "units": "Bohr", "description": "vdW radius (Truhlar)"},
+        {"name": "cn_erf", "units": "", "description": "Error-function coordination number"},
+        {"name": "cn_cov", "units": "", "description": "Covalent coordination number (electronegativity-weighted)"},
+        {"name": "cn_exp", "units": "", "description": "Exponential coordination number"},
+        {"name": "prox", "units": "", "description": "Proximity shell difference (scale 2-3)"},
+        {"name": "eeq", "units": "e", "description": "EEQ atomic partial charge (electronegativity equilibration)"},
+        {"name": "alp", "units": "Bohr^3", "description": "Atomic polarizability (charge-dependent, D4 method)"},
+        {"name": "vdw_rahm", "units": "Bohr", "description": "van der Waals radius (Rahm parameters)"},
+        {"name": "vdw_truhlar", "units": "Bohr", "description": "van der Waals radius (Truhlar parameters)"},
     ]
 
     # Bond schema (3 Sterimol descriptors)
+    # Descriptions MUST match the native C++ schema in src/kallisto_descriptors.cpp
+    # (single source of truth for SchemaId equality).
     bond_schema = [
-        {"name": "sterimol_L", "units": "Bohr", "description": "Sterimol L (length)"},
-        {"name": "sterimol_B1", "units": "Bohr", "description": "Sterimol B1 (min width)"},
-        {"name": "sterimol_B5", "units": "Bohr", "description": "Sterimol B5 (max width)"},
+        {"name": "sterimol_L", "units": "Bohr", "description": "Sterimol L: maximum projection along bond axis + vdW"},
+        {"name": "sterimol_B1", "units": "Bohr", "description": "Sterimol B1: minimum perpendicular radius"},
+        {"name": "sterimol_B5", "units": "Bohr", "description": "Sterimol B5: maximum perpendicular radius"},
     ]
 
     molecules = []

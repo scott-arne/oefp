@@ -1,59 +1,59 @@
 {
   "atom_schema": [
     {
-      "description": "Coordination number (erf)",
+      "description": "Error-function coordination number",
       "name": "cn_erf",
       "units": ""
     },
     {
-      "description": "Coordination number (cov)",
+      "description": "Covalent coordination number (electronegativity-weighted)",
       "name": "cn_cov",
       "units": ""
     },
     {
-      "description": "Coordination number (exp)",
+      "description": "Exponential coordination number",
       "name": "cn_exp",
       "units": ""
     },
     {
-      "description": "Proximity shell (2,3)",
+      "description": "Proximity shell difference (scale 2-3)",
       "name": "prox",
       "units": ""
     },
     {
-      "description": "EEQ partial charge",
+      "description": "EEQ atomic partial charge (electronegativity equilibration)",
       "name": "eeq",
       "units": "e"
     },
     {
-      "description": "Atomic polarizability",
+      "description": "Atomic polarizability (charge-dependent, D4 method)",
       "name": "alp",
       "units": "Bohr^3"
     },
     {
-      "description": "vdW radius (Rahm)",
+      "description": "van der Waals radius (Rahm parameters)",
       "name": "vdw_rahm",
       "units": "Bohr"
     },
     {
-      "description": "vdW radius (Truhlar)",
+      "description": "van der Waals radius (Truhlar parameters)",
       "name": "vdw_truhlar",
       "units": "Bohr"
     }
   ],
   "bond_schema": [
     {
-      "description": "Sterimol L (length)",
+      "description": "Sterimol L: maximum projection along bond axis + vdW",
       "name": "sterimol_L",
       "units": "Bohr"
     },
     {
-      "description": "Sterimol B1 (min width)",
+      "description": "Sterimol B1: minimum perpendicular radius",
       "name": "sterimol_B1",
       "units": "Bohr"
     },
     {
-      "description": "Sterimol B5 (max width)",
+      "description": "Sterimol B5: maximum perpendicular radius",
       "name": "sterimol_B5",
       "units": "Bohr"
     }

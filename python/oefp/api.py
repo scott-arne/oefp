@@ -3775,7 +3775,7 @@ def kallisto_atom_schema() -> DescriptorSchema:
     # Get emitted column names from native schema (single source of truth)
     column_names = _native.KallistoAtomColumnNames()
 
-    # Load metadata from the kallisto references fixture
+    # Load metadata from the kallisto references fixture (descriptions match native C++)
     resource = resources.files("oefp").joinpath("kallisto_references.json")
     if resource.is_file():
         with resource.open(encoding="utf-8") as handle:
@@ -3956,7 +3956,7 @@ def kallisto_bond_schema() -> DescriptorSchema:
     # Get emitted column names from native schema (single source of truth)
     column_names = _native.KallistoBondColumnNames()
 
-    # Load metadata from the kallisto references fixture
+    # Load metadata from the kallisto references fixture (descriptions match native C++)
     resource = resources.files("oefp").joinpath("kallisto_references.json")
     if resource.is_file():
         with resource.open(encoding="utf-8") as handle:

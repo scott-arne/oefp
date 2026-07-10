@@ -1031,3 +1031,59 @@ def test_sterimol_non_bonded_pair_returns_finite() -> None:
     assert np.isfinite(result_nonbonded.L), "sterimol.L should be finite for non-bonded pair"
     assert np.isfinite(result_nonbonded.B1), "sterimol.B1 should be finite for non-bonded pair"
     assert np.isfinite(result_nonbonded.B5), "sterimol.B5 should be finite for non-bonded pair"
+
+
+@pytest.mark.skipif(not HAS_OPENEYE, reason="openeye required")
+def test_kallisto_schema_description_consistency() -> None:
+    """Verify Python schema descriptions match the fixture (single source of truth).
+
+    The Python kallisto_atom_schema() and kallisto_bond_schema() pull descriptions
+    from kallisto_references.json, which MUST match the native C++ schema descriptions
+    in src/kallisto_descriptors.cpp. This test verifies the fixture was regenerated
+    after any C++ description changes (ensuring SchemaId equality).
+    """
+    from pathlib import Path
+    import json
+
+    fixture_path = Path("tests/python/kallisto_references.json")
+    with fixture_path.open(encoding="utf-8") as f:
+        fixture = json.load(f)
+
+    # Expected descriptions from native C++ (src/kallisto_descriptors.cpp)
+    expected_atom_descriptions = {
+        "cn_erf": "Error-function coordination number",
+        "cn_cov": "Covalent coordination number (electronegativity-weighted)",
+        "cn_exp": "Exponential coordination number",
+        "prox": "Proximity shell difference (scale 2-3)",
+        "eeq": "EEQ atomic partial charge (electronegativity equilibration)",
+        "alp": "Atomic polarizability (charge-dependent, D4 method)",
+        "vdw_rahm": "van der Waals radius (Rahm parameters)",
+        "vdw_truhlar": "van der Waals radius (Truhlar parameters)",
+    }
+
+    expected_bond_descriptions = {
+        "sterimol_L": "Sterimol L: maximum projection along bond axis + vdW",
+        "sterimol_B1": "Sterimol B1: minimum perpendicular radius",
+        "sterimol_B5": "Sterimol B5: maximum perpendicular radius",
+    }
+
+    # Verify atom schema descriptions
+    for col in fixture["atom_schema"]:
+        assert col["description"] == expected_atom_descriptions[col["name"]], \
+            f"Fixture atom {col['name']} description must match native C++ (for SchemaId equality)"
+
+    # Verify bond schema descriptions
+    for col in fixture["bond_schema"]:
+        assert col["description"] == expected_bond_descriptions[col["name"]], \
+            f"Fixture bond {col['name']} description must match native C++ (for SchemaId equality)"
+
+    # Verify Python helper uses these descriptions
+    py_atom_schema = kallisto_atom_schema()
+    for defn in py_atom_schema.definitions:
+        assert defn.description == expected_atom_descriptions[defn.name], \
+            f"Python atom schema {defn.name} description must match native C++"
+
+    py_bond_schema = kallisto_bond_schema()
+    for defn in py_bond_schema.definitions:
+        assert defn.description == expected_bond_descriptions[defn.name], \
+            f"Python bond schema {defn.name} description must match native C++"

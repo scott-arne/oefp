@@ -1392,5 +1392,42 @@ TEST(KallistoDescriptors, BondDescriptorSourceCalculateBatchNullPointer) {
     EXPECT_THROW(source.CalculateBatch(mols), std::invalid_argument);
 }
 
+TEST(KallistoBondDescriptors, IdenticalCoordsEmitsMissingSterimol) {
+    // Two bonded atoms at identical coordinates → Sterimol kernel yields NaN
+    // (division by zero in norm computation). The finiteness guard should emit
+    // polarizability computation fails (singular EEQ solve), vdW radii return
+    // empty, bond descriptors yield an empty result (not a crash, not NaN).
+    OEChem::OEGraphMol mol;
+    OEChem::OEAtomBase* c1 = mol.NewAtom(6);  // Carbon
+    OEChem::OEAtomBase* c2 = mol.NewAtom(6);  // Carbon
+    mol.NewBond(c1, c2, 1);  // Single bond
+    mol.SetDimension(3);
+
+    // Both atoms at origin (degenerate case)
+    const double origin_coords[3] = {0.0, 0.0, 0.0};
+    mol.SetCoords(c1, origin_coords);
+    mol.SetCoords(c2, origin_coords);
+
+    // Compute bond descriptors
+    auto result = MakeKallistoBondDescriptors(mol);
+
+    // Degenerate geometry yields empty result (eligible but computation failed)
+    EXPECT_EQ(result.BondCount(), 0u)
+        << "Identical coords should yield empty result (polarizability/vdW fails)";
+}
+
+TEST(KallistoSterimolPositional, SelfPairReturnsNullopt) {
+    // KallistoSterimol(mol, i, i) should return nullopt (guards division by zero).
+    OEChem::OEGraphMol mol;
+    OEChem::OEAtomBase* c = mol.NewAtom(6);
+    mol.SetDimension(3);
+    const double coords[3] = {1.0, 2.0, 3.0};
+    mol.SetCoords(c, coords);
+
+    // Self-pair should return nullopt
+    auto result = KallistoSterimol(mol, 0, 0);
+    EXPECT_FALSE(result.has_value()) << "KallistoSterimol(mol, 0, 0) should return nullopt";
+}
+
 }  // namespace
 }  // namespace OEFP

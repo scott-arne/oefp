@@ -866,8 +866,8 @@ std::optional<Sterimol> KallistoSterimol(
 
     const std::size_t nat = ctx.AtomicNumbers().size();
 
-    // Validate indices
-    if (origin >= nat || partner >= nat) {
+    // Validate indices and guard against origin == partner (division by zero)
+    if (origin >= nat || partner >= nat || origin == partner) {
         return std::nullopt;
     }
 
@@ -986,18 +986,34 @@ BondDescriptorSet MakeKallistoBondDescriptors(const OEChem::OEMolBase& mol) {
         {
             auto s = sterimol_from_geometry(coords, vdw, pos_a, pos_b);
             bond_endpoints.emplace_back(origin_a, origin_b);
-            columns[0].push_back(s.l);
-            columns[1].push_back(s.b1);
-            columns[2].push_back(s.b5);
+            // Guard against non-finite Sterimol values (e.g., degenerate case of
+            // two bonded atoms at identical coordinates). Emit missing rather than NaN.
+            if (std::isfinite(s.l) && std::isfinite(s.b1) && std::isfinite(s.b5)) {
+                columns[0].push_back(s.l);
+                columns[1].push_back(s.b1);
+                columns[2].push_back(s.b5);
+            } else {
+                columns[0].push_back(std::nullopt);
+                columns[1].push_back(std::nullopt);
+                columns[2].push_back(std::nullopt);
+            }
         }
 
         // Direction B -> A
         {
             auto s = sterimol_from_geometry(coords, vdw, pos_b, pos_a);
             bond_endpoints.emplace_back(origin_b, origin_a);
-            columns[0].push_back(s.l);
-            columns[1].push_back(s.b1);
-            columns[2].push_back(s.b5);
+            // Guard against non-finite Sterimol values (e.g., degenerate case of
+            // two bonded atoms at identical coordinates). Emit missing rather than NaN.
+            if (std::isfinite(s.l) && std::isfinite(s.b1) && std::isfinite(s.b5)) {
+                columns[0].push_back(s.l);
+                columns[1].push_back(s.b1);
+                columns[2].push_back(s.b5);
+            } else {
+                columns[0].push_back(std::nullopt);
+                columns[1].push_back(std::nullopt);
+                columns[2].push_back(std::nullopt);
+            }
         }
     }
 
