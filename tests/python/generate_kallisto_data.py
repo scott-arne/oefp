@@ -16,21 +16,13 @@ EXPECTED_KALLISTO_VERSION = "1.0.10"
 
 
 def _verify_kallisto() -> None:
-    """Guard against kallisto version drift by checking sentinel values."""
-    import kallisto.data
-    import kallisto.units
+    """Guard against unexpected kallisto version to preserve deterministic output."""
+    import kallisto
 
-    # kallisto does not expose __version__, so check known sentinel values
-    # (these lock the tables to kallisto 1.0.10)
-    if abs(kallisto.units.Bohr - 0.5291772105437147) > 1e-15:
+    version = str(kallisto.__version__)
+    if version != EXPECTED_KALLISTO_VERSION:
         raise RuntimeError(
-            f"kallisto Bohr constant changed (expected 0.5291772105437147, "
-            f"got {kallisto.units.Bohr}). Update EXPECTED_KALLISTO_VERSION."
-        )
-    if abs(kallisto.data.covalent_radius[0] - 0.80628308) > 1e-8:
-        raise RuntimeError(
-            f"kallisto covalent_radius[0] changed (expected 0.80628308, "
-            f"got {kallisto.data.covalent_radius[0]}). Table drift detected."
+            f"Expected kallisto {EXPECTED_KALLISTO_VERSION}, imported {version!r}."
         )
 
 
