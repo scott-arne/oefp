@@ -147,6 +147,54 @@ TEST(KallistoBatchArrow, AtomDescriptorRoundTripWithEmptySegments) {
             }
         }
     }
+
+    // Verify schema identity is preserved (native schema singleton)
+    EXPECT_EQ(reconstructed_batch.Schema().SchemaId(),
+              KallistoAtomDescriptorSchema()->SchemaId())
+        << "Round-tripped batch must preserve native schema identity";
+
+    // Verify append compatibility: a fresh native-schema batch can append the round-tripped data
+    auto native_batch = AtomDescriptorBatch::Empty(KallistoAtomDescriptorSchema());
+    std::size_t atom_offset = 0;
+    for (std::size_t mol = 0; mol < reconstructed_batch.Size(); ++mol) {
+        const auto seg_atom_count = reconstructed_batch.SegmentAtomCount(mol);
+        if (seg_atom_count == 0) {
+            EXPECT_NO_THROW(native_batch.Append(AtomDescriptorSet::Empty(KallistoAtomDescriptorSchema())))
+                << "Appending empty segment " << mol << " must succeed";
+            continue;
+        }
+
+        // Extract atom indices for this segment
+        std::vector<std::uint32_t> atom_indices(seg_atom_count);
+        const auto* indices_data = reinterpret_cast<const std::uint32_t*>(
+            reconstructed_batch.AtomIndexDataAddress());
+        for (std::size_t i = 0; i < seg_atom_count; ++i) {
+            atom_indices[i] = indices_data[atom_offset + i];
+        }
+
+        // Extract column values for this segment
+        std::vector<std::vector<std::optional<double>>> columns(schema.Size());
+        for (std::size_t col = 0; col < schema.Size(); ++col) {
+            columns[col].resize(seg_atom_count);
+            const auto* values = reinterpret_cast<const double*>(
+                reconstructed_batch.ColumnDataAddress(col));
+            const auto* validity = reinterpret_cast<const std::uint8_t*>(
+                reconstructed_batch.ColumnValidityAddress(col));
+            for (std::size_t i = 0; i < seg_atom_count; ++i) {
+                if (validity[atom_offset + i] != 0u) {
+                    columns[col][i] = values[atom_offset + i];
+                } else {
+                    columns[col][i] = std::nullopt;
+                }
+            }
+        }
+
+        EXPECT_NO_THROW(native_batch.Append(AtomDescriptorSet(
+            KallistoAtomDescriptorSchema(), std::move(atom_indices), std::move(columns))))
+            << "Appending reconstructed segment " << mol << " to native-schema batch must succeed";
+
+        atom_offset += seg_atom_count;
+    }
 }
 
 TEST(KallistoBatchArrow, BondDescriptorRoundTripWithEmptySegments) {
@@ -224,6 +272,56 @@ TEST(KallistoBatchArrow, BondDescriptorRoundTripWithEmptySegments) {
                     << "Column " << col << " bond " << i << " value mismatch";
             }
         }
+    }
+
+    // Verify schema identity is preserved (native schema singleton)
+    EXPECT_EQ(reconstructed_batch.Schema().SchemaId(),
+              KallistoBondDescriptorSchema()->SchemaId())
+        << "Round-tripped batch must preserve native schema identity";
+
+    // Verify append compatibility: a fresh native-schema batch can append the round-tripped data
+    auto native_batch = BondDescriptorBatch::Empty(KallistoBondDescriptorSchema());
+    std::size_t bond_offset = 0;
+    for (std::size_t mol = 0; mol < reconstructed_batch.Size(); ++mol) {
+        const auto seg_bond_count = reconstructed_batch.SegmentBondCount(mol);
+        if (seg_bond_count == 0) {
+            EXPECT_NO_THROW(native_batch.Append(BondDescriptorSet::Empty(KallistoBondDescriptorSchema())))
+                << "Appending empty segment " << mol << " must succeed";
+            continue;
+        }
+
+        // Extract bond endpoints for this segment
+        std::vector<std::pair<std::uint32_t, std::uint32_t>> bond_endpoints(seg_bond_count);
+        const auto* begin_data = reinterpret_cast<const std::uint32_t*>(
+            reconstructed_batch.BondBeginDataAddress());
+        const auto* end_data = reinterpret_cast<const std::uint32_t*>(
+            reconstructed_batch.BondEndDataAddress());
+        for (std::size_t i = 0; i < seg_bond_count; ++i) {
+            bond_endpoints[i] = {begin_data[bond_offset + i], end_data[bond_offset + i]};
+        }
+
+        // Extract column values for this segment
+        std::vector<std::vector<std::optional<double>>> columns(schema.Size());
+        for (std::size_t col = 0; col < schema.Size(); ++col) {
+            columns[col].resize(seg_bond_count);
+            const auto* values = reinterpret_cast<const double*>(
+                reconstructed_batch.ColumnDataAddress(col));
+            const auto* validity = reinterpret_cast<const std::uint8_t*>(
+                reconstructed_batch.ColumnValidityAddress(col));
+            for (std::size_t i = 0; i < seg_bond_count; ++i) {
+                if (validity[bond_offset + i] != 0u) {
+                    columns[col][i] = values[bond_offset + i];
+                } else {
+                    columns[col][i] = std::nullopt;
+                }
+            }
+        }
+
+        EXPECT_NO_THROW(native_batch.Append(BondDescriptorSet(
+            KallistoBondDescriptorSchema(), std::move(bond_endpoints), std::move(columns))))
+            << "Appending reconstructed segment " << mol << " to native-schema batch must succeed";
+
+        bond_offset += seg_bond_count;
     }
 }
 

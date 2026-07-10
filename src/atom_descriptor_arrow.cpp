@@ -1,4 +1,5 @@
 #include "oefp/atom_descriptor_arrow.h"
+#include "oefp/kallisto_descriptors.h"
 
 #include <arrow/api.h>
 #include <arrow/io/file.h>
@@ -346,6 +347,21 @@ AtomDescriptorBatch AtomDescriptorBatchFromArrow(
         throw std::invalid_argument("Arrow column count does not match schema.");
     }
 
+    // Use the native kallisto atom schema and validate Arrow data matches it
+    auto schema = KallistoAtomDescriptorSchema();
+    if (column_names.size() != schema->Size()) {
+        throw std::invalid_argument(
+            "Arrow schema has " + std::to_string(column_names.size()) +
+            " feature columns but kallisto atom schema has " + std::to_string(schema->Size()));
+    }
+    for (std::size_t i = 0; i < schema->Size(); ++i) {
+        if (column_names[i] != schema->Definition(i).name) {
+            throw std::invalid_argument(
+                "Arrow column " + std::to_string(i) + " is '" + column_names[i] +
+                "' but kallisto atom schema expects '" + schema->Definition(i).name + "'");
+        }
+    }
+
     // Group rows by molecule_id
     std::vector<std::vector<std::size_t>> mol_row_indices(molecule_count);
     for (std::int64_t row = 0; row < rb->num_rows(); ++row) {
@@ -355,24 +371,6 @@ AtomDescriptorBatch AtomDescriptorBatchFromArrow(
         }
         mol_row_indices[mol_id].push_back(static_cast<std::size_t>(row));
     }
-
-    // Build batch segment by segment
-    // We need the schema - reconstruct it from the first segment's data or use a minimal schema
-    // For now, we'll build a minimal schema from column names
-    DescriptorSchemaBuilder schema_builder;
-    for (const auto& name : column_names) {
-        DescriptorDefinition def;
-        def.name = name;
-        def.value_kind = DescriptorValueKind::Float;
-        def.group = "kallisto";
-        def.source_name = "kallisto";
-        def.source_type = "geometric";
-        def.source_version = "kallisto-1.0.10";
-        def.units = "Bohr";
-        def.prerequisites = kDescriptorPrerequisiteCoordinates3D;
-        schema_builder.Add(std::move(def));
-    }
-    auto schema = schema_builder.Build();
 
     auto batch = AtomDescriptorBatch::Empty(schema);
 
@@ -525,6 +523,21 @@ BondDescriptorBatch BondDescriptorBatchFromArrow(
         throw std::invalid_argument("Arrow column count does not match schema.");
     }
 
+    // Use the native kallisto bond schema and validate Arrow data matches it
+    auto schema = KallistoBondDescriptorSchema();
+    if (column_names.size() != schema->Size()) {
+        throw std::invalid_argument(
+            "Arrow schema has " + std::to_string(column_names.size()) +
+            " feature columns but kallisto bond schema has " + std::to_string(schema->Size()));
+    }
+    for (std::size_t i = 0; i < schema->Size(); ++i) {
+        if (column_names[i] != schema->Definition(i).name) {
+            throw std::invalid_argument(
+                "Arrow column " + std::to_string(i) + " is '" + column_names[i] +
+                "' but kallisto bond schema expects '" + schema->Definition(i).name + "'");
+        }
+    }
+
     // Group rows by molecule_id
     std::vector<std::vector<std::size_t>> mol_row_indices(molecule_count);
     for (std::int64_t row = 0; row < rb->num_rows(); ++row) {
@@ -534,22 +547,6 @@ BondDescriptorBatch BondDescriptorBatchFromArrow(
         }
         mol_row_indices[mol_id].push_back(static_cast<std::size_t>(row));
     }
-
-    // Build schema
-    DescriptorSchemaBuilder schema_builder;
-    for (const auto& name : column_names) {
-        DescriptorDefinition def;
-        def.name = name;
-        def.value_kind = DescriptorValueKind::Float;
-        def.group = "kallisto";
-        def.source_name = "kallisto";
-        def.source_type = "geometric";
-        def.source_version = "kallisto-1.0.10";
-        def.units = "Bohr";
-        def.prerequisites = kDescriptorPrerequisiteCoordinates3D;
-        schema_builder.Add(std::move(def));
-    }
-    auto schema = schema_builder.Build();
 
     auto batch = BondDescriptorBatch::Empty(schema);
 
