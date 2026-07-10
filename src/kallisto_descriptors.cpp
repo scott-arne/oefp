@@ -13,9 +13,14 @@ std::vector<double> coordination_numbers(
     const KallistoGeometryContext& ctx,
     const std::string& cntype
 ) {
-    const std::size_t nat = ctx.AtomCount();
+    // Return empty for ineligible contexts (2D, Z>86, coord-failure)
+    if (!ctx.Eligible()) {
+        return std::vector<double>{};
+    }
+
     const auto& atomic_numbers = ctx.AtomicNumbers();
     const auto& coords = ctx.CoordsBohr();
+    const std::size_t nat = atomic_numbers.size();
 
     std::vector<double> cns(nat, 0.0);
 
@@ -121,9 +126,14 @@ std::vector<double> proximity_shells(
     const KallistoGeometryContext& ctx,
     std::pair<int, int> size
 ) {
-    const std::size_t nat = ctx.AtomCount();
+    // Return empty for ineligible contexts (2D, Z>86, coord-failure)
+    if (!ctx.Eligible()) {
+        return std::vector<double>{};
+    }
+
     const auto& atomic_numbers = ctx.AtomicNumbers();
     const auto& coords = ctx.CoordsBohr();
+    const std::size_t nat = atomic_numbers.size();
 
     std::vector<double> prox1(nat, 0.0);
     std::vector<double> prox2(nat, 0.0);

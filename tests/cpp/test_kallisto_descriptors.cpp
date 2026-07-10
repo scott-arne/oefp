@@ -250,5 +250,80 @@ TEST(KallistoDescriptors, AtomDescriptorSchema) {
     EXPECT_EQ(schema->Definition(3).prerequisites, kDescriptorPrerequisiteCoordinates3D);
 }
 
+// Test that kernels return empty vectors for ineligible contexts (2D molecule)
+TEST(KallistoDescriptors, IneligibleContext2D) {
+    // Create a 2D molecule (no 3D coords)
+    OEChem::OEGraphMol mol;
+    OEChem::OEAtomBase* c1 = mol.NewAtom(6);  // Carbon
+    OEChem::OEAtomBase* c2 = mol.NewAtom(6);
+    mol.NewBond(c1, c2, 1);
+
+    // Set 2D coords to ensure dimension is 2
+    const double coords_c1[3] = {0.0, 0.0, 0.0};
+    const double coords_c2[3] = {1.5, 0.0, 0.0};
+    mol.SetCoords(c1, coords_c1);
+    mol.SetCoords(c2, coords_c2);
+    mol.SetDimension(2);
+
+    ASSERT_EQ(mol.GetDimension(), 2);
+
+    KallistoGeometryContext ctx(mol);
+    EXPECT_FALSE(ctx.Eligible());
+    EXPECT_EQ(ctx.AtomCount(), 2u);
+    EXPECT_EQ(ctx.AtomicNumbers().size(), 0u);
+    EXPECT_EQ(ctx.CoordsBohr().size(), 0u);
+
+    // All kernels should return empty
+    auto cn_erf = coordination_numbers(ctx, "erf");
+    EXPECT_EQ(cn_erf.size(), 0u);
+
+    auto cn_cov = coordination_numbers(ctx, "cov");
+    EXPECT_EQ(cn_cov.size(), 0u);
+
+    auto cn_exp = coordination_numbers(ctx, "exp");
+    EXPECT_EQ(cn_exp.size(), 0u);
+
+    auto prox = proximity_shells(ctx, {2, 3});
+    EXPECT_EQ(prox.size(), 0u);
+
+    // Cached covalent CN should also return empty
+    const auto& cn_cov_cached = ctx.CovalentCoordinationNumbers();
+    EXPECT_EQ(cn_cov_cached.size(), 0u);
+}
+
+// Test that kernels return empty vectors for ineligible contexts (Z > 86)
+TEST(KallistoDescriptors, IneligibleContextHeavyElement) {
+    // Create a molecule with Z > 86 (radon is 86, francium is 87)
+    OEChem::OEGraphMol mol;
+    OEChem::OEAtomBase* fr = mol.NewAtom(87);  // Francium, Z=87 > 86
+    mol.SetDimension(3);
+
+    constexpr double coords[3] = {0.0, 0.0, 0.0};
+    mol.SetCoords(fr, coords);
+
+    KallistoGeometryContext ctx(mol);
+    EXPECT_FALSE(ctx.Eligible());
+    EXPECT_EQ(ctx.AtomCount(), 1u);
+    EXPECT_EQ(ctx.AtomicNumbers().size(), 0u);
+    EXPECT_EQ(ctx.CoordsBohr().size(), 0u);
+
+    // All kernels should return empty
+    auto cn_erf = coordination_numbers(ctx, "erf");
+    EXPECT_EQ(cn_erf.size(), 0u);
+
+    auto cn_cov = coordination_numbers(ctx, "cov");
+    EXPECT_EQ(cn_cov.size(), 0u);
+
+    auto cn_exp = coordination_numbers(ctx, "exp");
+    EXPECT_EQ(cn_exp.size(), 0u);
+
+    auto prox = proximity_shells(ctx, {2, 3});
+    EXPECT_EQ(prox.size(), 0u);
+
+    // Cached covalent CN should also return empty
+    const auto& cn_cov_cached = ctx.CovalentCoordinationNumbers();
+    EXPECT_EQ(cn_cov_cached.size(), 0u);
+}
+
 }  // namespace
 }  // namespace OEFP

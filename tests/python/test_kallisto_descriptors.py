@@ -13,12 +13,15 @@ from pathlib import Path
 import numpy as np
 import pytest
 
+# OEFP binding must be importable (fail-closed, not skip-on-missing)
+from oefp import kallisto_atom_descriptors, kallisto_atom_schema
+
+# OpenEye is optional (skip tests if missing)
 try:
     from openeye import oechem
-    from oefp import kallisto_atom_descriptors, kallisto_atom_schema
-    HAS_OEFP = True
+    HAS_OPENEYE = True
 except ImportError:
-    HAS_OEFP = False
+    HAS_OPENEYE = False
 
 # Expected formal charge sums for the panel molecules
 EXPECTED_CHARGES = {
@@ -176,7 +179,7 @@ TIERS = {
 }
 
 
-@pytest.mark.skipif(not HAS_OEFP, reason="oefp not available")
+@pytest.mark.skipif(not HAS_OPENEYE, reason="OpenEye not available")
 def test_kallisto_atom_schema() -> None:
     """Verify the kallisto atom schema has expected columns."""
     schema = kallisto_atom_schema()
@@ -189,7 +192,7 @@ def test_kallisto_atom_schema() -> None:
         assert defn.source_version == "kallisto-1.0.10"
 
 
-@pytest.mark.skipif(not HAS_OEFP, reason="oefp not available")
+@pytest.mark.skipif(not HAS_OPENEYE, reason="OpenEye not available")
 def test_kallisto_atom_descriptors_conformance() -> None:
     """Compare kallisto atom descriptor results against kallisto 1.0.10 oracle."""
     fixture_path = Path("tests/python/kallisto_references.json")
@@ -247,7 +250,7 @@ def test_kallisto_atom_descriptors_conformance() -> None:
         print(f"  {col_name}: max deviation {max_deviations[col_name]:.2e} (tier {tier})")
 
 
-@pytest.mark.skipif(not HAS_OEFP, reason="oefp not available")
+@pytest.mark.skipif(not HAS_OPENEYE, reason="OpenEye not available")
 def test_kallisto_atom_descriptors_ineligible() -> None:
     """Verify ineligible molecules return empty results."""
     # Test 1: 2D molecule (no 3D coords)
