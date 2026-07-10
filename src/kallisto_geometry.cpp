@@ -113,9 +113,10 @@ KallistoGeometryContext::KallistoGeometryContext(
         return;
     }
 
-    // Extract atomic numbers and coordinates
+    // Extract atomic numbers, coordinates, and atom indices
     atomic_numbers_.reserve(atom_count_);
     coords_bohr_.reserve(atom_count_);
+    atom_indices_.reserve(atom_count_);
 
     double coords_angstrom[3];
 
@@ -128,6 +129,7 @@ KallistoGeometryContext::KallistoGeometryContext(
             // Unsupported element: mark ineligible and return
             atomic_numbers_.clear();
             coords_bohr_.clear();
+            atom_indices_.clear();
             return;
         }
 
@@ -138,6 +140,7 @@ KallistoGeometryContext::KallistoGeometryContext(
             // Failed to get coordinates: mark ineligible and return
             atomic_numbers_.clear();
             coords_bohr_.clear();
+            atom_indices_.clear();
             return;
         }
 
@@ -148,6 +151,9 @@ KallistoGeometryContext::KallistoGeometryContext(
             coords_angstrom[2] / kallisto::BOHR_RADIUS_ANGSTROM
         };
         coords_bohr_.push_back(coords_bohr_atom);
+
+        // Capture OpenEye atom index
+        atom_indices_.push_back(atom->GetIdx());
     }
 
     // All checks passed: molecule is eligible
@@ -183,6 +189,10 @@ const std::vector<double>& KallistoGeometryContext::CovalentCoordinationNumbers(
 
 const std::vector<double>& KallistoGeometryContext::EeqCharges() const {
     throw std::logic_error("EEQ charges not yet implemented (Task 6)");
+}
+
+const std::vector<std::uint32_t>& KallistoGeometryContext::AtomIndices() const {
+    return atom_indices_;
 }
 
 } // namespace OEFP

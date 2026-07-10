@@ -144,7 +144,7 @@ def test_packaged_kallisto_reference_loads() -> None:
     # Read the packaged copy (not the test fixture)
     try:
         fixture = resources.files("oefp").joinpath("kallisto_references.json")
-    except ImportError as e:
+    except ImportError:
         # If oefp can't be imported due to missing library dependencies, verify the
         # JSON file is at least present in the source tree (pyproject.toml declares it).
         source_json = Path("python/oefp/kallisto_references.json")
@@ -263,10 +263,16 @@ def test_kallisto_atom_descriptors_ineligible() -> None:
     assert len(result_2d.cn_exp) == 0
     assert len(result_2d.prox) == 0
 
-    # Test 2: Molecule with Z > 86 (polonium, Z=84 is OK; radon, Z=86 is OK; francium Z=87 fails)
-    # Use a simple noble gas that's out of range
+    # Test 2: Molecule with Z > 86 (francium Z=87)
     mol_heavy = oechem.OEGraphMol()
-    # Create a single-atom molecule with Z > 86 is tricky with OpenEye;
-    # instead test that a molecule with all valid Z works, then trust eligibility check
-    # For now, just verify the 2D case above; the C++ test already covers Z>86
-    pass
+    fr = mol_heavy.NewAtom(87)  # Francium, Z=87 > 86
+    mol_heavy.SetDimension(3)
+    coords = [0.0, 0.0, 0.0]
+    mol_heavy.SetCoords(fr, coords)
+
+    result_heavy = kallisto_atom_descriptors(mol_heavy)
+    assert result_heavy.atom_count == 0
+    assert len(result_heavy.cn_erf) == 0
+    assert len(result_heavy.cn_cov) == 0
+    assert len(result_heavy.cn_exp) == 0
+    assert len(result_heavy.prox) == 0

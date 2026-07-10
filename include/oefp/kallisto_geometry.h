@@ -93,11 +93,18 @@ public:
     /// :raises std::logic_error: Stub in Task 4; kernel lands in Task 6.
     const std::vector<double>& EeqCharges() const;
 
+    /// OpenEye atom indices (GetIdx()) for each atom.
+    ///
+    /// :returns: Vector of OpenEye atom indices, aligned with atomic_numbers/coords_bohr.
+    ///           Empty if ineligible.
+    const std::vector<std::uint32_t>& AtomIndices() const;
+
 private:
     bool eligible_;
     std::size_t atom_count_;
     std::vector<int> atomic_numbers_;
     std::vector<std::array<double, 3>> coords_bohr_;
+    std::vector<std::uint32_t> atom_indices_;
     int charge_;
 
     // Lazy caches for computed properties

@@ -272,11 +272,8 @@ AtomDescriptorSet MakeKallistoAtomDescriptors(
         columns[3].push_back(prox_vals[i]);
     }
 
-    // Build atom indices 0..N-1
-    std::vector<std::uint32_t> atom_indices(atom_count);
-    for (std::size_t i = 0; i < atom_count; ++i) {
-        atom_indices[i] = static_cast<std::uint32_t>(i);
-    }
+    // Get OpenEye atom indices from context (guaranteed aligned with geometry)
+    std::vector<std::uint32_t> atom_indices = ctx.AtomIndices();
 
     return AtomDescriptorSet(schema, std::move(atom_indices), std::move(columns));
 }

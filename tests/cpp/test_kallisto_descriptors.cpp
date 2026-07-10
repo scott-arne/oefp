@@ -1,6 +1,7 @@
 #include "oefp/kallisto_descriptors.h"
 #include "oefp/kallisto_geometry.h"
 #include "oefp/kallisto_data.h"
+#include "oefp/atom_descriptor.h"
 
 #include <gtest/gtest.h>
 #include <oechem.h>
@@ -323,6 +324,80 @@ TEST(KallistoDescriptors, IneligibleContextHeavyElement) {
     // Cached covalent CN should also return empty
     const auto& cn_cov_cached = ctx.CovalentCoordinationNumbers();
     EXPECT_EQ(cn_cov_cached.size(), 0u);
+}
+
+// Test that atom descriptor rows preserve non-contiguous OpenEye atom IDs
+TEST(KallistoDescriptors, NonContiguousAtomIndices) {
+    // Build a molecule with 5 atoms, set 3D coords, then delete the middle atom
+    // to create non-contiguous atom indices
+    OEChem::OEGraphMol mol;
+    OEChem::OEAtomBase* c0 = mol.NewAtom(6);  // Carbon
+    OEChem::OEAtomBase* c1 = mol.NewAtom(6);
+    OEChem::OEAtomBase* c2 = mol.NewAtom(6);
+    OEChem::OEAtomBase* c3 = mol.NewAtom(6);
+    OEChem::OEAtomBase* c4 = mol.NewAtom(6);
+
+    // Set 3D coordinates (arbitrary positions)
+    constexpr double bohr_to_angstrom = 0.5291772105437147;
+    const double coords_0[3] = {0.0, 0.0, 0.0};
+    const double coords_1[3] = {1.5, 0.0, 0.0};
+    const double coords_2[3] = {3.0, 0.0, 0.0};
+    const double coords_3[3] = {4.5, 0.0, 0.0};
+    const double coords_4[3] = {6.0, 0.0, 0.0};
+    mol.SetCoords(c0, coords_0);
+    mol.SetCoords(c1, coords_1);
+    mol.SetCoords(c2, coords_2);
+    mol.SetCoords(c3, coords_3);
+    mol.SetCoords(c4, coords_4);
+    mol.SetDimension(3);
+
+    // Verify initial indices are contiguous: 0,1,2,3,4
+    EXPECT_EQ(c0->GetIdx(), 0u);
+    EXPECT_EQ(c1->GetIdx(), 1u);
+    EXPECT_EQ(c2->GetIdx(), 2u);
+    EXPECT_EQ(c3->GetIdx(), 3u);
+    EXPECT_EQ(c4->GetIdx(), 4u);
+
+    // Delete the middle atom (c2, idx=2)
+    mol.DeleteAtom(c2);
+
+    // Collect remaining atom indices via iteration (OpenEye order)
+    std::vector<unsigned int> expected_indices;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        expected_indices.push_back(atom->GetIdx());
+    }
+
+    // Verify the remaining indices are non-contiguous (e.g., {0,1,3,4})
+    ASSERT_EQ(expected_indices.size(), 4u);
+    EXPECT_EQ(expected_indices[0], 0u);
+    EXPECT_EQ(expected_indices[1], 1u);
+    EXPECT_EQ(expected_indices[2], 3u);  // Not 2!
+    EXPECT_EQ(expected_indices[3], 4u);  // Not 3!
+
+    // Build geometry context
+    KallistoGeometryContext ctx(mol);
+    ASSERT_TRUE(ctx.Eligible());
+    ASSERT_EQ(ctx.AtomCount(), 4u);
+
+    // Verify context AtomIndices() matches the non-contiguous IDs
+    const auto& ctx_indices = ctx.AtomIndices();
+    ASSERT_EQ(ctx_indices.size(), 4u);
+    EXPECT_EQ(ctx_indices[0], 0u);
+    EXPECT_EQ(ctx_indices[1], 1u);
+    EXPECT_EQ(ctx_indices[2], 3u);
+    EXPECT_EQ(ctx_indices[3], 4u);
+
+    // Compute atom descriptors
+    auto result = MakeKallistoAtomDescriptors(mol);
+    ASSERT_EQ(result.AtomCount(), 4u);
+
+    // Verify the descriptor set's AtomIndices() matches the non-contiguous pattern
+    const auto& result_indices = result.AtomIndices();
+    ASSERT_EQ(result_indices.size(), 4u);
+    EXPECT_EQ(result_indices[0], 0u);
+    EXPECT_EQ(result_indices[1], 1u);
+    EXPECT_EQ(result_indices[2], 3u);
+    EXPECT_EQ(result_indices[3], 4u);
 }
 
 }  // namespace
