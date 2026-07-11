@@ -42,5 +42,6 @@ install(FILES
     ${CMAKE_SOURCE_DIR}/python/oefp/mordred_references.json
     ${CMAKE_SOURCE_DIR}/python/oefp/rdkit_references.json
     ${CMAKE_SOURCE_DIR}/python/oefp/kallisto_references.json
+    ${CMAKE_SOURCE_DIR}/python/oefp/THIRD_PARTY_NOTICES
     DESTINATION oefp
 )

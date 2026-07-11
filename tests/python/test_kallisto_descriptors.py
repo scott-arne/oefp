@@ -1113,3 +1113,25 @@ def test_kallisto_schema_description_consistency() -> None:
     for defn in py_bond_schema.definitions:
         assert defn.description == expected_bond_descriptions[defn.name], \
             f"Python bond schema {defn.name} description must match native C++"
+
+
+def test_third_party_notices_packaged() -> None:
+    """THIRD_PARTY_NOTICES (kallisto Apache 2.0 attribution) must ship in the package.
+
+    OEFP redistributes ported kallisto code, so the Apache 2.0 attribution notice
+    must be included in the installed package (not only at the repo root). The
+    packaged copy under python/oefp/ is byte-identical to the root notice and is
+    reachable via importlib.resources.
+    """
+    root_notice = Path("THIRD_PARTY_NOTICES")
+    packaged_notice = Path("python/oefp/THIRD_PARTY_NOTICES")
+    if root_notice.exists() and packaged_notice.exists():
+        assert root_notice.read_bytes() == packaged_notice.read_bytes(), \
+            "python/oefp/THIRD_PARTY_NOTICES must be byte-identical to the root notice"
+
+    resource = resources.files("oefp").joinpath("THIRD_PARTY_NOTICES")
+    assert resource.is_file(), \
+        "THIRD_PARTY_NOTICES not packaged in oefp (importlib.resources cannot find it)"
+    text = resource.read_text(encoding="utf-8")
+    assert "kallisto" in text and "Apache" in text, \
+        "Packaged THIRD_PARTY_NOTICES must carry the kallisto Apache 2.0 attribution"
