@@ -1419,9 +1419,9 @@ class DescriptorBatch:
         self._native = None
         self._schema = schema
         self._rows = tuple(rows)
-        self._row_ids = tuple(row_ids) if row_ids else ("",) * len(rows)
-        if len(self._row_ids) != len(self._rows):
+        if row_ids is not None and len(row_ids) != len(rows):
             raise ValueError("DescriptorBatch row_ids length must match row count.")
+        self._row_ids = tuple(row_ids) if row_ids else ("",) * len(rows)
         return self
 
     @classmethod

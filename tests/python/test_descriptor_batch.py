@@ -200,3 +200,13 @@ def test_computed_batch_matches_renormalized_batch(panel_mols):
     slow = DescriptorBatch(schema=schema, rows=slow_rows)        # legacy constructor
     assert list(fast) == list(slow)                              # bit-identical dict rows
     assert fast.row_ids == slow.row_ids
+
+
+def test_from_computed_rejects_mismatched_row_ids():
+    import pytest
+    import oefp
+    from oefp.api import DescriptorBatch
+    schema = oefp.DescriptorCalculator([oefp.MordredDescriptorSource()]).schema
+    row = {name: None for name in schema.names}
+    with pytest.raises(ValueError):
+        DescriptorBatch._from_computed(schema=schema, rows=[row], row_ids=[])
