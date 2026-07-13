@@ -1403,6 +1403,28 @@ class DescriptorBatch:
         return cls(native, _token=_NATIVE_TOKEN)
 
     @classmethod
+    def _from_computed(
+        cls,
+        schema: "DescriptorSchema",
+        rows: "list[dict[str, Any]]",
+        row_ids: "Sequence[str]",
+    ) -> "DescriptorBatch":
+        """Build a schema-backed batch from already-normalized computed rows.
+
+        Rows produced from native typed columns are already validated and coerced,
+        so re-running ``DescriptorSet._normalized_values`` is redundant. This path
+        trusts the caller and stores the rows directly.
+        """
+        self = cls.__new__(cls)
+        self._native = None
+        self._schema = schema
+        self._rows = tuple(rows)
+        self._row_ids = tuple(row_ids) if row_ids else ("",) * len(rows)
+        if len(self._row_ids) != len(self._rows):
+            raise ValueError("DescriptorBatch row_ids length must match row count.")
+        return self
+
+    @classmethod
     def from_descriptors(cls, descriptors: Sequence[DescriptorSet]) -> DescriptorBatch:
         """Create a contiguous descriptor batch from descriptor sets."""
         if not descriptors:
@@ -3446,7 +3468,7 @@ class DescriptorCalculator:
         row_count = int(native.Size())
         if not schema.definitions:
             rows: list[dict[str, Any]] = [{} for _ in range(row_count)]
-            return DescriptorBatch(schema=schema, rows=rows, row_ids=row_ids)
+            return DescriptorBatch._from_computed(schema=schema, rows=rows, row_ids=row_ids)
         columns = {
             definition.name: _batch_column_values(native, definition)
             for definition in schema.definitions
@@ -3455,7 +3477,7 @@ class DescriptorCalculator:
             {name: columns[name][row_index] for name in schema.names}
             for row_index in range(row_count)
         ]
-        return DescriptorBatch(schema=schema, rows=rows, row_ids=row_ids)
+        return DescriptorBatch._from_computed(schema=schema, rows=rows, row_ids=row_ids)
 
 
 def morgan_fingerprint_with_mapping(

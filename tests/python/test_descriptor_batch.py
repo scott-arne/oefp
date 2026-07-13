@@ -188,3 +188,15 @@ def test_descriptor_batch_from_molecules_rejects_wrong_element_type(panel_mols):
     mols = panel_mols
     with pytest.raises(TypeError, match="must return DescriptorSet"):
         oefp.DescriptorBatch.from_molecules(mols, oefp.morgan_fingerprint)
+
+
+def test_computed_batch_matches_renormalized_batch(panel_mols):
+    import oefp
+    from oefp.api import DescriptorBatch
+    calc = oefp.DescriptorCalculator([oefp.MordredDescriptorSource()])
+    fast = calc.calculate_batch(panel_mols)                      # new path
+    schema = calc.schema
+    slow_rows = [dict(r) for r in fast]                          # same values, re-normalized
+    slow = DescriptorBatch(schema=schema, rows=slow_rows)        # legacy constructor
+    assert list(fast) == list(slow)                              # bit-identical dict rows
+    assert fast.row_ids == slow.row_ids
