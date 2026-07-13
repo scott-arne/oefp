@@ -210,3 +210,14 @@ def test_from_computed_rejects_mismatched_row_ids():
     row = {name: None for name in schema.names}
     with pytest.raises(ValueError):
         DescriptorBatch._from_computed(schema=schema, rows=[row], row_ids=[])
+
+
+def test_batch_column_values_types_and_values(panel_mols):
+    import oefp
+    calc = oefp.DescriptorCalculator([oefp.MordredDescriptorSource()])
+    b = calc.calculate_batch(panel_mols)
+    row = list(b)[0]
+    # a known float, int, and bool descriptor keep exact types
+    assert isinstance(row["ABC"], float)
+    assert isinstance(row["nAcid"], int) and not isinstance(row["nAcid"], bool)
+    assert isinstance(row["Lipinski"], bool)

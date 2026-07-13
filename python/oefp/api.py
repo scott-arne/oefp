@@ -3353,16 +3353,16 @@ def _schema_from_native(native_schema: Any) -> DescriptorSchema:
 
 def _batch_column_values(native_batch: Any, definition: DescriptorDefinition) -> list[Any]:
     """Extract one column of Python values, placing ``None`` for missing entries."""
-    validity = list(native_batch.ColumnValidity(definition.name))
-    raw: list[Any]
+    validity = native_batch.ColumnValidity(definition.name)
     if definition.value_type == "bool":
-        raw = [bool(value) for value in native_batch.BoolColumn(definition.name)]
+        # BoolColumn yields int 0/1; a real bool is required by the schema contract.
+        raw: tuple[Any, ...] = tuple(bool(v) for v in native_batch.BoolColumn(definition.name))
     elif definition.value_type == "int":
-        raw = [int(value) for value in native_batch.IntColumn(definition.name)]
+        raw = native_batch.IntColumn(definition.name)      # already Python int
     elif definition.value_type == "float":
-        raw = [float(value) for value in native_batch.FloatColumn(definition.name)]
+        raw = native_batch.FloatColumn(definition.name)    # already Python float
     elif definition.value_type == "string":
-        raw = list(native_batch.StringColumn(definition.name))
+        raw = native_batch.StringColumn(definition.name)
     else:
         raise ValueError(f"Unsupported descriptor value type: {definition.value_type!r}.")
     return [value if present else None for value, present in zip(raw, validity, strict=True)]
