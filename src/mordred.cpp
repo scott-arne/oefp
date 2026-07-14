@@ -7591,11 +7591,77 @@ void collect_connected_bond_subgraphs(
     }
 }
 
+// Fast path for graphs with <= 64 bonds. Preserves the exact enumeration
+// order of collect_connected_bond_subgraphs above (so the emitted subgraph set
+// is identical), but avoids the by-value copies of the growing selected-bond
+// list via push/pop backtracking, and dedups completed subgraphs with an O(1)
+// bond bitmask instead of the O(log n) std::set<std::vector> comparisons. A
+// candidate copy is still required per node because the current frame keeps
+// consuming candidate_bonds while its child owns next_candidates independently.
+void collect_connected_bond_subgraphs_masked(
+    const MordredHeavyAtomGraph& graph,
+    std::size_t target_bond_count,
+    std::vector<std::size_t>& selected_bonds,
+    std::vector<std::size_t> candidate_bonds,
+    std::unordered_set<std::uint64_t>& seen,
+    std::set<std::vector<std::size_t>>& subgraphs) {
+    if (selected_bonds.size() == target_bond_count) {
+        std::uint64_t mask = 0u;
+        for (const auto bond_index : selected_bonds) {
+            mask |= (std::uint64_t{1} << bond_index);
+        }
+        if (seen.insert(mask).second) {
+            std::vector<std::size_t> sorted_bonds(selected_bonds);
+            std::sort(sorted_bonds.begin(), sorted_bonds.end());
+            subgraphs.insert(std::move(sorted_bonds));
+        }
+        return;
+    }
+
+    while (!candidate_bonds.empty()) {
+        const auto next_bond = candidate_bonds.back();
+        candidate_bonds.pop_back();
+        if (contains_index(selected_bonds, next_bond)) {
+            continue;
+        }
+
+        selected_bonds.push_back(next_bond);
+        std::vector<std::size_t> next_candidates(candidate_bonds);
+        for (const auto neighbor_bond : graph.bond_neighbors[next_bond]) {
+            if (!contains_index(selected_bonds, neighbor_bond)) {
+                next_candidates.push_back(neighbor_bond);
+            }
+        }
+
+        collect_connected_bond_subgraphs_masked(
+            graph, target_bond_count, selected_bonds, std::move(next_candidates), seen, subgraphs);
+
+        selected_bonds.pop_back();
+    }
+}
+
 std::set<std::vector<std::size_t>> find_connected_bond_subgraphs(
     const MordredHeavyAtomGraph& graph,
     std::size_t target_bond_count) {
     std::set<std::vector<std::size_t>> subgraphs;
     if (target_bond_count == 0u || graph.bonds.size() < target_bond_count) {
+        return subgraphs;
+    }
+
+    // The bitmask dedup keys bonds by bit position, so it only applies when
+    // every bond index fits in a std::uint64_t. Larger graphs fall back to the
+    // original by-value recursion (rare; correctness must never regress).
+    if (graph.bonds.size() <= 64u) {
+        std::unordered_set<std::uint64_t> seen;
+        std::vector<std::size_t> selected_bonds;
+        selected_bonds.reserve(target_bond_count);
+        for (std::size_t bond_index = 0u; bond_index < graph.bonds.size(); ++bond_index) {
+            selected_bonds.clear();
+            selected_bonds.push_back(bond_index);
+            collect_connected_bond_subgraphs_masked(
+                graph, target_bond_count, selected_bonds, graph.bond_neighbors[bond_index], seen,
+                subgraphs);
+        }
         return subgraphs;
     }
 
