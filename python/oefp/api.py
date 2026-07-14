@@ -1381,7 +1381,6 @@ class DescriptorBatch:
             self._schema: DescriptorSchema | None = None
             self._rows: tuple[dict[str, Any], ...] | None = None
             self._row_ids: tuple[str, ...] = ()
-            self._columns: dict[str, list[Any]] | None = None
             return
         if schema is None or rows is None:
             raise TypeError(
@@ -1398,7 +1397,6 @@ class DescriptorBatch:
         self._schema = schema
         self._rows = normalized_rows
         self._row_ids = tuple(row_ids or ("",) * len(normalized_rows))
-        self._columns = None
 
     @classmethod
     def _from_native(cls, native: Any) -> DescriptorBatch:
@@ -1410,7 +1408,6 @@ class DescriptorBatch:
         schema: "DescriptorSchema",
         rows: "list[dict[str, Any]]",
         row_ids: "Sequence[str]",
-        columns: "dict[str, list[Any]] | None" = None,
     ) -> "DescriptorBatch":
         """Build a schema-backed batch from already-normalized computed rows.
 
@@ -1425,7 +1422,6 @@ class DescriptorBatch:
         if row_ids is not None and len(row_ids) != len(rows):
             raise ValueError("DescriptorBatch row_ids length must match row count.")
         self._row_ids = tuple(row_ids) if row_ids else ("",) * len(rows)
-        self._columns = columns
         return self
 
     @classmethod
@@ -1655,22 +1651,13 @@ class DescriptorBatch:
         """
         import pyarrow as pa
 
-        if self._columns is not None:
-            arrays = {
-                definition.name: pa.array(
-                    self._columns[definition.name],
-                    type=_descriptor_arrow_type(pa, definition.value_type),
-                )
-                for definition in self.schema.definitions
-            }
-        else:
-            arrays = {
-                definition.name: pa.array(
-                    [row[definition.name] for row in self._schema_rows()],
-                    type=_descriptor_arrow_type(pa, definition.value_type),
-                )
-                for definition in self.schema.definitions
-            }
+        arrays = {
+            definition.name: pa.array(
+                [row[definition.name] for row in self._schema_rows()],
+                type=_descriptor_arrow_type(pa, definition.value_type),
+            )
+            for definition in self.schema.definitions
+        }
         table = pa.table(arrays)
         metadata = dict(table.schema.metadata or {})
         metadata[_DESCRIPTOR_SCHEMA_METADATA_KEY] = self.schema._metadata().encode("utf-8")
@@ -3490,7 +3477,7 @@ class DescriptorCalculator:
             {name: columns[name][row_index] for name in schema.names}
             for row_index in range(row_count)
         ]
-        return DescriptorBatch._from_computed(schema=schema, rows=rows, row_ids=row_ids, columns=columns)
+        return DescriptorBatch._from_computed(schema=schema, rows=rows, row_ids=row_ids)
 
 
 def morgan_fingerprint_with_mapping(
