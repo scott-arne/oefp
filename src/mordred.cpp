@@ -3873,6 +3873,220 @@ std::optional<MordredSymmetricEigensystem> symmetric_eigensystem_jacobi(
     return std::nullopt;
 }
 
+// Eigenvalues-only Jacobi: numerically identical to symmetric_eigensystem_jacobi
+// for the diagonalization of `matrix`, but it neither allocates nor rotates the
+// eigenvector matrix. Because the eigenvector accumulation never feeds back into
+// the matrix rotations, the returned eigenvalues are bit-identical to those from
+// the full-eigenvector routine (same setup, sweep schedule, pivot selection,
+// convergence threshold, and diagonal read-out order). Used by the spectral
+// descriptors, which need every eigenvalue but only the dominant eigenvector.
+std::optional<std::vector<double>> symmetric_eigenvalues_jacobi(
+    std::vector<double> matrix,
+    std::size_t dimension) {
+    if (dimension == 0u) {
+        return std::vector<double>{};
+    }
+    if (dimension == 1u) {
+        return std::vector<double>{matrix.front()};
+    }
+
+    constexpr double kTolerance = 1.0e-13;
+    const auto at = [dimension](std::size_t row, std::size_t column) {
+        return row * dimension + column;
+    };
+    const auto max_iterations = std::max<std::size_t>(100u, 100u * dimension * dimension);
+
+    for (std::size_t iteration = 0u; iteration < max_iterations; ++iteration) {
+        std::size_t pivot_row = 0u;
+        std::size_t pivot_column = 1u;
+        double max_off_diagonal = std::abs(matrix[at(pivot_row, pivot_column)]);
+
+        for (std::size_t row = 0u; row < dimension; ++row) {
+            for (std::size_t column = row + 1u; column < dimension; ++column) {
+                const auto value = std::abs(matrix[at(row, column)]);
+                if (value > max_off_diagonal) {
+                    max_off_diagonal = value;
+                    pivot_row = row;
+                    pivot_column = column;
+                }
+            }
+        }
+
+        if (max_off_diagonal <= kTolerance) {
+            std::vector<double> eigenvalues;
+            eigenvalues.reserve(dimension);
+            for (std::size_t index = 0u; index < dimension; ++index) {
+                eigenvalues.push_back(matrix[at(index, index)]);
+            }
+            return eigenvalues;
+        }
+
+        const auto app = matrix[at(pivot_row, pivot_row)];
+        const auto aqq = matrix[at(pivot_column, pivot_column)];
+        const auto apq = matrix[at(pivot_row, pivot_column)];
+        const auto tau = (aqq - app) / (2.0 * apq);
+        const auto t = std::copysign(
+            1.0 / (std::abs(tau) + std::sqrt(1.0 + tau * tau)),
+            tau);
+        const auto c = 1.0 / std::sqrt(1.0 + t * t);
+        const auto s = t * c;
+
+        matrix[at(pivot_row, pivot_row)] = app - t * apq;
+        matrix[at(pivot_column, pivot_column)] = aqq + t * apq;
+        matrix[at(pivot_row, pivot_column)] = 0.0;
+        matrix[at(pivot_column, pivot_row)] = 0.0;
+
+        for (std::size_t index = 0u; index < dimension; ++index) {
+            if (index == pivot_row || index == pivot_column) {
+                continue;
+            }
+
+            const auto aip = matrix[at(index, pivot_row)];
+            const auto aiq = matrix[at(index, pivot_column)];
+            const auto rotated_ip = c * aip - s * aiq;
+            const auto rotated_iq = s * aip + c * aiq;
+            matrix[at(index, pivot_row)] = rotated_ip;
+            matrix[at(pivot_row, index)] = rotated_ip;
+            matrix[at(index, pivot_column)] = rotated_iq;
+            matrix[at(pivot_column, index)] = rotated_iq;
+        }
+        // Deliberately no eigenvector accumulation here: the eigenvalues do not
+        // depend on it, so skipping it keeps the read-out bit-identical while
+        // avoiding the O(dimension^2) per-rotation vector update.
+    }
+
+    return std::nullopt;
+}
+
+// Recover only the eigenvector associated with `lambda_max` (the dominant
+// eigenvalue) by inverse iteration, avoiding the full eigenvector matrix. The
+// system (A - mu I) x_{k+1} = x_k is solved a few times from a uniform start and
+// L2-normalized; `mu` is shifted just past `lambda_max` so the solve stays
+// numerically well-posed while strongly amplifying the dominant direction.
+//
+// For the spectral matrices this feeds (adjacency / distance of a connected
+// graph), the dominant eigenvalue is Perron-simple, so the recovered vector
+// matches the full-Jacobi column up to an overall sign; downstream uses take
+// std::abs (VE*) or products of same-sign Perron components (VR*), so the sign is
+// irrelevant. Returns std::nullopt when the factorization is singular or the
+// iteration fails to converge to a genuine eigenvector, letting the caller fall
+// back to the full-eigenvector routine.
+std::optional<std::vector<double>> dominant_eigenvector(
+    const std::vector<double>& matrix,
+    std::size_t n,
+    double lambda_max) {
+    if (n == 0u) {
+        return std::nullopt;
+    }
+    if (n == 1u) {
+        return std::vector<double>{1.0};
+    }
+
+    const auto at = [n](std::size_t row, std::size_t column) {
+        return row * n + column;
+    };
+
+    // Shift mu slightly beyond lambda_max: close enough that inverse iteration
+    // converges in a couple of steps, offset enough that (A - mu I) is solvable.
+    const double mu = lambda_max * (1.0 + 1.0e-10) + 1.0e-12;
+    std::vector<double> lu(matrix);
+    for (std::size_t i = 0u; i < n; ++i) {
+        lu[at(i, i)] -= mu;
+    }
+
+    // LU factorization with partial pivoting; pivot[i] is the original row now
+    // occupying position i (so the permuted right-hand side is b[i] = rhs[pivot[i]]).
+    std::vector<std::size_t> pivot(n);
+    for (std::size_t i = 0u; i < n; ++i) {
+        pivot[i] = i;
+    }
+    for (std::size_t col = 0u; col < n; ++col) {
+        double max_value = std::abs(lu[at(col, col)]);
+        std::size_t max_row = col;
+        for (std::size_t row = col + 1u; row < n; ++row) {
+            const auto value = std::abs(lu[at(row, col)]);
+            if (value > max_value) {
+                max_value = value;
+                max_row = row;
+            }
+        }
+        if (max_value == 0.0) {
+            return std::nullopt;
+        }
+        if (max_row != col) {
+            for (std::size_t k = 0u; k < n; ++k) {
+                std::swap(lu[at(col, k)], lu[at(max_row, k)]);
+            }
+            std::swap(pivot[col], pivot[max_row]);
+        }
+        const auto diagonal = lu[at(col, col)];
+        for (std::size_t row = col + 1u; row < n; ++row) {
+            const auto factor = lu[at(row, col)] / diagonal;
+            lu[at(row, col)] = factor;
+            for (std::size_t k = col + 1u; k < n; ++k) {
+                lu[at(row, k)] -= factor * lu[at(col, k)];
+            }
+        }
+    }
+
+    std::vector<double> x(n, 1.0 / std::sqrt(static_cast<double>(n)));
+    std::vector<double> b(n);
+    constexpr std::size_t kInverseIterations = 3u;
+    for (std::size_t iteration = 0u; iteration < kInverseIterations; ++iteration) {
+        for (std::size_t i = 0u; i < n; ++i) {
+            b[i] = x[pivot[i]];
+        }
+        // Forward substitution (unit lower-triangular L).
+        for (std::size_t i = 0u; i < n; ++i) {
+            double sum = b[i];
+            for (std::size_t k = 0u; k < i; ++k) {
+                sum -= lu[at(i, k)] * b[k];
+            }
+            b[i] = sum;
+        }
+        // Back substitution (upper-triangular U).
+        for (std::size_t step = 0u; step < n; ++step) {
+            const auto i = n - 1u - step;
+            double sum = b[i];
+            for (std::size_t k = i + 1u; k < n; ++k) {
+                sum -= lu[at(i, k)] * b[k];
+            }
+            b[i] = sum / lu[at(i, i)];
+        }
+        double norm_squared = 0.0;
+        for (const auto value : b) {
+            norm_squared += value * value;
+        }
+        if (!(norm_squared > 0.0) || !std::isfinite(norm_squared)) {
+            return std::nullopt;
+        }
+        const auto inverse_norm = 1.0 / std::sqrt(norm_squared);
+        for (std::size_t i = 0u; i < n; ++i) {
+            x[i] = b[i] * inverse_norm;
+        }
+    }
+
+    // Reject if x is not a genuine eigenvector for lambda_max: the residual
+    // ||A x - lambda_max x|| must be small relative to the eigenvalue scale. For
+    // a well-separated (simple) eigenvalue this also bounds ||x - x_true||, so a
+    // small residual guarantees parity with the full-Jacobi column.
+    const auto scale = std::max(std::abs(lambda_max), 1.0);
+    double residual_squared = 0.0;
+    for (std::size_t row = 0u; row < n; ++row) {
+        double product = 0.0;
+        for (std::size_t column = 0u; column < n; ++column) {
+            product += matrix[at(row, column)] * x[column];
+        }
+        const auto residual = product - lambda_max * x[row];
+        residual_squared += residual * residual;
+    }
+    if (!(std::sqrt(residual_squared) <= 1.0e-7 * scale)) {
+        return std::nullopt;
+    }
+
+    return x;
+}
+
 bool has_mordred_coordinates(const OEChem::OEMolBase& mol, unsigned int dimension) {
     if (mol.NumAtoms() == 0u || mol.GetDimension() != dimension) {
         return false;
@@ -4293,13 +4507,17 @@ std::optional<MordredMatrixEigenvalueValues> compute_matrix_eigenvalue_values(
     std::size_t atom_count,
     const std::vector<std::pair<std::size_t, std::size_t>>& bonds) {
     const auto spectral_moment = matrix_trace(matrix, atom_count);
-    auto eigensystem = symmetric_eigensystem_jacobi(std::move(matrix), atom_count);
-    if (!eigensystem.has_value()) {
+    // Eigenvalue-derived outputs (Sp*/LogEE*/moment) come from an eigenvalues-only
+    // Jacobi pass whose diagonalization is bit-identical to the full-eigenvector
+    // routine; the single dominant eigenvector needed for VE*/VR* is recovered
+    // separately by inverse iteration below (with a full-Jacobi fallback).
+    auto eigenvalues_result = symmetric_eigenvalues_jacobi(matrix, atom_count);
+    if (!eigenvalues_result.has_value()) {
         return std::nullopt;
     }
 
     MordredMatrixEigenvalueValues values;
-    const auto& eigenvalues = eigensystem->eigenvalues;
+    const auto& eigenvalues = *eigenvalues_result;
     const auto [min_eigenvalue, max_eigenvalue] =
         std::minmax_element(eigenvalues.begin(), eigenvalues.end());
     const auto mean = std::accumulate(eigenvalues.begin(), eigenvalues.end(), 0.0)
@@ -4325,9 +4543,44 @@ std::optional<MordredMatrixEigenvalueValues> compute_matrix_eigenvalue_values(
 
     const auto dominant_index =
         static_cast<std::size_t>(std::distance(eigenvalues.begin(), max_eigenvalue));
+
+    // Recover only the dominant eigenvector. Inverse iteration handles the common
+    // (Perron-simple) case; if the top of the spectrum is near-degenerate or the
+    // iteration is rejected, fall back to the full-eigenvector Jacobi for this
+    // matrix so VE*/VR* stay faithful to the reference. Eigenvalues above are
+    // always from the fast path.
+    double second_largest = -std::numeric_limits<double>::infinity();
+    for (std::size_t index = 0u; index < eigenvalues.size(); ++index) {
+        if (index == dominant_index) {
+            continue;
+        }
+        second_largest = std::max(second_largest, eigenvalues[index]);
+    }
+    const auto eigenvalue_scale = std::max(std::abs(*max_eigenvalue), 1.0);
+    const bool near_degenerate =
+        std::isfinite(second_largest)
+        && (*max_eigenvalue - second_largest) <= 1.0e-6 * eigenvalue_scale;
+
+    std::vector<double> dominant;
+    std::optional<std::vector<double>> dominant_vector;
+    if (!near_degenerate) {
+        dominant_vector = dominant_eigenvector(matrix, atom_count, *max_eigenvalue);
+    }
+    if (dominant_vector.has_value()) {
+        dominant = std::move(*dominant_vector);
+    } else {
+        auto eigensystem = symmetric_eigensystem_jacobi(std::move(matrix), atom_count);
+        if (!eigensystem.has_value()) {
+            return std::nullopt;
+        }
+        dominant.resize(atom_count);
+        for (std::size_t row = 0u; row < atom_count; ++row) {
+            dominant[row] = eigensystem->eigenvectors[row * atom_count + dominant_index];
+        }
+    }
+
     for (std::size_t row = 0u; row < atom_count; ++row) {
-        values.eigenvector_coefficient_sum +=
-            std::abs(eigensystem->eigenvectors[row * atom_count + dominant_index]);
+        values.eigenvector_coefficient_sum += std::abs(dominant[row]);
     }
     values.eigenvector_coefficient_mean =
         values.eigenvector_coefficient_sum / static_cast<double>(atom_count);
@@ -4340,9 +4593,8 @@ std::optional<MordredMatrixEigenvalueValues> compute_matrix_eigenvalue_values(
     values.eigenvector_coefficient_log = std::log(eigenvector_log_argument);
 
     for (const auto [begin, end] : bonds) {
-        const auto begin_coefficient =
-            eigensystem->eigenvectors[begin * atom_count + dominant_index];
-        const auto end_coefficient = eigensystem->eigenvectors[end * atom_count + dominant_index];
+        const auto begin_coefficient = dominant[begin];
+        const auto end_coefficient = dominant[end];
         values.randic_eigenvector_sum += std::pow(begin_coefficient * end_coefficient, -0.5);
     }
     values.randic_eigenvector_mean =
