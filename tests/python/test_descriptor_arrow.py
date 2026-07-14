@@ -203,3 +203,18 @@ def test_from_arrow_rejects_empty_schema_metadata_with_physical_columns():
 
     with pytest.raises(ValueError, match="empty.*schema.*physical.*column"):
         oefp.DescriptorBatch.from_arrow(tampered)
+
+
+def test_to_arrow_columnar_matches_row_path(panel_mols):
+    import oefp
+
+    calc = oefp.DescriptorCalculator([oefp.MordredDescriptorSource()])
+    batch = calc.calculate_batch(panel_mols)
+    table = batch.to_arrow()
+
+    # Round-trip must reconstruct identical values.
+    rt = oefp.DescriptorBatch.from_arrow(table)
+    assert list(rt) == list(batch)
+
+    # Columnar fast path should be populated for calculate_batch output.
+    assert batch._columns is not None
