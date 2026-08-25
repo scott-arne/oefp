@@ -607,7 +607,7 @@ namespace std {
 // ============================================================================
 #define OEFP_VERSION_MAJOR 0
 #define OEFP_VERSION_MINOR 2
-#define OEFP_VERSION_PATCH 10
+#define OEFP_VERSION_PATCH 11
 
 // ============================================================================
 // Wrapped API
@@ -924,5 +924,5 @@ namespace std {
 // Module-level Python convenience code
 // ============================================================================
 %pythoncode %{
-__version__ = "0.2.10"
+__version__ = "0.2.11"
 %}

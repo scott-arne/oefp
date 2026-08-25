@@ -17,8 +17,8 @@ from pathlib import Path
 # links against. Import it before any direct or cached _oefp load.
 import pyarrow as _pyarrow  # noqa: F401
 
-__version__ = "0.2.10"
-__version_info__ = (0, 2, 10)
+__version__ = "0.2.11"
+__version_info__ = (0, 2, 11)
 
 _OPENEYE_COMPAT_PRELOAD_PATHS: list[str] = []
 _OPENEYE_COMPAT_EXTENSION_DIR: Path | None = None
