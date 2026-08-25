@@ -7,7 +7,7 @@ build-backend = "scikit_build_core.build"
 
 [project]
 name = "oefp"
-version = "0.2.9"
+version = "0.2.10"
 description = "Improved fingerprints for the OpenEye Toolkits"
 readme = "README.md"
 license = "MIT"
