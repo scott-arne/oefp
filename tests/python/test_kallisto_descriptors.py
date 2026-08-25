@@ -138,7 +138,7 @@ def test_kallisto_fixture_structure() -> None:
             assert 0 <= bond_row["origin"] < atom_count
             assert 0 <= bond_row["partner"] < atom_count
 
-    print(f"✓ Fixture structure valid: {len(molecules)} molecules, "
+    print(f"OK: Fixture structure valid: {len(molecules)} molecules, "
           f"{sum(len(m['atomic_numbers']) for m in molecules)} atoms, "
           f"{sum(len(m['bond_rows']) for m in molecules)} bond rows.")
 
@@ -285,7 +285,7 @@ def test_kallisto_atom_descriptors_conformance() -> None:
             assert np.allclose(actual_vals, expected_vals, atol=tol, rtol=0.0), \
                 f"{mol_id} {col_name}: max deviation {max_dev:.2e} exceeds tier {tier} tolerance {tol:.2e}"
 
-    print(f"\n✓ Kallisto atom descriptor conformance: {len(molecules)} molecules")
+    print(f"\nOK: Kallisto atom descriptor conformance: {len(molecules)} molecules")
     for col_name in test_columns:
         tier = tiers[col_name]
         print(f"  {col_name}: max deviation {max_deviations[col_name]:.2e} (tier {tier})")
@@ -538,7 +538,7 @@ def test_kallisto_bond_descriptors_conformance() -> None:
                     f"{mol_id} bond ({origin},{partner}) {col_name}: " \
                     f"deviation {deviation:.2e} exceeds tier {tier} tolerance {tol:.2e}"
 
-    print(f"\n✓ Kallisto bond descriptor conformance: {len(molecules)} molecules")
+    print(f"\nOK: Kallisto bond descriptor conformance: {len(molecules)} molecules")
     for col_name in test_columns:
         tier = tiers[col_name]
         print(f"  {col_name}: max deviation {max_deviations[col_name]:.2e} (tier {tier})")

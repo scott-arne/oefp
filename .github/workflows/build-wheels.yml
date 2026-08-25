@@ -68,7 +68,7 @@ jobs:
           dnf install -y --allowerasing \
             git curl unzip gcc gcc-c++ cmake ninja-build \
             python3.11 python3.11-devel \
-            zlib-devel cairo
+            zlib-devel cairo findutils
           if [ -n "${{ matrix.gcc_toolset }}" ]; then
             dnf install -y "${{ matrix.gcc_toolset }}"
           fi
