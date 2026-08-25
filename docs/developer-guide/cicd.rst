@@ -104,7 +104,8 @@ The release workflow builds wheels on:
 
 It runs on version tags and ``workflow_dispatch``.
 
-Required GitHub variables:
+The SDK pin lives in the workflow itself, in the top-level ``env`` block, not in
+GitHub repository variables:
 
 .. list-table::
    :widths: 35 65
@@ -112,18 +113,18 @@ Required GitHub variables:
 
    * - Variable
      - Description
+   * - ``GCS_BUCKET``
+     - Cloud storage bucket holding the SDK archives and the license
    * - ``OPENEYE_VERSION``
-     - OpenEye SDK version used by CI
-   * - ``SDK_BUCKET``
-     - Cloud storage bucket for SDK archives
-   * - ``SDK_LINUX_X86_64``
-     - Linux x86_64 SDK filename
-   * - ``SDK_LINUX_AARCH64``
-     - Linux aarch64 SDK filename
-   * - ``SDK_MACOS``
-     - macOS SDK filename
-   * - ``SDK_WINDOWS``
-     - Windows x64 SDK filename
+     - OpenEye release every job builds and tests against
+   * - ``PYARROW_REQUIREMENT``
+     - pyarrow constraint, kept identical to the one in ``pyproject.toml``
+
+Per-platform SDK filenames are written out literally: the Linux ones in the
+build matrix (the ``env`` context is not available in ``strategy.matrix``), the
+macOS and Windows ones in their download steps. The bucket is rolling rather
+than archival, so a pin that no longer matches an object in it fails the
+download rather than silently building against something else.
 
 Required GitHub secrets:
 

@@ -1,5 +1,8 @@
 [build-system]
-requires = ["scikit-build-core>=0.8", "swig>=4.0", "pyarrow>=24"]
+# The pyarrow constraint must stay identical to the one in project.dependencies
+# below: the extension links libarrow/libparquet out of whichever pyarrow the
+# build resolves, by versioned soname, and pip only sees the runtime one.
+requires = ["scikit-build-core>=0.8", "swig>=4.0", "pyarrow>=25,<26"]
 build-backend = "scikit_build_core.build"
 
 [project]
@@ -9,7 +12,11 @@ description = "Improved fingerprints for the OpenEye Toolkits"
 readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]
-requires-python = ">=3.10"
+# The floor is set by openeye-toolkits, not by anything in this package: 2026.1
+# is the first release with py314 wheels and the first to drop py310, and the
+# extension links its OpenEye shared libraries by versioned soname, so the
+# runtime toolkit has to be the one the wheel was built against.
+requires-python = ">=3.11"
 authors = [
     { name = "Scott Arne Johnson", email = "scott.johnson@bms.com" },
 ]
@@ -19,12 +26,23 @@ classifiers = [
     "Intended Audience :: Science/Research",
     "Topic :: Scientific/Engineering :: Chemistry",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Programming Language :: C++",
 ]
 dependencies = [
     "numpy>=1.24",
-    "openeye-toolkits>=2025.2",
-    "pyarrow>=24",
+    "openeye-toolkits>=2026.1",
+    # Arrow is not vendored into the wheel: the extension resolves
+    # libarrow/libparquet out of the sibling pyarrow package so Arrow C++
+    # objects can cross the extension boundary without two Arrow runtimes in
+    # one process. That makes the pyarrow major an ABI dependency, not a
+    # feature dependency -- an unbounded `pyarrow>=24` here is what broke
+    # `import oefp` when pyarrow 25 renamed libarrow.2400 to libarrow.2500.
+    # Bump this and build-system.requires together, never one alone.
+    "pyarrow>=25,<26",
 ]
 
 [project.optional-dependencies]

@@ -5,11 +5,11 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "oefp"
 version = "0.2.9"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 dependencies = [
     "numpy>=1.24",
-    "openeye-toolkits>=2025.2",
-    "pyarrow>=24",
+    "openeye-toolkits>=2026.1",
+    "pyarrow>=25,<26",
 ]
 
 [tool.setuptools]

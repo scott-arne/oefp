@@ -10,8 +10,10 @@ Prerequisites
 - **C++ Compiler**: GCC 9+, Clang 10+, or MSVC 2019+
 - **CMake**: 3.16 or later
 - **OpenEye Toolkit**: Licensed OpenEye C++ SDK for building, Python package for runtime
-- **Python**: 3.10 or later
+- **Python**: 3.11 or later
 - **SWIG**: 4.0 or later
+- **pyarrow**: 25.x — the extension loads Arrow from the installed pyarrow, so
+  the major version is fixed by the release, not merely a lower bound
 - **RDKit**: Required for conformance tests, not required by the runtime package
 
 Python Package
