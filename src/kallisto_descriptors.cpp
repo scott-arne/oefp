@@ -19,6 +19,11 @@ namespace OEFP {
 
 namespace {
 
+// M_PI is a POSIX extension that MSVC only exposes when _USE_MATH_DEFINES is
+// defined ahead of every <cmath> inclusion, transitive ones included. Carrying
+// our own constant avoids depending on translation-unit include order.
+constexpr double PI = 3.14159265358979323846;
+
 /// Compute Sterimol L/B1/B5 from precomputed coords and vdW radii.
 ///
 /// :param coords: Atomic coordinates in Bohr (N x 3).
@@ -450,7 +455,7 @@ std::vector<double> eeq_charges(const KallistoGeometryContext& ctx) {
     const std::size_t m = nat + 1;
 
     // Build parameter arrays
-    const double sqrt2pi = std::sqrt(2.0 / M_PI);
+    const double sqrt2pi = std::sqrt(2.0 / PI);
     std::vector<double> alpha(nat);
     std::vector<double> gam(nat);
     std::vector<double> xi(nat);
