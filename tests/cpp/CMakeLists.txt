@@ -34,6 +34,7 @@ add_executable(oefp_tests
     test_kallisto_data.cpp
     test_kallisto_descriptors.cpp
     test_kallisto_geometry.cpp
+    test_linear_algebra.cpp
     test_metric.cpp
     test_molecular_properties.cpp
     test_mordred.cpp
@@ -56,6 +57,9 @@ target_link_libraries(oefp_tests
         GTest::gtest_main
 )
 target_compile_features(oefp_tests PRIVATE cxx_std_20)
+# linear_algebra.h is internal: the solver and pseudo-inverse have no public surface yet,
+# so the test reaches into src/ to cover their contract directly.
+target_include_directories(oefp_tests PRIVATE ${CMAKE_SOURCE_DIR}/src)
 
 include(GoogleTest)
 gtest_discover_tests(oefp_tests)

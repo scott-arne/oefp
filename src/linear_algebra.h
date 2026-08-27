@@ -73,11 +73,12 @@ struct PseudoInverseResult {
 /// \param rcond Relative eigenvalue cutoff. Must be finite and non-negative. Zero selects
 ///        <tt>std::numeric_limits<double>::epsilon() * dimension</tt>.
 /// \return The pseudo-inverse and the number of retained eigenvalues, which is at least one.
-/// \throws std::invalid_argument When \p dimension is zero, when \p matrix does not hold
-///         exactly <tt>dimension * dimension</tt> entries, when any entry of \p matrix is not
-///         finite, when \p rcond is negative or not finite, when no eigenvalue survives the
-///         cutoff, or when a retained eigenvalue is so close to zero that its reciprocal
-///         overflows.
+/// \throws std::invalid_argument When \p dimension is zero, when \p dimension is so large
+///         that <tt>dimension * dimension</tt> would overflow <tt>std::size_t</tt>, when
+///         \p matrix does not hold exactly <tt>dimension * dimension</tt> entries, when any
+///         entry of \p matrix is not finite, when \p rcond is negative or not finite, when no
+///         eigenvalue survives the cutoff, or when a retained eigenvalue is so close to zero
+///         that its reciprocal overflows.
 /// \throws std::runtime_error When the eigendecomposition does not converge.
 PseudoInverseResult pseudo_inverse_symmetric(
     const std::vector<double>& matrix,

@@ -130,7 +130,15 @@ PseudoInverseResult pseudo_inverse_symmetric(
     if (dimension == 0u) {
         throw std::invalid_argument("Pseudo-inverse requires a non-empty matrix.");
     }
-    if (matrix.size() != dimension * dimension) {
+    // The product is formed before it is compared, so an unchecked multiplication would
+    // wrap and defeat the very check it feeds: dimension = 2^32 on a 64-bit size_t makes
+    // dimension * dimension exactly zero, an empty matrix then satisfies the size check,
+    // and the solver writes identity entries into a zero-length eigenvector buffer.
+    if (dimension > std::numeric_limits<std::size_t>::max() / dimension) {
+        throw std::invalid_argument("Pseudo-inverse dimension is too large to index.");
+    }
+    const auto entry_count = dimension * dimension;
+    if (matrix.size() != entry_count) {
         throw std::invalid_argument("Pseudo-inverse matrix size does not match its dimension.");
     }
     // Negative and NaN are rejected rather than folded into the default: a caller passing
@@ -152,7 +160,7 @@ PseudoInverseResult pseudo_inverse_symmetric(
     }
 
     PseudoInverseResult result;
-    result.matrix.assign(dimension * dimension, 0.0);
+    result.matrix.assign(entry_count, 0.0);
 
     auto eigensystem = symmetric_eigensystem_cyclic(matrix, dimension);
     if (!eigensystem.has_value()) {
