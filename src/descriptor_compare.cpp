@@ -171,11 +171,22 @@ std::vector<double> whitening_factor(const Metric& metric, std::size_t columns) 
         if (eigenvalue < 0.0) {
             eigenvalue = 0.0;
         }
-        // Restore the scale only here, where the magnitude is actually needed. An inverse
-        // covariance whose eigenvalues genuinely exceed the double range overflows to infinity,
-        // which is the honest answer for it and matches how the kernel's accumulators already
-        // behave at extreme magnitudes.
-        const auto root = std::sqrt(std::ldexp(eigenvalue, exponent));
+        // Restore the scale only here, where the magnitude is actually needed.
+        //
+        // Halve the exponent and take the root before restoring the scale. Restoring first can
+        // overflow the intermediate to infinity for a legitimate positive semidefinite matrix
+        // whose eigenvalues approach the double range, and an infinite factor then turns even a
+        // zero-length difference into 0.0 * inf, i.e. NaN. The halving is exact, the * 2.0 /
+        // * 0.5 that absorbs an odd remainder is exact, and scaling a correctly rounded square
+        // root by a power of two lands on the same double as rounding the scaled exact value, so
+        // this is bit-identical to the direct form wherever that form's intermediate stays
+        // normal. Where the intermediate would instead underflow to a subnormal the two differ,
+        // and this form is the correctly rounded one.
+        const int half = exponent / 2;
+        const int remainder = exponent - 2 * half;
+        const auto mantissa =
+            remainder == 0 ? eigenvalue : (remainder > 0 ? eigenvalue * 2.0 : eigenvalue * 0.5);
+        const auto root = std::ldexp(std::sqrt(mantissa), half);
         for (std::size_t row = 0u; row < columns; ++row) {
             factor[row * columns + k] = eigensystem->eigenvectors[row * columns + k] * root;
         }

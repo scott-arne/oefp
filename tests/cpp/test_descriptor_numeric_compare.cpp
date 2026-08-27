@@ -926,5 +926,21 @@ TEST(DescriptorNumericCompareTest, MahalanobisRejectsAnIndefiniteMatrixAtExtreme
     EXPECT_THROW(PDistNumeric(values.data(), nullptr, 2u, 2u, metric), std::invalid_argument);
 }
 
+TEST(DescriptorNumericCompareTest, MahalanobisKeepsIdenticalRowsAtZeroForAnExtremeScalePsdMatrix) {
+    // DBL_MAX * ones(2, 2) is finite, symmetric and positive semidefinite, with eigenvalues
+    // {0, 2 * DBL_MAX}. Restoring the scale before taking the root overflows the intermediate to
+    // infinity, and the resulting infinite factor turns a zero-length difference into 0.0 * inf,
+    // i.e. NaN. The distance from a row to itself is 0.0 for any finite inverse covariance.
+    const auto huge = std::numeric_limits<double>::max();
+    const std::vector<double> zeros = {0.0, 0.0, 0.0, 0.0};
+    const auto metric = Metric::Mahalanobis({huge, huge, huge, huge});
+    const auto result = PDistNumeric(zeros.data(), nullptr, 2u, 2u, metric);
+    EXPECT_DOUBLE_EQ(result[0], 0.0);
+
+    const std::vector<double> repeated = {1.0, 0.0, 1.0, 0.0};
+    const auto same = PDistNumeric(repeated.data(), nullptr, 2u, 2u, metric);
+    EXPECT_DOUBLE_EQ(same[0], 0.0);
+}
+
 } // namespace test
 } // namespace OEFP
