@@ -422,8 +422,9 @@ TEST(DescriptorBatchTest, ToNumericMatrixRejectsOutOfRangeIndex) {
 }
 
 TEST(DescriptorBatchTest, ToNumericMatrixAfterFailedAppendWithNonScalarSchema) {
-    // Verify Fix A reachability: InitializeColumns publishes schema_ before it can fail,
-    // leaving columns_ incomplete. This test demonstrates the out-of-bounds read.
+    // A failed Append must leave the batch exactly as it was (schema_ uncommitted, Size() zero),
+    // so that ToNumericMatrix reports the absent schema instead of indexing columns_ against a
+    // schema that advertises more columns than the vector holds.
     DescriptorSchemaBuilder builder;
     builder.Add(DescriptorDefinition{"raw", DescriptorValueKind::CountedIntegerKeys, "test:nonscalar"});
     builder.Add(DescriptorDefinition{"MW", DescriptorValueKind::Float, "test:scalar"});
@@ -437,9 +438,8 @@ TEST(DescriptorBatchTest, ToNumericMatrixAfterFailedAppendWithNonScalarSchema) {
         batch.Append(row_builder.Build("test"));
     }, std::invalid_argument);
 
-    // After the failed append, schema_ is set (has 2 columns) but columns_ is empty.
-    // ToNumericMatrix will resolve "MW" to index 1 and try to access columns_[1], which is out of bounds.
-    // Before the fix, this reads garbage or crashes. After the fix, Schema() throws because schema_ is null.
+    EXPECT_EQ(batch.Size(), 0u);
+    EXPECT_THROW(static_cast<void>(batch.Schema()), std::invalid_argument);
     EXPECT_THROW(batch.ToNumericMatrix(DescriptorSelection::Names({"MW"})),
                  std::invalid_argument);
 }
