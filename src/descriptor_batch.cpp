@@ -363,6 +363,36 @@ DescriptorNumericMatrix DescriptorBatch::ToNumericMatrix(
         }
     }
 
+    // The Int range scan is deliberately a second pass rather than part of the loop above.
+    // The first pass applies O(1) checks to every selected column, so folding an O(rows) data
+    // scan into it would let an over-range Int in an earlier selection slot preempt the
+    // nonnumeric-column rejection for a later slot, changing which error a caller sees for no
+    // benefit. This pass must also follow the first one, which is what establishes that
+    // validity and int_values each hold at least matrix.rows entries; indexing here is safe
+    // only because of that.
+    for (std::size_t column = 0u; column < indices.size(); ++column) {
+        const auto& block = columns_[indices[column]];
+        if (block.value_kind != DescriptorValueKind::Int) {
+            continue;
+        }
+        const auto& definition = schema.Definition(indices[column]);
+
+        for (std::size_t row = 0u; row < matrix.rows; ++row) {
+            // A missing Int slot holds a zero-filled placeholder that never reaches the cast,
+            // so checking it would reject a batch over data that is not there.
+            if (block.validity[row] == 0u) {
+                continue;
+            }
+            const auto int_value = block.int_values[row];
+            constexpr std::int64_t max_exact = std::int64_t{1} << 53;
+            if (int_value > max_exact || int_value < -max_exact) {
+                throw std::invalid_argument(
+                    "Descriptor column '" + definition.name
+                    + "' contains an Int value whose magnitude exceeds 2^53.");
+            }
+        }
+    }
+
     // The product is formed before being passed to assign(), so an unchecked multiplication
     // would wrap and hand a too-small allocation to a loop that then indexes out of bounds:
     // rows = 2^32 and columns = 2 on a 64-bit size_t makes rows * columns wrap to zero,
@@ -378,7 +408,6 @@ DescriptorNumericMatrix DescriptorBatch::ToNumericMatrix(
 
     for (std::size_t column = 0u; column < indices.size(); ++column) {
         const auto& block = columns_[indices[column]];
-        const auto& definition = schema.Definition(indices[column]);
 
         for (std::size_t row = 0u; row < matrix.rows; ++row) {
             const auto slot = row * matrix.columns + column;
@@ -387,21 +416,9 @@ DescriptorNumericMatrix DescriptorBatch::ToNumericMatrix(
             case DescriptorValueKind::Float:
                 matrix.values[slot] = block.float_values[row];
                 break;
-            case DescriptorValueKind::Int: {
-                // The Int-to-double range check reads the data, so it cannot move into the
-                // prepass without a second pass over every Int column.
-                const auto int_value = block.int_values[row];
-                if (block.validity[row] != 0u) {
-                    constexpr std::int64_t max_exact = std::int64_t{1} << 53;
-                    if (int_value > max_exact || int_value < -max_exact) {
-                        throw std::invalid_argument(
-                            "Descriptor column '" + definition.name
-                            + "' contains an Int value whose magnitude exceeds 2^53.");
-                    }
-                }
-                matrix.values[slot] = static_cast<double>(int_value);
+            case DescriptorValueKind::Int:
+                matrix.values[slot] = static_cast<double>(block.int_values[row]);
                 break;
-            }
             case DescriptorValueKind::Bool:
                 matrix.values[slot] = block.bool_values[row] != 0u ? 1.0 : 0.0;
                 break;
