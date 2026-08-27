@@ -245,13 +245,13 @@ void CDistNumericInto(
 ///        own parameters are rejected first.
 /// \throws std::invalid_argument: When the batch is not schema-backed; when a selected column is
 ///        not a numeric scalar; when the metric is not valid for numeric comparison; when
-///        weighted Minkowski weights length does not match the selected column count; when
-///        \p missing is \c Ignore for Standardized Euclidean or Mahalanobis; when the selected
-///        column count is too large to square; when the Standardized Euclidean variance count does
-///        not match the selected column count or a variance is not finite and strictly positive;
-///        when the Mahalanobis inverse covariance is not square in the selected column count or
-///        has a non-finite entry; or when the Mahalanobis inverse covariance is not positive
-///        semidefinite.
+///        weighted Minkowski weights length does not match the selected column count; when the
+///        missing-value policy is \c Ignore for Standardized Euclidean or Mahalanobis; when the
+///        selected column count is too large to square; when the Standardized Euclidean variance
+///        count does not match the selected column count or a variance is not finite and strictly
+///        positive; when the Mahalanobis inverse covariance is not square in the selected column
+///        count or has a non-finite entry; or when the Mahalanobis inverse covariance is not
+///        positive semidefinite.
 /// \throws std::runtime_error: When the symmetric eigendecomposition for Mahalanobis does not converge.
 std::vector<double> PDist(
     const DescriptorBatch& batch,
@@ -279,8 +279,8 @@ std::vector<double> PDist(
 /// \throws std::invalid_argument: When \p output_length is wrong; when the batch is not
 ///        schema-backed; when a selected column is not a numeric scalar; when the metric is not
 ///        valid for numeric comparison; when weighted Minkowski weights length does not match the
-///        selected column count; when \p missing is \c Ignore for Standardized Euclidean or
-///        Mahalanobis; when the selected column count is too large to square; when the
+///        selected column count; when the missing-value policy is \c Ignore for Standardized
+///        Euclidean or Mahalanobis; when the selected column count is too large to square; when the
 ///        Standardized Euclidean variance count does not match the selected column count or a
 ///        variance is not finite and strictly positive; when the Mahalanobis inverse covariance is
 ///        not square in the selected column count or has a non-finite entry; or when the
@@ -316,12 +316,12 @@ void PDistInto(
 ///        selection resolves differently against them; when either batch is not schema-backed; when
 ///        a selected column is not a numeric scalar; when the metric is not valid for numeric
 ///        comparison; when weighted Minkowski weights length does not match the selected column
-///        count; when \p missing is \c Ignore for Standardized Euclidean or Mahalanobis; when the
-///        selected column count is too large to square; when the Standardized Euclidean variance
-///        count does not match the selected column count or a variance is not finite and strictly
-///        positive; when the Mahalanobis inverse covariance is not square in the selected column
-///        count or has a non-finite entry; or when the Mahalanobis inverse covariance is not
-///        positive semidefinite.
+///        count; when the missing-value policy is \c Ignore for Standardized Euclidean or
+///        Mahalanobis; when the selected column count is too large to square; when the Standardized
+///        Euclidean variance count does not match the selected column count or a variance is not
+///        finite and strictly positive; when the Mahalanobis inverse covariance is not square in the
+///        selected column count or has a non-finite entry; or when the Mahalanobis inverse
+///        covariance is not positive semidefinite.
 /// \throws std::runtime_error: When the symmetric eigendecomposition for Mahalanobis does not converge.
 std::vector<double> CDist(
     const DescriptorBatch& a,
@@ -352,12 +352,12 @@ std::vector<double> CDist(
 ///        different schema identifiers; when the selection resolves differently against them; when
 ///        either batch is not schema-backed; when a selected column is not a numeric scalar; when
 ///        the metric is not valid for numeric comparison; when weighted Minkowski weights length
-///        does not match the selected column count; when \p missing is \c Ignore for Standardized
-///        Euclidean or Mahalanobis; when the selected column count is too large to square; when the
-///        Standardized Euclidean variance count does not match the selected column count or a
-///        variance is not finite and strictly positive; when the Mahalanobis inverse covariance is
-///        not square in the selected column count or has a non-finite entry; or when the
-///        Mahalanobis inverse covariance is not positive semidefinite.
+///        does not match the selected column count; when the missing-value policy is \c Ignore for
+///        Standardized Euclidean or Mahalanobis; when the selected column count is too large to
+///        square; when the Standardized Euclidean variance count does not match the selected column
+///        count or a variance is not finite and strictly positive; when the Mahalanobis inverse
+///        covariance is not square in the selected column count or has a non-finite entry; or when
+///        the Mahalanobis inverse covariance is not positive semidefinite.
 /// \throws std::runtime_error: When the symmetric eigendecomposition for Mahalanobis does not converge.
 void CDistInto(
     const DescriptorBatch& a,

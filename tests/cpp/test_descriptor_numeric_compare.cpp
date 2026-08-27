@@ -1144,5 +1144,36 @@ TEST(DescriptorNumericBatchTest, MissingPolicyIsForwarded) {
     EXPECT_DOUBLE_EQ(ignore_result[0], std::sqrt(18.0));  // sqrt((4-1)^2 * 2) for the rescale
 }
 
+TEST(DescriptorNumericBatchTest, CDistOrientsTheOutputMatrixRowsByColumns) {
+    // Transposing the two matrices in the cdist_numeric_impl call transposes the output. That
+    // survives a 1-by-n fixture, whose transpose flattens identically, and a batch compared
+    // against itself, whose output matrix is symmetric. It takes an off-diagonal pair that
+    // differs to pin the layout, and metric symmetry is irrelevant to it.
+    const auto schema = numeric_schema();
+    DescriptorSetBuilder a0(schema);
+    a0.Set("MW", DescriptorValue::Float(0.0));
+    a0.Set("nAtom", DescriptorValue::Int(0));
+    DescriptorSetBuilder a1(schema);
+    a1.Set("MW", DescriptorValue::Float(10.0));
+    a1.Set("nAtom", DescriptorValue::Int(0));
+    DescriptorSetBuilder b0(schema);
+    b0.Set("MW", DescriptorValue::Float(1.0));
+    b0.Set("nAtom", DescriptorValue::Int(0));
+    DescriptorSetBuilder b1(schema);
+    b1.Set("MW", DescriptorValue::Float(100.0));
+    b1.Set("nAtom", DescriptorValue::Int(0));
+
+    const auto a_batch = DescriptorBatch::FromDescriptorSets({a0.Build("a0"), a1.Build("a1")});
+    const auto b_batch = DescriptorBatch::FromDescriptorSets({b0.Build("b0"), b1.Build("b1")});
+    const DescriptorNumericOptions options{DescriptorSelection::Names({"MW", "nAtom"}),
+                                           DescriptorMissingPolicy::Propagate};
+    const auto result = CDist(a_batch, b_batch, Metric::Euclidean(), options);
+    ASSERT_EQ(result.size(), 4u);
+    EXPECT_DOUBLE_EQ(result[0], 1.0);
+    EXPECT_DOUBLE_EQ(result[1], 100.0);
+    EXPECT_DOUBLE_EQ(result[2], 9.0);
+    EXPECT_DOUBLE_EQ(result[3], 90.0);
+}
+
 } // namespace test
 } // namespace OEFP
