@@ -421,5 +421,75 @@ TEST(DescriptorBatchTest, ToNumericMatrixRejectsOutOfRangeIndex) {
                  std::out_of_range);
 }
 
+TEST(DescriptorBatchTest, ToNumericMatrixAfterFailedAppendWithNonScalarSchema) {
+    // Verify Fix A reachability: InitializeColumns publishes schema_ before it can fail,
+    // leaving columns_ incomplete. This test demonstrates the out-of-bounds read.
+    DescriptorSchemaBuilder builder;
+    builder.Add(DescriptorDefinition{"raw", DescriptorValueKind::CountedIntegerKeys, "test:nonscalar"});
+    builder.Add(DescriptorDefinition{"MW", DescriptorValueKind::Float, "test:scalar"});
+    const auto schema = builder.Build();
+
+    DescriptorSetBuilder row_builder(schema);
+    row_builder.Set("MW", DescriptorValue::Float(46.069));
+
+    DescriptorBatch batch;
+    EXPECT_THROW({
+        batch.Append(row_builder.Build("test"));
+    }, std::invalid_argument);
+
+    // After the failed append, schema_ is set (has 2 columns) but columns_ is empty.
+    // ToNumericMatrix will resolve "MW" to index 1 and try to access columns_[1], which is out of bounds.
+    // Before the fix, this reads garbage or crashes. After the fix, Schema() throws because schema_ is null.
+    EXPECT_THROW(batch.ToNumericMatrix(DescriptorSelection::Names({"MW"})),
+                 std::invalid_argument);
+}
+
+TEST(DescriptorBatchTest, ToNumericMatrixAcceptsIntAtExactlyTwoToThe53) {
+    DescriptorSchemaBuilder builder;
+    builder.Add(DescriptorDefinition{"LargeInt", DescriptorValueKind::Int, "test:int"});
+    const auto schema = builder.Build();
+
+    DescriptorSetBuilder row(schema);
+    constexpr std::int64_t exactly_2_53 = std::int64_t{1} << 53;
+    row.Set("LargeInt", DescriptorValue::Int(exactly_2_53));
+
+    const auto batch = DescriptorBatch::FromDescriptorSets({row.Build("test")});
+    const auto matrix = batch.ToNumericMatrix(DescriptorSelection::Names({"LargeInt"}));
+
+    EXPECT_EQ(matrix.rows, 1u);
+    EXPECT_EQ(matrix.columns, 1u);
+    EXPECT_DOUBLE_EQ(matrix.values[0], 9007199254740992.0);
+}
+
+TEST(DescriptorBatchTest, ToNumericMatrixRejectsIntBeyondTwoToThe53) {
+    DescriptorSchemaBuilder builder;
+    builder.Add(DescriptorDefinition{"LargeInt", DescriptorValueKind::Int, "test:int"});
+    const auto schema = builder.Build();
+
+    DescriptorSetBuilder row(schema);
+    constexpr std::int64_t beyond_2_53 = (std::int64_t{1} << 53) + 1;
+    row.Set("LargeInt", DescriptorValue::Int(beyond_2_53));
+
+    const auto batch = DescriptorBatch::FromDescriptorSets({row.Build("test")});
+
+    EXPECT_THROW(batch.ToNumericMatrix(DescriptorSelection::Names({"LargeInt"})),
+                 std::invalid_argument);
+}
+
+TEST(DescriptorBatchTest, ToNumericMatrixRejectsNegativeIntBeyondTwoToThe53) {
+    DescriptorSchemaBuilder builder;
+    builder.Add(DescriptorDefinition{"LargeInt", DescriptorValueKind::Int, "test:int"});
+    const auto schema = builder.Build();
+
+    DescriptorSetBuilder row(schema);
+    constexpr std::int64_t beyond_neg_2_53 = -((std::int64_t{1} << 53) + 1);
+    row.Set("LargeInt", DescriptorValue::Int(beyond_neg_2_53));
+
+    const auto batch = DescriptorBatch::FromDescriptorSets({row.Build("test")});
+
+    EXPECT_THROW(batch.ToNumericMatrix(DescriptorSelection::Names({"LargeInt"})),
+                 std::invalid_argument);
+}
+
 } // namespace test
 } // namespace OEFP
