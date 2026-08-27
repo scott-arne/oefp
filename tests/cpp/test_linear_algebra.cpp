@@ -347,6 +347,38 @@ TEST(PseudoInverseTest, TinyEigenvalueBelowDefaultCutoff) {
     EXPECT_EQ(result.rank, 1u);
 }
 
+TEST(PseudoInverseTest, AnEigenvalueExactlyAtTheCutoffIsDropped) {
+    // Nothing else in this file has an eigenvalue sitting on the cutoff, so relaxing the
+    // retention test from "> cutoff" to ">= cutoff" changes no other result. Every value here
+    // is dyadic, so the boundary is landed on exactly rather than approached: max_magnitude is
+    // 1.0, frexp reports exponent 1, and the decomposed matrix is diag({0.5, 0.25}).
+    // max|eigenvalue| is then 0.5 and the caller's rcond is 0.5, putting the cutoff at exactly
+    // 0.25 — the value of the second eigenvalue. Strictly greater drops it; ">=" keeps it and
+    // reports rank 2 with a second diagonal entry of 2.0.
+    const auto matrix = diag({1.0, 0.5});
+    const auto result = pseudo_inverse_symmetric(matrix, 2, 0.5);
+
+    EXPECT_EQ(result.rank, 1u);
+    ASSERT_EQ(result.matrix.size(), 4u);
+    EXPECT_DOUBLE_EQ(result.matrix[0], 1.0);
+    EXPECT_DOUBLE_EQ(result.matrix[1], 0.0);
+    EXPECT_DOUBLE_EQ(result.matrix[2], 0.0);
+    EXPECT_DOUBLE_EQ(result.matrix[3], 0.0);
+}
+
+TEST(PseudoInverseTest, TheDefaultCutoffCarriesTheDimensionFactor) {
+    // The default cutoff is epsilon() * dimension * max|eigenvalue|, and dropping the dimension
+    // factor survives every other test here because they all sit orders of magnitude away from
+    // the boundary. This fixture sits between the two candidate cutoffs. max_magnitude is 1.0,
+    // so the decomposed matrix is diag({0.5, 0.75 * epsilon}) and max|eigenvalue| is 0.5: the
+    // documented cutoff is epsilon * 2 * 0.5 == epsilon, which the second eigenvalue is below,
+    // while epsilon * 0.5 without the factor would retain it and report rank 2.
+    const auto matrix = diag({1.0, 1.5 * std::numeric_limits<double>::epsilon()});
+    const auto result = pseudo_inverse_symmetric(matrix, 2, 0.0);
+
+    EXPECT_EQ(result.rank, 1u);
+}
+
 } // namespace
 } // namespace detail
 } // namespace OEFP

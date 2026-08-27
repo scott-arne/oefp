@@ -86,6 +86,11 @@ DescriptorCovariance CovarianceMatrix(
 
 /// \brief Sample covariance for a caller-supplied row-major matrix.
 ///
+/// Rows with any missing value are dropped entirely (listwise deletion), so a value can be
+/// excluded because a different column in its row was absent. The denominator is
+/// <tt>row_count - 1</tt>, the count of rows that survived that deletion.
+///
+/// \param validity Row-major mask of the same shape, or null when every value is present.
 /// \note Columns of large magnitude can overflow the centred products, in which case the
 ///       returned matrix holds infinities or NaN and says nothing about it. Nothing is
 ///       rejected here; the finiteness check lives in \c InverseCovarianceMatrix, which
@@ -128,6 +133,18 @@ DescriptorInverseCovariance InverseCovarianceMatrix(
 
 /// \brief Pseudo-inverse of the sample covariance for a caller-supplied row-major matrix.
 ///
+/// Rows with any missing value are dropped entirely (listwise deletion), so a value can be
+/// excluded because a different column in its row was absent. The covariance denominator is
+/// <tt>row_count - 1</tt>, the count of rows that survived that deletion.
+///
+/// Eigenvalues are retained when <tt>value > cutoff</tt>, where \c cutoff is the effective
+/// \p rcond — the caller's value, or the default below when that value is zero — times
+/// <tt>max|eigenvalue|</tt>, the largest eigenvalue magnitude. The comparison is strict, so a
+/// covariance matrix whose largest eigenvalue is zero retains nothing.
+///
+/// \param validity Row-major mask of the same shape, or null when every value is present.
+/// \param rcond Relative eigenvalue cutoff. Zero selects
+///        <tt>std::numeric_limits<double>::epsilon() * columns</tt>.
 /// \note A covariance entry can be non-finite without any non-finite value in \p values:
 ///       columns of large magnitude overflow the centred products. \c CovarianceMatrix
 ///       returns that matrix without complaint, so the rejection surfaces here.

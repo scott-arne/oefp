@@ -116,16 +116,25 @@ DescriptorCovariance CovarianceMatrix(
             "Covariance requires at least two rows with every selected column present.");
     }
 
-    std::vector<double> mean(columns, 0.0);
+    // Centre the mean pass on the first complete row instead of summing raw values. A raw sum
+    // overflows on input that never does: two rows of DBL_MAX in one column sum to +inf, the
+    // mean is +inf, every centred value is -inf, and a column whose true covariance is 0.0
+    // comes back as +inf for InverseCovarianceMatrix to reject. Shifting keeps every partial
+    // sum on the scale of the column's spread rather than its offset, so a constant column
+    // accumulates exact zeros whatever its magnitude. The subtraction is exact when the
+    // reference is close to the value, which is the case that motivates it.
+    const auto* reference = values + (complete.front() * columns);
+    std::vector<double> offset_sum(columns, 0.0);
     for (const auto row : complete) {
         const auto* row_values = values + (row * columns);
         for (std::size_t column = 0u; column < columns; ++column) {
-            mean[column] += row_values[column];
+            offset_sum[column] += row_values[column] - reference[column];
         }
     }
     const auto count = static_cast<double>(complete.size());
-    for (auto& value : mean) {
-        value /= count;
+    std::vector<double> mean(columns, 0.0);
+    for (std::size_t column = 0u; column < columns; ++column) {
+        mean[column] = reference[column] + (offset_sum[column] / count);
     }
 
     DescriptorCovariance covariance;

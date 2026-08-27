@@ -1,5 +1,6 @@
 #include <cmath>
 #include <cstdint>
+#include <limits>
 #include <memory>
 #include <stdexcept>
 #include <string>
@@ -124,6 +125,20 @@ TEST(DescriptorStatisticsTest, EmptyAndSingletonColumnsReportNaN) {
     EXPECT_TRUE(std::isnan(empty.maximum[0]));
 }
 
+TEST(DescriptorStatisticsTest, AnOffsetHeavyColumnKeepsItsVariance) {
+    // All three values are exactly representable and the sample variance is exactly 1.0, but
+    // the textbook (sum_sq - sum*sum/n) / (n - 1) form loses the whole spread to cancellation
+    // at this offset and returns exactly 0.0. Every other ColumnStatistics fixture here uses
+    // small values where the two forms agree, so this is the assertion that makes Welford
+    // load-bearing rather than an unobservable implementation choice.
+    const std::vector<double> values{1.0e8 + 1.0, 1.0e8 + 2.0, 1.0e8 + 3.0};
+    const auto statistics = ColumnStatistics(values.data(), nullptr, 3u, 1u);
+
+    EXPECT_EQ(statistics.present_count[0], 3u);
+    EXPECT_DOUBLE_EQ(statistics.mean[0], 1.0e8 + 2.0);
+    EXPECT_DOUBLE_EQ(statistics.variance[0], 1.0);
+}
+
 TEST(DescriptorStatisticsTest, AZeroRowMatrixYieldsAllNaN) {
     // The header allows a null buffer when rows is zero, because that is what an empty batch's
     // std::vector::data() is allowed to hand back.
@@ -187,6 +202,25 @@ TEST(DescriptorStatisticsTest, CovarianceFillsTheWholeUpperTriangleOfALargerMatr
     EXPECT_DOUBLE_EQ(covariance.matrix[3], covariance.matrix[1]);
     EXPECT_DOUBLE_EQ(covariance.matrix[6], covariance.matrix[2]);
     EXPECT_DOUBLE_EQ(covariance.matrix[7], covariance.matrix[5]);
+}
+
+TEST(DescriptorStatisticsTest, AConstantColumnAtTheDoubleMaximumHasZeroCovariance) {
+    // Every value here is finite and the true sample covariance is exactly 0.0. A mean pass
+    // that sums raw values never gets there: DBL_MAX + DBL_MAX is +inf, the mean is +inf, each
+    // centred value is DBL_MAX - inf == -inf, and their product is +inf, so CovarianceMatrix
+    // returned +inf and InverseCovarianceMatrix then rejected input that had overflowed
+    // nothing. Note the asymmetry that gave it away: ColumnStatistics reports variance 0.0 on
+    // the same column, because Welford never forms the raw sum. Remove the reference-row shift
+    // from the mean pass and this assertion fails.
+    const std::vector<double> values{
+        std::numeric_limits<double>::max(),
+        std::numeric_limits<double>::max(),
+    };
+    const auto covariance = CovarianceMatrix(values.data(), nullptr, 2u, 1u);
+
+    EXPECT_EQ(covariance.row_count, 2u);
+    ASSERT_EQ(covariance.matrix.size(), 1u);
+    EXPECT_DOUBLE_EQ(covariance.matrix[0], 0.0);
 }
 
 TEST(DescriptorStatisticsTest, CovarianceRejectsFewerThanTwoCompleteRows) {
