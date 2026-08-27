@@ -39,12 +39,11 @@ enum class DescriptorMissingPolicy {
     Ignore,
 };
 
-/// \par Numeric Accumulator Overflow
-/// The numeric descriptor comparison functions compute distances without intermediate scaling,
-/// so extreme descriptor values or a large Minkowski \c p can cause accumulators to overflow to
-/// infinity before the final root or normalization is applied.
-
 /// \brief Condensed pairwise distances over a dense numeric descriptor matrix.
+///
+/// Distances are computed without intermediate scaling, so extreme descriptor values or a large
+/// Minkowski \c p can cause accumulators to overflow to infinity before the final root or
+/// normalization is applied.
 ///
 /// \param values Row-major \p rows x \p columns buffer of descriptor values.
 /// \param validity Row-major \p rows x \p columns presence mask, or \c nullptr when every
@@ -68,6 +67,10 @@ std::vector<double> PDistNumeric(
     const BatchKernelOptions& kernel = {});
 
 /// \brief Condensed pairwise distances written into a caller-supplied buffer.
+///
+/// Distances are computed without intermediate scaling, so extreme descriptor values or a large
+/// Minkowski \c p can cause accumulators to overflow to infinity before the final root or
+/// normalization is applied.
 ///
 /// \param values Row-major \p rows x \p columns buffer of descriptor values.
 /// \param validity Row-major \p rows x \p columns presence mask, or \c nullptr when every
@@ -94,6 +97,10 @@ void PDistNumericInto(
     const BatchKernelOptions& kernel = {});
 
 /// \brief Rectangular distances between two dense numeric descriptor matrices.
+///
+/// Distances are computed without intermediate scaling, so extreme descriptor values or a large
+/// Minkowski \c p can cause accumulators to overflow to infinity before the final root or
+/// normalization is applied.
 ///
 /// \param a_values Row-major \p a_rows x \p columns buffer of descriptor values.
 /// \param a_validity Row-major \p a_rows x \p columns presence mask, or \c nullptr when every
@@ -125,6 +132,10 @@ std::vector<double> CDistNumeric(
     const BatchKernelOptions& kernel = {});
 
 /// \brief Rectangular distances written into a caller-supplied buffer.
+///
+/// Distances are computed without intermediate scaling, so extreme descriptor values or a large
+/// Minkowski \c p can cause accumulators to overflow to infinity before the final root or
+/// normalization is applied.
 ///
 /// \param a_values Row-major \p a_rows x \p columns buffer of descriptor values.
 /// \param a_validity Row-major \p a_rows x \p columns presence mask, or \c nullptr when every

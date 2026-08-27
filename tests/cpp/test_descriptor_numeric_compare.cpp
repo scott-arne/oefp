@@ -690,7 +690,7 @@ TEST(DescriptorNumericCompareTest, CDistValidatesWeightedMinkowskiAndRejectsNonN
                  std::invalid_argument);
 
     // Also verify CDist rejects non-numeric metrics (RejectsMetricsOutsideTheNumericAllowList
-    // at line 193 only tests PDist).
+    // only tests PDist).
     EXPECT_THROW(CDistNumeric(kValues.data(), nullptr, 2u, kValues.data(), nullptr, 2u, 3u,
                               Metric::Jaccard()),
                  std::invalid_argument);
