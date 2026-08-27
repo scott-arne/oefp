@@ -9,6 +9,7 @@
 #include "oefp/annotation.h"
 #include "oefp/atom_pair.h"
 #include "oefp/batch.h"
+#include "oefp/batch_kernel_options.h"
 #include "oefp/compare.h"
 #include "oefp/count.h"
 #include "oefp/count_batch.h"

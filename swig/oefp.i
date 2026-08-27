@@ -916,6 +916,7 @@ namespace std {
 %include "oefp/count_batch.h"
 %include "oefp/sparse_batch.h"
 %include "oefp/morgan.h"
+%include "oefp/batch_kernel_options.h"
 %include "oefp/metric.h"
 %include "oefp/compare.h"
 %include "oefp/openeye.h"
