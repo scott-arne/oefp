@@ -4,6 +4,7 @@
 #include <cmath>
 #include <limits>
 #include <stdexcept>
+#include <utility>
 
 namespace OEFP {
 namespace detail {
@@ -140,6 +141,16 @@ PseudoInverseResult pseudo_inverse_symmetric(
         throw std::invalid_argument("Pseudo-inverse rcond must be finite and non-negative.");
     }
 
+    // A NaN off-diagonal is invisible to the solver's convergence test: std::max(x, NaN)
+    // returns x, so a NaN never raises max_off_diagonal, the sweep reports convergence on its
+    // first pass, and the input diagonal comes back as the eigenvalues with an identity
+    // eigenbasis. The result is finite and plausible and completely wrong. Reject it here for
+    // the same reason the rcond guard above rejects a NaN cutoff.
+    if (std::any_of(matrix.begin(), matrix.end(),
+                    [](double value) { return !std::isfinite(value); })) {
+        throw std::invalid_argument("Pseudo-inverse matrix entries must be finite.");
+    }
+
     PseudoInverseResult result;
     result.matrix.assign(dimension * dimension, 0.0);
 
@@ -165,6 +176,15 @@ PseudoInverseResult pseudo_inverse_symmetric(
         const auto value = eigensystem->eigenvalues[k];
         if (value > cutoff) {
             inverted[k] = 1.0 / value;
+            // When every eigenvalue is denormal the cutoff underflows to exactly zero, so the
+            // relative test above stops excluding anything and the reciprocal overflows to
+            // infinity. The reassembly below would then evaluate 0.0 * inf and hand back an
+            // all-NaN matrix with a positive rank.
+            if (!std::isfinite(inverted[k])) {
+                throw std::invalid_argument(
+                    "Pseudo-inverse eigenvalue reciprocal overflowed: the matrix is too close "
+                    "to zero for a relative cutoff to be meaningful.");
+            }
             ++result.rank;
         }
     }
@@ -174,7 +194,7 @@ PseudoInverseResult pseudo_inverse_symmetric(
     // report every pair as distance zero. Throwing keeps that from reaching a caller.
     if (result.rank == 0u) {
         throw std::invalid_argument(
-            "Pseudo-inverse is rank zero: no eigenvalue exceeds the rcond cutoff.");
+            "Pseudo-inverse is rank zero: no positive eigenvalue exceeds the rcond cutoff.");
     }
 
     // Reassemble Q * inv(Lambda) * Q^T; eigenvectors are columns.
