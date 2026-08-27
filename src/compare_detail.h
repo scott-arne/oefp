@@ -22,6 +22,7 @@ struct NumericStats {
     double unequal = 0.0;
     double canberra = 0.0;
     double sum_abs = 0.0;
+    double power_sum = 0.0;  ///< Sum of (weighted) |difference|^p; numeric Minkowski only.
 };
 
 /// \brief Multiply two sizes, throwing \p label when the product would overflow.

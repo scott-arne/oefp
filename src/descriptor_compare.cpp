@@ -21,7 +21,7 @@ using detail::validate_output;
 constexpr double kNaN = std::numeric_limits<double>::quiet_NaN();
 
 /// \brief Reject metrics that have no defined meaning over continuous descriptor columns.
-void validate_numeric_metric(const Metric& metric, DescriptorMissingPolicy missing) {
+void validate_numeric_metric(const Metric& metric, DescriptorMissingPolicy missing, std::size_t columns) {
     (void)missing;  // Tasks 7 and 8 add policy-dependent rejections here.
     switch (metric.Name()) {
     case MetricName::Euclidean:
@@ -30,6 +30,12 @@ void validate_numeric_metric(const Metric& metric, DescriptorMissingPolicy missi
     case MetricName::Hamming:
     case MetricName::Canberra:
     case MetricName::BrayCurtis:
+        return;
+    case MetricName::Minkowski:
+        if (!metric.Weights().empty() && metric.Weights().size() != columns) {
+            throw std::invalid_argument(
+                "Minkowski weights length must match the selected column count.");
+        }
         return;
     case MetricName::Haversine:
         throw std::invalid_argument(
@@ -91,19 +97,67 @@ void rescale_for_ignore(NumericStats& stats, const Metric& metric, double factor
     }
 }
 
-template <DescriptorMissingPolicy Policy, bool HasValidity>
+/// \brief Total weight mass over all selected columns; the unweighted case is the column count.
+double numeric_total_weight_mass(const Metric& metric, std::size_t columns) {
+    if (metric.Name() != MetricName::Minkowski || metric.Weights().empty()) {
+        return static_cast<double>(columns);
+    }
+    double mass = 0.0;
+    for (const auto weight : metric.Weights()) {
+        mass += weight;
+    }
+    return mass;
+}
+
+/// \brief True when this metric needs the per-dimension power accumulation.
+///
+/// Unweighted p = 1 and p = 2 read \c l1 and \c squared_l2 instead, which both avoids a
+/// \c std::pow per dimension and keeps those two bit-identical to the fingerprint path.
+bool numeric_needs_power(const Metric& metric) {
+    if (metric.Name() != MetricName::Minkowski) {
+        return false;
+    }
+    if (!metric.Weights().empty()) {
+        return true;
+    }
+    return metric.P() != 1.0 && metric.P() != 2.0;
+}
+
+/// \brief Close out Minkowski from its accumulator, applying the \c Ignore rescale factor.
+double evaluate_numeric_minkowski(const NumericStats& stats, const Metric& metric,
+                                  double factor) {
+    if (metric.Weights().empty()) {
+        if (metric.P() == 1.0) {
+            return stats.l1 * factor;
+        }
+        if (metric.P() == 2.0) {
+            return std::sqrt(stats.squared_l2 * factor);
+        }
+    }
+    return std::pow(stats.power_sum * factor, 1.0 / metric.P());
+}
+
+template <DescriptorMissingPolicy Policy, bool HasValidity, bool Powered>
 double compare_numeric_rows(
     const double* a,
     const std::uint8_t* a_valid,
     const double* b,
     const std::uint8_t* b_valid,
     std::size_t columns,
-    const Metric& metric) {
+    const Metric& metric,
+    double total_weight_mass) {
     NumericStats stats;
+    double used_weight_mass = 0.0;
 
-    // A null row mask means that side is fully present. `HasValidity` says only that at
-    // least one side has a mask, because CDist may legitimately pair a fully present
-    // matrix with a masked one. Both tests are loop-invariant, so they cost nothing.
+    double power = 0.0;
+    const double* weights = nullptr;
+    if constexpr (Powered) {
+        power = metric.P();
+        weights = metric.Weights().empty() ? nullptr : metric.Weights().data();
+    }
+
+    // Unchanged from Task 6: a null row mask means that side is fully present, so a
+    // masked matrix and an unmasked one may be compared against each other.
     const bool a_all_present = a_valid == nullptr;
     const bool b_all_present = b_valid == nullptr;
 
@@ -119,39 +173,69 @@ double compare_numeric_rows(
                 }
             }
         }
+
         accumulate_dimension(stats, a[column], b[column]);
+
+        if constexpr (Policy == DescriptorMissingPolicy::Ignore) {
+            // Weight mass, not dimension count: dropping a heavily weighted column removes
+            // more from the sum than dropping a negligible one, and a count cannot tell
+            // them apart. Unweighted metrics pass weight 1 per column, which reduces this
+            // to the D / d ratio exactly.
+            used_weight_mass += weights == nullptr ? 1.0 : weights[column];
+        }
+
+        if constexpr (Powered) {
+            const auto term = std::pow(std::abs(a[column] - b[column]), power);
+            stats.power_sum += weights == nullptr ? term : weights[column] * term;
+        }
     }
 
     if (stats.dimensions == 0u) {
         return kNaN;
     }
 
+    double factor = 1.0;
     if constexpr (Policy == DescriptorMissingPolicy::Ignore) {
-        if (stats.dimensions != columns) {
-            rescale_for_ignore(stats, metric,
-                               static_cast<double>(columns)
-                                   / static_cast<double>(stats.dimensions));
+        if (used_weight_mass == 0.0) {
+            return kNaN;
         }
+        factor = total_weight_mass / used_weight_mass;
     }
 
+    if (metric.Name() == MetricName::Minkowski) {
+        return evaluate_numeric_minkowski(stats, metric, factor);
+    }
+
+    rescale_for_ignore(stats, metric, factor);
     return evaluate_numeric_metric(stats, metric);
 }
 
 using NumericRowComparator = double (*)(const double*, const std::uint8_t*,
                                         const double*, const std::uint8_t*,
-                                        std::size_t, const Metric&);
+                                        std::size_t, const Metric&, double);
 
 /// \brief Resolve the policy and validity branches once, outside the pair loop.
 NumericRowComparator select_numeric_comparator(DescriptorMissingPolicy missing,
-                                               bool has_validity) {
+                                               bool has_validity,
+                                               bool needs_power) {
     if (missing == DescriptorMissingPolicy::Ignore) {
-        return has_validity
-            ? &compare_numeric_rows<DescriptorMissingPolicy::Ignore, true>
-            : &compare_numeric_rows<DescriptorMissingPolicy::Ignore, false>;
+        if (has_validity) {
+            return needs_power
+                ? &compare_numeric_rows<DescriptorMissingPolicy::Ignore, true, true>
+                : &compare_numeric_rows<DescriptorMissingPolicy::Ignore, true, false>;
+        }
+        return needs_power
+            ? &compare_numeric_rows<DescriptorMissingPolicy::Ignore, false, true>
+            : &compare_numeric_rows<DescriptorMissingPolicy::Ignore, false, false>;
     }
-    return has_validity
-        ? &compare_numeric_rows<DescriptorMissingPolicy::Propagate, true>
-        : &compare_numeric_rows<DescriptorMissingPolicy::Propagate, false>;
+    if (has_validity) {
+        return needs_power
+            ? &compare_numeric_rows<DescriptorMissingPolicy::Propagate, true, true>
+            : &compare_numeric_rows<DescriptorMissingPolicy::Propagate, true, false>;
+    }
+    return needs_power
+        ? &compare_numeric_rows<DescriptorMissingPolicy::Propagate, false, true>
+        : &compare_numeric_rows<DescriptorMissingPolicy::Propagate, false, false>;
 }
 
 /// \brief Offset of \p row in a row-major buffer, or \c nullptr for an absent mask.
@@ -172,11 +256,13 @@ void PDistNumericInto(
     double* output,
     std::size_t output_length,
     const BatchKernelOptions& kernel) {
-    validate_numeric_metric(metric, missing);
+    validate_numeric_metric(metric, missing, columns);
     const auto expected_length = condensed_size(rows);
     validate_output(output, output_length, expected_length);
 
-    const auto comparator = select_numeric_comparator(missing, validity != nullptr);
+    const auto total_weight_mass = numeric_total_weight_mass(metric, columns);
+    const auto comparator =
+        select_numeric_comparator(missing, validity != nullptr, numeric_needs_power(metric));
     detail::ParallelFor(0, expected_length, kernel.chunk_size, kernel.num_threads,
                         [&](std::size_t begin, std::size_t end) {
         for (std::size_t index = begin; index < end; ++index) {
@@ -185,7 +271,7 @@ void PDistNumericInto(
             condensed_pair_from_index(index, rows, i, j);
             output[index] = comparator(values + i * columns, validity_row(validity, i, columns),
                                        values + j * columns, validity_row(validity, j, columns),
-                                       columns, metric);
+                                       columns, metric, total_weight_mass);
         }
     });
 }
@@ -217,7 +303,7 @@ void CDistNumericInto(
     double* output,
     std::size_t output_length,
     const BatchKernelOptions& kernel) {
-    validate_numeric_metric(metric, missing);
+    validate_numeric_metric(metric, missing, columns);
     const auto expected_length =
         checked_product(a_rows, b_rows, "CDist output size is too large.");
     validate_output(output, output_length, expected_length);
@@ -226,7 +312,8 @@ void CDistNumericInto(
     // fully present, so a masked matrix and an unmasked one compare correctly.
     const auto has_validity = a_validity != nullptr || b_validity != nullptr;
 
-    const auto comparator = select_numeric_comparator(missing, has_validity);
+    const auto total_weight_mass = numeric_total_weight_mass(metric, columns);
+    const auto comparator = select_numeric_comparator(missing, has_validity, numeric_needs_power(metric));
     detail::ParallelFor(0, expected_length, kernel.chunk_size, kernel.num_threads,
                         [&](std::size_t begin, std::size_t end) {
         for (std::size_t index = begin; index < end; ++index) {
@@ -235,7 +322,7 @@ void CDistNumericInto(
             output[index] =
                 comparator(a_values + i * columns, validity_row(a_validity, i, columns),
                            b_values + j * columns, validity_row(b_validity, j, columns),
-                           columns, metric);
+                           columns, metric, total_weight_mass);
         }
     });
 }
