@@ -15,6 +15,7 @@
 #include "oefp/count_batch.h"
 #include "oefp/descriptor.h"
 #include "oefp/descriptor_batch.h"
+#include "oefp/descriptor_compare.h"
 #include "oefp/descriptor_schema.h"
 #include "oefp/descriptor_selection.h"
 #include "oefp/descriptor_value.h"

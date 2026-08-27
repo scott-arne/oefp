@@ -156,6 +156,7 @@ set(OEFP_SOURCES
     src/descriptor_arrow.cpp
     src/descriptor_batch.cpp
     src/descriptor_calculator.cpp
+    src/descriptor_compare.cpp
     src/descriptor_schema.cpp
     src/descriptor_selection.cpp
     src/descriptor_source.cpp
