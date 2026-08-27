@@ -1,13 +1,18 @@
 #include <gtest/gtest.h>
 
 #include "oefp/descriptor_compare.h"
+#include "oefp/descriptor.h"
+#include "oefp/descriptor_batch.h"
+#include "oefp/descriptor_selection.h"
 
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
 #include <iterator>
 #include <limits>
+#include <memory>
 #include <stdexcept>
+#include <string>
 #include <vector>
 
 namespace OEFP {
@@ -16,6 +21,31 @@ namespace {
 
 // Two rows, three columns, row-major.
 const std::vector<double> kValues = {1.0, 2.0, 3.0, 4.0, 6.0, 3.0};
+
+std::shared_ptr<const DescriptorSchema> numeric_schema() {
+    DescriptorSchemaBuilder builder;
+    builder.Add(DescriptorDefinition{"MW", DescriptorValueKind::Float, "test:scalar"});
+    builder.Add(DescriptorDefinition{"nAtom", DescriptorValueKind::Int, "test:scalar"});
+    builder.Add(DescriptorDefinition{"Lipinski", DescriptorValueKind::Bool, "test:scalar"});
+    builder.Add(DescriptorDefinition{"Class", DescriptorValueKind::String, "test:scalar"});
+    return builder.Build();
+}
+
+DescriptorBatch two_row_batch() {
+    const auto schema = numeric_schema();
+
+    DescriptorSetBuilder first(schema);
+    first.Set("MW", DescriptorValue::Float(1.0));
+    first.Set("nAtom", DescriptorValue::Int(2));
+    first.Set("Lipinski", DescriptorValue::Bool(true));
+
+    DescriptorSetBuilder second(schema);
+    second.Set("MW", DescriptorValue::Float(4.0));
+    second.Set("nAtom", DescriptorValue::Int(6));
+    second.Set("Lipinski", DescriptorValue::Bool(false));
+
+    return DescriptorBatch::FromDescriptorSets({first.Build("a"), second.Build("b")});
+}
 
 } // namespace
 
@@ -940,6 +970,178 @@ TEST(DescriptorNumericCompareTest, MahalanobisKeepsIdenticalRowsAtZeroForAnExtre
     const std::vector<double> repeated = {1.0, 0.0, 1.0, 0.0};
     const auto same = PDistNumeric(repeated.data(), nullptr, 2u, 2u, metric);
     EXPECT_DOUBLE_EQ(same[0], 0.0);
+}
+
+TEST(DescriptorNumericBatchTest, PDistMatchesTheBufferKernelOverTheSameMatrix) {
+    const auto batch = two_row_batch();
+    const DescriptorNumericOptions options{DescriptorSelection::Names({"MW", "nAtom"}),
+                                           DescriptorMissingPolicy::Propagate};
+
+    const auto result = PDist(batch, Metric::Euclidean(), options);
+    ASSERT_EQ(result.size(), 1u);
+    EXPECT_DOUBLE_EQ(result[0], 5.0);  // sqrt(9 + 16)
+}
+
+TEST(DescriptorNumericBatchTest, BoolColumnsMapToZeroAndOne) {
+    const auto batch = two_row_batch();
+    const DescriptorNumericOptions options{DescriptorSelection::Names({"Lipinski"}),
+                                           DescriptorMissingPolicy::Propagate};
+    EXPECT_DOUBLE_EQ(PDist(batch, Metric::Manhattan(), options)[0], 1.0);
+}
+
+TEST(DescriptorNumericBatchTest, CDistProducesARectangularMatrix) {
+    const auto batch = two_row_batch();
+    const DescriptorNumericOptions options{DescriptorSelection::Names({"MW", "nAtom"}),
+                                           DescriptorMissingPolicy::Propagate};
+    const auto result = CDist(batch, batch, Metric::Euclidean(), options);
+    ASSERT_EQ(result.size(), 4u);
+    EXPECT_DOUBLE_EQ(result[0], 0.0);
+    EXPECT_DOUBLE_EQ(result[1], 5.0);
+    EXPECT_DOUBLE_EQ(result[2], 5.0);
+    EXPECT_DOUBLE_EQ(result[3], 0.0);
+}
+
+TEST(DescriptorNumericBatchTest, IntoFormsValidateTheirOutputLength) {
+    const auto batch = two_row_batch();
+    const DescriptorNumericOptions options{DescriptorSelection::Names({"MW"}),
+                                           DescriptorMissingPolicy::Propagate};
+    std::vector<double> output(3u, 0.0);
+    EXPECT_THROW(PDistInto(batch, Metric::Euclidean(), options, output.data(), output.size()),
+                 std::invalid_argument);
+}
+
+TEST(DescriptorNumericBatchTest, RejectsStringColumnsAndLegacyBatches) {
+    const auto batch = two_row_batch();
+    const DescriptorNumericOptions options{DescriptorSelection::Names({"Class"}),
+                                           DescriptorMissingPolicy::Propagate};
+    EXPECT_THROW(PDist(batch, Metric::Euclidean(), options), std::invalid_argument);
+
+    DescriptorBatch legacy;
+    EXPECT_THROW(PDist(legacy, Metric::Euclidean(), options), std::invalid_argument);
+}
+
+TEST(DescriptorNumericBatchTest, CDistRejectsMismatchedSchemas) {
+    DescriptorSchemaBuilder builder;
+    builder.Add(DescriptorDefinition{"MW", DescriptorValueKind::Float, "test:scalar"});
+    const auto other_schema = builder.Build();
+
+    DescriptorSetBuilder row(other_schema);
+    row.Set("MW", DescriptorValue::Float(1.0));
+    const auto other = DescriptorBatch::FromDescriptorSets({row.Build("c")});
+
+    const DescriptorNumericOptions options{DescriptorSelection::Names({"MW"}),
+                                           DescriptorMissingPolicy::Propagate};
+    EXPECT_THROW(CDist(two_row_batch(), other, Metric::Euclidean(), options),
+                 std::invalid_argument);
+}
+
+TEST(DescriptorNumericBatchTest, AnEmptySelectionYieldsNaNThroughEveryOverload) {
+    // DescriptorSelection::Group resolves an unknown group to zero indices rather than
+    // throwing (src/descriptor_schema.cpp:201-207), so a zero-width matrix is reachable
+    // through the batch overloads and not only through the raw-buffer kernel. The whole
+    // chain -- ToNumericMatrix, the impl helper, the kernel -- has to survive it.
+    const auto batch = two_row_batch();
+    const DescriptorNumericOptions options{DescriptorSelection::Group("no-such-group"),
+                                           DescriptorMissingPolicy::Propagate};
+
+    const auto pairwise = PDist(batch, Metric::Euclidean(), options);
+    ASSERT_EQ(pairwise.size(), 1u);
+    EXPECT_TRUE(std::isnan(pairwise[0]));
+
+    const auto cross = CDist(batch, batch, Metric::Euclidean(), options);
+    ASSERT_EQ(cross.size(), 4u);
+    for (const auto value : cross) {
+        EXPECT_TRUE(std::isnan(value));
+    }
+}
+
+TEST(DescriptorNumericBatchTest, BadVarianceMessageNamesTheColumn) {
+    const auto batch = two_row_batch();
+    const DescriptorNumericOptions options{DescriptorSelection::Names({"MW", "nAtom"}),
+                                           DescriptorMissingPolicy::Propagate};
+    const auto metric = Metric::StandardizedEuclidean({1.0, 0.0});
+
+    try {
+        PDist(batch, metric, options);
+        FAIL() << "Expected a rejection for the zero variance.";
+    } catch (const std::invalid_argument& error) {
+        EXPECT_NE(std::string(error.what()).find("'nAtom'"), std::string::npos);
+    }
+}
+
+TEST(DescriptorNumericBatchTest, CDistOverDifferentBatchesUsesDistinctValues) {
+    const auto schema = numeric_schema();
+
+    DescriptorSetBuilder a_builder(schema);
+    a_builder.Set("MW", DescriptorValue::Float(0.0));
+    a_builder.Set("nAtom", DescriptorValue::Int(0));
+
+    DescriptorSetBuilder b1_builder(schema);
+    b1_builder.Set("MW", DescriptorValue::Float(3.0));
+    b1_builder.Set("nAtom", DescriptorValue::Int(4));
+
+    DescriptorSetBuilder b2_builder(schema);
+    b2_builder.Set("MW", DescriptorValue::Float(6.0));
+    b2_builder.Set("nAtom", DescriptorValue::Int(8));
+
+    const auto a_batch = DescriptorBatch::FromDescriptorSets({a_builder.Build("a")});
+    const auto b_batch = DescriptorBatch::FromDescriptorSets(
+        {b1_builder.Build("b1"), b2_builder.Build("b2")});
+
+    const DescriptorNumericOptions options{DescriptorSelection::Names({"MW", "nAtom"}),
+                                           DescriptorMissingPolicy::Propagate};
+    const auto result = CDist(a_batch, b_batch, Metric::Euclidean(), options);
+    ASSERT_EQ(result.size(), 2u);
+    EXPECT_DOUBLE_EQ(result[0], 5.0);   // sqrt(9 + 16)
+    EXPECT_DOUBLE_EQ(result[1], 10.0);  // sqrt(36 + 64)
+}
+
+TEST(DescriptorNumericBatchTest, PDistIntoWritesCorrectValues) {
+    const auto batch = two_row_batch();
+    const DescriptorNumericOptions options{DescriptorSelection::Names({"MW", "nAtom"}),
+                                           DescriptorMissingPolicy::Propagate};
+    std::vector<double> output(1u, 999.0);
+    PDistInto(batch, Metric::Euclidean(), options, output.data(), output.size());
+    EXPECT_DOUBLE_EQ(output[0], 5.0);
+}
+
+TEST(DescriptorNumericBatchTest, CDistIntoWritesCorrectValues) {
+    const auto batch = two_row_batch();
+    const DescriptorNumericOptions options{DescriptorSelection::Names({"MW", "nAtom"}),
+                                           DescriptorMissingPolicy::Propagate};
+    std::vector<double> output(4u, 999.0);
+    CDistInto(batch, batch, Metric::Euclidean(), options, output.data(), output.size());
+    ASSERT_EQ(output.size(), 4u);
+    EXPECT_DOUBLE_EQ(output[0], 0.0);
+    EXPECT_DOUBLE_EQ(output[1], 5.0);
+    EXPECT_DOUBLE_EQ(output[2], 5.0);
+    EXPECT_DOUBLE_EQ(output[3], 0.0);
+}
+
+TEST(DescriptorNumericBatchTest, MissingPolicyIsForwarded) {
+    const auto schema = numeric_schema();
+
+    DescriptorSetBuilder first(schema);
+    first.Set("MW", DescriptorValue::Float(1.0));
+    // nAtom is missing
+
+    DescriptorSetBuilder second(schema);
+    second.Set("MW", DescriptorValue::Float(4.0));
+    second.Set("nAtom", DescriptorValue::Int(6));
+
+    const auto batch = DescriptorBatch::FromDescriptorSets({first.Build("a"), second.Build("b")});
+
+    const DescriptorNumericOptions propagate_options{
+        DescriptorSelection::Names({"MW", "nAtom"}), DescriptorMissingPolicy::Propagate};
+    const auto propagate_result = PDist(batch, Metric::Euclidean(), propagate_options);
+    ASSERT_EQ(propagate_result.size(), 1u);
+    EXPECT_TRUE(std::isnan(propagate_result[0]));
+
+    const DescriptorNumericOptions ignore_options{
+        DescriptorSelection::Names({"MW", "nAtom"}), DescriptorMissingPolicy::Ignore};
+    const auto ignore_result = PDist(batch, Metric::Euclidean(), ignore_options);
+    ASSERT_EQ(ignore_result.size(), 1u);
+    EXPECT_DOUBLE_EQ(ignore_result[0], std::sqrt(18.0));  // sqrt((4-1)^2 * 2) for the rescale
 }
 
 } // namespace test

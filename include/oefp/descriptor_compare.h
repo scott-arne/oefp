@@ -2,6 +2,8 @@
 #define OEFP_DESCRIPTOR_COMPARE_H
 
 #include "oefp/batch_kernel_options.h"
+#include "oefp/descriptor_batch.h"
+#include "oefp/descriptor_selection.h"
 #include "oefp/metric.h"
 
 #include <cstddef>
@@ -37,6 +39,16 @@ enum class DescriptorMissingPolicy {
     /// dimension was dropped and the used weight mass is zero, because there is nothing to
     /// rescale from.
     Ignore,
+};
+
+/// \brief Column selection and missing-value policy for numeric descriptor comparison.
+///
+/// This struct has no default constructor: \c DescriptorSelection is only constructible
+/// through its static factories, so \c DescriptorNumericOptions must be aggregate-initialized,
+/// for example <tt>{DescriptorSelection::Names({"MW"}), DescriptorMissingPolicy::Ignore}</tt>.
+struct DescriptorNumericOptions {
+    DescriptorSelection columns;  ///< Scalar Bool, Int, or Float columns, in selection order.
+    DescriptorMissingPolicy missing = DescriptorMissingPolicy::Propagate;
 };
 
 /// \brief Condensed pairwise distances over a dense numeric descriptor matrix.
@@ -209,6 +221,149 @@ void CDistNumericInto(
     std::size_t columns,
     const Metric& metric,
     DescriptorMissingPolicy missing,
+    double* output,
+    std::size_t output_length,
+    const BatchKernelOptions& kernel = {});
+
+/// \brief Condensed pairwise distances over selected numeric columns of a descriptor batch.
+///
+/// Distances are computed without intermediate scaling, so extreme descriptor values or a large
+/// Minkowski \c p can cause accumulators to overflow to infinity before the final root or
+/// normalization is applied.
+///
+/// Standardized Euclidean and Mahalanobis whiten every row before comparing, which mixes
+/// columns, so a row with any absent value yields NaN for every pair it takes part in. The
+/// Mahalanobis inverse covariance must be symmetric; that precondition is not checked.
+///
+/// \param batch Descriptor batch with a schema.
+/// \param metric Comparison metric. Euclidean, Manhattan, Chebyshev, Hamming, Canberra, Minkowski,
+///        BrayCurtis, Standardized Euclidean, and Mahalanobis are supported.
+/// \param options Column selection and missing-value policy.
+/// \param kernel Threading options.
+/// \return \c batch.Size() * (batch.Size() - 1) / 2 distances in condensed upper-triangular order.
+///        Every output entry is NaN when the selected column count is zero, unless the metric's
+///        own parameters are rejected first.
+/// \throws std::invalid_argument: When the batch is not schema-backed; when a selected column is
+///        not a numeric scalar; when the metric is not valid for numeric comparison; when
+///        weighted Minkowski weights length does not match the selected column count; when
+///        \p missing is \c Ignore for Standardized Euclidean or Mahalanobis; when the selected
+///        column count is too large to square; when the Standardized Euclidean variance count does
+///        not match the selected column count or a variance is not finite and strictly positive;
+///        when the Mahalanobis inverse covariance is not square in the selected column count or
+///        has a non-finite entry; or when the Mahalanobis inverse covariance is not positive
+///        semidefinite.
+/// \throws std::runtime_error: When the symmetric eigendecomposition for Mahalanobis does not converge.
+std::vector<double> PDist(
+    const DescriptorBatch& batch,
+    const Metric& metric,
+    const DescriptorNumericOptions& options,
+    const BatchKernelOptions& kernel = {});
+
+/// \brief Condensed pairwise distances written into a caller-supplied buffer.
+///
+/// Distances are computed without intermediate scaling, so extreme descriptor values or a large
+/// Minkowski \c p can cause accumulators to overflow to infinity before the final root or
+/// normalization is applied.
+///
+/// Standardized Euclidean and Mahalanobis whiten every row before comparing, which mixes
+/// columns, so a row with any absent value yields NaN for every pair it takes part in. The
+/// Mahalanobis inverse covariance must be symmetric; that precondition is not checked.
+///
+/// \param batch Descriptor batch with a schema.
+/// \param metric Comparison metric. Euclidean, Manhattan, Chebyshev, Hamming, Canberra, Minkowski,
+///        BrayCurtis, Standardized Euclidean, and Mahalanobis are supported.
+/// \param options Column selection and missing-value policy.
+/// \param output Destination buffer, caller-owned.
+/// \param output_length Destination length; must equal \c batch.Size() * (batch.Size() - 1) / 2.
+/// \param kernel Threading options.
+/// \throws std::invalid_argument: When \p output_length is wrong; when the batch is not
+///        schema-backed; when a selected column is not a numeric scalar; when the metric is not
+///        valid for numeric comparison; when weighted Minkowski weights length does not match the
+///        selected column count; when \p missing is \c Ignore for Standardized Euclidean or
+///        Mahalanobis; when the selected column count is too large to square; when the
+///        Standardized Euclidean variance count does not match the selected column count or a
+///        variance is not finite and strictly positive; when the Mahalanobis inverse covariance is
+///        not square in the selected column count or has a non-finite entry; or when the
+///        Mahalanobis inverse covariance is not positive semidefinite.
+/// \throws std::runtime_error: When the symmetric eigendecomposition for Mahalanobis does not converge.
+void PDistInto(
+    const DescriptorBatch& batch,
+    const Metric& metric,
+    const DescriptorNumericOptions& options,
+    double* output,
+    std::size_t output_length,
+    const BatchKernelOptions& kernel = {});
+
+/// \brief Row-major cross distances over selected numeric columns of two descriptor batches.
+///
+/// Distances are computed without intermediate scaling, so extreme descriptor values or a large
+/// Minkowski \c p can cause accumulators to overflow to infinity before the final root or
+/// normalization is applied.
+///
+/// Standardized Euclidean and Mahalanobis whiten every row before comparing, which mixes
+/// columns, so a row with any absent value yields NaN for every pair it takes part in. The
+/// Mahalanobis inverse covariance must be symmetric; that precondition is not checked.
+///
+/// \param a First descriptor batch with a schema.
+/// \param b Second descriptor batch with a schema.
+/// \param metric Comparison metric. Euclidean, Manhattan, Chebyshev, Hamming, Canberra, Minkowski,
+///        BrayCurtis, Standardized Euclidean, and Mahalanobis are supported.
+/// \param options Column selection and missing-value policy.
+/// \param kernel Threading options.
+/// \return \c a.Size() * \c b.Size() distances in row-major order. Every output entry is NaN when
+///        the selected column count is zero, unless the metric's own parameters are rejected first.
+/// \throws std::invalid_argument: When the two batches have different schema identifiers; when the
+///        selection resolves differently against them; when either batch is not schema-backed; when
+///        a selected column is not a numeric scalar; when the metric is not valid for numeric
+///        comparison; when weighted Minkowski weights length does not match the selected column
+///        count; when \p missing is \c Ignore for Standardized Euclidean or Mahalanobis; when the
+///        selected column count is too large to square; when the Standardized Euclidean variance
+///        count does not match the selected column count or a variance is not finite and strictly
+///        positive; when the Mahalanobis inverse covariance is not square in the selected column
+///        count or has a non-finite entry; or when the Mahalanobis inverse covariance is not
+///        positive semidefinite.
+/// \throws std::runtime_error: When the symmetric eigendecomposition for Mahalanobis does not converge.
+std::vector<double> CDist(
+    const DescriptorBatch& a,
+    const DescriptorBatch& b,
+    const Metric& metric,
+    const DescriptorNumericOptions& options,
+    const BatchKernelOptions& kernel = {});
+
+/// \brief Row-major cross distances written into a caller-supplied buffer.
+///
+/// Distances are computed without intermediate scaling, so extreme descriptor values or a large
+/// Minkowski \c p can cause accumulators to overflow to infinity before the final root or
+/// normalization is applied.
+///
+/// Standardized Euclidean and Mahalanobis whiten every row before comparing, which mixes
+/// columns, so a row with any absent value yields NaN for every pair it takes part in. The
+/// Mahalanobis inverse covariance must be symmetric; that precondition is not checked.
+///
+/// \param a First descriptor batch with a schema.
+/// \param b Second descriptor batch with a schema.
+/// \param metric Comparison metric. Euclidean, Manhattan, Chebyshev, Hamming, Canberra, Minkowski,
+///        BrayCurtis, Standardized Euclidean, and Mahalanobis are supported.
+/// \param options Column selection and missing-value policy.
+/// \param output Destination buffer, caller-owned.
+/// \param output_length Destination length; must equal \c a.Size() * \c b.Size().
+/// \param kernel Threading options.
+/// \throws std::invalid_argument: When \p output_length is wrong; when the two batches have
+///        different schema identifiers; when the selection resolves differently against them; when
+///        either batch is not schema-backed; when a selected column is not a numeric scalar; when
+///        the metric is not valid for numeric comparison; when weighted Minkowski weights length
+///        does not match the selected column count; when \p missing is \c Ignore for Standardized
+///        Euclidean or Mahalanobis; when the selected column count is too large to square; when the
+///        Standardized Euclidean variance count does not match the selected column count or a
+///        variance is not finite and strictly positive; when the Mahalanobis inverse covariance is
+///        not square in the selected column count or has a non-finite entry; or when the
+///        Mahalanobis inverse covariance is not positive semidefinite.
+/// \throws std::runtime_error: When the symmetric eigendecomposition for Mahalanobis does not converge.
+void CDistInto(
+    const DescriptorBatch& a,
+    const DescriptorBatch& b,
+    const Metric& metric,
+    const DescriptorNumericOptions& options,
     double* output,
     std::size_t output_length,
     const BatchKernelOptions& kernel = {});

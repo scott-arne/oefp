@@ -7,6 +7,7 @@
 #include "oefp/count_batch.h"
 #include "oefp/descriptor.h"
 #include "oefp/descriptor_batch.h"
+#include "oefp/descriptor_compare.h"
 #include "oefp/fingerprint.h"
 #include "oefp/metric.h"
 #include "oefp/sparse.h"
