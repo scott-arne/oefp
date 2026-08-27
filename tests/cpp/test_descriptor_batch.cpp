@@ -366,6 +366,14 @@ TEST(DescriptorBatchTest, ToNumericMatrixRejectsNonNumericColumns) {
                  std::invalid_argument);
 }
 
+TEST(DescriptorBatchTest, ToNumericMatrixRejectsNonNumericColumnsInAnEmptyBatch) {
+    const auto batch = DescriptorBatch::Empty(scalar_schema());
+
+    EXPECT_EQ(batch.Size(), 0u);
+    EXPECT_THROW(batch.ToNumericMatrix(DescriptorSelection::Names({"Class"})),
+                 std::invalid_argument);
+}
+
 TEST(DescriptorBatchTest, ToNumericMatrixRejectsLegacyStorage) {
     DescriptorBatch batch;
     EXPECT_THROW(batch.ToNumericMatrix(DescriptorSelection::Names({"MW"})),

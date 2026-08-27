@@ -286,12 +286,15 @@ DescriptorNumericMatrix DescriptorBatch::ToNumericMatrix(
     matrix.columns = indices.size();
     matrix.names.reserve(indices.size());
 
-    // Guard against overflow in the matrix size product before allocating.
-    const std::size_t entry_count =
-        (matrix.columns != 0u
-         && matrix.rows > std::numeric_limits<std::size_t>::max() / matrix.columns)
-            ? throw std::invalid_argument("Matrix dimension product is too large to index.")
-            : matrix.rows * matrix.columns;
+    // The product is formed before being passed to assign(), so an unchecked multiplication
+    // would wrap and hand a too-small allocation to a loop that then indexes out of bounds:
+    // rows = 2^32 and columns = 2 on a 64-bit size_t makes rows * columns wrap to zero,
+    // assign() succeeds with a zero-length vector, and the row loop writes past the end.
+    if (matrix.columns != 0u
+        && matrix.rows > std::numeric_limits<std::size_t>::max() / matrix.columns) {
+        throw std::invalid_argument("Matrix dimension product is too large to index.");
+    }
+    const std::size_t entry_count = matrix.rows * matrix.columns;
 
     matrix.values.assign(entry_count, 0.0);
     matrix.validity.assign(entry_count, 0u);
