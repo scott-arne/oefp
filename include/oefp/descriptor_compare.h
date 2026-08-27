@@ -51,12 +51,13 @@ enum class DescriptorMissingPolicy {
 /// \param rows Row count.
 /// \param columns Column count. Every output entry is NaN when the column count is zero.
 /// \param metric Comparison metric. Euclidean, Manhattan, Chebyshev, Hamming, Canberra, Minkowski,
-///        and BrayCurtis are supported.
+///        BrayCurtis, Standardized Euclidean, and Mahalanobis are supported. Type: see Metric.
 /// \param missing Missing-value policy.
 /// \param kernel Threading options.
 /// \return \c rows * (rows - 1) / 2 distances in condensed upper-triangular order.
 /// \throws std::invalid_argument: When the metric is not valid for numeric comparison, or when
 ///        weighted Minkowski weights length does not match \p columns.
+/// \throws std::runtime_error: When the symmetric eigendecomposition for Mahalanobis does not converge.
 std::vector<double> PDistNumeric(
     const double* values,
     const std::uint8_t* validity,
@@ -78,13 +79,14 @@ std::vector<double> PDistNumeric(
 /// \param rows Row count.
 /// \param columns Column count. Every output entry is NaN when the column count is zero.
 /// \param metric Comparison metric. Euclidean, Manhattan, Chebyshev, Hamming, Canberra, Minkowski,
-///        and BrayCurtis are supported.
+///        BrayCurtis, Standardized Euclidean, and Mahalanobis are supported. Type: see Metric.
 /// \param missing Missing-value policy.
 /// \param output Destination buffer, caller-owned.
 /// \param output_length Destination length; must equal \c rows * (rows - 1) / 2.
 /// \param kernel Threading options.
 /// \throws std::invalid_argument: When \p output_length is wrong, the metric is invalid, or when
 ///        weighted Minkowski weights length does not match \p columns.
+/// \throws std::runtime_error: When the symmetric eigendecomposition for Mahalanobis does not converge.
 void PDistNumericInto(
     const double* values,
     const std::uint8_t* validity,
@@ -113,12 +115,13 @@ void PDistNumericInto(
 /// \param b_rows Row count for the second matrix.
 /// \param columns Column count. Every output entry is NaN when the column count is zero.
 /// \param metric Comparison metric. Euclidean, Manhattan, Chebyshev, Hamming, Canberra, Minkowski,
-///        and BrayCurtis are supported.
+///        BrayCurtis, Standardized Euclidean, and Mahalanobis are supported. Type: see Metric.
 /// \param missing Missing-value policy.
 /// \param kernel Threading options.
 /// \return \c a_rows * \c b_rows distances in row-major order.
 /// \throws std::invalid_argument: When the metric is not valid for numeric comparison, or when
 ///        weighted Minkowski weights length does not match \p columns.
+/// \throws std::runtime_error: When the symmetric eigendecomposition for Mahalanobis does not converge.
 std::vector<double> CDistNumeric(
     const double* a_values,
     const std::uint8_t* a_validity,
@@ -148,13 +151,14 @@ std::vector<double> CDistNumeric(
 /// \param b_rows Row count for the second matrix.
 /// \param columns Column count. Every output entry is NaN when the column count is zero.
 /// \param metric Comparison metric. Euclidean, Manhattan, Chebyshev, Hamming, Canberra, Minkowski,
-///        and BrayCurtis are supported.
+///        BrayCurtis, Standardized Euclidean, and Mahalanobis are supported. Type: see Metric.
 /// \param missing Missing-value policy.
 /// \param output Destination buffer, caller-owned.
 /// \param output_length Destination length; must equal \c a_rows * \c b_rows.
 /// \param kernel Threading options.
 /// \throws std::invalid_argument: When \p output_length is wrong, the metric is invalid, or when
 ///        weighted Minkowski weights length does not match \p columns.
+/// \throws std::runtime_error: When the symmetric eigendecomposition for Mahalanobis does not converge.
 void CDistNumericInto(
     const double* a_values,
     const std::uint8_t* a_validity,

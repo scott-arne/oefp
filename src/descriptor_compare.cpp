@@ -1,12 +1,14 @@
 #include "oefp/descriptor_compare.h"
 
 #include "compare_detail.h"
+#include "linear_algebra.h"
 #include "thread_pool.h"
 
 #include <algorithm>
 #include <cmath>
 #include <limits>
 #include <stdexcept>
+#include <string>
 
 namespace OEFP {
 namespace {
@@ -18,11 +20,148 @@ using detail::evaluate_numeric_metric;
 using detail::NumericStats;
 using detail::validate_output;
 
+// symmetric_eigensystem_cyclic, not symmetric_eigensystem_jacobi: the cyclic wrapper has the
+// same signature under both of Task 3's branches, so nothing here has to know which one was
+// chosen. Do not name JacobiPivot in this file; under Branch A that enum does not exist.
+using detail::symmetric_eigensystem_cyclic;
+
 constexpr double kNaN = std::numeric_limits<double>::quiet_NaN();
+
+bool numeric_needs_pre_transform(const Metric& metric) {
+    return metric.Name() == MetricName::StandardizedEuclidean
+        || metric.Name() == MetricName::Mahalanobis;
+}
+
+/// \brief Name a column for a diagnostic, falling back to its index when names are absent.
+std::string numeric_column_label(const std::vector<std::string>* names, std::size_t index) {
+    if (names != nullptr && index < names->size()) {
+        return "'" + (*names)[index] + "'";
+    }
+    return "index " + std::to_string(index);
+}
+
+/// \brief Require every Standardized Euclidean variance to be finite and strictly positive.
+///
+/// \c Metric::StandardizedEuclidean stores its vector without inspecting it, so NaN,
+/// infinity, and negative values all reach the transform otherwise, each yielding a silently
+/// NaN distance matrix. NaN is not hypothetical: \c ColumnStatistics reports NaN variance for
+/// a column with fewer than two present values, and feeding that straight into the
+/// constructor is the documented usage.
+void validate_standardized_variances(const std::vector<double>& variances,
+                                     std::size_t columns,
+                                     const std::vector<std::string>* names) {
+    if (variances.size() != columns) {
+        throw std::invalid_argument(
+            "Standardized Euclidean variance count must match the selected column count.");
+    }
+    for (std::size_t index = 0u; index < variances.size(); ++index) {
+        const auto variance = variances[index];
+        if (!std::isfinite(variance) || variance <= 0.0) {
+            throw std::invalid_argument(
+                "Standardized Euclidean variance for column "
+                + numeric_column_label(names, index)
+                + " must be finite and strictly positive.");
+        }
+    }
+}
+
+/// \brief Build the whitening factor L such that L * L^T equals the metric's quadratic form.
+///
+/// For Standardized Euclidean this is the diagonal of 1 / sqrt(variance). For Mahalanobis it
+/// is Q * sqrt(Lambda) from the eigendecomposition of the supplied inverse covariance.
+///
+/// The eigendecomposition's convergence test is an absolute off-diagonal threshold, not one
+/// scaled to the matrix norm, so an inverse covariance whose entries are all tiny may be
+/// returned as already diagonal rather than diagonalized. This is a documented property of
+/// the solver, not something this function fixes.
+std::vector<double> whitening_factor(const Metric& metric, std::size_t columns,
+                                     const std::vector<std::string>* names) {
+    std::vector<double> factor(columns * columns, 0.0);
+
+    if (metric.Name() == MetricName::StandardizedEuclidean) {
+        validate_standardized_variances(metric.Variances(), columns, names);
+        for (std::size_t index = 0u; index < columns; ++index) {
+            factor[index * columns + index] = 1.0 / std::sqrt(metric.Variances()[index]);
+        }
+        return factor;
+    }
+
+    const auto& inverse_covariance = metric.InverseCovariance();
+    if (inverse_covariance.size() != columns * columns) {
+        throw std::invalid_argument(
+            "Mahalanobis inverse covariance must be square in the selected column count.");
+    }
+
+    auto eigensystem = symmetric_eigensystem_cyclic(inverse_covariance, columns);
+    if (!eigensystem.has_value()) {
+        throw std::runtime_error("Symmetric eigendecomposition did not converge.");
+    }
+
+    double max_eigenvalue = 0.0;
+    for (const auto value : eigensystem->eigenvalues) {
+        max_eigenvalue = std::max(max_eigenvalue, std::abs(value));
+    }
+    // Matches the rcond default used by InverseCovarianceMatrix, so a matrix this library
+    // produced always passes. Eigenvalues inside the band are clamped rather than rejected.
+    const auto tolerance =
+        std::numeric_limits<double>::epsilon() * static_cast<double>(columns) * max_eigenvalue;
+
+    for (std::size_t k = 0u; k < columns; ++k) {
+        auto eigenvalue = eigensystem->eigenvalues[k];
+        if (eigenvalue < -tolerance) {
+            throw std::invalid_argument(
+                "Mahalanobis inverse covariance must be positive semidefinite.");
+        }
+        if (eigenvalue < 0.0) {
+            eigenvalue = 0.0;
+        }
+        const auto root = std::sqrt(eigenvalue);
+        for (std::size_t row = 0u; row < columns; ++row) {
+            factor[row * columns + k] = eigensystem->eigenvectors[row * columns + k] * root;
+        }
+    }
+
+    return factor;
+}
+
+struct NumericPreTransform {
+    std::vector<double> values;          ///< Row-major, rows x columns, whitened.
+    std::vector<std::uint8_t> complete;  ///< One entry per row; 1 when every column is present.
+};
+
+NumericPreTransform build_pre_transform(const double* values, const std::uint8_t* validity,
+                                        std::size_t rows, std::size_t columns,
+                                        const std::vector<double>& factor) {
+    NumericPreTransform transformed;
+    transformed.values.assign(rows * columns, 0.0);
+    transformed.complete.assign(rows, 1u);
+
+    for (std::size_t row = 0u; row < rows; ++row) {
+        if (validity != nullptr) {
+            for (std::size_t column = 0u; column < columns; ++column) {
+                if (validity[row * columns + column] == 0u) {
+                    transformed.complete[row] = 0u;
+                    break;
+                }
+            }
+        }
+
+        // Transform every row regardless. Incomplete rows carry meaningless but finite
+        // values, so there is no NaN poisoning and no branch in the pair loop's inner loop.
+        for (std::size_t k = 0u; k < columns; ++k) {
+            double sum = 0.0;
+            for (std::size_t i = 0u; i < columns; ++i) {
+                sum += values[row * columns + i] * factor[i * columns + k];
+            }
+            transformed.values[row * columns + k] = sum;
+        }
+    }
+
+    return transformed;
+}
 
 /// \brief Reject metrics that have no defined meaning over continuous descriptor columns.
 void validate_numeric_metric(const Metric& metric, DescriptorMissingPolicy missing, std::size_t columns) {
-    (void)missing;  // Tasks 7 and 8 add policy-dependent rejections here.
     switch (metric.Name()) {
     case MetricName::Euclidean:
     case MetricName::Manhattan:
@@ -35,6 +174,14 @@ void validate_numeric_metric(const Metric& metric, DescriptorMissingPolicy missi
         if (!metric.Weights().empty() && metric.Weights().size() != columns) {
             throw std::invalid_argument(
                 "Minkowski weights length must match the selected column count.");
+        }
+        return;
+    case MetricName::StandardizedEuclidean:
+    case MetricName::Mahalanobis:
+        if (missing == DescriptorMissingPolicy::Ignore) {
+            throw std::invalid_argument(
+                "The Ignore missing-value policy is not valid for Standardized Euclidean or "
+                "Mahalanobis, because their pre-transform mixes columns.");
         }
         return;
     case MetricName::Haversine:
@@ -252,9 +399,7 @@ const std::uint8_t* validity_row(const std::uint8_t* validity, std::size_t row,
     return validity == nullptr ? nullptr : validity + row * columns;
 }
 
-} // namespace
-
-void PDistNumericInto(
+void pdist_numeric_impl(
     const double* values,
     const std::uint8_t* validity,
     std::size_t rows,
@@ -263,10 +408,35 @@ void PDistNumericInto(
     DescriptorMissingPolicy missing,
     double* output,
     std::size_t output_length,
-    const BatchKernelOptions& kernel) {
+    const BatchKernelOptions& kernel,
+    const std::vector<std::string>* names) {
     validate_numeric_metric(metric, missing, columns);
     const auto expected_length = condensed_size(rows);
     validate_output(output, output_length, expected_length);
+
+    if (numeric_needs_pre_transform(metric)) {
+        const auto factor = whitening_factor(metric, columns, names);
+        const auto transformed = build_pre_transform(values, validity, rows, columns, factor);
+        const auto euclidean = Metric::Euclidean();
+        detail::ParallelFor(0, expected_length, kernel.chunk_size, kernel.num_threads,
+                            [&](std::size_t begin, std::size_t end) {
+            for (std::size_t index = begin; index < end; ++index) {
+                std::size_t i = 0u;
+                std::size_t j = 0u;
+                condensed_pair_from_index(index, rows, i, j);
+                if (transformed.complete[i] == 0u || transformed.complete[j] == 0u) {
+                    output[index] = kNaN;
+                    continue;
+                }
+                output[index] = compare_numeric_rows<DescriptorMissingPolicy::Propagate,
+                                                     false, false>(
+                    transformed.values.data() + i * columns, nullptr,
+                    transformed.values.data() + j * columns, nullptr,
+                    columns, euclidean, static_cast<double>(columns));
+            }
+        });
+        return;
+    }
 
     const auto total_weight_mass = numeric_total_weight_mass(metric, columns);
     const auto comparator =
@@ -282,6 +452,84 @@ void PDistNumericInto(
                                        columns, metric, total_weight_mass);
         }
     });
+}
+
+void cdist_numeric_impl(
+    const double* a_values,
+    const std::uint8_t* a_validity,
+    std::size_t a_rows,
+    const double* b_values,
+    const std::uint8_t* b_validity,
+    std::size_t b_rows,
+    std::size_t columns,
+    const Metric& metric,
+    DescriptorMissingPolicy missing,
+    double* output,
+    std::size_t output_length,
+    const BatchKernelOptions& kernel,
+    const std::vector<std::string>* names) {
+    validate_numeric_metric(metric, missing, columns);
+    const auto expected_length =
+        checked_product(a_rows, b_rows, "CDist output size is too large.");
+    validate_output(output, output_length, expected_length);
+
+    if (numeric_needs_pre_transform(metric)) {
+        const auto factor = whitening_factor(metric, columns, names);
+        const auto a_transformed = build_pre_transform(a_values, a_validity, a_rows, columns, factor);
+        const auto b_transformed = build_pre_transform(b_values, b_validity, b_rows, columns, factor);
+        const auto euclidean = Metric::Euclidean();
+        detail::ParallelFor(0, expected_length, kernel.chunk_size, kernel.num_threads,
+                            [&](std::size_t begin, std::size_t end) {
+            for (std::size_t index = begin; index < end; ++index) {
+                const auto i = index / b_rows;
+                const auto j = index % b_rows;
+                if (a_transformed.complete[i] == 0u || b_transformed.complete[j] == 0u) {
+                    output[index] = kNaN;
+                    continue;
+                }
+                output[index] = compare_numeric_rows<DescriptorMissingPolicy::Propagate,
+                                                     false, false>(
+                    a_transformed.values.data() + i * columns, nullptr,
+                    b_transformed.values.data() + j * columns, nullptr,
+                    columns, euclidean, static_cast<double>(columns));
+            }
+        });
+        return;
+    }
+
+    // Either side may be unmasked. `compare_numeric_rows` reads a null row mask as
+    // fully present, so a masked matrix and an unmasked one compare correctly.
+    const auto has_validity = a_validity != nullptr || b_validity != nullptr;
+
+    const auto total_weight_mass = numeric_total_weight_mass(metric, columns);
+    const auto comparator = select_numeric_comparator(missing, has_validity, numeric_needs_power(metric));
+    detail::ParallelFor(0, expected_length, kernel.chunk_size, kernel.num_threads,
+                        [&](std::size_t begin, std::size_t end) {
+        for (std::size_t index = begin; index < end; ++index) {
+            const auto i = index / b_rows;
+            const auto j = index % b_rows;
+            output[index] =
+                comparator(a_values + i * columns, validity_row(a_validity, i, columns),
+                           b_values + j * columns, validity_row(b_validity, j, columns),
+                           columns, metric, total_weight_mass);
+        }
+    });
+}
+
+} // namespace
+
+void PDistNumericInto(
+    const double* values,
+    const std::uint8_t* validity,
+    std::size_t rows,
+    std::size_t columns,
+    const Metric& metric,
+    DescriptorMissingPolicy missing,
+    double* output,
+    std::size_t output_length,
+    const BatchKernelOptions& kernel) {
+    pdist_numeric_impl(values, validity, rows, columns, metric, missing, output, output_length,
+                       kernel, nullptr);
 }
 
 std::vector<double> PDistNumeric(
@@ -311,28 +559,8 @@ void CDistNumericInto(
     double* output,
     std::size_t output_length,
     const BatchKernelOptions& kernel) {
-    validate_numeric_metric(metric, missing, columns);
-    const auto expected_length =
-        checked_product(a_rows, b_rows, "CDist output size is too large.");
-    validate_output(output, output_length, expected_length);
-
-    // Either side may be unmasked. `compare_numeric_rows` reads a null row mask as
-    // fully present, so a masked matrix and an unmasked one compare correctly.
-    const auto has_validity = a_validity != nullptr || b_validity != nullptr;
-
-    const auto total_weight_mass = numeric_total_weight_mass(metric, columns);
-    const auto comparator = select_numeric_comparator(missing, has_validity, numeric_needs_power(metric));
-    detail::ParallelFor(0, expected_length, kernel.chunk_size, kernel.num_threads,
-                        [&](std::size_t begin, std::size_t end) {
-        for (std::size_t index = begin; index < end; ++index) {
-            const auto i = index / b_rows;
-            const auto j = index % b_rows;
-            output[index] =
-                comparator(a_values + i * columns, validity_row(a_validity, i, columns),
-                           b_values + j * columns, validity_row(b_validity, j, columns),
-                           columns, metric, total_weight_mass);
-        }
-    });
+    cdist_numeric_impl(a_values, a_validity, a_rows, b_values, b_validity, b_rows, columns,
+                       metric, missing, output, output_length, kernel, nullptr);
 }
 
 std::vector<double> CDistNumeric(

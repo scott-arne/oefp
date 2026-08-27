@@ -696,5 +696,136 @@ TEST(DescriptorNumericCompareTest, CDistValidatesWeightedMinkowskiAndRejectsNonN
                  std::invalid_argument);
 }
 
+TEST(DescriptorNumericCompareTest, StandardizedEuclideanWithUnitVariancesEqualsEuclidean) {
+    const auto metric = Metric::StandardizedEuclidean({1.0, 1.0, 1.0});
+    const auto result = PDistNumeric(kValues.data(), nullptr, 2u, 3u, metric);
+    EXPECT_DOUBLE_EQ(result[0], 5.0);
+}
+
+TEST(DescriptorNumericCompareTest, StandardizedEuclideanScalesByTheSuppliedVariances) {
+    const std::vector<double> values = {1.0, 2.0, 4.0, 6.0};
+    const auto metric = Metric::StandardizedEuclidean({4.0, 9.0});
+    const auto result = PDistNumeric(values.data(), nullptr, 2u, 2u, metric);
+    EXPECT_DOUBLE_EQ(result[0], std::sqrt(9.0 / 4.0 + 16.0 / 9.0));
+}
+
+TEST(DescriptorNumericCompareTest, MahalanobisWithIdentityInverseCovarianceEqualsEuclidean) {
+    const auto metric = Metric::Mahalanobis({1.0, 0.0, 0.0, 1.0});
+    const std::vector<double> values = {1.0, 2.0, 4.0, 6.0};
+    const auto result = PDistNumeric(values.data(), nullptr, 2u, 2u, metric);
+    EXPECT_DOUBLE_EQ(result[0], 5.0);
+}
+
+TEST(DescriptorNumericCompareTest, MahalanobisMatchesADirectQuadraticForm) {
+    // d = {-3, -4}; d' * VI * d = 2*9 + 2*(0.5*12) + 1*16 = 46.
+    const auto metric = Metric::Mahalanobis({2.0, 0.5, 0.5, 1.0});
+    const std::vector<double> values = {1.0, 2.0, 4.0, 6.0};
+    const auto result = PDistNumeric(values.data(), nullptr, 2u, 2u, metric);
+    EXPECT_NEAR(result[0], std::sqrt(46.0), 1.0e-12);
+}
+
+TEST(DescriptorNumericCompareTest, PreTransformPropagatesMissingValuesAtRowGranularity) {
+    // Three rows, two columns; row 1 is missing its first column.
+    const std::vector<double> values = {1.0, 2.0, 0.0, 5.0, 1.0, 2.0};
+    const std::vector<std::uint8_t> validity = {1u, 1u, 0u, 1u, 1u, 1u};
+
+    for (const auto& metric : {Metric::StandardizedEuclidean({1.0, 1.0}),
+                               Metric::Mahalanobis({1.0, 0.0, 0.0, 1.0})}) {
+        const auto result = PDistNumeric(values.data(), validity.data(), 3u, 2u, metric);
+        ASSERT_EQ(result.size(), 3u);
+        EXPECT_TRUE(std::isnan(result[0]));  // (0, 1)
+        EXPECT_DOUBLE_EQ(result[1], 0.0);    // (0, 2)
+        EXPECT_TRUE(std::isnan(result[2]));  // (1, 2)
+    }
+}
+
+TEST(DescriptorNumericCompareTest, StandardizedEuclideanRejectsEveryBadVarianceKind) {
+    const auto infinity = std::numeric_limits<double>::infinity();
+    const auto nan = std::numeric_limits<double>::quiet_NaN();
+    for (const auto bad : {0.0, -1.0, infinity, nan}) {
+        const auto metric = Metric::StandardizedEuclidean({1.0, bad});
+        const std::vector<double> values = {1.0, 2.0, 4.0, 6.0};
+        EXPECT_THROW(PDistNumeric(values.data(), nullptr, 2u, 2u, metric),
+                     std::invalid_argument);
+    }
+}
+
+TEST(DescriptorNumericCompareTest, PreTransformMetricsValidateTheirParameterSizes) {
+    const std::vector<double> values = {1.0, 2.0, 4.0, 6.0};
+    EXPECT_THROW(PDistNumeric(values.data(), nullptr, 2u, 2u,
+                              Metric::StandardizedEuclidean({1.0})),
+                 std::invalid_argument);
+    EXPECT_THROW(PDistNumeric(values.data(), nullptr, 2u, 2u,
+                              Metric::Mahalanobis({1.0, 0.0, 0.0})),
+                 std::invalid_argument);
+}
+
+TEST(DescriptorNumericCompareTest, MahalanobisRejectsANonPositiveSemidefiniteMatrix) {
+    const std::vector<double> values = {1.0, 2.0, 4.0, 6.0};
+    const auto metric = Metric::Mahalanobis({1.0, 0.0, 0.0, -1.0});
+    EXPECT_THROW(PDistNumeric(values.data(), nullptr, 2u, 2u, metric), std::invalid_argument);
+}
+
+TEST(DescriptorNumericCompareTest, PreTransformMetricsRejectTheIgnorePolicy) {
+    const std::vector<double> values = {1.0, 2.0, 4.0, 6.0};
+    EXPECT_THROW(PDistNumeric(values.data(), nullptr, 2u, 2u,
+                              Metric::StandardizedEuclidean({1.0, 1.0}),
+                              DescriptorMissingPolicy::Ignore),
+                 std::invalid_argument);
+    EXPECT_THROW(PDistNumeric(values.data(), nullptr, 2u, 2u,
+                              Metric::Mahalanobis({1.0, 0.0, 0.0, 1.0}),
+                              DescriptorMissingPolicy::Ignore),
+                 std::invalid_argument);
+}
+
+TEST(DescriptorNumericCompareTest, CDistPreTransformMetricsRejectTheIgnorePolicy) {
+    const std::vector<double> values = {1.0, 2.0, 4.0, 6.0};
+    EXPECT_THROW(CDistNumeric(values.data(), nullptr, 1u, values.data(), nullptr, 1u, 2u,
+                              Metric::StandardizedEuclidean({1.0, 1.0}),
+                              DescriptorMissingPolicy::Ignore),
+                 std::invalid_argument);
+    EXPECT_THROW(CDistNumeric(values.data(), nullptr, 1u, values.data(), nullptr, 1u, 2u,
+                              Metric::Mahalanobis({1.0, 0.0, 0.0, 1.0}),
+                              DescriptorMissingPolicy::Ignore),
+                 std::invalid_argument);
+}
+
+TEST(DescriptorNumericCompareTest, CDistMahalanobisWithDistinctMatrices) {
+    // Catches mutations: whitening only one matrix, or falling through to Euclidean.
+    const auto metric = Metric::Mahalanobis({2.0, 0.5, 0.5, 1.0});
+    const std::vector<double> a_values = {1.0, 2.0};
+    const std::vector<double> b_values = {4.0, 6.0, 1.0, 2.0};
+    const auto result = CDistNumeric(a_values.data(), nullptr, 1u,
+                                     b_values.data(), nullptr, 2u, 2u, metric);
+    ASSERT_EQ(result.size(), 2u);
+    // (0, 0): d = {-3, -4}; d' * VI * d = 2*9 + 2*(0.5*12) + 1*16 = 46.
+    EXPECT_NEAR(result[0], std::sqrt(46.0), 1.0e-12);
+    // (0, 1): d = {0, 0}; distance is 0.
+    EXPECT_DOUBLE_EQ(result[1], 0.0);
+}
+
+TEST(DescriptorNumericCompareTest, CDistPreTransformPropagatesMissingValuesFromBothSides) {
+    // Catches mutation: guarding only on a_transformed.complete[i].
+    const std::vector<double> a_values = {1.0, 2.0, 1.0, 2.0};
+    const std::vector<double> b_values = {1.0, 2.0, 0.0, 5.0};
+    const std::vector<std::uint8_t> a_validity = {1u, 1u, 1u, 1u};
+    const std::vector<std::uint8_t> b_validity = {1u, 1u, 0u, 1u};
+
+    for (const auto& metric : {Metric::StandardizedEuclidean({1.0, 1.0}),
+                               Metric::Mahalanobis({1.0, 0.0, 0.0, 1.0})}) {
+        const auto result = CDistNumeric(a_values.data(), a_validity.data(), 2u,
+                                         b_values.data(), b_validity.data(), 2u, 2u, metric);
+        ASSERT_EQ(result.size(), 4u);
+        // a[0] vs b[0]: both complete, distance is 0.
+        EXPECT_DOUBLE_EQ(result[0], 0.0);
+        // a[0] vs b[1]: b[1] incomplete, NaN.
+        EXPECT_TRUE(std::isnan(result[1]));
+        // a[1] vs b[0]: both complete, distance is 0.
+        EXPECT_DOUBLE_EQ(result[2], 0.0);
+        // a[1] vs b[1]: b[1] incomplete, NaN.
+        EXPECT_TRUE(std::isnan(result[3]));
+    }
+}
+
 } // namespace test
 } // namespace OEFP
