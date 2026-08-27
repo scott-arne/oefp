@@ -18,6 +18,7 @@
 #include "oefp/descriptor_compare.h"
 #include "oefp/descriptor_schema.h"
 #include "oefp/descriptor_selection.h"
+#include "oefp/descriptor_statistics.h"
 #include "oefp/descriptor_value.h"
 #include "oefp/fingerprint.h"
 #include "oefp/metric.h"

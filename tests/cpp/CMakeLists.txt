@@ -28,6 +28,7 @@ add_executable(oefp_tests
     test_descriptor_selection.cpp
     test_descriptor_set.cpp
     test_descriptor_source.cpp
+    test_descriptor_statistics.cpp
     test_descriptor_value.cpp
     test_fingerprint.cpp
     test_input_normalization.cpp
