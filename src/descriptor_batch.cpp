@@ -286,6 +286,43 @@ DescriptorNumericMatrix DescriptorBatch::ToNumericMatrix(
     matrix.columns = indices.size();
     matrix.names.reserve(indices.size());
 
+    // Validate all selected columns before allocating the output matrix. This ensures that
+    // an invalid selection throws immediately rather than after partial allocation, and that
+    // column buffers hold enough values (a failed AppendTypedRow can desynchronize a column's
+    // storage against row_ids_, leaving validity or the typed vector shorter than Size()).
+    for (std::size_t column = 0u; column < indices.size(); ++column) {
+        const auto& block = columns_[indices[column]];
+        const auto& definition = schema.Definition(indices[column]);
+        matrix.names.push_back(definition.name);
+
+        if (block.value_kind != DescriptorValueKind::Float
+            && block.value_kind != DescriptorValueKind::Int
+            && block.value_kind != DescriptorValueKind::Bool) {
+            throw std::invalid_argument(
+                "Descriptor column '" + definition.name + "' is not a numeric scalar column.");
+        }
+
+        std::size_t typed_count = 0u;
+        switch (block.value_kind) {
+        case DescriptorValueKind::Float:
+            typed_count = block.float_values.size();
+            break;
+        case DescriptorValueKind::Int:
+            typed_count = block.int_values.size();
+            break;
+        case DescriptorValueKind::Bool:
+            typed_count = block.bool_values.size();
+            break;
+        default:
+            break;  // Already rejected above.
+        }
+
+        if (block.validity.size() < matrix.rows || typed_count < matrix.rows) {
+            throw std::invalid_argument(
+                "Descriptor column '" + definition.name + "' holds fewer values than the batch has rows.");
+        }
+    }
+
     // The product is formed before being passed to assign(), so an unchecked multiplication
     // would wrap and hand a too-small allocation to a loop that then indexes out of bounds:
     // rows = 2^32 and columns = 2 on a 64-bit size_t makes rows * columns wrap to zero,
@@ -301,16 +338,6 @@ DescriptorNumericMatrix DescriptorBatch::ToNumericMatrix(
 
     for (std::size_t column = 0u; column < indices.size(); ++column) {
         const auto& block = columns_[indices[column]];
-        const auto& definition = schema.Definition(indices[column]);
-        matrix.names.push_back(definition.name);
-
-        // Reject non-numeric columns up front so an empty batch with a String column throws.
-        if (block.value_kind != DescriptorValueKind::Float
-            && block.value_kind != DescriptorValueKind::Int
-            && block.value_kind != DescriptorValueKind::Bool) {
-            throw std::invalid_argument(
-                "Descriptor column '" + definition.name + "' is not a numeric scalar column.");
-        }
 
         for (std::size_t row = 0u; row < matrix.rows; ++row) {
             const auto slot = row * matrix.columns + column;
@@ -326,9 +353,9 @@ DescriptorNumericMatrix DescriptorBatch::ToNumericMatrix(
                 matrix.values[slot] = block.bool_values[row] != 0u ? 1.0 : 0.0;
                 break;
             default:
-                // Unreachable: the allow-list check above caught it.
+                // Unreachable: the prepass validated all selected columns are numeric.
                 throw std::invalid_argument(
-                    "Descriptor column '" + definition.name + "' is not a numeric scalar column.");
+                    "Descriptor column is not a numeric scalar column.");
             }
         }
     }

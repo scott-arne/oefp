@@ -348,10 +348,12 @@ TEST(DescriptorBatchTest, ToNumericMatrixReportsMissingValuesInValidity) {
     row.Set("nAtom", DescriptorValue::Int(9));
 
     const auto batch = DescriptorBatch::FromDescriptorSets({row.Build("partial")});
-    const auto matrix = batch.ToNumericMatrix(DescriptorSelection::Names({"MW", "nAtom"}));
+    const auto matrix = batch.ToNumericMatrix(DescriptorSelection::Names({"MW", "nAtom", "Lipinski"}));
 
-    EXPECT_EQ(matrix.validity, std::vector<std::uint8_t>({0u, 1u}));
-    EXPECT_DOUBLE_EQ(matrix.values[1], 9.0);
+    EXPECT_EQ(matrix.validity, std::vector<std::uint8_t>({0u, 1u, 0u}));
+    EXPECT_DOUBLE_EQ(matrix.values[0], 0.0);  // missing Float (MW)
+    EXPECT_DOUBLE_EQ(matrix.values[1], 9.0);  // present Int (nAtom)
+    EXPECT_DOUBLE_EQ(matrix.values[2], 0.0);  // missing Bool (Lipinski)
 }
 
 TEST(DescriptorBatchTest, ToNumericMatrixRejectsNonNumericColumns) {
@@ -393,6 +395,30 @@ TEST(DescriptorBatchTest, ToNumericMatrixAcceptsAnEmptySelection) {
     EXPECT_EQ(matrix.columns, 0u);
     EXPECT_TRUE(matrix.values.empty());
     EXPECT_TRUE(matrix.validity.empty());
+}
+
+TEST(DescriptorBatchTest, ToNumericMatrixRejectsUnresolvableColumnName) {
+    const auto schema = scalar_schema();
+
+    DescriptorSetBuilder row(schema);
+    row.Set("MW", DescriptorValue::Float(46.069));
+
+    const auto batch = DescriptorBatch::FromDescriptorSets({row.Build("ethanol")});
+
+    EXPECT_THROW(batch.ToNumericMatrix(DescriptorSelection::Names({"NotAColumn"})),
+                 std::out_of_range);
+}
+
+TEST(DescriptorBatchTest, ToNumericMatrixRejectsOutOfRangeIndex) {
+    const auto schema = scalar_schema();
+
+    DescriptorSetBuilder row(schema);
+    row.Set("MW", DescriptorValue::Float(46.069));
+
+    const auto batch = DescriptorBatch::FromDescriptorSets({row.Build("ethanol")});
+
+    EXPECT_THROW(batch.ToNumericMatrix(DescriptorSelection::Indices({999})),
+                 std::out_of_range);
 }
 
 } // namespace test

@@ -97,11 +97,15 @@ public:
     /// \brief Materialize selected scalar columns as a dense row-major numeric matrix.
     ///
     /// \c Bool columns map to ``0.0``/``1.0`` and \c Int columns widen to \c double.
+    /// \c Int values with magnitude beyond 2^53 lose precision when widened.
     ///
     /// \param selection Columns to materialize, in the order they are resolved.
     /// \return The values, the validity mask, the resolved names, and the extents.
-    /// \throws std::invalid_argument When the batch is not schema-backed, a selected
-    ///         column is not \c Bool, \c Int, or \c Float, or the matrix extents overflow.
+    /// \throws std::invalid_argument: When the batch is not schema-backed, a selected
+    ///         column is not \c Bool, \c Int, or \c Float, the matrix extents overflow,
+    ///         or a column's buffer holds fewer values than the batch has rows.
+    /// \throws std::out_of_range: When the selection contains an unresolvable column
+    ///         name or an index past the schema's column count.
     DescriptorNumericMatrix ToNumericMatrix(const DescriptorSelection& selection) const;
 
     /// \brief Return the total number of flattened descriptor entries.
