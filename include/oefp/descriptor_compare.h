@@ -25,9 +25,10 @@ enum class DescriptorMissingPolicy {
     /// The rescale multiplies the accumulator by the total column count over the number of
     /// dimensions present in both rows. It applies to Euclidean, Manhattan, and Canberra,
     /// whose accumulators grow with the number of dimensions summed. Chebyshev, Hamming, and
-    /// BrayCurtis are deliberately left alone: Chebyshev is a maximum, and the other two
-    /// already divide by the count actually used, so none of the three varies with how many
-    /// dimensions survived.
+    /// BrayCurtis are left alone because none of them varies with how many dimensions
+    /// survived: Chebyshev is a maximum, Hamming already divides by the number of dimensions
+    /// actually used, and BrayCurtis is a ratio of two sums of the same degree, so a common
+    /// factor would cancel out of it anyway.
     ///
     /// The pair is NaN when no dimension is present in both rows, because there is nothing
     /// to rescale from.

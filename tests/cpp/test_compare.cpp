@@ -372,6 +372,27 @@ TEST(CompareSparseBinaryBatchTest, ThreadedPDistMatchesSingleThreadedOutput) {
     }
 }
 
+TEST(CompareSparseBinaryBatchTest, OversizedChunkSizeMatchesDefaultOutput) {
+    std::vector<OEFPSparse> fingerprints;
+    fingerprints.reserve(32);
+    for (std::uint32_t i = 0; i < 32; ++i) {
+        fingerprints.push_back(sparse_fingerprint({i, static_cast<std::uint32_t>(i + 64u)}));
+    }
+    const auto batch = OEFPSparseBatch::FromFingerprints(fingerprints);
+
+    BatchKernelOptions default_kernel;
+    BatchKernelOptions oversized_kernel;
+    oversized_kernel.chunk_size = std::numeric_limits<std::size_t>::max();
+
+    const auto expected = PDist(batch, Metric::Tanimoto(), default_kernel);
+    const auto actual = PDist(batch, Metric::Tanimoto(), oversized_kernel);
+
+    ASSERT_EQ(actual.size(), expected.size());
+    for (std::size_t i = 0; i < expected.size(); ++i) {
+        EXPECT_DOUBLE_EQ(actual[i], expected[i]);
+    }
+}
+
 TEST(CompareCountBatchTest, QueryToBatchMatchesScalarComparison) {
     const auto query = count_fingerprint(128, {1u, 7u}, {2u, 1u});
     const auto first = count_fingerprint(128, {1u, 7u}, {2u, 1u});

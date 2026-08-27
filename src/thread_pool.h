@@ -23,8 +23,13 @@ inline void ParallelFor(
         return;
     }
 
+    // Ceiling division written to avoid the overflow in `length + chunk_size - 1`: with a
+    // `chunk_size` near SIZE_MAX that addition wraps to a small number, the quotient is
+    // zero, no worker is created, and every output is silently left unwritten. `length` is
+    // at least one because of the empty-range return above.
+    const auto length = end - begin;
     const auto actual_chunk_size = std::max<std::size_t>(chunk_size, 1);
-    const auto chunk_count = (end - begin + actual_chunk_size - 1) / actual_chunk_size;
+    const auto chunk_count = (length - 1) / actual_chunk_size + 1;
     auto worker_count = num_threads;
     if (worker_count == 0) {
         worker_count = std::thread::hardware_concurrency();
@@ -45,7 +50,11 @@ inline void ParallelFor(
                 if (chunk_begin >= end) {
                     return;
                 }
-                const auto chunk_end = std::min(chunk_begin + actual_chunk_size, end);
+                // Subtract rather than add, for the same overflow reason. `chunk_begin` is
+                // strictly less than `end` here, so `end - chunk_begin` cannot wrap.
+                const auto chunk_end = end - chunk_begin < actual_chunk_size
+                    ? end
+                    : chunk_begin + actual_chunk_size;
 
                 try {
                     body(chunk_begin, chunk_end);

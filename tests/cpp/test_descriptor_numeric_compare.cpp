@@ -6,6 +6,7 @@
 #include <cmath>
 #include <cstdint>
 #include <iterator>
+#include <limits>
 #include <stdexcept>
 #include <vector>
 
@@ -80,7 +81,18 @@ TEST(DescriptorNumericCompareTest, CDistAcceptsAMaskOnOnlyOneSide) {
     const auto ignore =
         CDistNumeric(a.data(), nullptr, 1u, b.data(), b_validity.data(), 2u, 2u,
                      Metric::Euclidean(), DescriptorMissingPolicy::Ignore);
+    ASSERT_EQ(ignore.size(), 2u);
     EXPECT_DOUBLE_EQ(ignore[0], std::sqrt(18.0));
+    EXPECT_DOUBLE_EQ(ignore[1], 5.0);
+
+    // Mirrored Ignore: mask on the first argument. Euclidean is symmetric, so the two
+    // results must agree exactly.
+    const auto mirrored_ignore =
+        CDistNumeric(b.data(), b_validity.data(), 2u, a.data(), nullptr, 1u, 2u,
+                     Metric::Euclidean(), DescriptorMissingPolicy::Ignore);
+    ASSERT_EQ(mirrored_ignore.size(), 2u);
+    EXPECT_DOUBLE_EQ(mirrored_ignore[0], std::sqrt(18.0));
+    EXPECT_DOUBLE_EQ(mirrored_ignore[1], 5.0);
 }
 
 TEST(DescriptorNumericCompareTest, PropagateYieldsNaNForPairsTouchingAMissingValue) {
@@ -119,6 +131,10 @@ TEST(DescriptorNumericCompareTest, IgnoreRescalesTheAccumulatorByTheDimensionRat
     const auto braycurtis = PDistNumeric(values.data(), validity.data(), 2u, 3u,
                                          Metric::BrayCurtis(), DescriptorMissingPolicy::Ignore);
     EXPECT_DOUBLE_EQ(braycurtis[0], 3.0 / 11.0);  // l1 3 over sum_abs (1+4) + (3+3)
+    const auto canberra = PDistNumeric(values.data(), validity.data(), 2u, 3u,
+                                       Metric::Canberra(), DescriptorMissingPolicy::Ignore);
+    // Canberra over the two used columns: 3/5 + 0/6, rescaled by 3/2.
+    EXPECT_DOUBLE_EQ(canberra[0], (3.0 / 5.0) * 1.5);
 }
 
 TEST(DescriptorNumericCompareTest, IgnoreYieldsNaNWhenNoDimensionIsPresentInBoth) {
@@ -154,6 +170,12 @@ TEST(DescriptorNumericCompareTest, ZeroSelectedColumnsYieldNaN) {
 TEST(DescriptorNumericCompareTest, EmptyAndSingleRowInputsProduceNoPairs) {
     EXPECT_TRUE(PDistNumeric(nullptr, nullptr, 0u, 3u, Metric::Euclidean()).empty());
     EXPECT_TRUE(PDistNumeric(kValues.data(), nullptr, 1u, 3u, Metric::Euclidean()).empty());
+
+    // CDist with empty sides also produces empty results.
+    EXPECT_TRUE(CDistNumeric(nullptr, nullptr, 0u, kValues.data(), nullptr, 2u, 3u,
+                             Metric::Euclidean()).empty());
+    EXPECT_TRUE(CDistNumeric(kValues.data(), nullptr, 2u, nullptr, nullptr, 0u, 3u,
+                             Metric::Euclidean()).empty());
 }
 
 TEST(DescriptorNumericCompareTest, IntoFormsValidateTheirOutputLength) {
@@ -175,6 +197,30 @@ TEST(DescriptorNumericCompareTest, RejectsMetricsOutsideTheNumericAllowList) {
                  std::invalid_argument);
     EXPECT_THROW(PDistNumeric(kValues.data(), nullptr, 2u, 3u, Metric::Haversine()),
                  std::invalid_argument);
+}
+
+TEST(DescriptorNumericCompareTest, AnOversizedChunkSizeStillComputesEveryEntry) {
+    // A chunk size near SIZE_MAX used to overflow the ceiling division in ParallelFor,
+    // producing zero chunks, zero workers, and an output nobody ever wrote to.
+    BatchKernelOptions kernel;
+    kernel.chunk_size = std::numeric_limits<std::size_t>::max();
+
+    const std::vector<double> values = {1.0, 2.0, 3.0, 4.0, 6.0, 3.0, 0.0, 0.0, 0.0};
+    const auto pairwise = PDistNumeric(values.data(), nullptr, 3u, 3u, Metric::Euclidean(),
+                                       DescriptorMissingPolicy::Propagate, kernel);
+    ASSERT_EQ(pairwise.size(), 3u);
+    EXPECT_DOUBLE_EQ(pairwise[0], 5.0);              // (0, 1): sqrt(9 + 16 + 0)
+    EXPECT_DOUBLE_EQ(pairwise[1], std::sqrt(14.0));  // (0, 2): sqrt(1 + 4 + 9)
+    EXPECT_DOUBLE_EQ(pairwise[2], std::sqrt(61.0));  // (1, 2): sqrt(16 + 36 + 9)
+
+    const std::vector<double> origin = {0.0, 0.0, 0.0};
+    const auto cross = CDistNumeric(values.data(), nullptr, 3u, origin.data(), nullptr, 1u,
+                                    3u, Metric::Euclidean(),
+                                    DescriptorMissingPolicy::Propagate, kernel);
+    ASSERT_EQ(cross.size(), 3u);
+    EXPECT_DOUBLE_EQ(cross[0], std::sqrt(14.0));
+    EXPECT_DOUBLE_EQ(cross[1], std::sqrt(61.0));
+    EXPECT_DOUBLE_EQ(cross[2], 0.0);
 }
 
 TEST(DescriptorNumericCompareTest, MultiChunkPDistAgainstIndependentOracle) {
@@ -297,6 +343,117 @@ TEST(DescriptorNumericCompareTest, MultiChunkCDistAgainstIndependentOracle) {
     }
 }
 
+TEST(DescriptorNumericCompareTest, CDistCoversAllSixMetrics) {
+    // Small 3x4 with 2 columns. Test all six metrics against independent oracles.
+    const std::vector<double> a_values = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0};
+    const std::vector<double> b_values = {2.0, 3.0, 0.0, 0.0, 1.0, 1.0, 4.0, 5.0};
+
+    const std::size_t a_rows = 3u;
+    const std::size_t b_rows = 4u;
+    const std::size_t columns = 2u;
+    const std::size_t expected_size = a_rows * b_rows;
+
+    // Euclidean: sqrt(sum((a - b)^2))
+    {
+        const auto result = CDistNumeric(a_values.data(), nullptr, a_rows,
+                                         b_values.data(), nullptr, b_rows,
+                                         columns, Metric::Euclidean());
+        ASSERT_EQ(result.size(), expected_size);
+        // a[0] = {1, 2}, b[0] = {2, 3}: sqrt(1 + 1) = sqrt(2)
+        EXPECT_DOUBLE_EQ(result[0], std::sqrt(2.0));
+        // a[0] = {1, 2}, b[1] = {0, 0}: sqrt(1 + 4) = sqrt(5)
+        EXPECT_DOUBLE_EQ(result[1], std::sqrt(5.0));
+        // a[0] = {1, 2}, b[2] = {1, 1}: sqrt(0 + 1) = 1
+        EXPECT_DOUBLE_EQ(result[2], 1.0);
+        // a[0] = {1, 2}, b[3] = {4, 5}: sqrt(9 + 9) = sqrt(18)
+        EXPECT_DOUBLE_EQ(result[3], std::sqrt(18.0));
+        // a[1] = {3, 4}, b[0] = {2, 3}: sqrt(1 + 1) = sqrt(2)
+        EXPECT_DOUBLE_EQ(result[4], std::sqrt(2.0));
+        // a[1] = {3, 4}, b[1] = {0, 0}: sqrt(9 + 16) = 5
+        EXPECT_DOUBLE_EQ(result[5], 5.0);
+        // a[1] = {3, 4}, b[2] = {1, 1}: sqrt(4 + 9) = sqrt(13)
+        EXPECT_DOUBLE_EQ(result[6], std::sqrt(13.0));
+        // a[1] = {3, 4}, b[3] = {4, 5}: sqrt(1 + 1) = sqrt(2)
+        EXPECT_DOUBLE_EQ(result[7], std::sqrt(2.0));
+        // a[2] = {5, 6}, b[0] = {2, 3}: sqrt(9 + 9) = sqrt(18)
+        EXPECT_DOUBLE_EQ(result[8], std::sqrt(18.0));
+        // a[2] = {5, 6}, b[1] = {0, 0}: sqrt(25 + 36) = sqrt(61)
+        EXPECT_DOUBLE_EQ(result[9], std::sqrt(61.0));
+        // a[2] = {5, 6}, b[2] = {1, 1}: sqrt(16 + 25) = sqrt(41)
+        EXPECT_DOUBLE_EQ(result[10], std::sqrt(41.0));
+        // a[2] = {5, 6}, b[3] = {4, 5}: sqrt(1 + 1) = sqrt(2)
+        EXPECT_DOUBLE_EQ(result[11], std::sqrt(2.0));
+    }
+
+    // Manhattan: sum(|a - b|)
+    {
+        const auto result = CDistNumeric(a_values.data(), nullptr, a_rows,
+                                         b_values.data(), nullptr, b_rows,
+                                         columns, Metric::Manhattan());
+        ASSERT_EQ(result.size(), expected_size);
+        // a[0] = {1, 2}, b[0] = {2, 3}: |1-2| + |2-3| = 2
+        EXPECT_DOUBLE_EQ(result[0], 2.0);
+        // a[0] = {1, 2}, b[1] = {0, 0}: 1 + 2 = 3
+        EXPECT_DOUBLE_EQ(result[1], 3.0);
+        // a[0] = {1, 2}, b[2] = {1, 1}: 0 + 1 = 1
+        EXPECT_DOUBLE_EQ(result[2], 1.0);
+        // a[0] = {1, 2}, b[3] = {4, 5}: 3 + 3 = 6
+        EXPECT_DOUBLE_EQ(result[3], 6.0);
+    }
+
+    // Chebyshev: max(|a - b|)
+    {
+        const auto result = CDistNumeric(a_values.data(), nullptr, a_rows,
+                                         b_values.data(), nullptr, b_rows,
+                                         columns, Metric::Chebyshev());
+        ASSERT_EQ(result.size(), expected_size);
+        // a[0] = {1, 2}, b[0] = {2, 3}: max(1, 1) = 1
+        EXPECT_DOUBLE_EQ(result[0], 1.0);
+        // a[0] = {1, 2}, b[1] = {0, 0}: max(1, 2) = 2
+        EXPECT_DOUBLE_EQ(result[1], 2.0);
+        // a[1] = {3, 4}, b[1] = {0, 0}: max(3, 4) = 4
+        EXPECT_DOUBLE_EQ(result[5], 4.0);
+    }
+
+    // Hamming: (number of different dimensions) / (total dimensions)
+    {
+        const auto result = CDistNumeric(a_values.data(), nullptr, a_rows,
+                                         b_values.data(), nullptr, b_rows,
+                                         columns, Metric::Hamming());
+        ASSERT_EQ(result.size(), expected_size);
+        // a[0] = {1, 2}, b[0] = {2, 3}: 2 different / 2 = 1.0
+        EXPECT_DOUBLE_EQ(result[0], 1.0);
+        // a[0] = {1, 2}, b[2] = {1, 1}: 1 different / 2 = 0.5
+        EXPECT_DOUBLE_EQ(result[2], 0.5);
+    }
+
+    // Canberra: sum(|a - b| / (|a| + |b|)) for each dimension
+    {
+        const auto result = CDistNumeric(a_values.data(), nullptr, a_rows,
+                                         b_values.data(), nullptr, b_rows,
+                                         columns, Metric::Canberra());
+        ASSERT_EQ(result.size(), expected_size);
+        // a[0] = {1, 2}, b[0] = {2, 3}: |1-2|/(1+2) + |2-3|/(2+3) = 1/3 + 1/5
+        EXPECT_DOUBLE_EQ(result[0], 1.0 / 3.0 + 1.0 / 5.0);
+        // a[0] = {1, 2}, b[1] = {0, 0}: 1/(1+0) + 2/(2+0) = 1 + 1 = 2
+        EXPECT_DOUBLE_EQ(result[1], 2.0);
+    }
+
+    // BrayCurtis: sum(|a - b|) / sum(|a| + |b|)
+    {
+        const auto result = CDistNumeric(a_values.data(), nullptr, a_rows,
+                                         b_values.data(), nullptr, b_rows,
+                                         columns, Metric::BrayCurtis());
+        ASSERT_EQ(result.size(), expected_size);
+        // a[0] = {1, 2}, b[0] = {2, 3}: (1 + 1) / (3 + 5) = 2 / 8 = 0.25
+        EXPECT_DOUBLE_EQ(result[0], 0.25);
+        // a[0] = {1, 2}, b[1] = {0, 0}: (1 + 2) / (1 + 2) = 3 / 3 = 1.0
+        EXPECT_DOUBLE_EQ(result[1], 1.0);
+        // a[1] = {3, 4}, b[2] = {1, 1}: (2 + 3) / (4 + 5) = 5 / 9
+        EXPECT_DOUBLE_EQ(result[6], 5.0 / 9.0);
+    }
+}
+
 TEST(DescriptorNumericCompareTest, IntoFormsRejectNullOutputWithNonzeroLength) {
     // Null output with correct nonzero length should throw.
     const std::size_t expected_pdist_length = 1u;  // 2 rows -> 1 pair
@@ -314,6 +471,14 @@ TEST(DescriptorNumericCompareTest, IntoFormsRejectNullOutputWithNonzeroLength) {
     // Null output with zero length (empty input) should NOT throw.
     EXPECT_NO_THROW(PDistNumericInto(kValues.data(), nullptr, 0u, 3u, Metric::Euclidean(),
                                      DescriptorMissingPolicy::Propagate, nullptr, 0u));
+
+    // CDist with empty sides also accepts null output with zero length.
+    EXPECT_NO_THROW(CDistNumericInto(kValues.data(), nullptr, 0u, kValues.data(), nullptr, 2u, 3u,
+                                     Metric::Euclidean(), DescriptorMissingPolicy::Propagate,
+                                     nullptr, 0u));
+    EXPECT_NO_THROW(CDistNumericInto(kValues.data(), nullptr, 2u, kValues.data(), nullptr, 0u, 3u,
+                                     Metric::Euclidean(), DescriptorMissingPolicy::Propagate,
+                                     nullptr, 0u));
 }
 
 } // namespace test
