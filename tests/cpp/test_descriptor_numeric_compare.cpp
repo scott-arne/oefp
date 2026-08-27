@@ -905,5 +905,26 @@ TEST(DescriptorNumericCompareTest, CDistStandardizedEuclideanScalesByTheSupplied
     EXPECT_DOUBLE_EQ(result[1], 0.0);
 }
 
+TEST(DescriptorNumericCompareTest, MahalanobisRejectsAUniformlyNegativeMatrixAtExtremeScale) {
+    // Restoring the eigenvalue scale before the sign test overflows the negative eigenvalue to
+    // -infinity, which makes the tolerance infinite and reduces the rejection to -inf < -inf.
+    // Without the scaled-domain check this matrix yields a zero whitening factor and a distance
+    // of exactly 0.0 instead of throwing.
+    const auto huge = std::numeric_limits<double>::max();
+    const std::vector<double> values = {1.0, 2.0, 4.0, 6.0};
+    const auto metric = Metric::Mahalanobis({-huge, -huge, -huge, -huge});
+    EXPECT_THROW(PDistNumeric(values.data(), nullptr, 2u, 2u, metric), std::invalid_argument);
+}
+
+TEST(DescriptorNumericCompareTest, MahalanobisRejectsAnIndefiniteMatrixAtExtremeScale) {
+    // The overflow does not have to land on the negative direction. Here it is the positive
+    // eigenvalue that overflows, and an infinite tolerance then exempts the finite negative one
+    // as well, so a plainly indefinite matrix is accepted.
+    const auto huge = std::numeric_limits<double>::max();
+    const std::vector<double> values = {1.0, 2.0, 4.0, 6.0};
+    const auto metric = Metric::Mahalanobis({huge, 0.0, 0.0, -huge});
+    EXPECT_THROW(PDistNumeric(values.data(), nullptr, 2u, 2u, metric), std::invalid_argument);
+}
+
 } // namespace test
 } // namespace OEFP

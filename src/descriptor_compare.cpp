@@ -144,10 +144,15 @@ std::vector<double> whitening_factor(const Metric& metric, std::size_t columns) 
     if (!eigensystem.has_value()) {
         throw std::runtime_error("Symmetric eigendecomposition did not converge.");
     }
-    for (auto& eigenvalue : eigensystem->eigenvalues) {
-        eigenvalue = std::ldexp(eigenvalue, exponent);
-    }
 
+    // The sign test and its tolerance both run in the scaled domain, before the scale is
+    // restored. Restoring first can overflow a large eigenvalue to infinity, which makes the
+    // tolerance infinite and reduces the rejection to -inf < -inf, i.e. false: a wildly
+    // indefinite matrix would then be clamped to zero and yield distances of 0.0. Scaling by a
+    // positive power of two is exact and monotone, so it preserves both the sign and the ratio
+    // a relative tolerance compares, and the verdict here is identical to the unscaled one
+    // wherever the unscaled one is representable. In this domain the largest entry is below 1,
+    // so no eigenvalue exceeds the column count in magnitude and nothing can overflow.
     double max_eigenvalue = 0.0;
     for (const auto value : eigensystem->eigenvalues) {
         max_eigenvalue = std::max(max_eigenvalue, std::abs(value));
@@ -166,7 +171,11 @@ std::vector<double> whitening_factor(const Metric& metric, std::size_t columns) 
         if (eigenvalue < 0.0) {
             eigenvalue = 0.0;
         }
-        const auto root = std::sqrt(eigenvalue);
+        // Restore the scale only here, where the magnitude is actually needed. An inverse
+        // covariance whose eigenvalues genuinely exceed the double range overflows to infinity,
+        // which is the honest answer for it and matches how the kernel's accumulators already
+        // behave at extreme magnitudes.
+        const auto root = std::sqrt(std::ldexp(eigenvalue, exponent));
         for (std::size_t row = 0u; row < columns; ++row) {
             factor[row * columns + k] = eigensystem->eigenvectors[row * columns + k] * root;
         }
