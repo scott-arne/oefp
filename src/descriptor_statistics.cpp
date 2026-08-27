@@ -1,7 +1,6 @@
 #include "oefp/descriptor_statistics.h"
 
 #include <algorithm>
-#include <cmath>
 #include <limits>
 #include <stdexcept>
 #include <vector>
@@ -21,6 +20,13 @@ void validate_matrix(const double* values, std::size_t rows, std::size_t columns
     }
     if (columns == 0u) {
         throw std::invalid_argument("Statistics require at least one column.");
+    }
+    // CovarianceMatrix forms columns * columns for its own allocation, so it reaches this
+    // product before pseudo_inverse_symmetric gets a chance to guard it; see the comment on
+    // the matching check in src/linear_algebra.cpp for why the multiplication cannot be left
+    // to defeat the size check it feeds.
+    if (columns > std::numeric_limits<std::size_t>::max() / columns) {
+        throw std::invalid_argument("Statistics column count is too large to index.");
     }
 }
 

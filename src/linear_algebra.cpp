@@ -162,7 +162,29 @@ PseudoInverseResult pseudo_inverse_symmetric(
     PseudoInverseResult result;
     result.matrix.assign(entry_count, 0.0);
 
-    auto eigensystem = symmetric_eigensystem_cyclic(matrix, dimension);
+    // The solver converges on a fixed absolute off-diagonal threshold, so a uniformly tiny
+    // matrix would come back undiagonalized: the eigenvalues would be the input diagonal and
+    // the eigenbasis the identity. That failure is silent rather than detectable — a positive
+    // diagonal is positive definite — and the magnitude of a sample covariance is set by the
+    // caller's units, not by anything this function can require. Decompose a copy scaled so
+    // its largest entry lands in [0.5, 1) and undo the scale afterwards; eigenvectors are
+    // invariant under a uniform scale. The scale is a power of two, so both directions are
+    // exact and no retained-or-dropped decision moves. An all-zero matrix has nothing to
+    // normalize, and leaving its exponent at zero is what lets it reach the rank-zero throw.
+    double max_magnitude = 0.0;
+    for (const auto value : matrix) {
+        max_magnitude = std::max(max_magnitude, std::abs(value));
+    }
+    int exponent = 0;
+    auto scaled = matrix;
+    if (max_magnitude > 0.0) {
+        std::frexp(max_magnitude, &exponent);
+        for (auto& value : scaled) {
+            value = std::ldexp(value, -exponent);
+        }
+    }
+
+    auto eigensystem = symmetric_eigensystem_cyclic(std::move(scaled), dimension);
     if (!eigensystem.has_value()) {
         throw std::runtime_error("Symmetric eigendecomposition did not converge.");
     }
@@ -171,6 +193,9 @@ PseudoInverseResult pseudo_inverse_symmetric(
         ? rcond
         : std::numeric_limits<double>::epsilon() * static_cast<double>(dimension);
 
+    // The cutoff and the retention test below both stay in the scaled domain. The cutoff is
+    // relative, so the power-of-two scale divides out of the comparison exactly and the
+    // verdict is the one the unscaled matrix would have reached.
     double max_eigenvalue = 0.0;
     for (const auto value : eigensystem->eigenvalues) {
         max_eigenvalue = std::max(max_eigenvalue, std::abs(value));
@@ -183,11 +208,15 @@ PseudoInverseResult pseudo_inverse_symmetric(
     for (std::size_t k = 0u; k < dimension; ++k) {
         const auto value = eigensystem->eigenvalues[k];
         if (value > cutoff) {
-            inverted[k] = 1.0 / value;
-            // When every eigenvalue is denormal the cutoff underflows to exactly zero, so the
-            // relative test above stops excluding anything and the reciprocal overflows to
-            // infinity. The reassembly below would then evaluate 0.0 * inf and hand back an
-            // all-NaN matrix with a positive rank.
+            // Restore the scale on the reciprocal rather than on the eigenvalue: the
+            // reassembly needs the reciprocal of the true eigenvalue, and taking it in this
+            // order is also what leaves the guard below anything to catch.
+            inverted[k] = std::ldexp(1.0 / value, -exponent);
+            // A matrix whose true eigenvalues are denormal clears the relative cutoff easily —
+            // scaled up it is perfectly well conditioned — but its inverse is not a
+            // representable double, so restoring the scale overflows to infinity. The
+            // reassembly below would then evaluate 0.0 * inf and hand back an all-NaN matrix
+            // with a positive rank.
             if (!std::isfinite(inverted[k])) {
                 throw std::invalid_argument(
                     "Pseudo-inverse eigenvalue reciprocal overflowed: the matrix is too close "

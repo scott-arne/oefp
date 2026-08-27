@@ -320,6 +320,24 @@ TEST(PseudoInverseTest, NegativeEigenvaluesAreDropped) {
     EXPECT_TRUE(matrices_equal(result.matrix, expected, 1e-12));
 }
 
+TEST(PseudoInverseTest, SmallMagnitudeMatrixKeepsItsRank) {
+    // Regression test for the absolute 1.0e-13 off-diagonal threshold the Jacobi sweep
+    // converges against. This is 1e-14 * [[1, 2], [2, 4]], exactly singular, and its 2e-14
+    // off-diagonal is below that threshold: before pseudo_inverse_symmetric normalized its
+    // input, the first sweep declared the matrix already diagonal and the result came back as
+    // rank 2 with the whole off-diagonal lost. The true pseudo-inverse is
+    // 4e12 * [[1, 2], [2, 4]], which is rank 1 and emphatically not diagonal.
+    const std::vector<double> matrix = {1.0e-14, 2.0e-14, 2.0e-14, 4.0e-14};
+    const auto result = pseudo_inverse_symmetric(matrix, 2, 0.0);
+
+    EXPECT_EQ(result.rank, 1u);
+    ASSERT_NE(result.matrix[1], 0.0);
+    EXPECT_DOUBLE_EQ(result.matrix[1], result.matrix[2]);
+
+    const auto expected = std::vector<double>{4.0e12, 8.0e12, 8.0e12, 1.6e13};
+    EXPECT_TRUE(matrices_equal(result.matrix, expected, 1.0e1));
+}
+
 TEST(PseudoInverseTest, TinyEigenvalueBelowDefaultCutoff) {
     // epsilon() * dimension * max|eigenvalue| is roughly 2.22e-16 * 2 * 1 ≈ 4.4e-16.
     // 1e-18 is well below that, so it should be dropped.

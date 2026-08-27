@@ -67,6 +67,11 @@ struct PseudoInverseResult {
 /// genuinely indefinite matrix the result is the positive semi-definite projected inverse and
 /// not the Moore-Penrose pseudo-inverse, so <tt>A * X * A == A</tt> will not hold.
 ///
+/// The matrix is normalized by an exact power of two before it is decomposed, so callers do
+/// not have to honour the rescaling note on \c symmetric_eigensystem_jacobi themselves: a
+/// matrix whose entries are all near or below that solver's absolute threshold is handled
+/// here rather than coming back silently undiagonalized.
+///
 /// \param matrix Row-major \p dimension x \p dimension symmetric matrix. Every entry must be
 ///        finite.
 /// \param dimension Matrix order. Must be non-zero.
