@@ -51,7 +51,7 @@ enum class DescriptorMissingPolicy {
 /// \param rows Row count.
 /// \param columns Column count. Every output entry is NaN when the column count is zero.
 /// \param metric Comparison metric. Euclidean, Manhattan, Chebyshev, Hamming, Canberra, Minkowski,
-///        BrayCurtis, Standardized Euclidean, and Mahalanobis are supported. Type: see Metric.
+///        BrayCurtis, Standardized Euclidean, and Mahalanobis are supported.
 /// \param missing Missing-value policy.
 /// \param kernel Threading options.
 /// \return \c rows * (rows - 1) / 2 distances in condensed upper-triangular order.
@@ -79,7 +79,7 @@ std::vector<double> PDistNumeric(
 /// \param rows Row count.
 /// \param columns Column count. Every output entry is NaN when the column count is zero.
 /// \param metric Comparison metric. Euclidean, Manhattan, Chebyshev, Hamming, Canberra, Minkowski,
-///        BrayCurtis, Standardized Euclidean, and Mahalanobis are supported. Type: see Metric.
+///        BrayCurtis, Standardized Euclidean, and Mahalanobis are supported.
 /// \param missing Missing-value policy.
 /// \param output Destination buffer, caller-owned.
 /// \param output_length Destination length; must equal \c rows * (rows - 1) / 2.
@@ -115,7 +115,7 @@ void PDistNumericInto(
 /// \param b_rows Row count for the second matrix.
 /// \param columns Column count. Every output entry is NaN when the column count is zero.
 /// \param metric Comparison metric. Euclidean, Manhattan, Chebyshev, Hamming, Canberra, Minkowski,
-///        BrayCurtis, Standardized Euclidean, and Mahalanobis are supported. Type: see Metric.
+///        BrayCurtis, Standardized Euclidean, and Mahalanobis are supported.
 /// \param missing Missing-value policy.
 /// \param kernel Threading options.
 /// \return \c a_rows * \c b_rows distances in row-major order.
@@ -151,7 +151,7 @@ std::vector<double> CDistNumeric(
 /// \param b_rows Row count for the second matrix.
 /// \param columns Column count. Every output entry is NaN when the column count is zero.
 /// \param metric Comparison metric. Euclidean, Manhattan, Chebyshev, Hamming, Canberra, Minkowski,
-///        BrayCurtis, Standardized Euclidean, and Mahalanobis are supported. Type: see Metric.
+///        BrayCurtis, Standardized Euclidean, and Mahalanobis are supported.
 /// \param missing Missing-value policy.
 /// \param output Destination buffer, caller-owned.
 /// \param output_length Destination length; must equal \c a_rows * \c b_rows.

@@ -827,5 +827,15 @@ TEST(DescriptorNumericCompareTest, CDistPreTransformPropagatesMissingValuesFromB
     }
 }
 
+TEST(DescriptorNumericCompareTest, MahalanobisToleratesARankDeficientInverseCovariance) {
+    // VI = v v' for v = {1, 2, 3} is rank one, and the solver returns its zero eigenvalues as
+    // {0, -2.4e-16}. The negative one sits inside the tolerance band, so it is clamped to zero
+    // rather than rejected, and the distance reduces to the absolute value of v . d.
+    const auto metric = Metric::Mahalanobis({1.0, 2.0, 3.0, 2.0, 4.0, 6.0, 3.0, 6.0, 9.0});
+    const std::vector<double> values = {0.0, 0.0, 0.0, 1.0, 1.0, 1.0};
+    const auto result = PDistNumeric(values.data(), nullptr, 2u, 3u, metric);
+    EXPECT_NEAR(result[0], 6.0, 1.0e-12);
+}
+
 } // namespace test
 } // namespace OEFP
