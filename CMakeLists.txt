@@ -165,6 +165,7 @@ set(OEFP_SOURCES
     src/kallisto_data.cpp
     src/kallisto_descriptors.cpp
     src/kallisto_geometry.cpp
+    src/linear_algebra.cpp
     src/metric.cpp
     src/molecular_properties.cpp
     src/mordred.cpp
