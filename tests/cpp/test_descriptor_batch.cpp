@@ -311,5 +311,81 @@ TEST(DescriptorBatchTest, EqualityIncludesSpecKeysCountsAndOffsets) {
     EXPECT_NE(first, different_offsets);
 }
 
+TEST(DescriptorBatchTest, ToNumericMatrixWidensAndOrdersBySelection) {
+    const auto schema = scalar_schema();
+
+    DescriptorSetBuilder first(schema);
+    first.Set("MW", DescriptorValue::Float(46.069));
+    first.Set("nAtom", DescriptorValue::Int(9));
+    first.Set("Lipinski", DescriptorValue::Bool(true));
+
+    DescriptorSetBuilder second(schema);
+    second.Set("MW", DescriptorValue::Float(78.114));
+    second.Set("nAtom", DescriptorValue::Int(12));
+    second.Set("Lipinski", DescriptorValue::Bool(false));
+
+    const auto batch =
+        DescriptorBatch::FromDescriptorSets({first.Build("ethanol"), second.Build("benzene")});
+    const auto matrix =
+        batch.ToNumericMatrix(DescriptorSelection::Names({"nAtom", "Lipinski", "MW"}));
+
+    EXPECT_EQ(matrix.rows, 2u);
+    EXPECT_EQ(matrix.columns, 3u);
+    EXPECT_EQ(matrix.names, std::vector<std::string>({"nAtom", "Lipinski", "MW"}));
+    EXPECT_DOUBLE_EQ(matrix.values[0], 9.0);
+    EXPECT_DOUBLE_EQ(matrix.values[1], 1.0);
+    EXPECT_DOUBLE_EQ(matrix.values[2], 46.069);
+    EXPECT_DOUBLE_EQ(matrix.values[3], 12.0);
+    EXPECT_DOUBLE_EQ(matrix.values[4], 0.0);
+    EXPECT_DOUBLE_EQ(matrix.values[5], 78.114);
+    EXPECT_EQ(matrix.validity, std::vector<std::uint8_t>({1u, 1u, 1u, 1u, 1u, 1u}));
+}
+
+TEST(DescriptorBatchTest, ToNumericMatrixReportsMissingValuesInValidity) {
+    const auto schema = scalar_schema();
+
+    DescriptorSetBuilder row(schema);
+    row.Set("nAtom", DescriptorValue::Int(9));
+
+    const auto batch = DescriptorBatch::FromDescriptorSets({row.Build("partial")});
+    const auto matrix = batch.ToNumericMatrix(DescriptorSelection::Names({"MW", "nAtom"}));
+
+    EXPECT_EQ(matrix.validity, std::vector<std::uint8_t>({0u, 1u}));
+    EXPECT_DOUBLE_EQ(matrix.values[1], 9.0);
+}
+
+TEST(DescriptorBatchTest, ToNumericMatrixRejectsNonNumericColumns) {
+    const auto schema = scalar_schema();
+
+    DescriptorSetBuilder row(schema);
+    row.Set("Class", DescriptorValue::String("alcohol"));
+
+    const auto batch = DescriptorBatch::FromDescriptorSets({row.Build("alcohol")});
+
+    EXPECT_THROW(batch.ToNumericMatrix(DescriptorSelection::Names({"Class"})),
+                 std::invalid_argument);
+}
+
+TEST(DescriptorBatchTest, ToNumericMatrixRejectsLegacyStorage) {
+    DescriptorBatch batch;
+    EXPECT_THROW(batch.ToNumericMatrix(DescriptorSelection::Names({"MW"})),
+                 std::invalid_argument);
+}
+
+TEST(DescriptorBatchTest, ToNumericMatrixAcceptsAnEmptySelection) {
+    const auto schema = scalar_schema();
+
+    DescriptorSetBuilder row(schema);
+    row.Set("MW", DescriptorValue::Float(46.069));
+
+    const auto batch = DescriptorBatch::FromDescriptorSets({row.Build("ethanol")});
+    const auto matrix = batch.ToNumericMatrix(DescriptorSelection::Names({}));
+
+    EXPECT_EQ(matrix.rows, 1u);
+    EXPECT_EQ(matrix.columns, 0u);
+    EXPECT_TRUE(matrix.values.empty());
+    EXPECT_TRUE(matrix.validity.empty());
+}
+
 } // namespace test
 } // namespace OEFP

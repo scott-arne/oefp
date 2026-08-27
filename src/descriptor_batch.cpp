@@ -1,5 +1,6 @@
 #include "oefp/descriptor_batch.h"
 
+#include <limits>
 #include <stdexcept>
 #include <utility>
 
@@ -273,6 +274,63 @@ DescriptorBatch DescriptorBatch::Subset(const DescriptorSelection& selection) co
         subset.columns_[projected_index] = columns_[indices[projected_index]];
     }
     return subset;
+}
+
+DescriptorNumericMatrix DescriptorBatch::ToNumericMatrix(
+    const DescriptorSelection& selection) const {
+    const auto& schema = Schema();  // throws for legacy CSR batches
+    const auto indices = selection.Resolve(schema);
+
+    DescriptorNumericMatrix matrix;
+    matrix.rows = Size();
+    matrix.columns = indices.size();
+    matrix.names.reserve(indices.size());
+
+    // Guard against overflow in the matrix size product before allocating.
+    const std::size_t entry_count =
+        (matrix.columns != 0u
+         && matrix.rows > std::numeric_limits<std::size_t>::max() / matrix.columns)
+            ? throw std::invalid_argument("Matrix dimension product is too large to index.")
+            : matrix.rows * matrix.columns;
+
+    matrix.values.assign(entry_count, 0.0);
+    matrix.validity.assign(entry_count, 0u);
+
+    for (std::size_t column = 0u; column < indices.size(); ++column) {
+        const auto& block = columns_[indices[column]];
+        const auto& definition = schema.Definition(indices[column]);
+        matrix.names.push_back(definition.name);
+
+        // Reject non-numeric columns up front so an empty batch with a String column throws.
+        if (block.value_kind != DescriptorValueKind::Float
+            && block.value_kind != DescriptorValueKind::Int
+            && block.value_kind != DescriptorValueKind::Bool) {
+            throw std::invalid_argument(
+                "Descriptor column '" + definition.name + "' is not a numeric scalar column.");
+        }
+
+        for (std::size_t row = 0u; row < matrix.rows; ++row) {
+            const auto slot = row * matrix.columns + column;
+            matrix.validity[slot] = block.validity[row];
+            switch (block.value_kind) {
+            case DescriptorValueKind::Float:
+                matrix.values[slot] = block.float_values[row];
+                break;
+            case DescriptorValueKind::Int:
+                matrix.values[slot] = static_cast<double>(block.int_values[row]);
+                break;
+            case DescriptorValueKind::Bool:
+                matrix.values[slot] = block.bool_values[row] != 0u ? 1.0 : 0.0;
+                break;
+            default:
+                // Unreachable: the allow-list check above caught it.
+                throw std::invalid_argument(
+                    "Descriptor column '" + definition.name + "' is not a numeric scalar column.");
+            }
+        }
+    }
+
+    return matrix;
 }
 
 std::size_t DescriptorBatch::EntryCount() const {
