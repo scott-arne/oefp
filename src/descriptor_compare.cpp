@@ -148,6 +148,7 @@ double compare_numeric_rows(
     double total_weight_mass) {
     NumericStats stats;
     double used_weight_mass = 0.0;
+    bool dropped_any = false;
 
     double power = 0.0;
     const double* weights = nullptr;
@@ -169,6 +170,7 @@ double compare_numeric_rows(
                 if constexpr (Policy == DescriptorMissingPolicy::Propagate) {
                     return kNaN;
                 } else {
+                    dropped_any = true;
                     continue;
                 }
             }
@@ -196,10 +198,16 @@ double compare_numeric_rows(
 
     double factor = 1.0;
     if constexpr (Policy == DescriptorMissingPolicy::Ignore) {
-        if (used_weight_mass == 0.0) {
-            return kNaN;
+        // Only rescale when a dimension was actually dropped. When nothing was dropped,
+        // used_weight_mass equals total_weight_mass and factor is exactly 1.0, but computing
+        // the ratio would produce 0/0 when every weight is zero. Under HasValidity == false,
+        // dropped_any is trivially false, so the guard vanishes.
+        if (dropped_any) {
+            if (used_weight_mass == 0.0) {
+                return kNaN;
+            }
+            factor = total_weight_mass / used_weight_mass;
         }
-        factor = total_weight_mass / used_weight_mass;
     }
 
     if (metric.Name() == MetricName::Minkowski) {

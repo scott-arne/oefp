@@ -626,5 +626,75 @@ TEST(DescriptorNumericCompareTest, CDistWeightedMinkowskiUnderIgnoreReadsWeightM
     EXPECT_DOUBLE_EQ(result[0], std::sqrt(41.0 * (10.0 / 3.0)));
 }
 
+TEST(DescriptorNumericCompareTest, IgnoreAndPropagateAgreeOnAllPresentWithZeroWeights) {
+    // G1: when nothing is missing, the two policies must agree even when every weight is zero.
+    const auto metric = Metric::Minkowski(2.0, {0.0, 0.0, 0.0});
+
+    // Null mask: both policies return 0.0.
+    const auto propagate_null = PDistNumeric(kValues.data(), nullptr, 2u, 3u, metric,
+                                             DescriptorMissingPolicy::Propagate);
+    const auto ignore_null = PDistNumeric(kValues.data(), nullptr, 2u, 3u, metric,
+                                          DescriptorMissingPolicy::Ignore);
+    EXPECT_DOUBLE_EQ(propagate_null[0], 0.0);
+    EXPECT_DOUBLE_EQ(ignore_null[0], 0.0);
+    EXPECT_DOUBLE_EQ(ignore_null[0], propagate_null[0]);
+
+    // Non-null all-ones mask: both policies return 0.0.
+    const std::vector<std::uint8_t> all_present = {1u, 1u, 1u, 1u, 1u, 1u};
+    const auto propagate_mask = PDistNumeric(kValues.data(), all_present.data(), 2u, 3u, metric,
+                                             DescriptorMissingPolicy::Propagate);
+    const auto ignore_mask = PDistNumeric(kValues.data(), all_present.data(), 2u, 3u, metric,
+                                          DescriptorMissingPolicy::Ignore);
+    EXPECT_DOUBLE_EQ(propagate_mask[0], 0.0);
+    EXPECT_DOUBLE_EQ(ignore_mask[0], 0.0);
+    EXPECT_DOUBLE_EQ(ignore_mask[0], propagate_mask[0]);
+}
+
+TEST(DescriptorNumericCompareTest, PropagateWithAllPresentMaskAndPoweredMinkowski) {
+    // G2: <Propagate, true, true> must run the powered accumulation to completion, not only
+    // reach the early NaN return.
+    const std::vector<double> a = {1.0, 2.0, 3.0};
+    const std::vector<double> b = {4.0, 6.0, 7.0};
+    const std::vector<std::uint8_t> all_present = {1u, 1u, 1u};
+
+    const auto result = CDistNumeric(a.data(), all_present.data(), 1u, b.data(),
+                                     all_present.data(), 1u, 3u,
+                                     Metric::Minkowski(3.0), DescriptorMissingPolicy::Propagate);
+    ASSERT_EQ(result.size(), 1u);
+    // Differences: {-3, -4, -4}; 3^3 + 4^3 + 4^3 = 27 + 64 + 64 = 155.
+    EXPECT_DOUBLE_EQ(result[0], std::pow(155.0, 1.0 / 3.0));
+}
+
+TEST(DescriptorNumericCompareTest, WeightedPropagateWithAllPresentMaskAndNonzeroFinalColumn) {
+    // G3: weighted powered accumulation with final column contributing.
+    const std::vector<double> a = {1.0, 2.0, 3.0};
+    const std::vector<double> b = {4.0, 6.0, 7.0};
+    const std::vector<std::uint8_t> all_present = {1u, 1u, 1u};
+
+    const auto result = CDistNumeric(a.data(), all_present.data(), 1u, b.data(),
+                                     all_present.data(), 1u, 3u,
+                                     Metric::Minkowski(2.0, {1.0, 2.0, 3.0}),
+                                     DescriptorMissingPolicy::Propagate);
+    ASSERT_EQ(result.size(), 1u);
+    // power_sum = 1*9 + 2*16 + 3*16 = 9 + 32 + 48 = 89.
+    EXPECT_DOUBLE_EQ(result[0], std::sqrt(89.0));
+}
+
+TEST(DescriptorNumericCompareTest, CDistValidatesWeightedMinkowskiAndRejectsNonNumericMetrics) {
+    // G4: CDist must validate weighted Minkowski's weights length and reject non-numeric metrics.
+    const auto metric = Metric::Minkowski(2.0, {1.0, 2.0});
+
+    // CDist validation (WeightedMinkowskiValidatesAgainstTheColumnCount already covers PDist).
+    EXPECT_THROW(CDistNumeric(kValues.data(), nullptr, 2u, kValues.data(), nullptr, 2u, 3u,
+                              metric),
+                 std::invalid_argument);
+
+    // Also verify CDist rejects non-numeric metrics (RejectsMetricsOutsideTheNumericAllowList
+    // at line 193 only tests PDist).
+    EXPECT_THROW(CDistNumeric(kValues.data(), nullptr, 2u, kValues.data(), nullptr, 2u, 3u,
+                              Metric::Jaccard()),
+                 std::invalid_argument);
+}
+
 } // namespace test
 } // namespace OEFP

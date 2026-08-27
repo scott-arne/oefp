@@ -33,10 +33,16 @@ enum class DescriptorMissingPolicy {
     /// dimensions actually used, and BrayCurtis is a ratio of two sums of the same degree, so
     /// a common factor would cancel out of it anyway.
     ///
-    /// The pair is NaN when no dimension is present in both rows, or when the used weight
-    /// mass is zero, because there is nothing to rescale from.
+    /// The pair is NaN when no dimension is present in both rows, or when at least one
+    /// dimension was dropped and the used weight mass is zero, because there is nothing to
+    /// rescale from.
     Ignore,
 };
+
+/// \par Numeric Accumulator Overflow
+/// The numeric descriptor comparison functions compute distances without intermediate scaling,
+/// so extreme descriptor values or a large Minkowski \c p can cause accumulators to overflow to
+/// infinity before the final root or normalization is applied.
 
 /// \brief Condensed pairwise distances over a dense numeric descriptor matrix.
 ///
