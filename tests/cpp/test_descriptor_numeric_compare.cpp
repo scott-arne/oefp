@@ -2,8 +2,10 @@
 
 #include "oefp/descriptor_compare.h"
 
+#include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <iterator>
 #include <stdexcept>
 #include <vector>
 

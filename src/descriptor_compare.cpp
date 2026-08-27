@@ -172,9 +172,9 @@ void PDistNumericInto(
     double* output,
     std::size_t output_length,
     const BatchKernelOptions& kernel) {
+    validate_numeric_metric(metric, missing);
     const auto expected_length = condensed_size(rows);
     validate_output(output, output_length, expected_length);
-    validate_numeric_metric(metric, missing);
 
     const auto comparator = select_numeric_comparator(missing, validity != nullptr);
     detail::ParallelFor(0, expected_length, kernel.chunk_size, kernel.num_threads,
@@ -217,10 +217,10 @@ void CDistNumericInto(
     double* output,
     std::size_t output_length,
     const BatchKernelOptions& kernel) {
+    validate_numeric_metric(metric, missing);
     const auto expected_length =
         checked_product(a_rows, b_rows, "CDist output size is too large.");
     validate_output(output, output_length, expected_length);
-    validate_numeric_metric(metric, missing);
 
     // Either side may be unmasked. `compare_numeric_rows` reads a null row mask as
     // fully present, so a masked matrix and an unmasked one compare correctly.
