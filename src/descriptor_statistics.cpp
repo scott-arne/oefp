@@ -1,6 +1,7 @@
 #include "oefp/descriptor_statistics.h"
 
 #include <algorithm>
+#include <cstdint>
 #include <limits>
 #include <stdexcept>
 #include <vector>
@@ -41,6 +42,19 @@ bool row_is_complete(const std::uint8_t* validity, std::size_t row, std::size_t 
         }
     }
     return true;
+}
+
+const double* values_from_address(std::uint64_t address) {
+    if (address == 0u) {
+        throw std::invalid_argument("The value buffer address must not be zero.");
+    }
+    return reinterpret_cast<const double*>(static_cast<std::uintptr_t>(address));
+}
+
+const std::uint8_t* validity_from_address(std::uint64_t address) {
+    return address == 0u ? nullptr
+                         : reinterpret_cast<const std::uint8_t*>(
+                               static_cast<std::uintptr_t>(address));
 }
 
 }  // namespace
@@ -207,6 +221,35 @@ DescriptorInverseCovariance InverseCovarianceMatrix(
     const auto matrix = batch.ToNumericMatrix(columns);
     return InverseCovarianceMatrix(matrix.values.data(), matrix.validity.data(), matrix.rows,
                                    matrix.columns, rcond);
+}
+
+DescriptorColumnStatistics ColumnStatisticsAddress(
+    std::uint64_t values_address,
+    std::uint64_t validity_address,
+    std::size_t rows,
+    std::size_t columns) {
+    return ColumnStatistics(values_from_address(values_address),
+                            validity_from_address(validity_address), rows, columns);
+}
+
+DescriptorCovariance CovarianceMatrixAddress(
+    std::uint64_t values_address,
+    std::uint64_t validity_address,
+    std::size_t rows,
+    std::size_t columns) {
+    return CovarianceMatrix(values_from_address(values_address),
+                            validity_from_address(validity_address), rows, columns);
+}
+
+DescriptorInverseCovariance InverseCovarianceMatrixAddress(
+    std::uint64_t values_address,
+    std::uint64_t validity_address,
+    std::size_t rows,
+    std::size_t columns,
+    double rcond) {
+    return InverseCovarianceMatrix(values_from_address(values_address),
+                                   validity_from_address(validity_address), rows, columns,
+                                   rcond);
 }
 
 }  // namespace OEFP

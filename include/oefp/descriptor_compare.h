@@ -376,6 +376,63 @@ void CDistInto(
     std::size_t output_length,
     const BatchKernelOptions& kernel = {});
 
+/// \cond OEFP_BINDING_DETAIL
+/// \brief Address-based numeric pdist helper for Python bindings.
+///
+/// \param values_address Address of a C-contiguous row-major
+///        <tt>rows x columns</tt> \c double buffer. Zero throws.
+/// \param validity_address Address of a matching \c std::uint8_t mask, or zero when every
+///        value is present.
+std::vector<double> PDistNumericAddress(
+    std::uint64_t values_address,
+    std::uint64_t validity_address,
+    std::size_t rows,
+    std::size_t columns,
+    const Metric& metric,
+    DescriptorMissingPolicy missing,
+    const BatchKernelOptions& kernel = {});
+
+/// \brief Address-based numeric pdist output helper for Python bindings.
+void PDistNumericIntoAddress(
+    std::uint64_t values_address,
+    std::uint64_t validity_address,
+    std::size_t rows,
+    std::size_t columns,
+    const Metric& metric,
+    DescriptorMissingPolicy missing,
+    std::uint64_t output_address,
+    std::size_t output_length,
+    const BatchKernelOptions& kernel = {});
+
+/// \brief Address-based numeric cdist helper for Python bindings.
+std::vector<double> CDistNumericAddress(
+    std::uint64_t a_values_address,
+    std::uint64_t a_validity_address,
+    std::size_t a_rows,
+    std::uint64_t b_values_address,
+    std::uint64_t b_validity_address,
+    std::size_t b_rows,
+    std::size_t columns,
+    const Metric& metric,
+    DescriptorMissingPolicy missing,
+    const BatchKernelOptions& kernel = {});
+
+/// \brief Address-based numeric cdist output helper for Python bindings.
+void CDistNumericIntoAddress(
+    std::uint64_t a_values_address,
+    std::uint64_t a_validity_address,
+    std::size_t a_rows,
+    std::uint64_t b_values_address,
+    std::uint64_t b_validity_address,
+    std::size_t b_rows,
+    std::size_t columns,
+    const Metric& metric,
+    DescriptorMissingPolicy missing,
+    std::uint64_t output_address,
+    std::size_t output_length,
+    const BatchKernelOptions& kernel = {});
+/// \endcond
+
 } // namespace OEFP
 
 #endif // OEFP_DESCRIPTOR_COMPARE_H

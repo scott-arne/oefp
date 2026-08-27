@@ -161,6 +161,30 @@ DescriptorInverseCovariance InverseCovarianceMatrix(
     std::size_t columns,
     double rcond = 0.0);
 
+/// \cond OEFP_BINDING_DETAIL
+/// \brief Address-based column statistics helper for Python bindings.
+DescriptorColumnStatistics ColumnStatisticsAddress(
+    std::uint64_t values_address,
+    std::uint64_t validity_address,
+    std::size_t rows,
+    std::size_t columns);
+
+/// \brief Address-based covariance helper for Python bindings.
+DescriptorCovariance CovarianceMatrixAddress(
+    std::uint64_t values_address,
+    std::uint64_t validity_address,
+    std::size_t rows,
+    std::size_t columns);
+
+/// \brief Address-based inverse covariance helper for Python bindings.
+DescriptorInverseCovariance InverseCovarianceMatrixAddress(
+    std::uint64_t values_address,
+    std::uint64_t validity_address,
+    std::size_t rows,
+    std::size_t columns,
+    double rcond = 0.0);
+/// \endcond
+
 } // namespace OEFP
 
 #endif // OEFP_DESCRIPTOR_STATISTICS_H
