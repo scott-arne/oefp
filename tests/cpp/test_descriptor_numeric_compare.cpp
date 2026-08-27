@@ -762,8 +762,16 @@ TEST(DescriptorNumericCompareTest, PreTransformMetricsValidateTheirParameterSize
 
 TEST(DescriptorNumericCompareTest, MahalanobisRejectsANonPositiveSemidefiniteMatrix) {
     const std::vector<double> values = {1.0, 2.0, 4.0, 6.0};
-    const auto metric = Metric::Mahalanobis({1.0, 0.0, 0.0, -1.0});
-    EXPECT_THROW(PDistNumeric(values.data(), nullptr, 2u, 2u, metric), std::invalid_argument);
+    // The easy case: a negative diagonal entry, which is also a negative eigenvalue.
+    EXPECT_THROW(PDistNumeric(values.data(), nullptr, 2u, 2u,
+                              Metric::Mahalanobis({1.0, 0.0, 0.0, -1.0})),
+                 std::invalid_argument);
+    // Indefinite with a strictly positive diagonal: the eigenvalues are 3 and -1. A guard that
+    // scanned the raw diagonal would accept this and clamp the negative direction to zero,
+    // silently substituting a degenerate metric for the one the caller asked for.
+    EXPECT_THROW(PDistNumeric(values.data(), nullptr, 2u, 2u,
+                              Metric::Mahalanobis({1.0, 2.0, 2.0, 1.0})),
+                 std::invalid_argument);
 }
 
 TEST(DescriptorNumericCompareTest, PreTransformMetricsRejectTheIgnorePolicy) {
@@ -805,10 +813,11 @@ TEST(DescriptorNumericCompareTest, CDistMahalanobisWithDistinctMatrices) {
 }
 
 TEST(DescriptorNumericCompareTest, CDistPreTransformPropagatesMissingValuesFromBothSides) {
-    // Catches mutation: guarding only on a_transformed.complete[i].
+    // Catches both halves of the guard independently: a[1] is incomplete and b[1] is incomplete,
+    // so result[1] pins the B side and result[2] pins the A side.
     const std::vector<double> a_values = {1.0, 2.0, 1.0, 2.0};
     const std::vector<double> b_values = {1.0, 2.0, 0.0, 5.0};
-    const std::vector<std::uint8_t> a_validity = {1u, 1u, 1u, 1u};
+    const std::vector<std::uint8_t> a_validity = {1u, 1u, 0u, 1u};
     const std::vector<std::uint8_t> b_validity = {1u, 1u, 0u, 1u};
 
     for (const auto& metric : {Metric::StandardizedEuclidean({1.0, 1.0}),
@@ -820,9 +829,9 @@ TEST(DescriptorNumericCompareTest, CDistPreTransformPropagatesMissingValuesFromB
         EXPECT_DOUBLE_EQ(result[0], 0.0);
         // a[0] vs b[1]: b[1] incomplete, NaN.
         EXPECT_TRUE(std::isnan(result[1]));
-        // a[1] vs b[0]: both complete, distance is 0.
-        EXPECT_DOUBLE_EQ(result[2], 0.0);
-        // a[1] vs b[1]: b[1] incomplete, NaN.
+        // a[1] vs b[0]: a[1] incomplete, NaN.
+        EXPECT_TRUE(std::isnan(result[2]));
+        // a[1] vs b[1]: both incomplete, NaN.
         EXPECT_TRUE(std::isnan(result[3]));
     }
 }
@@ -835,6 +844,65 @@ TEST(DescriptorNumericCompareTest, MahalanobisToleratesARankDeficientInverseCova
     const std::vector<double> values = {0.0, 0.0, 0.0, 1.0, 1.0, 1.0};
     const auto result = PDistNumeric(values.data(), nullptr, 2u, 3u, metric);
     EXPECT_NEAR(result[0], 6.0, 1.0e-12);
+}
+
+TEST(DescriptorNumericCompareTest, MahalanobisRejectsAColumnCountWhoseSquareOverflows) {
+    // columns = 2^32 wraps columns * columns to exactly zero on a 64-bit size_t, so an empty
+    // inverse covariance would satisfy the size check and the eigensolver would write identity
+    // entries into a zero-length buffer. rows = 1 keeps the condensed length at zero, so no
+    // descriptor value is ever read and no large allocation is needed to reach the guard.
+    if (sizeof(std::size_t) < 8u) {
+        GTEST_SKIP() << "The wrap requires a 64-bit size_t.";
+    }
+    const std::size_t columns = std::size_t{1} << 32;
+    const double value = 0.0;
+    EXPECT_THROW(PDistNumeric(&value, nullptr, 1u, columns, Metric::Mahalanobis({})),
+                 std::invalid_argument);
+}
+
+TEST(DescriptorNumericCompareTest, MahalanobisRejectsNonFiniteInverseCovarianceEntries) {
+    // A NaN off-diagonal never raises the solver's max off-diagonal, so the sweep converges
+    // immediately and the input diagonal comes back with an identity eigenbasis — a finite,
+    // plausible, wrong answer. An infinite entry instead makes the tolerance band infinite,
+    // which disables the positive-semidefinite rejection entirely.
+    const auto infinity = std::numeric_limits<double>::infinity();
+    const auto nan = std::numeric_limits<double>::quiet_NaN();
+    const std::vector<double> values = {1.0, 2.0, 4.0, 6.0};
+    for (const auto bad : {infinity, -infinity, nan}) {
+        const auto metric = Metric::Mahalanobis({1.0, bad, bad, 1.0});
+        EXPECT_THROW(PDistNumeric(values.data(), nullptr, 2u, 2u, metric),
+                     std::invalid_argument);
+    }
+}
+
+TEST(DescriptorNumericCompareTest, MahalanobisIsInvariantToTheScaleOfTheInverseCovariance) {
+    // The solver's off-diagonal convergence threshold is an absolute 1e-13, so without the
+    // power-of-two rescale a uniformly tiny inverse covariance comes back undiagonalized and the
+    // off-diagonal term is silently dropped. Scaling s * VI scales the quadratic form by s, so
+    // the distance must scale by sqrt(s) exactly.
+    const std::vector<double> values = {1.0, 2.0, 4.0, 6.0};
+    const auto unit = Metric::Mahalanobis({2.0, 0.5, 0.5, 1.0});
+    const auto tiny = Metric::Mahalanobis({2.0e-14, 0.5e-14, 0.5e-14, 1.0e-14});
+    const auto unit_result = PDistNumeric(values.data(), nullptr, 2u, 2u, unit);
+    const auto tiny_result = PDistNumeric(values.data(), nullptr, 2u, 2u, tiny);
+    EXPECT_NEAR(unit_result[0], std::sqrt(46.0), 1.0e-12);
+    const auto expected = unit_result[0] * std::sqrt(1.0e-14);
+    EXPECT_NEAR(tiny_result[0], expected, std::abs(expected) * 1.0e-12);
+}
+
+TEST(DescriptorNumericCompareTest, CDistStandardizedEuclideanScalesByTheSuppliedVariances) {
+    // Standardized Euclidean reaches CDist elsewhere only with unit variances and zero
+    // distances, so a cdist-only mutation substituting an identity factor survives the suite.
+    const auto metric = Metric::StandardizedEuclidean({4.0, 9.0});
+    const std::vector<double> a_values = {1.0, 2.0};
+    const std::vector<double> b_values = {4.0, 6.0, 1.0, 2.0};
+    const auto result = CDistNumeric(a_values.data(), nullptr, 1u,
+                                     b_values.data(), nullptr, 2u, 2u, metric);
+    ASSERT_EQ(result.size(), 2u);
+    // (0, 0): d = {-3, -4}; sqrt(9 / 4 + 16 / 9).
+    EXPECT_NEAR(result[0], std::sqrt(9.0 / 4.0 + 16.0 / 9.0), 1.0e-12);
+    // (0, 1): d = {0, 0}; distance is 0.
+    EXPECT_DOUBLE_EQ(result[1], 0.0);
 }
 
 } // namespace test

@@ -45,18 +45,28 @@ enum class DescriptorMissingPolicy {
 /// Minkowski \c p can cause accumulators to overflow to infinity before the final root or
 /// normalization is applied.
 ///
+/// Standardized Euclidean and Mahalanobis whiten every row before comparing, which mixes
+/// columns, so a row with any absent value yields NaN for every pair it takes part in. The
+/// Mahalanobis inverse covariance must be symmetric; that precondition is not checked.
+///
 /// \param values Row-major \p rows x \p columns buffer of descriptor values.
 /// \param validity Row-major \p rows x \p columns presence mask, or \c nullptr when every
 ///        value in this matrix is present.
 /// \param rows Row count.
-/// \param columns Column count. Every output entry is NaN when the column count is zero.
+/// \param columns Column count. Every output entry is NaN when the column count is zero, unless
+///        the metric's own parameters are rejected first.
 /// \param metric Comparison metric. Euclidean, Manhattan, Chebyshev, Hamming, Canberra, Minkowski,
 ///        BrayCurtis, Standardized Euclidean, and Mahalanobis are supported.
 /// \param missing Missing-value policy.
 /// \param kernel Threading options.
 /// \return \c rows * (rows - 1) / 2 distances in condensed upper-triangular order.
-/// \throws std::invalid_argument: When the metric is not valid for numeric comparison, or when
-///        weighted Minkowski weights length does not match \p columns.
+/// \throws std::invalid_argument: When the metric is not valid for numeric comparison; when
+///        weighted Minkowski weights length does not match \p columns; when \p missing is
+///        \c Ignore for Standardized Euclidean or Mahalanobis; when \p columns is too large to
+///        square; when the Standardized Euclidean variance count does not match \p columns or a
+///        variance is not finite and strictly positive; when the Mahalanobis inverse covariance
+///        is not square in \p columns or has a non-finite entry; or when the Mahalanobis inverse
+///        covariance is not positive semidefinite.
 /// \throws std::runtime_error: When the symmetric eigendecomposition for Mahalanobis does not converge.
 std::vector<double> PDistNumeric(
     const double* values,
@@ -73,19 +83,29 @@ std::vector<double> PDistNumeric(
 /// Minkowski \c p can cause accumulators to overflow to infinity before the final root or
 /// normalization is applied.
 ///
+/// Standardized Euclidean and Mahalanobis whiten every row before comparing, which mixes
+/// columns, so a row with any absent value yields NaN for every pair it takes part in. The
+/// Mahalanobis inverse covariance must be symmetric; that precondition is not checked.
+///
 /// \param values Row-major \p rows x \p columns buffer of descriptor values.
 /// \param validity Row-major \p rows x \p columns presence mask, or \c nullptr when every
 ///        value in this matrix is present.
 /// \param rows Row count.
-/// \param columns Column count. Every output entry is NaN when the column count is zero.
+/// \param columns Column count. Every output entry is NaN when the column count is zero, unless
+///        the metric's own parameters are rejected first.
 /// \param metric Comparison metric. Euclidean, Manhattan, Chebyshev, Hamming, Canberra, Minkowski,
 ///        BrayCurtis, Standardized Euclidean, and Mahalanobis are supported.
 /// \param missing Missing-value policy.
 /// \param output Destination buffer, caller-owned.
 /// \param output_length Destination length; must equal \c rows * (rows - 1) / 2.
 /// \param kernel Threading options.
-/// \throws std::invalid_argument: When \p output_length is wrong, the metric is invalid, or when
-///        weighted Minkowski weights length does not match \p columns.
+/// \throws std::invalid_argument: When \p output_length is wrong; when the metric is not valid for
+///        numeric comparison; when weighted Minkowski weights length does not match \p columns;
+///        when \p missing is \c Ignore for Standardized Euclidean or Mahalanobis; when \p columns
+///        is too large to square; when the Standardized Euclidean variance count does not match
+///        \p columns or a variance is not finite and strictly positive; when the Mahalanobis
+///        inverse covariance is not square in \p columns or has a non-finite entry; or when the
+///        Mahalanobis inverse covariance is not positive semidefinite.
 /// \throws std::runtime_error: When the symmetric eigendecomposition for Mahalanobis does not converge.
 void PDistNumericInto(
     const double* values,
@@ -104,6 +124,10 @@ void PDistNumericInto(
 /// Minkowski \c p can cause accumulators to overflow to infinity before the final root or
 /// normalization is applied.
 ///
+/// Standardized Euclidean and Mahalanobis whiten every row before comparing, which mixes
+/// columns, so a row with any absent value yields NaN for every pair it takes part in. The
+/// Mahalanobis inverse covariance must be symmetric; that precondition is not checked.
+///
 /// \param a_values Row-major \p a_rows x \p columns buffer of descriptor values.
 /// \param a_validity Row-major \p a_rows x \p columns presence mask, or \c nullptr when every
 ///        value in this matrix is present. The two validity masks are independent; a mask for
@@ -113,14 +137,20 @@ void PDistNumericInto(
 /// \param b_validity Row-major \p b_rows x \p columns presence mask, or \c nullptr when every
 ///        value in this matrix is present. See \p a_validity for the independence contract.
 /// \param b_rows Row count for the second matrix.
-/// \param columns Column count. Every output entry is NaN when the column count is zero.
+/// \param columns Column count. Every output entry is NaN when the column count is zero, unless
+///        the metric's own parameters are rejected first.
 /// \param metric Comparison metric. Euclidean, Manhattan, Chebyshev, Hamming, Canberra, Minkowski,
 ///        BrayCurtis, Standardized Euclidean, and Mahalanobis are supported.
 /// \param missing Missing-value policy.
 /// \param kernel Threading options.
 /// \return \c a_rows * \c b_rows distances in row-major order.
-/// \throws std::invalid_argument: When the metric is not valid for numeric comparison, or when
-///        weighted Minkowski weights length does not match \p columns.
+/// \throws std::invalid_argument: When the metric is not valid for numeric comparison; when
+///        weighted Minkowski weights length does not match \p columns; when \p missing is
+///        \c Ignore for Standardized Euclidean or Mahalanobis; when \p columns is too large to
+///        square; when the Standardized Euclidean variance count does not match \p columns or a
+///        variance is not finite and strictly positive; when the Mahalanobis inverse covariance
+///        is not square in \p columns or has a non-finite entry; or when the Mahalanobis inverse
+///        covariance is not positive semidefinite.
 /// \throws std::runtime_error: When the symmetric eigendecomposition for Mahalanobis does not converge.
 std::vector<double> CDistNumeric(
     const double* a_values,
@@ -140,6 +170,10 @@ std::vector<double> CDistNumeric(
 /// Minkowski \c p can cause accumulators to overflow to infinity before the final root or
 /// normalization is applied.
 ///
+/// Standardized Euclidean and Mahalanobis whiten every row before comparing, which mixes
+/// columns, so a row with any absent value yields NaN for every pair it takes part in. The
+/// Mahalanobis inverse covariance must be symmetric; that precondition is not checked.
+///
 /// \param a_values Row-major \p a_rows x \p columns buffer of descriptor values.
 /// \param a_validity Row-major \p a_rows x \p columns presence mask, or \c nullptr when every
 ///        value in this matrix is present. The two validity masks are independent; a mask for
@@ -149,15 +183,21 @@ std::vector<double> CDistNumeric(
 /// \param b_validity Row-major \p b_rows x \p columns presence mask, or \c nullptr when every
 ///        value in this matrix is present. See \p a_validity for the independence contract.
 /// \param b_rows Row count for the second matrix.
-/// \param columns Column count. Every output entry is NaN when the column count is zero.
+/// \param columns Column count. Every output entry is NaN when the column count is zero, unless
+///        the metric's own parameters are rejected first.
 /// \param metric Comparison metric. Euclidean, Manhattan, Chebyshev, Hamming, Canberra, Minkowski,
 ///        BrayCurtis, Standardized Euclidean, and Mahalanobis are supported.
 /// \param missing Missing-value policy.
 /// \param output Destination buffer, caller-owned.
 /// \param output_length Destination length; must equal \c a_rows * \c b_rows.
 /// \param kernel Threading options.
-/// \throws std::invalid_argument: When \p output_length is wrong, the metric is invalid, or when
-///        weighted Minkowski weights length does not match \p columns.
+/// \throws std::invalid_argument: When \p output_length is wrong; when the metric is not valid for
+///        numeric comparison; when weighted Minkowski weights length does not match \p columns;
+///        when \p missing is \c Ignore for Standardized Euclidean or Mahalanobis; when \p columns
+///        is too large to square; when the Standardized Euclidean variance count does not match
+///        \p columns or a variance is not finite and strictly positive; when the Mahalanobis
+///        inverse covariance is not square in \p columns or has a non-finite entry; or when the
+///        Mahalanobis inverse covariance is not positive semidefinite.
 /// \throws std::runtime_error: When the symmetric eigendecomposition for Mahalanobis does not converge.
 void CDistNumericInto(
     const double* a_values,

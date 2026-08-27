@@ -65,21 +65,54 @@ void validate_standardized_variances(const std::vector<double>& variances,
     }
 }
 
+/// \brief Reject a column count whose square cannot be represented.
+///
+/// Both pre-transform metrics index a columns x columns buffer, and the Mahalanobis size check
+/// forms the product before comparing it, so an unchecked multiplication defeats the very check
+/// it feeds: columns = 2^32 on a 64-bit size_t makes the product exactly zero, an empty inverse
+/// covariance then satisfies the size check, and the eigensolver writes identity entries into a
+/// zero-length eigenvector buffer. Mirrors the guard in pseudo_inverse_symmetric.
+void validate_pre_transform_columns(std::size_t columns) {
+    if (columns != 0u && columns > std::numeric_limits<std::size_t>::max() / columns) {
+        throw std::invalid_argument("Pre-transform column count is too large to index.");
+    }
+}
+
+/// \brief Require the Mahalanobis inverse covariance to be square in \p columns and finite.
+///
+/// A NaN off-diagonal is invisible to the solver's convergence test — std::max(x, NaN) returns
+/// x, so the sweep reports convergence on its first pass and the input diagonal comes back with
+/// an identity eigenbasis, yielding finite plausible distances from an invalid matrix. An
+/// infinite entry is worse: it makes the eigenvalue tolerance band infinite, which disables the
+/// positive-semidefinite rejection for every finite eigenvalue. pseudo_inverse_symmetric rejects
+/// non-finite entries for the same reason.
+void validate_inverse_covariance(const std::vector<double>& inverse_covariance,
+                                 std::size_t columns) {
+    if (inverse_covariance.size() != columns * columns) {
+        throw std::invalid_argument(
+            "Mahalanobis inverse covariance must be square in the selected column count.");
+    }
+    if (std::any_of(inverse_covariance.begin(), inverse_covariance.end(),
+                    [](double value) { return !std::isfinite(value); })) {
+        throw std::invalid_argument("Mahalanobis inverse covariance entries must be finite.");
+    }
+}
+
 /// \brief Build the whitening factor L such that L * L^T equals the metric's quadratic form.
 ///
-/// For Standardized Euclidean this is the diagonal of 1 / sqrt(variance). For Mahalanobis it
-/// is Q * sqrt(Lambda) from the eigendecomposition of the supplied inverse covariance.
+/// For Standardized Euclidean this is the diagonal of 1 / sqrt(variance). For Mahalanobis it is
+/// Q * sqrt(Lambda) from the eigendecomposition of the supplied inverse covariance.
 ///
-/// The eigendecomposition's convergence test is an absolute off-diagonal threshold, not one
-/// scaled to the matrix norm, so an inverse covariance whose entries are all tiny may be
-/// returned as already diagonal rather than diagonalized. This is a documented property of
-/// the solver, not something this function fixes.
-std::vector<double> whitening_factor(const Metric& metric, std::size_t columns,
-                                     const std::vector<std::string>* names) {
+/// Parameter shape and values have already been rejected by \c validate_numeric_metric, so the
+/// only rejection left here is the positive-semidefinite one, which cannot be read off the
+/// parameters and needs the eigenvalues.
+///
+/// The inverse covariance must be symmetric. That precondition belongs to the solver and is not
+/// checked here, exactly as \c pseudo_inverse_symmetric does not check it.
+std::vector<double> whitening_factor(const Metric& metric, std::size_t columns) {
     std::vector<double> factor(columns * columns, 0.0);
 
     if (metric.Name() == MetricName::StandardizedEuclidean) {
-        validate_standardized_variances(metric.Variances(), columns, names);
         for (std::size_t index = 0u; index < columns; ++index) {
             factor[index * columns + index] = 1.0 / std::sqrt(metric.Variances()[index]);
         }
@@ -87,14 +120,32 @@ std::vector<double> whitening_factor(const Metric& metric, std::size_t columns,
     }
 
     const auto& inverse_covariance = metric.InverseCovariance();
-    if (inverse_covariance.size() != columns * columns) {
-        throw std::invalid_argument(
-            "Mahalanobis inverse covariance must be square in the selected column count.");
+
+    // The solver converges on a fixed absolute off-diagonal threshold, so a uniformly tiny
+    // inverse covariance would come back undiagonalized and every distance would be silently
+    // wrong. Decompose a copy scaled so its largest entry lands in [0.5, 1) and undo the scale
+    // on the eigenvalues afterwards; eigenvectors are invariant under a uniform scale. The
+    // scale is a power of two, so both directions are exact and no existing result moves.
+    double max_magnitude = 0.0;
+    for (const auto value : inverse_covariance) {
+        max_magnitude = std::max(max_magnitude, std::abs(value));
+    }
+    int exponent = 0;
+    if (max_magnitude > 0.0) {
+        std::frexp(max_magnitude, &exponent);
     }
 
-    auto eigensystem = symmetric_eigensystem_cyclic(inverse_covariance, columns);
+    std::vector<double> scaled(inverse_covariance.size(), 0.0);
+    for (std::size_t index = 0u; index < inverse_covariance.size(); ++index) {
+        scaled[index] = std::ldexp(inverse_covariance[index], -exponent);
+    }
+
+    auto eigensystem = symmetric_eigensystem_cyclic(std::move(scaled), columns);
     if (!eigensystem.has_value()) {
         throw std::runtime_error("Symmetric eigendecomposition did not converge.");
+    }
+    for (auto& eigenvalue : eigensystem->eigenvalues) {
+        eigenvalue = std::ldexp(eigenvalue, exponent);
     }
 
     double max_eigenvalue = 0.0;
@@ -161,7 +212,8 @@ NumericPreTransform build_pre_transform(const double* values, const std::uint8_t
 }
 
 /// \brief Reject metrics that have no defined meaning over continuous descriptor columns.
-void validate_numeric_metric(const Metric& metric, DescriptorMissingPolicy missing, std::size_t columns) {
+void validate_numeric_metric(const Metric& metric, DescriptorMissingPolicy missing,
+                             std::size_t columns, const std::vector<std::string>* names) {
     switch (metric.Name()) {
     case MetricName::Euclidean:
     case MetricName::Manhattan:
@@ -182,6 +234,16 @@ void validate_numeric_metric(const Metric& metric, DescriptorMissingPolicy missi
             throw std::invalid_argument(
                 "The Ignore missing-value policy is not valid for Standardized Euclidean or "
                 "Mahalanobis, because their pre-transform mixes columns.");
+        }
+        // Parameter shape and values are rejected here rather than in whitening_factor so the
+        // established metric-then-size-then-output order holds for these metrics too. The
+        // positive-semidefinite check is derived from an eigendecomposition rather than read off
+        // the parameters, so it stays with the decomposition.
+        validate_pre_transform_columns(columns);
+        if (metric.Name() == MetricName::StandardizedEuclidean) {
+            validate_standardized_variances(metric.Variances(), columns, names);
+        } else {
+            validate_inverse_covariance(metric.InverseCovariance(), columns);
         }
         return;
     case MetricName::Haversine:
@@ -410,12 +472,12 @@ void pdist_numeric_impl(
     std::size_t output_length,
     const BatchKernelOptions& kernel,
     const std::vector<std::string>* names) {
-    validate_numeric_metric(metric, missing, columns);
+    validate_numeric_metric(metric, missing, columns, names);
     const auto expected_length = condensed_size(rows);
     validate_output(output, output_length, expected_length);
 
     if (numeric_needs_pre_transform(metric)) {
-        const auto factor = whitening_factor(metric, columns, names);
+        const auto factor = whitening_factor(metric, columns);
         const auto transformed = build_pre_transform(values, validity, rows, columns, factor);
         const auto euclidean = Metric::Euclidean();
         detail::ParallelFor(0, expected_length, kernel.chunk_size, kernel.num_threads,
@@ -468,13 +530,13 @@ void cdist_numeric_impl(
     std::size_t output_length,
     const BatchKernelOptions& kernel,
     const std::vector<std::string>* names) {
-    validate_numeric_metric(metric, missing, columns);
+    validate_numeric_metric(metric, missing, columns, names);
     const auto expected_length =
         checked_product(a_rows, b_rows, "CDist output size is too large.");
     validate_output(output, output_length, expected_length);
 
     if (numeric_needs_pre_transform(metric)) {
-        const auto factor = whitening_factor(metric, columns, names);
+        const auto factor = whitening_factor(metric, columns);
         const auto a_transformed = build_pre_transform(a_values, a_validity, a_rows, columns, factor);
         const auto b_transformed = build_pre_transform(b_values, b_validity, b_rows, columns, factor);
         const auto euclidean = Metric::Euclidean();
