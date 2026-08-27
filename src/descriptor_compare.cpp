@@ -123,7 +123,7 @@ bool numeric_needs_power(const Metric& metric) {
     return metric.P() != 1.0 && metric.P() != 2.0;
 }
 
-/// \brief Close out Minkowski from its accumulator, applying the \c Ignore rescale factor.
+/// \brief Close out Minkowski from its accumulator, applying the rescale factor.
 double evaluate_numeric_minkowski(const NumericStats& stats, const Metric& metric,
                                   double factor) {
     if (metric.Weights().empty()) {

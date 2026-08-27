@@ -492,6 +492,23 @@ TEST(DescriptorNumericCompareTest, UnweightedMinkowskiAgreesWithItsSpecialCases)
                      7.0);
     EXPECT_DOUBLE_EQ(PDistNumeric(kValues.data(), nullptr, 2u, 3u, Metric::Minkowski(2.0))[0],
                      5.0);
+
+    // Under Ignore with a dropped column, the p=1 and p=2 fast paths must still rescale.
+    // Column 1 is missing in the second row, so d = 2 (columns 0 and 2).
+    const std::vector<double> values = {1.0, 2.0, 3.0, 4.0, 0.0, 3.0};
+    const std::vector<std::uint8_t> validity = {1u, 1u, 1u, 1u, 0u, 1u};
+
+    const auto manhattan = PDistNumeric(values.data(), validity.data(), 2u, 3u,
+                                        Metric::Manhattan(), DescriptorMissingPolicy::Ignore);
+    const auto minkowski_p1 = PDistNumeric(values.data(), validity.data(), 2u, 3u,
+                                           Metric::Minkowski(1.0), DescriptorMissingPolicy::Ignore);
+    EXPECT_DOUBLE_EQ(minkowski_p1[0], manhattan[0]);
+
+    const auto euclidean = PDistNumeric(values.data(), validity.data(), 2u, 3u,
+                                        Metric::Euclidean(), DescriptorMissingPolicy::Ignore);
+    const auto minkowski_p2 = PDistNumeric(values.data(), validity.data(), 2u, 3u,
+                                           Metric::Minkowski(2.0), DescriptorMissingPolicy::Ignore);
+    EXPECT_DOUBLE_EQ(minkowski_p2[0], euclidean[0]);
 }
 
 TEST(DescriptorNumericCompareTest, WeightedMinkowskiMatchesHandComputation) {
@@ -556,8 +573,8 @@ TEST(DescriptorNumericCompareTest, PropagateYieldsNaNForMinkowskiWithMissingValu
     EXPECT_TRUE(std::isnan(result[0]));
 }
 
-TEST(DescriptorNumericCompareTest, IgnoreRescalesUnweightedMinkowskiByDimensionRatio) {
-    // Exercises <Ignore, false, true>: powered unweighted Minkowski with rescale.
+TEST(DescriptorNumericCompareTest, IgnoreRescalesUnweightedMinkowskiWithDroppedColumn) {
+    // Exercises <Ignore, true, true>: powered unweighted Minkowski with rescale and mask.
     // Column 1 is missing in the second row, so d = 2 (columns 0 and 2).
     const std::vector<double> values = {1.0, 2.0, 3.0, 4.0, 0.0, 3.0};
     const std::vector<std::uint8_t> validity = {1u, 1u, 1u, 1u, 0u, 1u};
@@ -569,6 +586,17 @@ TEST(DescriptorNumericCompareTest, IgnoreRescalesUnweightedMinkowskiByDimensionR
     EXPECT_DOUBLE_EQ(result[0], std::pow(27.0 * 1.5, 1.0 / 3.0));
 }
 
+TEST(DescriptorNumericCompareTest, IgnoreWithFullyPresentUnweightedMinkowski) {
+    // Exercises <Ignore, false, true>: powered unweighted Minkowski, no mask.
+    // With no mask, nothing is dropped so the factor is 1.0 and the result is the plain
+    // unweighted Minkowski, but this path must still be instantiated correctly.
+    const auto result = PDistNumeric(kValues.data(), nullptr, 2u, 3u, Metric::Minkowski(3.0),
+                                     DescriptorMissingPolicy::Ignore);
+
+    // Differences are {-3, -4, 0}; (27 + 64) ^ (1/3), no rescale.
+    EXPECT_DOUBLE_EQ(result[0], std::pow(91.0, 1.0 / 3.0));
+}
+
 TEST(DescriptorNumericCompareTest, CDistUnweightedMinkowskiMatchesHandComputation) {
     // Exercises Minkowski on the CDist path.
     const std::vector<double> a = {1.0, 2.0, 3.0};
@@ -578,6 +606,24 @@ TEST(DescriptorNumericCompareTest, CDistUnweightedMinkowskiMatchesHandComputatio
     ASSERT_EQ(result.size(), 1u);
     // Differences are {-3, -4, 0}; (27 + 64) ^ (1/3).
     EXPECT_DOUBLE_EQ(result[0], std::pow(91.0, 1.0 / 3.0));
+}
+
+TEST(DescriptorNumericCompareTest, CDistWeightedMinkowskiUnderIgnoreReadsWeightMass) {
+    // Exercises CDist's total_weight_mass plumbing: weighted Minkowski under Ignore with a mask.
+    // Row a[0] is {1, 2, 3}, row b[0] is {4, 6, 0} with column 2 missing.
+    const std::vector<double> a = {1.0, 2.0, 3.0};
+    const std::vector<double> b = {4.0, 6.0, 0.0};
+    const std::vector<std::uint8_t> b_validity = {1u, 1u, 0u};
+    const auto metric = Metric::Minkowski(2.0, {1.0, 2.0, 7.0});
+
+    const auto result = CDistNumeric(a.data(), nullptr, 1u, b.data(), b_validity.data(), 1u, 3u,
+                                     metric, DescriptorMissingPolicy::Ignore);
+    ASSERT_EQ(result.size(), 1u);
+
+    // Column 2 is missing in b[0], so only columns 0 and 1 are used.
+    // power_sum = 1 * (4-1)^2 + 2 * (6-2)^2 = 1*9 + 2*16 = 41.
+    // total_weight_mass = 1 + 2 + 7 = 10; used_weight_mass = 1 + 2 = 3; factor = 10/3.
+    EXPECT_DOUBLE_EQ(result[0], std::sqrt(41.0 * (10.0 / 3.0)));
 }
 
 } // namespace test
