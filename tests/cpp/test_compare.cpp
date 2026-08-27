@@ -351,8 +351,12 @@ TEST(CompareSparseBinaryBatchTest, PDistRejectsAsymmetricMetric) {
 TEST(CompareSparseBinaryBatchTest, ThreadedPDistMatchesSingleThreadedOutput) {
     std::vector<OEFPSparse> fingerprints;
     fingerprints.reserve(32);
+    // Each fingerprint shares bit 64 with all others, and adjacent fingerprints (i, i+1)
+    // share a second bit, so pairwise Tanimoto values are: 2/4 = 0.5 for adjacent pairs
+    // (31 of them) and 1/5 = 0.2 for non-adjacent pairs (465 of them).
     for (std::uint32_t i = 0; i < 32; ++i) {
-        fingerprints.push_back(sparse_fingerprint({i, static_cast<std::uint32_t>(i + 64u)}));
+        fingerprints.push_back(sparse_fingerprint(
+            {i, static_cast<std::uint32_t>(i + 1u), 64u}));
     }
     const auto batch = OEFPSparseBatch::FromFingerprints(fingerprints);
 
@@ -367,6 +371,21 @@ TEST(CompareSparseBinaryBatchTest, ThreadedPDistMatchesSingleThreadedOutput) {
     const auto actual = PDist(batch, Metric::Tanimoto(), multi_thread);
 
     ASSERT_EQ(actual.size(), expected.size());
+    // Guard against fixture degeneracy: if the expectation collapses to a constant, the
+    // comparison carries no information and the test becomes vacuous.
+    ASSERT_GT(expected.size(), 0u);
+    bool has_nonzero = false;
+    bool has_variation = false;
+    for (std::size_t i = 0; i < expected.size(); ++i) {
+        if (expected[i] != 0.0) {
+            has_nonzero = true;
+        }
+        if (expected[i] != expected[0]) {
+            has_variation = true;
+        }
+    }
+    ASSERT_TRUE(has_nonzero) << "Expected values are all zero";
+    ASSERT_TRUE(has_variation) << "Expected values are all equal to " << expected[0];
     for (std::size_t i = 0; i < expected.size(); ++i) {
         EXPECT_DOUBLE_EQ(actual[i], expected[i]);
     }
@@ -375,8 +394,12 @@ TEST(CompareSparseBinaryBatchTest, ThreadedPDistMatchesSingleThreadedOutput) {
 TEST(CompareSparseBinaryBatchTest, OversizedChunkSizeMatchesDefaultOutput) {
     std::vector<OEFPSparse> fingerprints;
     fingerprints.reserve(32);
+    // Each fingerprint shares bit 64 with all others, and adjacent fingerprints (i, i+1)
+    // share a second bit, so pairwise Tanimoto values are: 2/4 = 0.5 for adjacent pairs
+    // (31 of them) and 1/5 = 0.2 for non-adjacent pairs (465 of them).
     for (std::uint32_t i = 0; i < 32; ++i) {
-        fingerprints.push_back(sparse_fingerprint({i, static_cast<std::uint32_t>(i + 64u)}));
+        fingerprints.push_back(sparse_fingerprint(
+            {i, static_cast<std::uint32_t>(i + 1u), 64u}));
     }
     const auto batch = OEFPSparseBatch::FromFingerprints(fingerprints);
 
@@ -388,6 +411,21 @@ TEST(CompareSparseBinaryBatchTest, OversizedChunkSizeMatchesDefaultOutput) {
     const auto actual = PDist(batch, Metric::Tanimoto(), oversized_kernel);
 
     ASSERT_EQ(actual.size(), expected.size());
+    // Guard against fixture degeneracy: if the expectation collapses to a constant, the
+    // comparison carries no information and the test becomes vacuous.
+    ASSERT_GT(expected.size(), 0u);
+    bool has_nonzero = false;
+    bool has_variation = false;
+    for (std::size_t i = 0; i < expected.size(); ++i) {
+        if (expected[i] != 0.0) {
+            has_nonzero = true;
+        }
+        if (expected[i] != expected[0]) {
+            has_variation = true;
+        }
+    }
+    ASSERT_TRUE(has_nonzero) << "Expected values are all zero";
+    ASSERT_TRUE(has_variation) << "Expected values are all equal to " << expected[0];
     for (std::size_t i = 0; i < expected.size(); ++i) {
         EXPECT_DOUBLE_EQ(actual[i], expected[i]);
     }
