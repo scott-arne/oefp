@@ -1008,6 +1008,30 @@ TEST(DescriptorNumericBatchTest, IntoFormsValidateTheirOutputLength) {
     std::vector<double> output(3u, 0.0);
     EXPECT_THROW(PDistInto(batch, Metric::Euclidean(), options, output.data(), output.size()),
                  std::invalid_argument);
+
+    // CDistInto over batches with different row counts (2 and 3) expects 6 entries. Test both
+    // too-short and too-long to ensure the wrapper forwards the caller's output_length rather
+    // than recomputing the product from the matrix dimensions.
+    const auto schema = numeric_schema();
+    DescriptorSetBuilder row1(schema);
+    row1.Set("MW", DescriptorValue::Float(1.0));
+    DescriptorSetBuilder row2(schema);
+    row2.Set("MW", DescriptorValue::Float(2.0));
+    DescriptorSetBuilder row3(schema);
+    row3.Set("MW", DescriptorValue::Float(3.0));
+    const auto a_batch = DescriptorBatch::FromDescriptorSets({row1.Build("a1"), row2.Build("a2")});
+    const auto b_batch = DescriptorBatch::FromDescriptorSets(
+        {row1.Build("b1"), row2.Build("b2"), row3.Build("b3")});
+
+    std::vector<double> too_short(5u, 0.0);
+    EXPECT_THROW(CDistInto(a_batch, b_batch, Metric::Euclidean(), options, too_short.data(),
+                           too_short.size()),
+                 std::invalid_argument);
+
+    std::vector<double> too_long(7u, 0.0);
+    EXPECT_THROW(CDistInto(a_batch, b_batch, Metric::Euclidean(), options, too_long.data(),
+                           too_long.size()),
+                 std::invalid_argument);
 }
 
 TEST(DescriptorNumericBatchTest, RejectsStringColumnsAndLegacyBatches) {
@@ -1173,6 +1197,58 @@ TEST(DescriptorNumericBatchTest, CDistOrientsTheOutputMatrixRowsByColumns) {
     EXPECT_DOUBLE_EQ(result[1], 100.0);
     EXPECT_DOUBLE_EQ(result[2], 9.0);
     EXPECT_DOUBLE_EQ(result[3], 90.0);
+}
+
+TEST(DescriptorNumericBatchTest, AnUnresolvableSelectionThrowsOutOfRange) {
+    // The wrappers propagate the selection's own exception type rather than normalizing it, which
+    // is what ToNumericMatrix documents and what the rest of include/oefp does.
+    const auto batch = two_row_batch();
+    const DescriptorNumericOptions by_name{DescriptorSelection::Names({"NoSuchColumn"}),
+                                           DescriptorMissingPolicy::Propagate};
+    EXPECT_THROW(PDist(batch, Metric::Euclidean(), by_name), std::out_of_range);
+
+    const DescriptorNumericOptions by_index{DescriptorSelection::Indices({99u}),
+                                            DescriptorMissingPolicy::Propagate};
+    EXPECT_THROW(CDist(batch, batch, Metric::Euclidean(), by_index), std::out_of_range);
+}
+
+TEST(DescriptorNumericBatchTest, CDistForwardsMissingValuePolicyForBothSides) {
+    // Missing value on the b side specifically tests that b_matrix.validity is forwarded rather
+    // than aliased to a_matrix.validity, which all other CDist tests miss.
+    const auto schema = numeric_schema();
+    DescriptorSetBuilder a_builder(schema);
+    a_builder.Set("MW", DescriptorValue::Float(1.0));
+    a_builder.Set("nAtom", DescriptorValue::Int(2));
+
+    DescriptorSetBuilder b_builder(schema);
+    b_builder.Set("MW", DescriptorValue::Float(4.0));
+    // nAtom is missing
+
+    const auto a_batch = DescriptorBatch::FromDescriptorSets({a_builder.Build("a")});
+    const auto b_batch = DescriptorBatch::FromDescriptorSets({b_builder.Build("b")});
+
+    const DescriptorNumericOptions propagate_options{
+        DescriptorSelection::Names({"MW", "nAtom"}), DescriptorMissingPolicy::Propagate};
+    const auto propagate_result = CDist(a_batch, b_batch, Metric::Euclidean(), propagate_options);
+    ASSERT_EQ(propagate_result.size(), 1u);
+    EXPECT_TRUE(std::isnan(propagate_result[0]));
+
+    const DescriptorNumericOptions ignore_options{
+        DescriptorSelection::Names({"MW", "nAtom"}), DescriptorMissingPolicy::Ignore};
+    const auto ignore_result = CDist(a_batch, b_batch, Metric::Euclidean(), ignore_options);
+    ASSERT_EQ(ignore_result.size(), 1u);
+    EXPECT_DOUBLE_EQ(ignore_result[0], std::sqrt(18.0));  // sqrt((4-1)^2 * 2) for the rescale
+
+    // Drive the same fixture through CDistInto to cover both wrapper forms.
+    std::vector<double> propagate_into(1u, 999.0);
+    CDistInto(a_batch, b_batch, Metric::Euclidean(), propagate_options, propagate_into.data(),
+              propagate_into.size());
+    EXPECT_TRUE(std::isnan(propagate_into[0]));
+
+    std::vector<double> ignore_into(1u, 999.0);
+    CDistInto(a_batch, b_batch, Metric::Euclidean(), ignore_options, ignore_into.data(),
+              ignore_into.size());
+    EXPECT_DOUBLE_EQ(ignore_into[0], std::sqrt(18.0));
 }
 
 } // namespace test

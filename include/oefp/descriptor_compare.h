@@ -252,6 +252,8 @@ void CDistNumericInto(
 ///        positive; when the Mahalanobis inverse covariance is not square in the selected column
 ///        count or has a non-finite entry; or when the Mahalanobis inverse covariance is not
 ///        positive semidefinite.
+/// \throws std::out_of_range: When the selection contains an unresolvable column name or an index
+///        past the schema's column count.
 /// \throws std::runtime_error: When the symmetric eigendecomposition for Mahalanobis does not converge.
 std::vector<double> PDist(
     const DescriptorBatch& batch,
@@ -285,6 +287,8 @@ std::vector<double> PDist(
 ///        variance is not finite and strictly positive; when the Mahalanobis inverse covariance is
 ///        not square in the selected column count or has a non-finite entry; or when the
 ///        Mahalanobis inverse covariance is not positive semidefinite.
+/// \throws std::out_of_range: When the selection contains an unresolvable column name or an index
+///        past the schema's column count.
 /// \throws std::runtime_error: When the symmetric eigendecomposition for Mahalanobis does not converge.
 void PDistInto(
     const DescriptorBatch& batch,
@@ -322,6 +326,8 @@ void PDistInto(
 ///        finite and strictly positive; when the Mahalanobis inverse covariance is not square in the
 ///        selected column count or has a non-finite entry; or when the Mahalanobis inverse
 ///        covariance is not positive semidefinite.
+/// \throws std::out_of_range: When the selection contains an unresolvable column name or an index
+///        past the schema's column count.
 /// \throws std::runtime_error: When the symmetric eigendecomposition for Mahalanobis does not converge.
 std::vector<double> CDist(
     const DescriptorBatch& a,
@@ -358,6 +364,8 @@ std::vector<double> CDist(
 ///        count or a variance is not finite and strictly positive; when the Mahalanobis inverse
 ///        covariance is not square in the selected column count or has a non-finite entry; or when
 ///        the Mahalanobis inverse covariance is not positive semidefinite.
+/// \throws std::out_of_range: When the selection contains an unresolvable column name or an index
+///        past the schema's column count.
 /// \throws std::runtime_error: When the symmetric eigendecomposition for Mahalanobis does not converge.
 void CDistInto(
     const DescriptorBatch& a,
