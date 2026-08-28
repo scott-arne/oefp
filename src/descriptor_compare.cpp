@@ -514,6 +514,21 @@ const std::uint8_t* validity_row(const std::uint8_t* validity, std::size_t row,
     return validity == nullptr ? nullptr : validity + row * columns;
 }
 
+/// \brief Build the metric's whitening factor early, for the forms that allocate their own output.
+///
+/// \c validate_numeric_metric deliberately leaves the Mahalanobis positive-semidefinite verdict to
+/// \c whitening_factor, because that verdict is read off an eigendecomposition rather than off the
+/// parameters. Left alone, it would therefore land after the output sizing in every form that
+/// allocates -- so a non-semidefinite matrix at a large row count would surface as "Pairwise output
+/// size is too large", which is exactly the row-count-dependent diagnostic the eager
+/// \c validate_numeric_metric call exists to remove. Decomposing here and handing the result to the
+/// kernel keeps the rejection first without paying for a second decomposition. Metrics that need no
+/// pre-transform get an empty factor, which the kernel never reads.
+std::vector<double> pre_transform_or_empty(const Metric& metric, std::size_t columns) {
+    return numeric_needs_pre_transform(metric) ? whitening_factor(metric, columns)
+                                               : std::vector<double>{};
+}
+
 void pdist_numeric_impl(
     const double* values,
     const std::uint8_t* validity,
@@ -524,13 +539,19 @@ void pdist_numeric_impl(
     double* output,
     std::size_t output_length,
     const BatchKernelOptions& kernel,
-    const std::vector<std::string>* names) {
+    const std::vector<std::string>* names,
+    const std::vector<double>* pre_transform) {
     validate_numeric_metric(metric, missing, columns, names);
     const auto expected_length = condensed_size(rows);
     validate_output(output, output_length, expected_length);
 
     if (numeric_needs_pre_transform(metric)) {
-        const auto factor = whitening_factor(metric, columns);
+        // A caller that allocates its own output builds the factor before it sizes that output, so
+        // that a rejected matrix is reported as a rejected matrix; reuse it rather than decomposing
+        // twice. See pre_transform_or_empty.
+        const auto own_factor =
+            pre_transform == nullptr ? whitening_factor(metric, columns) : std::vector<double>{};
+        const auto& factor = pre_transform == nullptr ? own_factor : *pre_transform;
         const auto transformed = build_pre_transform(values, validity, rows, columns, factor);
         const auto euclidean = Metric::Euclidean();
         detail::ParallelFor(0, expected_length, kernel.chunk_size, kernel.num_threads,
@@ -582,14 +603,18 @@ void cdist_numeric_impl(
     double* output,
     std::size_t output_length,
     const BatchKernelOptions& kernel,
-    const std::vector<std::string>* names) {
+    const std::vector<std::string>* names,
+    const std::vector<double>* pre_transform) {
     validate_numeric_metric(metric, missing, columns, names);
     const auto expected_length =
         checked_product(a_rows, b_rows, "CDist output size is too large.");
     validate_output(output, output_length, expected_length);
 
     if (numeric_needs_pre_transform(metric)) {
-        const auto factor = whitening_factor(metric, columns);
+        // Reuse the caller's factor when it has one; see pdist_numeric_impl.
+        const auto own_factor =
+            pre_transform == nullptr ? whitening_factor(metric, columns) : std::vector<double>{};
+        const auto& factor = pre_transform == nullptr ? own_factor : *pre_transform;
         const auto a_transformed = build_pre_transform(a_values, a_validity, a_rows, columns, factor);
         const auto b_transformed = build_pre_transform(b_values, b_validity, b_rows, columns, factor);
         const auto euclidean = Metric::Euclidean();
@@ -671,7 +696,7 @@ void PDistNumericInto(
     std::size_t output_length,
     const BatchKernelOptions& kernel) {
     pdist_numeric_impl(values, validity, rows, columns, metric, missing, output, output_length,
-                       kernel, nullptr);
+                       kernel, nullptr, nullptr);
 }
 
 std::vector<double> PDistNumeric(
@@ -688,10 +713,12 @@ std::vector<double> PDistNumeric(
     // rejection -- the diagnostic would depend on the row count. Deliberately duplicated: the
     // kernel validates again, and the check is O(columns) and idempotent.
     validate_numeric_metric(metric, missing, columns, nullptr);
+    const auto pre_transform = pre_transform_or_empty(metric, columns);
 
+    // Call the kernel directly rather than PDistNumericInto, which cannot carry the factor across.
     std::vector<double> output(condensed_size(rows), 0.0);
-    PDistNumericInto(values, validity, rows, columns, metric, missing, output.data(),
-                     output.size(), kernel);
+    pdist_numeric_impl(values, validity, rows, columns, metric, missing, output.data(),
+                       output.size(), kernel, nullptr, &pre_transform);
     return output;
 }
 
@@ -709,7 +736,7 @@ void CDistNumericInto(
     std::size_t output_length,
     const BatchKernelOptions& kernel) {
     cdist_numeric_impl(a_values, a_validity, a_rows, b_values, b_validity, b_rows, columns,
-                       metric, missing, output, output_length, kernel, nullptr);
+                       metric, missing, output, output_length, kernel, nullptr, nullptr);
 }
 
 std::vector<double> CDistNumeric(
@@ -725,11 +752,13 @@ std::vector<double> CDistNumeric(
     const BatchKernelOptions& kernel) {
     // Metric first, then the output; see PDistNumeric for why the allocation cannot come first.
     validate_numeric_metric(metric, missing, columns, nullptr);
+    const auto pre_transform = pre_transform_or_empty(metric, columns);
 
+    // Call the kernel directly rather than CDistNumericInto; see PDistNumeric.
     std::vector<double> output(
         checked_product(a_rows, b_rows, "CDist output size is too large."), 0.0);
-    CDistNumericInto(a_values, a_validity, a_rows, b_values, b_validity, b_rows, columns, metric,
-                     missing, output.data(), output.size(), kernel);
+    cdist_numeric_impl(a_values, a_validity, a_rows, b_values, b_validity, b_rows, columns, metric,
+                       missing, output.data(), output.size(), kernel, nullptr, &pre_transform);
     return output;
 }
 
@@ -742,7 +771,8 @@ void PDistInto(
     const BatchKernelOptions& kernel) {
     const auto matrix = batch.ToNumericMatrix(options.columns);
     pdist_numeric_impl(matrix.values.data(), matrix.validity.data(), matrix.rows, matrix.columns,
-                       metric, options.missing, output, output_length, kernel, &matrix.names);
+                       metric, options.missing, output, output_length, kernel, &matrix.names,
+                       nullptr);
 }
 
 std::vector<double> PDist(
@@ -758,11 +788,12 @@ std::vector<double> PDist(
     // Deliberately duplicated: pdist_numeric_impl validates again. The check is O(columns) and
     // idempotent, and paying it twice is what gets the rejection out before the allocation.
     validate_numeric_metric(metric, options.missing, matrix.columns, &matrix.names);
+    const auto pre_transform = pre_transform_or_empty(metric, matrix.columns);
 
     std::vector<double> output(condensed_size(matrix.rows), 0.0);
     pdist_numeric_impl(matrix.values.data(), matrix.validity.data(), matrix.rows, matrix.columns,
                        metric, options.missing, output.data(), output.size(), kernel,
-                       &matrix.names);
+                       &matrix.names, &pre_transform);
     return output;
 }
 
@@ -794,7 +825,7 @@ void CDistInto(
     cdist_numeric_impl(a_matrix.values.data(), a_matrix.validity.data(), a_matrix.rows,
                        b_matrix.values.data(), b_matrix.validity.data(), b_matrix.rows,
                        a_matrix.columns, metric, options.missing, output, output_length, kernel,
-                       &a_matrix.names);
+                       &a_matrix.names, nullptr);
 }
 
 std::vector<double> CDist(
@@ -825,13 +856,14 @@ std::vector<double> CDist(
     // Deliberately duplicated: cdist_numeric_impl validates again. The check is O(columns) and
     // idempotent, and paying it twice is what gets the rejection out before the allocation.
     validate_numeric_metric(metric, options.missing, a_matrix.columns, &a_matrix.names);
+    const auto pre_transform = pre_transform_or_empty(metric, a_matrix.columns);
 
     std::vector<double> output(
         checked_product(a_matrix.rows, b_matrix.rows, "CDist output size is too large."), 0.0);
     cdist_numeric_impl(a_matrix.values.data(), a_matrix.validity.data(), a_matrix.rows,
                        b_matrix.values.data(), b_matrix.validity.data(), b_matrix.rows,
                        a_matrix.columns, metric, options.missing, output.data(), output.size(),
-                       kernel, &a_matrix.names);
+                       kernel, &a_matrix.names, &pre_transform);
     return output;
 }
 
@@ -856,7 +888,7 @@ void PDistNumericIntoAddress(
     // the rejection messages; PDistNumericInto is a nameless buffer API and passes nullptr.
     pdist_numeric_impl(values, numeric_validity_from_address(validity_address), rows, columns,
                        metric, missing, output, output_length, kernel,
-                       names.empty() ? nullptr : &names);
+                       names.empty() ? nullptr : &names, nullptr);
 }
 
 std::vector<double> PDistNumericAddress(
@@ -881,10 +913,11 @@ std::vector<double> PDistNumericAddress(
 
     // Metric first, then the output; see PDistNumeric. Deliberately duplicated with the kernel.
     validate_numeric_metric(metric, missing, columns, names.empty() ? nullptr : &names);
+    const auto pre_transform = pre_transform_or_empty(metric, columns);
 
     std::vector<double> output(condensed_size(rows), 0.0);
     pdist_numeric_impl(values, validity, rows, columns, metric, missing, output.data(),
-                       output.size(), kernel, names.empty() ? nullptr : &names);
+                       output.size(), kernel, names.empty() ? nullptr : &names, &pre_transform);
     return output;
 }
 
@@ -915,7 +948,7 @@ void CDistNumericIntoAddress(
     cdist_numeric_impl(a_values, numeric_validity_from_address(a_validity_address), a_rows,
                        b_values, numeric_validity_from_address(b_validity_address), b_rows,
                        columns, metric, missing, output, output_length, kernel,
-                       names.empty() ? nullptr : &names);
+                       names.empty() ? nullptr : &names, nullptr);
 }
 
 std::vector<double> CDistNumericAddress(
@@ -938,13 +971,14 @@ std::vector<double> CDistNumericAddress(
 
     // Metric first, then the output; see PDistNumeric. Deliberately duplicated with the kernel.
     validate_numeric_metric(metric, missing, columns, names.empty() ? nullptr : &names);
+    const auto pre_transform = pre_transform_or_empty(metric, columns);
 
     std::vector<double> output(
         checked_product(a_rows, b_rows, "CDist output size is too large."), 0.0);
     cdist_numeric_impl(a_values, numeric_validity_from_address(a_validity_address), a_rows,
                        b_values, numeric_validity_from_address(b_validity_address), b_rows,
                        columns, metric, missing, output.data(), output.size(), kernel,
-                       names.empty() ? nullptr : &names);
+                       names.empty() ? nullptr : &names, &pre_transform);
     return output;
 }
 

@@ -1833,5 +1833,63 @@ TEST(DescriptorNumericBufferTest, AValidMetricStillReportsAnOversizedOutput) {
               "CDist output size is too large.");
 }
 
+TEST(DescriptorNumericBufferTest, ANonSemidefiniteMahalanobisIsRejectedBeforeTheOutputIsSized) {
+    // Mahalanobis is the one metric whose rejection the parameter validator cannot deliver: the
+    // positive-semidefinite verdict comes off an eigendecomposition, so it used to land inside the
+    // kernel, after the allocating forms had already sized the output. The same row-count-dependent
+    // diagnostic as TheMetricIsRejectedBeforeTheOutputIsSized, one validator deeper.
+    const std::vector<double> values{1.0, 2.0};
+    const auto values_address =
+        static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>(values.data()));
+    constexpr std::size_t overflowing_rows = std::size_t{1} << 63;
+    // Indefinite: eigenvalues +1 and -1. Finite and symmetric, so it clears every check that reads
+    // the parameters directly.
+    const auto indefinite = Metric::Mahalanobis({1.0, 0.0, 0.0, -1.0});
+    const std::string psd_rejection =
+        "Mahalanobis inverse covariance must be positive semidefinite.";
+
+    EXPECT_EQ(rejection_message([&] {
+                  PDistNumeric(values.data(), nullptr, overflowing_rows, 2u, indefinite,
+                               DescriptorMissingPolicy::Propagate);
+              }),
+              psd_rejection);
+    EXPECT_EQ(rejection_message([&] {
+                  CDistNumeric(values.data(), nullptr, overflowing_rows, values.data(), nullptr,
+                               overflowing_rows, 2u, indefinite,
+                               DescriptorMissingPolicy::Propagate);
+              }),
+              psd_rejection);
+    EXPECT_EQ(rejection_message([&] {
+                  PDistNumericAddress(values_address, 0u, overflowing_rows, 2u, indefinite,
+                                      DescriptorMissingPolicy::Propagate);
+              }),
+              psd_rejection);
+    EXPECT_EQ(rejection_message([&] {
+                  CDistNumericAddress(values_address, 0u, overflowing_rows, values_address, 0u,
+                                      overflowing_rows, 2u, indefinite,
+                                      DescriptorMissingPolicy::Propagate);
+              }),
+              psd_rejection);
+}
+
+TEST(DescriptorNumericBufferTest, ASemidefiniteMahalanobisStillReportsAnOversizedOutput) {
+    // The counterweight for the pre-transform case: building the whitening factor before the sizing
+    // must not swallow the size rejection for a matrix that is genuinely positive semidefinite.
+    const std::vector<double> values{1.0, 2.0};
+    constexpr std::size_t overflowing_rows = std::size_t{1} << 63;
+    const auto identity = Metric::Mahalanobis({1.0, 0.0, 0.0, 1.0});
+
+    EXPECT_EQ(rejection_message([&] {
+                  PDistNumeric(values.data(), nullptr, overflowing_rows, 2u, identity,
+                               DescriptorMissingPolicy::Propagate);
+              }),
+              "Pairwise output size is too large.");
+    EXPECT_EQ(rejection_message([&] {
+                  CDistNumeric(values.data(), nullptr, overflowing_rows, values.data(), nullptr,
+                               overflowing_rows, 2u, identity, DescriptorMissingPolicy::Propagate);
+              }),
+              "CDist output size is too large.");
+}
+
 } // namespace test
 } // namespace OEFP

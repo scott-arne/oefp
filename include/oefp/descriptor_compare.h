@@ -426,6 +426,12 @@ void CDistInto(
 // std::bad_alloc and hide the real mistake. The kernel validates again; the check is O(columns)
 // and idempotent.
 //
+// Mahalanobis needs one extra step to make that guarantee whole. Its positive-semidefinite verdict
+// is read off an eigendecomposition rather than off the parameters, so the parameter validator
+// cannot reach it; the allocating forms build the whitening factor up front for the same reason
+// they validate up front, and pass it down so the kernel does not decompose twice. A
+// non-semidefinite matrix is therefore rejected as a non-semidefinite matrix at every row count.
+//
 // The trailing names parameter is optional and carries no data the kernel computes with. When it
 // is non-empty it must hold exactly columns entries, in the order the buffer's columns appear,
 // and a non-empty vector of any other length throws std::invalid_argument rather than silently
