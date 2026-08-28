@@ -506,15 +506,18 @@ TEST(DescriptorBatchTest, MatchesThePythonToNumericMatrixFixture) {
     first.Set("MW", DescriptorValue::Float(1.0));
     first.Set("nAtom", DescriptorValue::Int(2));
     first.Set("Lipinski", DescriptorValue::Bool(true));
+    first.Set("Source", DescriptorValue::String("x"));
 
     DescriptorSetBuilder second(schema);
     second.Set("MW", DescriptorValue::Float(4.0));
     second.Set("nAtom", DescriptorValue::Int(6));
     second.Set("Lipinski", DescriptorValue::Bool(false));
+    second.Set("Source", DescriptorValue::String("y"));
 
     DescriptorSetBuilder third(schema);
     third.Set("nAtom", DescriptorValue::Int(6));
     third.Set("Lipinski", DescriptorValue::Bool(false));
+    third.Set("Source", DescriptorValue::String("z"));
 
     const auto batch = DescriptorBatch::FromDescriptorSets(
         {first.Build("r0"), second.Build("r1"), third.Build("r2")});

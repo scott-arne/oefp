@@ -94,6 +94,8 @@ public:
     /// agrees with this for non-negative input, but is unbounded and undefined at
     /// a = -b, so it is unsuitable for signed descriptors such as partial charges or
     /// BCUT2D eigenvalues.
+    /// When both inputs have zero absolute-value mass the quotient is undefined; OEFP
+    /// returns 0.0, where scipy returns NaN.
     static Metric BrayCurtis();
 
     /// \brief Create a Jaccard distance metric.

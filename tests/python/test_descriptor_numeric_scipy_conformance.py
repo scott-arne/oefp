@@ -58,6 +58,11 @@ def _batch(values=VALUES):
         (lambda o: o.Metric.canberra(), "canberra", {}),
         (lambda o: o.Metric.hamming(), "hamming", {}),
         (lambda o: o.Metric.minkowski(3.0), "minkowski", {"p": 3.0}),
+        (
+            lambda o: o.Metric.minkowski(3.0, [1.0, 0.5, 2.0]),
+            "minkowski",
+            {"p": 3.0, "w": [1.0, 0.5, 2.0]},
+        ),
     ],
 )
 def test_numeric_pdist_matches_scipy(build_metric, scipy_name, kwargs):
@@ -107,6 +112,21 @@ def test_numeric_pdist_bray_curtis_uses_the_signed_safe_denominator():
     assert actual.max() <= 1.0
     scipy_values = distance.pdist(VALUES, "braycurtis")
     assert not np.allclose(actual, scipy_values, rtol=1e-6)
+
+
+def test_numeric_pdist_bray_curtis_returns_zero_for_zero_mass_rows():
+    """OEFP resolves the undefined quotient to 0.0; scipy returns NaN.
+
+    Two rows with no absolute-value mass give Bray-Curtis a zero denominator.
+    ``zero_safe_divide`` (src/compare_detail.h:64) returns 0.0 rather than letting NaN
+    propagate into a distance matrix.
+    """
+    import oefp
+
+    zeros = np.zeros((2, len(COLUMNS)), dtype=np.float64)
+    actual = oefp.pdist(_batch(zeros), oefp.Metric.bray_curtis(), columns=list(COLUMNS))
+    np.testing.assert_array_equal(actual, np.zeros(1))
+    assert np.isnan(distance.pdist(zeros, "braycurtis")).all()
 
 
 def test_numeric_pdist_matches_scipy_for_the_variance_aware_metrics():
