@@ -732,8 +732,19 @@ std::vector<double> PDist(
     const Metric& metric,
     const DescriptorNumericOptions& options,
     const BatchKernelOptions& kernel) {
-    std::vector<double> output(condensed_size(batch.Size()), 0.0);
-    PDistInto(batch, metric, options, output.data(), output.size(), kernel);
+    // Metric first, then the output, as spec 6.1 requires. Delegating to PDistInto would invert
+    // that: the output is quadratic in the row count, so a rejected metric on a large batch would
+    // surface as std::bad_alloc instead of std::invalid_argument. The matrix is only
+    // rows x columns, so materializing it first is the cheap half of the work.
+    const auto matrix = batch.ToNumericMatrix(options.columns);
+    // Deliberately duplicated: pdist_numeric_impl validates again. The check is O(columns) and
+    // idempotent, and paying it twice is what gets the rejection out before the allocation.
+    validate_numeric_metric(metric, options.missing, matrix.columns, &matrix.names);
+
+    std::vector<double> output(condensed_size(matrix.rows), 0.0);
+    pdist_numeric_impl(matrix.values.data(), matrix.validity.data(), matrix.rows, matrix.columns,
+                       metric, options.missing, output.data(), output.size(), kernel,
+                       &matrix.names);
     return output;
 }
 
@@ -774,9 +785,35 @@ std::vector<double> CDist(
     const Metric& metric,
     const DescriptorNumericOptions& options,
     const BatchKernelOptions& kernel) {
+    // Metric first, then the output, as spec 6.1 requires; see PDist for why delegating to
+    // CDistInto would invert that. CDistInto's two guards are carried over, not dropped.
+    if (a.Schema().SchemaId() != b.Schema().SchemaId()) {
+        throw std::invalid_argument(
+            "Descriptor batches must share a schema identifier for numeric comparison.");
+    }
+
+    const auto a_matrix = a.ToNumericMatrix(options.columns);
+    const auto b_matrix = b.ToNumericMatrix(options.columns);
+    // This guard cannot fire today: schema_id_ is produced by schema_id_for
+    // (src/descriptor_schema.cpp:92-171), which serializes the ordered definition list, so equal
+    // ids imply identical definitions in identical order, and all three DescriptorSelection modes
+    // (Names, Group, Indices) resolve identically against identical definitions. Keep it as
+    // defense-in-depth because it is cheap and the invariant it depends on lives in another file.
+    if (a_matrix.names != b_matrix.names) {
+        throw std::invalid_argument(
+            "The column selection must resolve identically against both descriptor batches.");
+    }
+
+    // Deliberately duplicated: cdist_numeric_impl validates again. The check is O(columns) and
+    // idempotent, and paying it twice is what gets the rejection out before the allocation.
+    validate_numeric_metric(metric, options.missing, a_matrix.columns, &a_matrix.names);
+
     std::vector<double> output(
-        checked_product(a.Size(), b.Size(), "CDist output size is too large."), 0.0);
-    CDistInto(a, b, metric, options, output.data(), output.size(), kernel);
+        checked_product(a_matrix.rows, b_matrix.rows, "CDist output size is too large."), 0.0);
+    cdist_numeric_impl(a_matrix.values.data(), a_matrix.validity.data(), a_matrix.rows,
+                       b_matrix.values.data(), b_matrix.validity.data(), b_matrix.rows,
+                       a_matrix.columns, metric, options.missing, output.data(), output.size(),
+                       kernel, &a_matrix.names);
     return output;
 }
 

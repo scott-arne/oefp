@@ -1102,6 +1102,21 @@ TEST(DescriptorNumericBatchTest, CDistRejectsMismatchedSchemas) {
                  std::invalid_argument);
 }
 
+TEST(DescriptorNumericBatchTest, PDistAndCDistRejectAnInvalidMetricRatherThanFailingToAllocate) {
+    // A regression pin for the metric-then-output order in PDist and CDist, not proof of it: the
+    // order is only observable when the quadratic allocation actually fails, which cannot be
+    // forced here. This assertion holds under either order; it is here so that restoring the old
+    // order cannot also quietly drop the rejection.
+    const auto batch = two_row_batch();
+    const DescriptorNumericOptions options{DescriptorSelection::Names({"MW", "nAtom"}),
+                                           DescriptorMissingPolicy::Propagate};
+
+    EXPECT_THROW(PDist(batch, Metric::Jaccard(), options), std::invalid_argument);
+    EXPECT_THROW(CDist(batch, batch, Metric::Jaccard(), options), std::invalid_argument);
+    EXPECT_THROW(PDist(batch, Metric::Haversine(), options), std::invalid_argument);
+    EXPECT_THROW(CDist(batch, batch, Metric::Haversine(), options), std::invalid_argument);
+}
+
 TEST(DescriptorNumericBatchTest, AnEmptySelectionYieldsNaNThroughEveryOverload) {
     // DescriptorSelection::Group resolves an unknown group to zero indices rather than
     // throwing (src/descriptor_schema.cpp:201-207), so a zero-width matrix is reachable
