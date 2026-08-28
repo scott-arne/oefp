@@ -1689,6 +1689,7 @@ class DescriptorBatch:
         :raises TypeError: When the batch is legacy or a named column is not a numeric
             scalar (bool, int, or float).
         :raises ValueError: When ``names`` is empty.
+        :raises KeyError: When a name is not present in the schema.
         """
         schema = self._require_schema()
         selected = tuple(names)
@@ -1704,13 +1705,16 @@ class DescriptorBatch:
                 )
 
         rows = self._schema_rows()
-        values = np.empty((len(rows), len(selected)), dtype=np.float64)
-        validity = np.empty((len(rows), len(selected)), dtype=np.bool_)
-        for row_index, row in enumerate(rows):
-            for column_index, name in enumerate(selected):
+        values_flat = []
+        validity_flat = []
+        for row in rows:
+            for name in selected:
                 value = row[name]
-                validity[row_index, column_index] = value is not None
-                values[row_index, column_index] = np.nan if value is None else float(value)
+                validity_flat.append(value is not None)
+                values_flat.append(np.nan if value is None else float(value))
+
+        values = np.array(values_flat, dtype=np.float64).reshape(len(rows), len(selected))
+        validity = np.array(validity_flat, dtype=np.bool_).reshape(len(rows), len(selected))
         return values, validity
 
     def subset(self, names: Sequence[str]) -> DescriptorBatch:
@@ -2767,14 +2771,26 @@ def cdist(
 ) -> np.ndarray:
     """Return row-major cross-distance/comparison values as a 2D array.
 
+    Native exceptions surface as ``RuntimeError`` rather than ``ValueError``.
+
+    :param a: First fingerprint or descriptor batch.
+    :param b: Second fingerprint or descriptor batch.
+    :param metric: Distance or comparison metric.
+    :param descriptor_mode: Descriptor comparison mode (``"count_overlap"``,
+        ``"exact_count"``, or ``"presence"``). Ignored when ``columns`` is given.
+    :param num_threads: Thread-pool size; 0 selects a default.
+    :param chunk_size: Work partition size for parallel execution.
     :param columns: Names of scalar descriptor columns to compare numerically.
         Requires a schema-backed batch. When omitted, the legacy keyed
         descriptor path is used.
     :param missing: ``"propagate"`` (any missing value makes the pair NaN) or
         ``"ignore"`` (drop the dimension and rescale by the remaining weight
         mass). Matched case-insensitively.
+    :returns: Cross-distance matrix of shape ``(a.size, b.size)``.
+    :raises TypeError: When batch types are incompatible or ``columns`` is given
+        with non-DescriptorBatch inputs.
     :raises ValueError: When ``columns`` is given and the two batches do not share
-        a schema identifier.
+        a schema identifier, or when the missing-value policy is unknown.
     """
     if not (
         (isinstance(a, OEFPBatch) and isinstance(b, OEFPBatch))
@@ -2792,6 +2808,12 @@ def cdist(
     if columns is not None:
         if not (isinstance(a, DescriptorBatch) and isinstance(b, DescriptorBatch)):
             raise TypeError("The columns= argument is only valid for DescriptorBatch inputs.")
+        if descriptor_mode != "count_overlap":
+            raise TypeError(
+                "descriptor_mode is ignored when columns= is given; omit it or use the "
+                "legacy descriptor path."
+            )
+        missing_policy = _descriptor_missing_value(missing)
         _require_matching_numeric_schemas(a, b)
         a_values, a_validity = _numeric_matrix_for(a, columns)
         b_values, b_validity = _numeric_matrix_for(b, columns)
@@ -2806,12 +2828,17 @@ def cdist(
             b_values.shape[0],
             a_values.shape[1],
             metric._native,
-            _descriptor_missing_value(missing),
+            missing_policy,
             int(output.ctypes.data),
             output.size,
             _batch_options(num_threads, chunk_size),
         )
         return output
+
+    if missing != "propagate":
+        raise TypeError(
+            "missing= is ignored without columns=; provide columns= or use the default."
+        )
 
     if isinstance(a, DescriptorBatch) and isinstance(b, DescriptorBatch):
         if _is_schema_descriptor_batch(a) or _is_schema_descriptor_batch(b):
@@ -2849,12 +2876,24 @@ def pdist(
 ) -> np.ndarray:
     """Return SciPy-compatible condensed pairwise values.
 
+    Native exceptions surface as ``RuntimeError`` rather than ``ValueError``.
+
+    :param batch: Fingerprint or descriptor batch.
+    :param metric: Distance or comparison metric.
+    :param descriptor_mode: Descriptor comparison mode (``"count_overlap"``,
+        ``"exact_count"``, or ``"presence"``). Ignored when ``columns`` is given.
+    :param num_threads: Thread-pool size; 0 selects a default.
+    :param chunk_size: Work partition size for parallel execution.
     :param columns: Names of scalar descriptor columns to compare numerically.
         Requires a schema-backed batch. When omitted, the legacy keyed
         descriptor path is used.
     :param missing: ``"propagate"`` (any missing value makes the pair NaN) or
         ``"ignore"`` (drop the dimension and rescale by the remaining weight
         mass). Matched case-insensitively.
+    :returns: Condensed distance matrix of shape ``(n * (n - 1) / 2,)``.
+    :raises TypeError: When the batch type is unsupported or ``columns`` is given
+        with a non-DescriptorBatch.
+    :raises ValueError: When the missing-value policy is unknown.
     """
     if not isinstance(batch, (OEFPBatch, OEFPCountBatch, OEFPSparseBatch, DescriptorBatch)):
         raise TypeError(
@@ -2866,6 +2905,12 @@ def pdist(
     if columns is not None:
         if not isinstance(batch, DescriptorBatch):
             raise TypeError("The columns= argument is only valid for a DescriptorBatch.")
+        if descriptor_mode != "count_overlap":
+            raise TypeError(
+                "descriptor_mode is ignored when columns= is given; omit it or use the "
+                "legacy descriptor path."
+            )
+        missing_policy = _descriptor_missing_value(missing)
         values, validity = _numeric_matrix_for(batch, columns)
         mask = _validity_buffer(validity)
         _native.PDistNumericIntoAddress(
@@ -2874,12 +2919,17 @@ def pdist(
             values.shape[0],
             values.shape[1],
             metric._native,
-            _descriptor_missing_value(missing),
+            missing_policy,
             int(output.ctypes.data),
             output.size,
             _batch_options(num_threads, chunk_size),
         )
         return output
+
+    if missing != "propagate":
+        raise TypeError(
+            "missing= is ignored without columns=; provide columns= or use the default."
+        )
 
     if isinstance(batch, DescriptorBatch):
         if _is_schema_descriptor_batch(batch):
@@ -2912,10 +2962,13 @@ def column_statistics(
     Each column is summarized over its own present values, so columns with different
     missing patterns still contribute everything they have.
 
+    Native exceptions are translated to ``ValueError``.
+
     :param batch: Schema-backed descriptor batch.
     :param columns: Names of scalar descriptor columns.
     :returns: Per-column statistics.
     :raises TypeError: When the batch is legacy or a column is not a numeric scalar.
+    :raises ValueError: When a native constraint is violated.
     """
     values, validity = _numeric_matrix_for(batch, columns)
     mask = _validity_buffer(validity)
@@ -2946,9 +2999,12 @@ def covariance_matrix(
 
     Rows missing any selected value are dropped entirely (listwise deletion).
 
+    Native exceptions are translated to ``ValueError``.
+
     :param batch: Schema-backed descriptor batch.
     :param columns: Names of scalar descriptor columns.
     :returns: Covariance matrix and the number of complete rows.
+    :raises TypeError: When the batch is legacy or a column is not a numeric scalar.
     :raises ValueError: When fewer than two complete rows remain.
     """
     values, validity = _numeric_matrix_for(batch, columns)
@@ -2978,11 +3034,14 @@ def inverse_covariance_matrix(
 ) -> DescriptorInverseCovariance:
     """Compute the pseudo-inverse of the covariance, ready for a Mahalanobis metric.
 
+    Native exceptions are translated to ``ValueError``.
+
     :param batch: Schema-backed descriptor batch.
     :param columns: Names of scalar descriptor columns.
     :param rcond: Relative eigenvalue cutoff. ``None`` selects the library default of
         ``numpy.finfo(float).eps * len(columns)``.
     :returns: Pseudo-inverse matrix, complete row count, and numerical rank.
+    :raises TypeError: When the batch is legacy or a column is not a numeric scalar.
     :raises ValueError: When fewer than two complete rows remain or no eigenvalue
         survives the cutoff.
     """
