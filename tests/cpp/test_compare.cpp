@@ -109,6 +109,40 @@ TEST(CompareTest, ComputesScikitLearnBooleanDistanceCatalog) {
     EXPECT_NEAR(Compare(a, b, Metric::SokalSneath()), 6.0 / 7.0, 1.0e-12);
 }
 
+TEST(CompareTest, BooleanDistancesWithZeroSelfDistanceReturnZeroForTwoEmptyFingerprints) {
+    const auto empty = fingerprint_with_bits(8, {});
+
+    // Every boolean distance whose self-distance is defined to be zero must say so for the
+    // degenerate all-zero pair, where the quotient is 0/0.
+    EXPECT_EQ(Compare(empty, empty, Metric::Jaccard()), 0.0);
+    EXPECT_EQ(Compare(empty, empty, Metric::Matching()), 0.0);
+    EXPECT_EQ(Compare(empty, empty, Metric::Dice()), 0.0);
+    EXPECT_EQ(Compare(empty, empty, Metric::RogersTanimoto()), 0.0);
+    EXPECT_EQ(Compare(empty, empty, Metric::SokalMichener()), 0.0);
+    EXPECT_EQ(Compare(empty, empty, Metric::SokalSneath()), 0.0);
+}
+
+TEST(CompareTest, MahalanobisRejectsAnInverseCovarianceThatYieldsANegativeQuadraticForm) {
+    const auto a = fingerprint_with_bits(2, {0});
+    const auto b = fingerprint_with_bits(2, {1});
+
+    EXPECT_THROW(Compare(a, b, Metric::Mahalanobis({-1.0, 0.0, 0.0, -1.0})), std::invalid_argument);
+    EXPECT_THROW(Compare(a, b, Metric::Mahalanobis({1.0, 0.0, 0.0, -4.0})), std::invalid_argument);
+
+    // A matrix that is not positive semidefinite but whose negative directions this particular
+    // pair never probes is still accepted: the guard reads the quadratic form, not the spectrum.
+    EXPECT_NEAR(Compare(a, b, Metric::Mahalanobis({1.0, 0.0, 0.0, 1.0})), std::sqrt(2.0), 1.0e-12);
+}
+
+TEST(CompareTest, MahalanobisPropagatesNaNRatherThanReportingItAsNonSemidefinite) {
+    const auto a = fingerprint_with_bits(2, {0});
+    const auto b = fingerprint_with_bits(2, {1});
+    const auto nan = std::numeric_limits<double>::quiet_NaN();
+
+    // NaN < 0.0 is false, so the semidefiniteness guard leaves genuine NaN propagation alone.
+    EXPECT_TRUE(std::isnan(Compare(a, b, Metric::Mahalanobis({nan, 0.0, 0.0, 1.0}))));
+}
+
 TEST(CompareTest, ComputesScikitLearnRealAndIntegerDistanceCatalog) {
     const auto a = fingerprint_with_bits(4, {1, 2});
     const auto b = fingerprint_with_bits(4, {0, 1, 3});
@@ -187,13 +221,15 @@ TEST(CompareTest, UsesZeroSimilarityForEmptyDenominators) {
 
     EXPECT_EQ(Compare(a, b, Metric::Tanimoto()), 0.0);
     EXPECT_EQ(Compare(a, b, Metric::Jaccard()), 0.0);
-    EXPECT_TRUE(std::isnan(Compare(a, b, Metric::Dice())));
+    EXPECT_EQ(Compare(a, b, Metric::Dice()), 0.0);
     EXPECT_EQ(Compare(a, b, Metric::Matching()), 0.0);
+    // Kulsinski and Russell-Rao measure a nonzero self-distance by construction, so the
+    // empty pair is not a degenerate case for them.
     EXPECT_EQ(Compare(a, b, Metric::Kulsinski()), 1.0);
     EXPECT_EQ(Compare(a, b, Metric::RogersTanimoto()), 0.0);
     EXPECT_EQ(Compare(a, b, Metric::RussellRao()), 1.0);
     EXPECT_EQ(Compare(a, b, Metric::SokalMichener()), 0.0);
-    EXPECT_TRUE(std::isnan(Compare(a, b, Metric::SokalSneath())));
+    EXPECT_EQ(Compare(a, b, Metric::SokalSneath()), 0.0);
     EXPECT_EQ(Compare(a, b, Metric::Tversky(0.5, 0.5)), 0.0);
     EXPECT_EQ(Compare(a, b, Metric::Manhattan()), 0.0);
 }
@@ -241,7 +277,7 @@ TEST(CompareCountTest, UsesZeroSimilarityForEmptyCountDenominators) {
 
     EXPECT_EQ(Compare(a, b, Metric::Tanimoto()), 0.0);
     EXPECT_EQ(Compare(a, b, Metric::Jaccard()), 0.0);
-    EXPECT_TRUE(std::isnan(Compare(a, b, Metric::Dice())));
+    EXPECT_EQ(Compare(a, b, Metric::Dice()), 0.0);
     EXPECT_EQ(Compare(a, b, Metric::Matching()), 0.0);
     EXPECT_EQ(Compare(a, b, Metric::Tversky(0.5, 0.5)), 0.0);
     EXPECT_EQ(Compare(a, b, Metric::Manhattan()), 0.0);
@@ -284,7 +320,7 @@ TEST(CompareSparseBinaryTest, UsesZeroSimilarityForEmptyDenominators) {
 
     EXPECT_EQ(Compare(a, b, Metric::Tanimoto()), 0.0);
     EXPECT_EQ(Compare(a, b, Metric::Jaccard()), 0.0);
-    EXPECT_TRUE(std::isnan(Compare(a, b, Metric::Dice())));
+    EXPECT_EQ(Compare(a, b, Metric::Dice()), 0.0);
     EXPECT_EQ(Compare(a, b, Metric::Matching()), 0.0);
     EXPECT_EQ(Compare(a, b, Metric::Tversky(0.5, 0.5)), 0.0);
     EXPECT_EQ(Compare(a, b, Metric::Manhattan()), 0.0);
