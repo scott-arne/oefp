@@ -2399,7 +2399,14 @@ class Metric:
 
     @classmethod
     def bray_curtis(cls) -> Metric:
-        """Create a Bray-Curtis distance metric."""
+        """Create a Bray-Curtis distance metric.
+
+        Computed as ``sum|a-b| / (sum|a| + sum|b|)``, which is bounded in ``[0, 1]``
+        for any real input. The classical ecology form ``sum|a-b| / sum|a+b|`` (used
+        by scipy) agrees with this for non-negative input, but is unbounded and
+        undefined at ``a == -b``, so it is unsuitable for signed descriptors such as
+        partial charges or BCUT2D eigenvalues.
+        """
         return cls._from_native(_native._NativeMetric.BrayCurtis())
 
     @classmethod
