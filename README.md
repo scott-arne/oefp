@@ -435,7 +435,8 @@ Python tests:
 PYTHONPATH=python python -m pytest tests/python -q
 ```
 
-RDKit is required for conformance tests but is not a runtime dependency.
+RDKit and SciPy are required for conformance tests but are not runtime
+dependencies.
 
 ## Documentation
 
