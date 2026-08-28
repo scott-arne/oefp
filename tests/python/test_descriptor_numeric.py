@@ -456,3 +456,21 @@ def test_cdist_rejects_silently_ignored_argument_combinations():
     # missing is ignored on the legacy path
     with pytest.raises(TypeError, match="missing="):
         oefp.cdist(legacy, legacy, oefp.Metric.euclidean(), missing="ignore")
+
+
+def test_numeric_rejection_names_the_column_rather_than_its_index():
+    """The Python wrappers thread the resolved names, as the C++ batch overloads do."""
+    import oefp
+
+    batch = _mixed_batch()
+    metric = oefp.Metric.standardized_euclidean([1.0, 0.0])
+
+    with pytest.raises(RuntimeError) as pairwise:
+        oefp.pdist(batch, metric, columns=["MW", "nAtom"])
+    assert "'nAtom'" in str(pairwise.value)
+    assert "index" not in str(pairwise.value)
+
+    with pytest.raises(RuntimeError) as cross:
+        oefp.cdist(batch, batch, metric, columns=["MW", "nAtom"])
+    assert "'nAtom'" in str(cross.value)
+    assert "index" not in str(cross.value)

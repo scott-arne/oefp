@@ -8,6 +8,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <string>
 #include <vector>
 
 namespace OEFP {
@@ -404,15 +405,23 @@ void CDistInto(
 // has made a mistake worth reporting, and an empty NumPy array still has a non-zero
 // ctypes.data.
 //
-// The vector-returning forms allocate their own output and hand it to the pointer form, the way
+// The vector-returning forms allocate their own output and hand it to the shared kernel, the way
 // PDistNumeric and CDistNumeric do; they never route through an *IntoAddress form. So an empty
 // result -- a one-row pdist, or a cdist with a zero-row side -- stays a no-op instead of hitting
 // the zero-output-address rejection, and metric and missing-policy validation still runs at
 // every row count.
 //
+// The trailing names parameter is optional and carries no data the kernel computes with. When it
+// is non-empty it must hold exactly columns entries, in the order the buffer's columns appear,
+// and a non-empty vector of any other length throws std::invalid_argument rather than silently
+// degrading. It is used only to name a column in a rejection message, so that a binding caller
+// who knows its column names gets the same diagnostic the batch overloads produce. When it is
+// empty -- the default -- those messages fall back to the zero-based column index, which is the
+// pointer forms' contract.
+//
 // Everything else -- metric validity, missing-policy rejections, output-length checks, overflow
-// -- is delegated unchanged to the pointer form each address form forwards to. The \throws
-// lists on those pointer declarations apply here too.
+// -- matches the pointer form of the same name, whose kernel these share. The \throws lists on
+// those pointer declarations apply here too.
 
 /// \brief Address-based numeric pdist helper for Python bindings.
 std::vector<double> PDistNumericAddress(
@@ -422,7 +431,8 @@ std::vector<double> PDistNumericAddress(
     std::size_t columns,
     const Metric& metric,
     DescriptorMissingPolicy missing,
-    const BatchKernelOptions& kernel = {});
+    const BatchKernelOptions& kernel = {},
+    const std::vector<std::string>& names = {});
 
 /// \brief Address-based numeric pdist output helper for Python bindings.
 void PDistNumericIntoAddress(
@@ -434,7 +444,8 @@ void PDistNumericIntoAddress(
     DescriptorMissingPolicy missing,
     std::uint64_t output_address,
     std::size_t output_length,
-    const BatchKernelOptions& kernel = {});
+    const BatchKernelOptions& kernel = {},
+    const std::vector<std::string>& names = {});
 
 /// \brief Address-based numeric cdist helper for Python bindings.
 std::vector<double> CDistNumericAddress(
@@ -447,7 +458,8 @@ std::vector<double> CDistNumericAddress(
     std::size_t columns,
     const Metric& metric,
     DescriptorMissingPolicy missing,
-    const BatchKernelOptions& kernel = {});
+    const BatchKernelOptions& kernel = {},
+    const std::vector<std::string>& names = {});
 
 /// \brief Address-based numeric cdist output helper for Python bindings.
 void CDistNumericIntoAddress(
@@ -462,7 +474,8 @@ void CDistNumericIntoAddress(
     DescriptorMissingPolicy missing,
     std::uint64_t output_address,
     std::size_t output_length,
-    const BatchKernelOptions& kernel = {});
+    const BatchKernelOptions& kernel = {},
+    const std::vector<std::string>& names = {});
 /// \endcond
 
 } // namespace OEFP

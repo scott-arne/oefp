@@ -2860,6 +2860,10 @@ def cdist(
             int(output.ctypes.data),
             output.size,
             _batch_options(num_threads, chunk_size),
+            # The resolved column list, so a rejection names the offending column instead of
+            # its index. _numeric_matrix_for resolved this same sequence in this same order,
+            # so its length always matches a_values.shape[1].
+            _native_string_vector(columns),
         )
         return output
 
@@ -2956,6 +2960,10 @@ def pdist(
             int(output.ctypes.data),
             output.size,
             _batch_options(num_threads, chunk_size),
+            # The resolved column list, so a rejection names the offending column instead of
+            # its index. _numeric_matrix_for resolved this same sequence in this same order,
+            # so its length always matches values.shape[1].
+            _native_string_vector(columns),
         )
         return output
 

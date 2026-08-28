@@ -606,6 +606,19 @@ const double* numeric_values_from_address(std::uint64_t address, const char* wha
     return reinterpret_cast<const double*>(static_cast<std::uintptr_t>(address));
 }
 
+/// \brief Reject a names vector that cannot describe the compared columns.
+///
+/// The address forms take names only to improve a rejection message, so an empty vector is the
+/// ordinary "no names available" case. A non-empty vector of the wrong length is a binding
+/// mistake, and reporting it beats silently labelling the wrong column or falling back to an
+/// index the caller did not ask for.
+void validate_numeric_names(const std::vector<std::string>& names, std::size_t columns) {
+    if (!names.empty() && names.size() != columns) {
+        throw std::invalid_argument(
+            "The column name count must match the compared column count.");
+    }
+}
+
 const std::uint8_t* numeric_validity_from_address(std::uint64_t address) {
     // Zero is the documented "everything is present" sentinel, not an error.
     return address == 0u ? nullptr
@@ -752,14 +765,19 @@ void PDistNumericIntoAddress(
     DescriptorMissingPolicy missing,
     std::uint64_t output_address,
     std::size_t output_length,
-    const BatchKernelOptions& kernel) {
+    const BatchKernelOptions& kernel,
+    const std::vector<std::string>& names) {
+    validate_numeric_names(names, columns);
     const auto* values = numeric_values_from_address(values_address, "The value buffer");
     auto* output = reinterpret_cast<double*>(static_cast<std::uintptr_t>(output_address));
     if (output == nullptr) {
         throw std::invalid_argument("The output buffer address must not be zero.");
     }
-    PDistNumericInto(values, numeric_validity_from_address(validity_address), rows, columns,
-                     metric, missing, output, output_length, kernel);
+    // Call the kernel directly rather than PDistNumericInto so the resolved column names reach
+    // the rejection messages; PDistNumericInto is a nameless buffer API and passes nullptr.
+    pdist_numeric_impl(values, numeric_validity_from_address(validity_address), rows, columns,
+                       metric, missing, output, output_length, kernel,
+                       names.empty() ? nullptr : &names);
 }
 
 std::vector<double> PDistNumericAddress(
@@ -769,20 +787,22 @@ std::vector<double> PDistNumericAddress(
     std::size_t columns,
     const Metric& metric,
     DescriptorMissingPolicy missing,
-    const BatchKernelOptions& kernel) {
-    // Delegate to the pointer form, exactly as PDistNumeric does, rather than to
-    // PDistNumericIntoAddress. Going through the address form would reject the empty output a
-    // one-row pdist legitimately produces, because an empty vector's data() may be null and the
-    // *IntoAddress forms treat a zero output address as an error. Short-circuiting before the
-    // call instead would skip validate_numeric_metric, making metric and missing-policy
-    // validation depend on the row count. The pointer form does both correctly: it validates
-    // first, and validate_output accepts a null output at length zero.
+    const BatchKernelOptions& kernel,
+    const std::vector<std::string>& names) {
+    // Call the kernel directly, exactly as PDistNumeric does through its pointer form, rather
+    // than routing through PDistNumericIntoAddress. Going through the address form would reject
+    // the empty output a one-row pdist legitimately produces, because an empty vector's data()
+    // may be null and the *IntoAddress forms treat a zero output address as an error.
+    // Short-circuiting before the call instead would skip validate_numeric_metric, making metric
+    // and missing-policy validation depend on the row count. The kernel does both correctly: it
+    // validates first, and validate_output accepts a null output at length zero.
+    validate_numeric_names(names, columns);
     const auto* values = numeric_values_from_address(values_address, "The value buffer");
     const auto* validity = numeric_validity_from_address(validity_address);
 
     std::vector<double> output(condensed_size(rows), 0.0);
-    PDistNumericInto(values, validity, rows, columns, metric, missing, output.data(),
-                     output.size(), kernel);
+    pdist_numeric_impl(values, validity, rows, columns, metric, missing, output.data(),
+                       output.size(), kernel, names.empty() ? nullptr : &names);
     return output;
 }
 
@@ -798,7 +818,9 @@ void CDistNumericIntoAddress(
     DescriptorMissingPolicy missing,
     std::uint64_t output_address,
     std::size_t output_length,
-    const BatchKernelOptions& kernel) {
+    const BatchKernelOptions& kernel,
+    const std::vector<std::string>& names) {
+    validate_numeric_names(names, columns);
     const auto* a_values = numeric_values_from_address(a_values_address, "The first value buffer");
     const auto* b_values =
         numeric_values_from_address(b_values_address, "The second value buffer");
@@ -806,9 +828,12 @@ void CDistNumericIntoAddress(
     if (output == nullptr) {
         throw std::invalid_argument("The output buffer address must not be zero.");
     }
-    CDistNumericInto(a_values, numeric_validity_from_address(a_validity_address), a_rows,
-                     b_values, numeric_validity_from_address(b_validity_address), b_rows, columns,
-                     metric, missing, output, output_length, kernel);
+    // Call the kernel directly rather than CDistNumericInto so the resolved column names reach
+    // the rejection messages; CDistNumericInto is a nameless buffer API and passes nullptr.
+    cdist_numeric_impl(a_values, numeric_validity_from_address(a_validity_address), a_rows,
+                       b_values, numeric_validity_from_address(b_validity_address), b_rows,
+                       columns, metric, missing, output, output_length, kernel,
+                       names.empty() ? nullptr : &names);
 }
 
 std::vector<double> CDistNumericAddress(
@@ -821,17 +846,20 @@ std::vector<double> CDistNumericAddress(
     std::size_t columns,
     const Metric& metric,
     DescriptorMissingPolicy missing,
-    const BatchKernelOptions& kernel) {
-    // Delegates to the pointer form for the reason given in PDistNumericAddress.
+    const BatchKernelOptions& kernel,
+    const std::vector<std::string>& names) {
+    // Calls the kernel directly for the reason given in PDistNumericAddress.
+    validate_numeric_names(names, columns);
     const auto* a_values = numeric_values_from_address(a_values_address, "The first value buffer");
     const auto* b_values =
         numeric_values_from_address(b_values_address, "The second value buffer");
 
     std::vector<double> output(
         checked_product(a_rows, b_rows, "CDist output size is too large."), 0.0);
-    CDistNumericInto(a_values, numeric_validity_from_address(a_validity_address), a_rows,
-                     b_values, numeric_validity_from_address(b_validity_address), b_rows,
-                     columns, metric, missing, output.data(), output.size(), kernel);
+    cdist_numeric_impl(a_values, numeric_validity_from_address(a_validity_address), a_rows,
+                       b_values, numeric_validity_from_address(b_validity_address), b_rows,
+                       columns, metric, missing, output.data(), output.size(), kernel,
+                       names.empty() ? nullptr : &names);
     return output;
 }
 

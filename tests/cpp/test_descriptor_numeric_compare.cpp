@@ -48,6 +48,17 @@ DescriptorBatch two_row_batch() {
     return DescriptorBatch::FromDescriptorSets({first.Build("a"), second.Build("b")});
 }
 
+/// \brief Return the std::invalid_argument message \p action throws, or "" when it throws none.
+template <typename Action>
+std::string rejection_message(Action action) {
+    try {
+        action();
+    } catch (const std::invalid_argument& error) {
+        return error.what();
+    }
+    return {};
+}
+
 } // namespace
 
 TEST(DescriptorNumericCompareTest, EuclideanMatchesHandComputation) {
@@ -1092,6 +1103,103 @@ TEST(DescriptorNumericBatchTest, BadVarianceMessageNamesTheColumn) {
     } catch (const std::invalid_argument& error) {
         EXPECT_NE(std::string(error.what()).find("'nAtom'"), std::string::npos);
     }
+}
+
+TEST(DescriptorNumericAddressTest, SuppliedNamesReachTheRejectionMessage) {
+    // The Python wrapper calls the *IntoAddress forms, so without threaded names its users see
+    // "index 1" where the batch overloads say 'nAtom'. All four forms take the names.
+    const std::vector<double> values = {1.0, 2.0, 4.0, 6.0};
+    const auto address =
+        static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>(values.data()));
+    std::vector<double> output(4u, 0.0);
+    const auto output_address =
+        static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>(output.data()));
+    const auto metric = Metric::StandardizedEuclidean({1.0, 0.0});
+    const std::vector<std::string> names = {"MW", "nAtom"};
+    const BatchKernelOptions kernel;
+
+    const std::vector<std::string> messages = {
+        rejection_message([&] {
+            PDistNumericAddress(address, 0u, 2u, 2u, metric, DescriptorMissingPolicy::Propagate,
+                                kernel, names);
+        }),
+        rejection_message([&] {
+            PDistNumericIntoAddress(address, 0u, 2u, 2u, metric,
+                                    DescriptorMissingPolicy::Propagate, output_address, 1u,
+                                    kernel, names);
+        }),
+        rejection_message([&] {
+            CDistNumericAddress(address, 0u, 2u, address, 0u, 2u, 2u, metric,
+                                DescriptorMissingPolicy::Propagate, kernel, names);
+        }),
+        rejection_message([&] {
+            CDistNumericIntoAddress(address, 0u, 2u, address, 0u, 2u, 2u, metric,
+                                    DescriptorMissingPolicy::Propagate, output_address, 4u,
+                                    kernel, names);
+        }),
+    };
+
+    for (const auto& message : messages) {
+        EXPECT_NE(message.find("'nAtom'"), std::string::npos) << message;
+        EXPECT_EQ(message.find("index"), std::string::npos) << message;
+    }
+}
+
+TEST(DescriptorNumericAddressTest, OmittedNamesStillFallBackToTheColumnIndex) {
+    // The buffer contract is unchanged: names are optional, and without them the diagnostic is
+    // the zero-based column index, exactly as the pointer forms report it.
+    const std::vector<double> values = {1.0, 2.0, 4.0, 6.0};
+    const auto address =
+        static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>(values.data()));
+    std::vector<double> output(4u, 0.0);
+    const auto output_address =
+        static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>(output.data()));
+    const auto metric = Metric::StandardizedEuclidean({1.0, 0.0});
+
+    const auto pairwise = rejection_message([&] {
+        PDistNumericAddress(address, 0u, 2u, 2u, metric, DescriptorMissingPolicy::Propagate);
+    });
+    EXPECT_NE(pairwise.find("index 1"), std::string::npos) << pairwise;
+
+    const auto cross = rejection_message([&] {
+        CDistNumericIntoAddress(address, 0u, 2u, address, 0u, 2u, 2u, metric,
+                                DescriptorMissingPolicy::Propagate, output_address, 4u);
+    });
+    EXPECT_NE(cross.find("index 1"), std::string::npos) << cross;
+}
+
+TEST(DescriptorNumericAddressTest, ANonEmptyNamesVectorOfTheWrongLengthIsRejected) {
+    const std::vector<double> values = {1.0, 2.0, 4.0, 6.0};
+    const auto address =
+        static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>(values.data()));
+    std::vector<double> output(4u, 0.0);
+    const auto output_address =
+        static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>(output.data()));
+    const std::vector<std::string> names = {"MW"};
+    const BatchKernelOptions kernel;
+
+    EXPECT_THROW(PDistNumericAddress(address, 0u, 2u, 2u, Metric::Euclidean(),
+                                     DescriptorMissingPolicy::Propagate, kernel, names),
+                 std::invalid_argument);
+    EXPECT_THROW(PDistNumericIntoAddress(address, 0u, 2u, 2u, Metric::Euclidean(),
+                                         DescriptorMissingPolicy::Propagate, output_address, 1u,
+                                         kernel, names),
+                 std::invalid_argument);
+    EXPECT_THROW(CDistNumericAddress(address, 0u, 2u, address, 0u, 2u, 2u, Metric::Euclidean(),
+                                     DescriptorMissingPolicy::Propagate, kernel, names),
+                 std::invalid_argument);
+    EXPECT_THROW(CDistNumericIntoAddress(address, 0u, 2u, address, 0u, 2u, 2u,
+                                         Metric::Euclidean(),
+                                         DescriptorMissingPolicy::Propagate, output_address, 4u,
+                                         kernel, names),
+                 std::invalid_argument);
+
+    // A matching non-empty vector, and an empty one, both compute normally.
+    const std::vector<std::string> matching = {"MW", "nAtom"};
+    EXPECT_NO_THROW(PDistNumericAddress(address, 0u, 2u, 2u, Metric::Euclidean(),
+                                        DescriptorMissingPolicy::Propagate, kernel, matching));
+    EXPECT_NO_THROW(PDistNumericAddress(address, 0u, 2u, 2u, Metric::Euclidean(),
+                                        DescriptorMissingPolicy::Propagate));
 }
 
 TEST(DescriptorNumericBatchTest, CDistOverDifferentBatchesUsesDistinctValues) {
