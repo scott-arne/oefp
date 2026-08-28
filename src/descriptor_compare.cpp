@@ -320,7 +320,15 @@ void accumulate_dimension(NumericStats& stats, double a_value, double b_value) {
     ++stats.dimensions;
     stats.l1 += abs_difference;
     stats.squared_l2 += difference * difference;
-    stats.max_abs = std::max(stats.max_abs, abs_difference);
+    // A present value may legitimately be NaN -- RDKit's BCUT2D columns are emitted as NaN when
+    // an element has no Gasteiger parameters (src/rdkit_descriptors.cpp) -- and std::max returns
+    // its first argument whenever the comparison is false, so a NaN difference would leave the
+    // running maximum at the last finite value. Chebyshev would then report a confident distance
+    // derived from indefinite data, and one that depends on column order. Propagate instead, as
+    // every other metric here already does through ordinary arithmetic. Once max_abs is NaN it
+    // stays NaN, because std::max(NaN, x) also returns its first argument.
+    stats.max_abs = std::isnan(abs_difference) ? abs_difference
+                                               : std::max(stats.max_abs, abs_difference);
     if (difference != 0.0) {
         stats.unequal += 1.0;
     }

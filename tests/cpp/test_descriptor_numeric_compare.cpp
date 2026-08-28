@@ -1727,6 +1727,46 @@ TEST(DescriptorNumericAddressTest, EmptyOutputVectorFormsStayANoOpForAValidMetri
     EXPECT_TRUE(cdist.empty());
 }
 
+TEST(DescriptorNumericBufferTest, ChebyshevPropagatesAPresentNaN) {
+    // A present value can be NaN: RDKit emits NaN BCUT2D columns for elements with no Gasteiger
+    // parameters, so this reaches real molecules rather than only synthetic input. Chebyshev used
+    // std::max, which returns its first argument when the comparison is false, and so reported a
+    // finite distance that depended on which row held the NaN. Every metric that reaches the NaN
+    // through ordinary arithmetic already propagates it; Chebyshev has to agree.
+    const auto nan = std::numeric_limits<double>::quiet_NaN();
+    const std::vector<double> finite_first{1.0, 5.0, nan, 5.0};
+    const std::vector<double> nan_first{nan, 5.0, 1.0, 5.0};
+
+    for (const auto& values : {finite_first, nan_first}) {
+        const auto chebyshev = PDistNumeric(values.data(), nullptr, 2u, 2u, Metric::Chebyshev(),
+                                            DescriptorMissingPolicy::Propagate);
+        ASSERT_EQ(chebyshev.size(), 1u);
+        EXPECT_TRUE(std::isnan(chebyshev[0]));
+    }
+
+    // The finite columns of the same rows must still behave, so the propagation is not a blanket
+    // NaN for any row that contains one somewhere.
+    const std::vector<double> finite_only{1.0, 5.0, 4.0, 5.0};
+    const auto finite = PDistNumeric(finite_only.data(), nullptr, 2u, 2u, Metric::Chebyshev(),
+                                     DescriptorMissingPolicy::Propagate);
+    ASSERT_EQ(finite.size(), 1u);
+    EXPECT_DOUBLE_EQ(finite[0], 3.0);
+}
+
+TEST(DescriptorNumericBufferTest, AMissingNaNIsStillDroppedByTheIgnorePolicy) {
+    // Propagating a present NaN must not change what Ignore does with an absent one. The value
+    // sitting in an invalid slot is unspecified by contract, so a NaN there is dropped on the
+    // validity bit, not on its bit pattern.
+    const auto nan = std::numeric_limits<double>::quiet_NaN();
+    const std::vector<double> values{1.0, 5.0, nan, 5.0};
+    const std::vector<std::uint8_t> validity{1u, 1u, 0u, 1u};
+
+    const auto chebyshev = PDistNumeric(values.data(), validity.data(), 2u, 2u, Metric::Chebyshev(),
+                                        DescriptorMissingPolicy::Ignore);
+    ASSERT_EQ(chebyshev.size(), 1u);
+    EXPECT_DOUBLE_EQ(chebyshev[0], 0.0);
+}
+
 // Returns the what() of the rejection \p call produces, or an empty string if it did not throw.
 std::string rejection_message(const std::function<void()>& call) {
     try {

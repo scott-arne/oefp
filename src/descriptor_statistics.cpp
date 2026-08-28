@@ -1,6 +1,7 @@
 #include "oefp/descriptor_statistics.h"
 
 #include <algorithm>
+#include <cmath>
 #include <cstdint>
 #include <limits>
 #include <stdexcept>
@@ -95,8 +96,18 @@ DescriptorColumnStatistics ColumnStatistics(
             const auto delta = value - statistics.mean[column];
             statistics.mean[column] += delta / count;
             sum_of_squares[column] += delta * (value - statistics.mean[column]);
-            statistics.minimum[column] = std::min(statistics.minimum[column], value);
-            statistics.maximum[column] = std::max(statistics.maximum[column], value);
+            // std::min and std::max return their first argument when the comparison is false, so
+            // a NaN value arriving after a finite one would be dropped while the same NaN
+            // arriving first would stick -- the extrema would depend on row order. A present
+            // value can legitimately be NaN (RDKit emits NaN BCUT2D columns for elements without
+            // Gasteiger parameters), so propagate it the way mean and variance already do.
+            if (std::isnan(value)) {
+                statistics.minimum[column] = value;
+                statistics.maximum[column] = value;
+            } else {
+                statistics.minimum[column] = std::min(statistics.minimum[column], value);
+                statistics.maximum[column] = std::max(statistics.maximum[column], value);
+            }
         }
     }
 

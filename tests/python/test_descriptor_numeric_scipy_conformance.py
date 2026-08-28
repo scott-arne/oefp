@@ -158,3 +158,28 @@ def test_numeric_cdist_matches_scipy():
     actual = oefp.cdist(_batch(), _batch(), oefp.Metric.euclidean(), columns=list(COLUMNS))
     expected = distance.cdist(VALUES, VALUES, "euclidean")
     np.testing.assert_allclose(actual, expected, rtol=1e-12, atol=1e-12)
+
+
+def test_chebyshev_propagates_a_present_nan():
+    """A present NaN is data, not a gap, and Chebyshev must not report a finite maximum.
+
+    OEFP used to return 0.0 here: its running maximum came from ``std::max``, which keeps
+    its first argument when the comparison is false, so a NaN difference was dropped and
+    the answer depended on which row held the NaN.
+
+    scipy is not a single reference for this one. ``distance.chebyshev`` propagates, but
+    ``distance.pdist(..., "chebyshev")`` returns 0.0 -- its compiled kernel has the same
+    defect. This test therefore pins OEFP against the scalar function, which agrees with
+    every other metric on both sides, and asserts the vectorized divergence explicitly so
+    that a future scipy release fixing it shows up here rather than silently.
+    """
+    import oefp
+
+    values = np.array([[1.0, 2.0, 3.0], [np.nan, 2.0, 3.0]], dtype=np.float64)
+    actual = oefp.pdist(_batch(values), oefp.Metric.chebyshev(), columns=list(COLUMNS))
+
+    assert np.isnan(distance.chebyshev(values[0], values[1]))
+    assert np.isnan(actual[0])
+
+    # Documents scipy's own inconsistency rather than endorsing it.
+    assert distance.pdist(values, "chebyshev")[0] == 0.0

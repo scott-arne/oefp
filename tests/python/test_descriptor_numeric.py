@@ -508,3 +508,49 @@ def test_numeric_rejection_names_the_column_rather_than_its_index():
         oefp.cdist(batch, batch, metric, columns=["MW", "nAtom"])
     assert "'nAtom'" in str(cross.value)
     assert "index" not in str(cross.value)
+
+
+def _nan_batch(values):
+    """Build a one-column batch whose every value is present, NaN included."""
+    import oefp
+
+    schema = oefp.DescriptorSchema([oefp.DescriptorDefinition("X", "float")])
+    return oefp.DescriptorBatch.from_descriptors(
+        [oefp.DescriptorSet(schema, {"X": value}) for value in values]
+    )
+
+
+def test_a_present_nan_propagates_through_every_metric_but_hamming():
+    """Missing is a property of the validity mask, never of the value.
+
+    RDKit emits NaN BCUT2D columns for elements with no Gasteiger parameters, so a
+    present NaN reaches this path with real molecules. Chebyshev used to report 0.0
+    here, because ``std::max`` keeps its first argument when the comparison is false.
+    """
+    import oefp
+
+    batch = _nan_batch([1.0, float("nan")])
+    _, validity = batch.to_numeric_matrix(["X"])
+    assert validity.all(), "both values must be present for this to test anything"
+
+    for name in ("chebyshev", "euclidean", "manhattan", "bray_curtis", "canberra"):
+        metric = getattr(oefp.Metric, name)()
+        assert math.isnan(oefp.pdist(batch, metric, columns=["X"])[0]), name
+
+    # Hamming counts inequality and NaN compares unequal to everything, so it reports a
+    # mismatch rather than NaN. That matches scipy, and is deliberate.
+    assert oefp.pdist(batch, oefp.Metric.hamming(), columns=["X"])[0] == 1.0
+
+
+def test_present_nan_extrema_do_not_depend_on_row_order():
+    """The same multiset of values must summarize identically however it is ordered."""
+    import oefp
+
+    nan = float("nan")
+    for values in ([1.0, nan, 3.0], [nan, 1.0, 3.0], [1.0, 3.0, nan]):
+        statistics = oefp.column_statistics(_nan_batch(values), ["X"])
+        assert statistics.present_count[0] == 3
+        assert math.isnan(statistics.minimum[0])
+        assert math.isnan(statistics.maximum[0])
+        assert math.isnan(statistics.mean[0])
+        assert math.isnan(statistics.variance[0])

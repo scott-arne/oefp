@@ -2821,7 +2821,11 @@ def cdist(
     :param missing: ``"propagate"`` (any missing value makes the pair NaN) or
         ``"ignore"`` (drop the dimension and rescale by the remaining weight
         mass). Matched case-insensitively. A non-default value is rejected when
-        ``columns=`` is omitted.
+        ``columns=`` is omitted. Missing is a property of the validity mask, not
+        of the value: a *present* NaN is dropped by neither policy and makes the
+        pair NaN for every metric except Hamming, which counts it as a mismatch
+        because NaN compares unequal to everything. To have such a value skipped,
+        clear its validity bit.
     :returns: Cross-distance matrix of shape ``(a.size, b.size)``.
     :raises TypeError: When batch types are incompatible, ``columns`` is given
         with non-DescriptorBatch inputs, a non-default ``descriptor_mode`` is
@@ -2934,7 +2938,11 @@ def pdist(
     :param missing: ``"propagate"`` (any missing value makes the pair NaN) or
         ``"ignore"`` (drop the dimension and rescale by the remaining weight
         mass). Matched case-insensitively. A non-default value is rejected when
-        ``columns=`` is omitted.
+        ``columns=`` is omitted. Missing is a property of the validity mask, not
+        of the value: a *present* NaN is dropped by neither policy and makes the
+        pair NaN for every metric except Hamming, which counts it as a mismatch
+        because NaN compares unequal to everything. To have such a value skipped,
+        clear its validity bit.
     :returns: Condensed distance matrix of shape ``(n * (n - 1) / 2,)``.
     :raises TypeError: When the batch type is unsupported, ``columns`` is given
         with a non-DescriptorBatch, a non-default ``descriptor_mode`` is given
@@ -3013,6 +3021,12 @@ def column_statistics(
 
     Each column is summarized over its own present values, so columns with different
     missing patterns still contribute everything they have.
+
+    Present is a property of the validity mask, not of the value. A *present* NaN is
+    included, and makes that column's ``mean``, ``variance``, ``minimum``, and
+    ``maximum`` all NaN while still counting toward ``present_count``. This matters for
+    real input: RDKit emits NaN BCUT2D columns for elements with no Gasteiger
+    parameters. To exclude such a value, clear its validity bit.
 
     Native exceptions are translated to ``ValueError``.
 

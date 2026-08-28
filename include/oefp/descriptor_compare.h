@@ -18,6 +18,16 @@ namespace OEFP {
 /// A dimension is missing for a pair when either row's validity mask marks it absent. The
 /// two policies differ only in what happens then; a pair with nothing missing is computed
 /// identically under both.
+///
+/// Missing is a property of the validity mask, never of the value. A present value that happens
+/// to be NaN is not missing under either policy, and neither policy drops it: the distance is
+/// NaN, for every metric. This is a real case rather than a defensive one -- RDKit's BCUT2D
+/// columns are emitted as NaN whenever an element has no Gasteiger parameters -- so a caller who
+/// wants such a value skipped must clear its validity bit. \c ColumnStatistics follows the same
+/// rule: a present NaN makes that column's mean, variance, minimum, and maximum all NaN.
+/// \c Metric::Hamming is the one exception on the comparison side, and only incidentally: it
+/// counts inequality, and NaN compares unequal to everything including itself, so a present NaN
+/// contributes a mismatch. That matches scipy.
 enum class DescriptorMissingPolicy {
     /// \brief Any dimension missing from either row yields NaN for that pair. Default.
     Propagate,

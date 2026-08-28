@@ -442,6 +442,41 @@ TEST(DescriptorStatisticsTest, NullValidityMeansEveryValueIsPresent) {
     EXPECT_DOUBLE_EQ(statistics.mean[0], 2.0);
 }
 
+TEST(DescriptorStatisticsTest, APresentNaNPropagatesIntoTheExtremaRegardlessOfRowOrder) {
+    // std::min and std::max return their first argument when the comparison is false, so the
+    // extrema used to depend on where the NaN sat: {1, NaN, 3} reported 1 and 3, while
+    // {NaN, 1, 3} reported NaN. The same multiset gave two different answers. A present value can
+    // legitimately be NaN -- RDKit emits NaN BCUT2D columns for elements with no Gasteiger
+    // parameters -- so the extrema have to propagate it the way mean and variance already do.
+    const auto nan = std::numeric_limits<double>::quiet_NaN();
+    const std::vector<double> nan_last{1.0, nan, 3.0};
+    const std::vector<double> nan_first{nan, 1.0, 3.0};
+    const std::vector<double> nan_middle{1.0, nan, 3.0};
+
+    for (const auto& values : {nan_last, nan_first, nan_middle}) {
+        const auto statistics = ColumnStatistics(values.data(), nullptr, 3u, 1u);
+        EXPECT_EQ(statistics.present_count[0], 3u);
+        EXPECT_TRUE(std::isnan(statistics.minimum[0]));
+        EXPECT_TRUE(std::isnan(statistics.maximum[0]));
+        EXPECT_TRUE(std::isnan(statistics.mean[0]));
+        EXPECT_TRUE(std::isnan(statistics.variance[0]));
+    }
+}
+
+TEST(DescriptorStatisticsTest, AMissingNaNLeavesTheExtremaFinite) {
+    // The counterweight: only a *present* NaN propagates. The value in an invalid slot is
+    // unspecified by contract, so a NaN there must be skipped on its validity bit.
+    const auto nan = std::numeric_limits<double>::quiet_NaN();
+    const std::vector<double> values{1.0, nan, 3.0};
+    const std::vector<std::uint8_t> validity{1u, 0u, 1u};
+
+    const auto statistics = ColumnStatistics(values.data(), validity.data(), 3u, 1u);
+    EXPECT_EQ(statistics.present_count[0], 2u);
+    EXPECT_DOUBLE_EQ(statistics.minimum[0], 1.0);
+    EXPECT_DOUBLE_EQ(statistics.maximum[0], 3.0);
+    EXPECT_DOUBLE_EQ(statistics.mean[0], 2.0);
+}
+
 TEST(DescriptorStatisticsTest, NullValuesPointerIsRejected) {
     // All three, not just ColumnStatistics: InverseCovarianceMatrix performs no validation of
     // its own, so CovarianceMatrix's guard is the only thing between a null buffer and a null
