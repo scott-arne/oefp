@@ -99,6 +99,9 @@ public:
     /// \c Bool columns map to ``0.0``/``1.0`` and \c Int columns widen to \c double.
     /// Present \c Int values whose magnitude exceeds 2^53 are rejected.
     ///
+    /// An empty selection is accepted and yields a ``rows x 0`` matrix. The Python wrapper
+    /// \c DescriptorBatch.to_numeric_matrix is deliberately stricter and rejects it.
+    ///
     /// \param selection Columns to materialize, in the order they are resolved.
     /// \return The values, the validity mask, the resolved names, and the extents.
     /// \throws std::invalid_argument: When the batch is not schema-backed, a selected

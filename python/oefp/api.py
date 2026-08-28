@@ -1686,6 +1686,9 @@ class DescriptorBatch:
         Bool columns map to 0.0 and 1.0; int columns widen to float64. Missing values
         are NaN in ``values`` and ``False`` in ``validity``.
 
+        Rejecting an empty ``names`` is a Python-side convenience; the C++
+        ``ToNumericMatrix`` accepts an empty selection and returns a ``rows x 0`` matrix.
+
         :param names: Descriptor column names, in the order they should occupy.
         :returns: A ``(values, validity)`` pair of C-contiguous arrays with shape
             ``(row_count, len(names))``; ``values`` is float64 and ``validity`` is bool.

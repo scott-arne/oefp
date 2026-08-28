@@ -675,8 +675,10 @@ OEFP_GIL_RELEASE_EXCEPTION(OEFP::CovarianceMatrixAddress)
 OEFP_GIL_RELEASE_EXCEPTION(OEFP::InverseCovarianceMatrixAddress)
 // The batch overloads are callable from Python too, and each is an O(rows x columns) pass --
 // a full Jacobi eigendecomposition for the inverse -- so they must not hold the GIL either.
-// %feature matches by name, so these also cover the buffer overloads of the same name; that is
-// harmless, since nothing in Python can produce the SWIGTYPE_p_double those require.
+// %feature matches by name, so these also cover the buffer overloads of the same name, which are
+// deliberately exported rather than ignored (see tests/python/test_native_numeric_pointer_surface.py).
+// Covering them is harmless and in fact correct: those overloads are null-safe, and they are
+// O(rows x columns) too, so releasing the GIL around them is the right thing to do.
 OEFP_GIL_RELEASE_EXCEPTION(OEFP::ColumnStatistics)
 OEFP_GIL_RELEASE_EXCEPTION(OEFP::CovarianceMatrix)
 OEFP_GIL_RELEASE_EXCEPTION(OEFP::InverseCovarianceMatrix)
@@ -940,10 +942,9 @@ namespace std {
 %include "oefp/metric.h"
 // SWIG_ConvertPtr accepts Python None for a const double*, so exporting the raw-pointer numeric
 // forms hands Python a null values buffer that PDistNumeric and CDistNumeric dereference inside
-// the kernel -- a segfault, not an exception. Python cannot construct a real SWIGTYPE_p_double
-// either way, so all four are dead surface; the address forms below are the supported entry
-// points. Each of these names has exactly one declaration in descriptor_compare.h, so a
-// name-level ignore hides nothing that is still needed.
+// the kernel -- a segfault, not an exception. That alone is reason enough to hide them; the
+// address forms below are the supported entry points. Each of these names has exactly one
+// declaration in descriptor_compare.h, so a name-level ignore hides nothing that is still needed.
 %ignore OEFP::PDistNumeric;
 %ignore OEFP::PDistNumericInto;
 %ignore OEFP::CDistNumeric;

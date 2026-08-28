@@ -37,7 +37,6 @@ namespace {
 using OEFP::compute_gasteiger_atom_charges;
 
 using OEFP::detail::symmetric_eigensystem_jacobi;
-using MordredSymmetricEigensystem = OEFP::detail::SymmetricEigensystem;
 
 struct MordredFirstBatchValues {
     std::uint32_t acidic_groups = 0u;
