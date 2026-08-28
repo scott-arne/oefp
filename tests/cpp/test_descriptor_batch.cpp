@@ -491,5 +491,50 @@ TEST(DescriptorBatchTest, ToNumericMatrixRejectsNegativeIntBeyondTwoToThe53) {
                  std::invalid_argument);
 }
 
+TEST(DescriptorBatchTest, MatchesThePythonToNumericMatrixFixture) {
+    // Mirrors tests/python/test_descriptor_numeric.py::_mixed_batch. Both sides must
+    // agree on values, validity, and column order; Python reimplements this in pure
+    // Python rather than binding it.
+    DescriptorSchemaBuilder builder;
+    builder.Add(DescriptorDefinition{"MW", DescriptorValueKind::Float, ""});
+    builder.Add(DescriptorDefinition{"nAtom", DescriptorValueKind::Int, ""});
+    builder.Add(DescriptorDefinition{"Lipinski", DescriptorValueKind::Bool, ""});
+    builder.Add(DescriptorDefinition{"Source", DescriptorValueKind::String, ""});
+    const auto schema = builder.Build();
+
+    DescriptorSetBuilder first(schema);
+    first.Set("MW", DescriptorValue::Float(1.0));
+    first.Set("nAtom", DescriptorValue::Int(2));
+    first.Set("Lipinski", DescriptorValue::Bool(true));
+
+    DescriptorSetBuilder second(schema);
+    second.Set("MW", DescriptorValue::Float(4.0));
+    second.Set("nAtom", DescriptorValue::Int(6));
+    second.Set("Lipinski", DescriptorValue::Bool(false));
+
+    DescriptorSetBuilder third(schema);
+    third.Set("nAtom", DescriptorValue::Int(6));
+    third.Set("Lipinski", DescriptorValue::Bool(false));
+
+    const auto batch = DescriptorBatch::FromDescriptorSets(
+        {first.Build("r0"), second.Build("r1"), third.Build("r2")});
+    const auto matrix =
+        batch.ToNumericMatrix(DescriptorSelection::Names({"MW", "nAtom", "Lipinski"}));
+
+    ASSERT_EQ(matrix.rows, 3u);
+    ASSERT_EQ(matrix.columns, 3u);
+    EXPECT_EQ(matrix.names, (std::vector<std::string>{"MW", "nAtom", "Lipinski"}));
+
+    const std::vector<double> expected{1.0, 2.0, 1.0, 4.0, 6.0, 0.0, 0.0, 6.0, 0.0};
+    for (std::size_t index = 0u; index < expected.size(); ++index) {
+        if (index == 6u) {
+            EXPECT_EQ(matrix.validity[index], 0u);
+            continue;  // The missing slot's value is unspecified; only validity is contractual.
+        }
+        EXPECT_EQ(matrix.validity[index], 1u);
+        EXPECT_DOUBLE_EQ(matrix.values[index], expected[index]);
+    }
+}
+
 } // namespace test
 } // namespace OEFP

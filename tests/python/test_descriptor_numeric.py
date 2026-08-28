@@ -40,6 +40,10 @@ def test_to_numeric_matrix_widens_and_marks_missing():
     np.testing.assert_allclose(values[0], np.array([1.0, 2.0, 1.0]))
     np.testing.assert_allclose(values[1], np.array([4.0, 6.0, 0.0]))
 
+    expected = np.array([[1.0, 2.0, 1.0], [4.0, 6.0, 0.0], [np.nan, 6.0, 0.0]])
+    np.testing.assert_array_equal(np.isnan(values), np.isnan(expected))
+    np.testing.assert_allclose(values[~np.isnan(expected)], expected[~np.isnan(expected)])
+
 
 def test_to_numeric_matrix_rejects_bad_selections():
     batch = _mixed_batch()
