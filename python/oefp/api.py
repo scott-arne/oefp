@@ -594,7 +594,10 @@ def _descriptor_missing_value(missing: str) -> Any:
         return _native.DescriptorMissingPolicy_Propagate
     if normalized == "ignore":
         return _native.DescriptorMissingPolicy_Ignore
-    raise ValueError(f"Unknown descriptor missing-value policy: {missing!r}.")
+    raise ValueError(
+        f"Unknown descriptor missing-value policy: {missing!r}. "
+        "Valid values are 'propagate' and 'ignore'."
+    )
 
 
 def _metric_name_name(value: Any) -> str:
@@ -2871,7 +2874,7 @@ def cdist(
         )
         return output
 
-    if missing != "propagate":
+    if not (isinstance(missing, str) and missing.lower() == "propagate"):
         raise TypeError(
             "missing= is ignored without columns=; provide columns= or use the default."
         )
@@ -2971,7 +2974,7 @@ def pdist(
         )
         return output
 
-    if missing != "propagate":
+    if not (isinstance(missing, str) and missing.lower() == "propagate"):
         raise TypeError(
             "missing= is ignored without columns=; provide columns= or use the default."
         )

@@ -123,6 +123,40 @@ def test_missing_policy_is_case_insensitive_and_validated():
         oefp.pdist(batch, oefp.Metric.euclidean(), columns=["nAtom"], missing="drop")
 
 
+def test_unknown_missing_policy_names_both_valid_values():
+    import oefp
+
+    batch = _mixed_batch()
+    with pytest.raises(ValueError) as error:
+        oefp.pdist(batch, oefp.Metric.euclidean(), columns=["nAtom"], missing="drop")
+
+    message = str(error.value)
+    assert "propagate" in message
+    assert "ignore" in message
+
+
+def test_default_missing_policy_is_case_insensitive_without_columns():
+    """``missing="PROPAGATE"`` names the default, so the columns= guard must accept it."""
+    import oefp
+
+    legacy = oefp.DescriptorBatch.from_descriptors(
+        [
+            oefp.DescriptorSet.from_strings(["alpha", "beta"]),
+            oefp.DescriptorSet.from_strings(["beta", "gamma"]),
+        ]
+    )
+    metric = oefp.Metric.tanimoto()
+
+    np.testing.assert_allclose(
+        oefp.pdist(legacy, metric, missing="propagate"),
+        oefp.pdist(legacy, metric, missing="PROPAGATE"),
+    )
+    np.testing.assert_allclose(
+        oefp.cdist(legacy, legacy, metric, missing="propagate"),
+        oefp.cdist(legacy, legacy, metric, missing="PROPAGATE"),
+    )
+
+
 def test_columns_omitted_still_raises_the_reworded_error():
     import oefp
 
