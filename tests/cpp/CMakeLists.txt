@@ -38,6 +38,7 @@ add_executable(oefp_tests
     test_kallisto_geometry.cpp
     test_linear_algebra.cpp
     test_metric.cpp
+    test_metric_properties.cpp
     test_molecular_properties.cpp
     test_mordred.cpp
     test_mordred_pruning_equivalence.cpp

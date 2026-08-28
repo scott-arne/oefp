@@ -2351,6 +2351,60 @@ class Metric:
         """Mahalanobis inverse covariance matrix in row-major order."""
         return tuple(float(value) for value in self._native.InverseCovariance())
 
+    @property
+    def is_symmetric(self) -> bool:
+        """Whether the metric is symmetric in its two inputs.
+
+        False only for Tversky with unequal ``alpha`` and ``beta``.
+        """
+        return bool(self._native.IsSymmetric())
+
+    @property
+    def has_zero_self_distance(self) -> bool:
+        """Whether comparing a value with itself yields exactly zero.
+
+        False for ``kulsinski`` and ``russell_rao``, whose self-distance is the fraction
+        of dimensions that are zero in both inputs, and for the similarity metrics, whose
+        self-comparison is 1.0 rather than 0.0. Callers that treat similarities and
+        distances differently should consult :attr:`type` first: this answers one question,
+        and answers it about the returned number rather than the metric's intent.
+
+        Metrics whose behavior depends on their parameters report the property that holds
+        when those parameters are valid. ``standardized_euclidean`` assumes finite, strictly
+        positive variances; ``mahalanobis`` assumes a symmetric positive semidefinite
+        inverse covariance; ``haversine`` assumes coordinates are radian latitude and
+        longitude within their valid ranges. Those preconditions are not checked when the
+        metric is constructed.
+        """
+        return bool(self._native.HasZeroSelfDistance())
+
+    @property
+    def satisfies_triangle_inequality(self) -> bool:
+        """Whether the metric satisfies the triangle inequality.
+
+        False for ``dice`` and ``bray_curtis``, for ``minkowski`` with an exponent below
+        1.0, and for the similarity metrics. Dice's violation is exhibited by nested sets
+        at any dimensionality: for ``A = {0}``, ``B = {0, 1}``, ``C = {1}``, ``d(A, B) +
+        d(B, C)`` is 2/3 while ``d(A, C)`` is 1.
+
+        The parameter-dependent metrics carry the same preconditions documented on
+        :attr:`has_zero_self_distance`.
+        """
+        return bool(self._native.SatisfiesTriangleInequality())
+
+    def validate_as_distance_metric(self) -> None:
+        """Validate that this metric is a true distance metric.
+
+        Checks that the metric returns distances rather than similarities, is symmetric,
+        has zero self-distance, and satisfies the triangle inequality. Algorithms that
+        require a metric space -- ball trees, metric indexes, and clustering methods that
+        assume the triangle inequality -- can gate on this instead of maintaining their own
+        list of which metrics qualify.
+
+        :raises RuntimeError: When the metric fails any of those properties.
+        """
+        self._native.ValidateAsDistanceMetric()
+
     @classmethod
     def euclidean(cls) -> Metric:
         """Create a Euclidean distance metric."""
@@ -2434,7 +2488,12 @@ class Metric:
 
     @classmethod
     def dice(cls) -> Metric:
-        """Create a Dice distance metric."""
+        """Create a Dice distance metric.
+
+        When both inputs are empty the quotient is undefined; OEFP returns 0.0, where
+        scipy returns NaN. Dice does not satisfy the triangle inequality -- see
+        :attr:`satisfies_triangle_inequality`.
+        """
         return cls._from_native(_native._NativeMetric.Dice())
 
     @classmethod
@@ -2459,7 +2518,11 @@ class Metric:
 
     @classmethod
     def sokal_sneath(cls) -> Metric:
-        """Create a Sokal-Sneath distance metric."""
+        """Create a Sokal-Sneath distance metric.
+
+        When both inputs are empty the quotient is undefined; OEFP returns 0.0, where
+        scipy raises.
+        """
         return cls._from_native(_native._NativeMetric.SokalSneath())
 
     @classmethod
