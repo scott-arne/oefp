@@ -108,6 +108,10 @@ public:
     static Metric Matching();
 
     /// \brief Create a Dice distance metric.
+    ///
+    /// When both inputs are empty the quotient is undefined; OEFP returns 0.0, where scipy
+    /// returns NaN. Note that Dice does not satisfy the triangle inequality -- see
+    /// SatisfiesTriangleInequality().
     static Metric Dice();
 
     /// \brief Create a Kulsinski distance metric.
@@ -123,6 +127,9 @@ public:
     static Metric SokalMichener();
 
     /// \brief Create a Sokal-Sneath distance metric.
+    ///
+    /// When both inputs are empty the quotient is undefined; OEFP returns 0.0, where scipy
+    /// raises.
     static Metric SokalSneath();
 
     /// \brief Create a Tanimoto similarity metric.
@@ -165,10 +172,47 @@ public:
     /// \brief Return whether this metric is symmetric in its two inputs.
     bool IsSymmetric() const;
 
+    /// \brief Return whether comparing a value with itself yields exactly zero.
+    ///
+    /// False for Kulsinski and Russell-Rao, whose self-distance is the fraction of
+    /// dimensions that are zero in both inputs, and for the similarity metrics, whose
+    /// self-comparison is 1.0 rather than 0.0. Callers that treat similarities and
+    /// distances differently should consult Type() first: this predicate answers one
+    /// question, and answers it about the returned number, not about the metric's intent.
+    ///
+    /// Metrics whose behaviour depends on their parameters report the property that holds
+    /// when those parameters are valid. Standardized Euclidean assumes finite, strictly
+    /// positive variances; Mahalanobis assumes a symmetric positive semidefinite inverse
+    /// covariance; Haversine assumes coordinates are radian latitude and longitude within
+    /// their valid ranges. Those preconditions are not checked at construction.
+    bool HasZeroSelfDistance() const;
+
+    /// \brief Return whether this metric satisfies the triangle inequality.
+    ///
+    /// False for Dice and Bray-Curtis, for Minkowski with an exponent below 1.0, and for
+    /// the similarity metrics. Dice's violation is exhibited by nested sets at any
+    /// dimensionality: for A = {0}, B = {0, 1}, C = {1}, d(A, B) + d(B, C) is 2/3 while
+    /// d(A, C) is 1.
+    ///
+    /// The parameter-dependent metrics carry the same preconditions documented on
+    /// HasZeroSelfDistance().
+    bool SatisfiesTriangleInequality() const;
+
     /// \brief Validate that this metric is usable for pairwise comparisons.
     ///
     /// \throws std::invalid_argument: When the metric is asymmetric.
     void ValidateForPDist() const;
+
+    /// \brief Validate that this metric is a true distance metric.
+    ///
+    /// Checks that the metric returns distances rather than similarities, is symmetric,
+    /// has zero self-distance, and satisfies the triangle inequality. Algorithms that
+    /// require a metric space -- ball trees, metric indexes, and clustering methods that
+    /// assume the triangle inequality -- can gate on this instead of maintaining their own
+    /// list of which metrics qualify.
+    ///
+    /// \throws std::invalid_argument: When the metric fails any of those properties.
+    void ValidateAsDistanceMetric() const;
 
 private:
     Metric(

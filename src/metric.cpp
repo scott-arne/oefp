@@ -204,9 +204,85 @@ bool Metric::IsSymmetric() const {
     return name_ != MetricName::Tversky || alpha_ == beta_;
 }
 
+bool Metric::HasZeroSelfDistance() const {
+    // Switching without a default makes a new MetricName a compile error here rather than a
+    // silently wrong capability answer.
+    switch (name_) {
+    case MetricName::Kulsinski:
+    case MetricName::RussellRao:
+    case MetricName::Tanimoto:
+    case MetricName::Tversky:
+        return false;
+    case MetricName::Euclidean:
+    case MetricName::Manhattan:
+    case MetricName::Chebyshev:
+    case MetricName::Minkowski:
+    case MetricName::StandardizedEuclidean:
+    case MetricName::Mahalanobis:
+    case MetricName::Haversine:
+    case MetricName::Hamming:
+    case MetricName::Canberra:
+    case MetricName::BrayCurtis:
+    case MetricName::Jaccard:
+    case MetricName::Matching:
+    case MetricName::Dice:
+    case MetricName::RogersTanimoto:
+    case MetricName::SokalMichener:
+    case MetricName::SokalSneath:
+        return true;
+    }
+
+    return false;
+}
+
+bool Metric::SatisfiesTriangleInequality() const {
+    switch (name_) {
+    case MetricName::Minkowski:
+        return p_ >= 1.0;
+    case MetricName::Dice:
+    case MetricName::BrayCurtis:
+    case MetricName::Tanimoto:
+    case MetricName::Tversky:
+        return false;
+    case MetricName::Euclidean:
+    case MetricName::Manhattan:
+    case MetricName::Chebyshev:
+    case MetricName::StandardizedEuclidean:
+    case MetricName::Mahalanobis:
+    case MetricName::Haversine:
+    case MetricName::Hamming:
+    case MetricName::Canberra:
+    case MetricName::Jaccard:
+    case MetricName::Matching:
+    case MetricName::Kulsinski:
+    case MetricName::RogersTanimoto:
+    case MetricName::RussellRao:
+    case MetricName::SokalMichener:
+    case MetricName::SokalSneath:
+        return true;
+    }
+
+    return false;
+}
+
 void Metric::ValidateForPDist() const {
     if (!IsSymmetric()) {
         throw std::invalid_argument("Asymmetric metrics are not valid for pairwise distances.");
+    }
+}
+
+void Metric::ValidateAsDistanceMetric() const {
+    if (type_ != MetricType::Distance) {
+        throw std::invalid_argument("Similarity metrics are not valid distance metrics.");
+    }
+    ValidateForPDist();
+    if (!HasZeroSelfDistance()) {
+        throw std::invalid_argument(
+            "Metrics without zero self-distance are not valid distance metrics.");
+    }
+    if (!SatisfiesTriangleInequality()) {
+        throw std::invalid_argument(
+            "Metrics that violate the triangle inequality are not valid distance metrics.");
     }
 }
 

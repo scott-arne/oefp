@@ -161,7 +161,7 @@ double evaluate_boolean_metric(const BooleanStats& stats, const Metric& metric) 
     case MetricName::Matching:
         return zero_safe_divide(nne, n);
     case MetricName::Dice:
-        return nne / (ntt + nnz);
+        return zero_safe_divide(nne, ntt + nnz);
     case MetricName::Kulsinski:
         return (nne + n - ntt) / (nne + n);
     case MetricName::RogersTanimoto:
@@ -170,7 +170,7 @@ double evaluate_boolean_metric(const BooleanStats& stats, const Metric& metric) 
     case MetricName::RussellRao:
         return (n - ntt) / n;
     case MetricName::SokalSneath:
-        return nne / (nne + 0.5 * ntt);
+        return zero_safe_divide(nne, nne + 0.5 * ntt);
     case MetricName::Tanimoto:
         return zero_safe_divide(ntt, nnz);
     case MetricName::Tversky:
@@ -257,6 +257,16 @@ double evaluate_mahalanobis(
                 * metric.InverseCovariance()[left_index * dimension_size + right_index]
                 * right.value;
         }
+    }
+
+    // A negative quadratic form proves the matrix is not positive semidefinite, and taking its
+    // square root would report that as a silent NaN. Testing the form rather than the spectrum
+    // keeps this O(1) per pair; an eigendecomposition costs seconds at fingerprint widths. The
+    // cost is that a non-semidefinite matrix the data never probes still goes unreported.
+    // A NaN sum compares false here, so genuine NaN propagation is left intact.
+    if (sum < 0.0) {
+        throw std::invalid_argument(
+            "Mahalanobis inverse covariance must be positive semidefinite.");
     }
     return std::sqrt(sum);
 }

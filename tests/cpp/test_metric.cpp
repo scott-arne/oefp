@@ -4,6 +4,7 @@
 
 #include <limits>
 #include <stdexcept>
+#include <string>
 #include <vector>
 
 namespace OEFP {
@@ -78,6 +79,110 @@ TEST(MetricTest, ValidateForPDistRejectsAsymmetricTverskyOnly) {
     EXPECT_NO_THROW(Metric::Tanimoto().ValidateForPDist());
     EXPECT_NO_THROW(Metric::Tversky(0.3, 0.3).ValidateForPDist());
     EXPECT_THROW(Metric::Tversky(0.2, 0.8).ValidateForPDist(), std::invalid_argument);
+}
+
+TEST(MetricTest, HasZeroSelfDistanceReportsEveryMetric) {
+    // Kulsinski and Russell-Rao measure a self-distance of (dimensions - jointly set) /
+    // dimensions, and the similarity metrics return 1.0 rather than 0.0 for identical inputs.
+    EXPECT_FALSE(Metric::Kulsinski().HasZeroSelfDistance());
+    EXPECT_FALSE(Metric::RussellRao().HasZeroSelfDistance());
+    EXPECT_FALSE(Metric::Tanimoto().HasZeroSelfDistance());
+    EXPECT_FALSE(Metric::Tversky(0.5, 0.5).HasZeroSelfDistance());
+
+    EXPECT_TRUE(Metric::Euclidean().HasZeroSelfDistance());
+    EXPECT_TRUE(Metric::Manhattan().HasZeroSelfDistance());
+    EXPECT_TRUE(Metric::Chebyshev().HasZeroSelfDistance());
+    EXPECT_TRUE(Metric::Minkowski(2.0).HasZeroSelfDistance());
+    EXPECT_TRUE(Metric::StandardizedEuclidean({1.0, 1.0}).HasZeroSelfDistance());
+    EXPECT_TRUE(Metric::Mahalanobis({1.0, 0.0, 0.0, 1.0}).HasZeroSelfDistance());
+    EXPECT_TRUE(Metric::Haversine().HasZeroSelfDistance());
+    EXPECT_TRUE(Metric::Hamming().HasZeroSelfDistance());
+    EXPECT_TRUE(Metric::Canberra().HasZeroSelfDistance());
+    EXPECT_TRUE(Metric::BrayCurtis().HasZeroSelfDistance());
+    EXPECT_TRUE(Metric::Jaccard().HasZeroSelfDistance());
+    EXPECT_TRUE(Metric::Matching().HasZeroSelfDistance());
+    EXPECT_TRUE(Metric::Dice().HasZeroSelfDistance());
+    EXPECT_TRUE(Metric::RogersTanimoto().HasZeroSelfDistance());
+    EXPECT_TRUE(Metric::SokalMichener().HasZeroSelfDistance());
+    EXPECT_TRUE(Metric::SokalSneath().HasZeroSelfDistance());
+}
+
+TEST(MetricTest, SatisfiesTriangleInequalityReportsEveryMetric) {
+    EXPECT_FALSE(Metric::Dice().SatisfiesTriangleInequality());
+    EXPECT_FALSE(Metric::BrayCurtis().SatisfiesTriangleInequality());
+    EXPECT_FALSE(Metric::Tanimoto().SatisfiesTriangleInequality());
+    EXPECT_FALSE(Metric::Tversky(0.5, 0.5).SatisfiesTriangleInequality());
+
+    EXPECT_TRUE(Metric::Euclidean().SatisfiesTriangleInequality());
+    EXPECT_TRUE(Metric::Manhattan().SatisfiesTriangleInequality());
+    EXPECT_TRUE(Metric::Chebyshev().SatisfiesTriangleInequality());
+    EXPECT_TRUE(Metric::StandardizedEuclidean({1.0, 1.0}).SatisfiesTriangleInequality());
+    EXPECT_TRUE(Metric::Mahalanobis({1.0, 0.0, 0.0, 1.0}).SatisfiesTriangleInequality());
+    EXPECT_TRUE(Metric::Haversine().SatisfiesTriangleInequality());
+    EXPECT_TRUE(Metric::Hamming().SatisfiesTriangleInequality());
+    EXPECT_TRUE(Metric::Canberra().SatisfiesTriangleInequality());
+    EXPECT_TRUE(Metric::Jaccard().SatisfiesTriangleInequality());
+    EXPECT_TRUE(Metric::Matching().SatisfiesTriangleInequality());
+    EXPECT_TRUE(Metric::Kulsinski().SatisfiesTriangleInequality());
+    EXPECT_TRUE(Metric::RogersTanimoto().SatisfiesTriangleInequality());
+    EXPECT_TRUE(Metric::RussellRao().SatisfiesTriangleInequality());
+    EXPECT_TRUE(Metric::SokalMichener().SatisfiesTriangleInequality());
+    EXPECT_TRUE(Metric::SokalSneath().SatisfiesTriangleInequality());
+}
+
+TEST(MetricTest, MinkowskiTriangleInequalityFollowsTheExponent) {
+    EXPECT_FALSE(Metric::Minkowski(0.5).SatisfiesTriangleInequality());
+    EXPECT_FALSE(Metric::Minkowski(0.999).SatisfiesTriangleInequality());
+    EXPECT_TRUE(Metric::Minkowski(1.0).SatisfiesTriangleInequality());
+    EXPECT_TRUE(Metric::Minkowski(1.5).SatisfiesTriangleInequality());
+    EXPECT_TRUE(Metric::Minkowski(3.0).SatisfiesTriangleInequality());
+
+    // Weights scale each term and change neither answer.
+    EXPECT_FALSE(Metric::Minkowski(0.5, {1.0, 2.0}).SatisfiesTriangleInequality());
+    EXPECT_TRUE(Metric::Minkowski(2.0, {1.0, 2.0}).SatisfiesTriangleInequality());
+
+    // The exponent never affects self-distance.
+    EXPECT_TRUE(Metric::Minkowski(0.5).HasZeroSelfDistance());
+    EXPECT_TRUE(Metric::Minkowski(3.0).HasZeroSelfDistance());
+}
+
+TEST(MetricTest, ValidateAsDistanceMetricAcceptsOnlyTrueMetrics) {
+    EXPECT_NO_THROW(Metric::Euclidean().ValidateAsDistanceMetric());
+    EXPECT_NO_THROW(Metric::Manhattan().ValidateAsDistanceMetric());
+    EXPECT_NO_THROW(Metric::Chebyshev().ValidateAsDistanceMetric());
+    EXPECT_NO_THROW(Metric::Minkowski(1.0).ValidateAsDistanceMetric());
+    EXPECT_NO_THROW(Metric::Hamming().ValidateAsDistanceMetric());
+    EXPECT_NO_THROW(Metric::Canberra().ValidateAsDistanceMetric());
+    EXPECT_NO_THROW(Metric::Jaccard().ValidateAsDistanceMetric());
+    EXPECT_NO_THROW(Metric::Matching().ValidateAsDistanceMetric());
+    EXPECT_NO_THROW(Metric::SokalSneath().ValidateAsDistanceMetric());
+
+    EXPECT_THROW(Metric::Tanimoto().ValidateAsDistanceMetric(), std::invalid_argument);
+    EXPECT_THROW(Metric::Tversky(0.5, 0.5).ValidateAsDistanceMetric(), std::invalid_argument);
+    EXPECT_THROW(Metric::Kulsinski().ValidateAsDistanceMetric(), std::invalid_argument);
+    EXPECT_THROW(Metric::RussellRao().ValidateAsDistanceMetric(), std::invalid_argument);
+    EXPECT_THROW(Metric::Dice().ValidateAsDistanceMetric(), std::invalid_argument);
+    EXPECT_THROW(Metric::BrayCurtis().ValidateAsDistanceMetric(), std::invalid_argument);
+    EXPECT_THROW(Metric::Minkowski(0.5).ValidateAsDistanceMetric(), std::invalid_argument);
+}
+
+TEST(MetricTest, ValidateAsDistanceMetricNamesTheFailedProperty) {
+    const auto message_for = [](const Metric& metric) {
+        try {
+            metric.ValidateAsDistanceMetric();
+        } catch (const std::invalid_argument& error) {
+            return std::string(error.what());
+        }
+        return std::string("no throw");
+    };
+
+    EXPECT_EQ(message_for(Metric::Tanimoto()), "Similarity metrics are not valid distance metrics.");
+    EXPECT_EQ(
+        message_for(Metric::Kulsinski()),
+        "Metrics without zero self-distance are not valid distance metrics.");
+    EXPECT_EQ(
+        message_for(Metric::Dice()),
+        "Metrics that violate the triangle inequality are not valid distance metrics.");
 }
 
 } // namespace test

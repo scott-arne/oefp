@@ -530,6 +530,45 @@ Metrics and Comparison
       ``tanimoto()`` and ``tversky()`` are boolean-space similarity metrics.
       Metric objects expose ``name``, ``type``, and ``space`` metadata.
 
+   .. attribute:: is_symmetric
+
+      Whether the metric is symmetric in its two inputs. False only for
+      ``tversky()`` with unequal ``alpha`` and ``beta``.
+
+   .. attribute:: has_zero_self_distance
+
+      Whether comparing a value with itself yields exactly zero. False for
+      ``kulsinski()`` and ``russell_rao()``, whose self-distance is the fraction
+      of dimensions that are zero in both inputs, and for the similarity
+      metrics, whose self-comparison is 1.0.
+
+   .. attribute:: satisfies_triangle_inequality
+
+      Whether the metric satisfies the triangle inequality. False for
+      ``dice()`` and ``bray_curtis()``, for ``minkowski()`` with an exponent
+      below 1.0, and for the similarity metrics.
+
+   .. method:: Metric.validate_as_distance_metric()
+
+      Raise :exc:`RuntimeError` unless the metric returns distances, is
+      symmetric, has zero self-distance, and satisfies the triangle
+      inequality. Algorithms that require a metric space -- ball trees, metric
+      indexes, and clustering methods that assume the triangle inequality --
+      can gate on this instead of maintaining their own list of which metrics
+      qualify.
+
+   The metrics whose behavior depends on their parameters report the property
+   that holds when those parameters are valid: ``standardized_euclidean()``
+   assumes finite, strictly positive variances, ``mahalanobis()`` assumes a
+   symmetric positive semidefinite inverse covariance, and ``haversine()``
+   assumes radian coordinates within their valid ranges. Those preconditions
+   are not checked when the metric is constructed.
+
+   Every boolean metric that reports ``has_zero_self_distance`` returns ``0.0``
+   for two empty fingerprints, where the underlying quotient is ``0/0``. This
+   differs from :mod:`scipy.spatial.distance`, which returns NaN for ``dice``
+   and raises for ``sokalsneath``.
+
 .. function:: compare(a, b, metric, *, descriptor_mode="count_overlap", num_threads=0, chunk_size=256)
 
    Compare two fingerprints, two descriptor sets, or one query object against a
