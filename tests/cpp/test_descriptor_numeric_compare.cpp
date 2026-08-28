@@ -752,6 +752,29 @@ TEST(DescriptorNumericCompareTest, StandardizedEuclideanScalesByTheSuppliedVaria
     EXPECT_DOUBLE_EQ(result[0], std::sqrt(9.0 / 4.0 + 16.0 / 9.0));
 }
 
+TEST(DescriptorNumericCompareTest, StandardizedEuclideanScalesColumnsRatherThanMixingThem) {
+    // Standardized Euclidean whitens each column on its own, so it is applied as a column scale.
+    // Applying it instead as a dense columns x columns matrix -- which is how it was built before
+    // this test existed -- is not merely O(columns^2) busywork on wide selections; it is also
+    // observably different, because every output column then accumulates a product with an
+    // off-diagonal zero. An infinity in one column turns into inf * 0.0, i.e. NaN, and poisons
+    // every other column of that row. Pin the agreement with plain Euclidean, which does not mix
+    // columns either and reports the infinite distance.
+    const auto infinity = std::numeric_limits<double>::infinity();
+    const std::vector<double> values = {1.0, 2.0, 3.0, infinity, 2.0, 3.0};
+    const auto standardized =
+        PDistNumeric(values.data(), nullptr, 2u, 3u, Metric::StandardizedEuclidean({1.0, 1.0, 1.0}));
+    const auto euclidean = PDistNumeric(values.data(), nullptr, 2u, 3u, Metric::Euclidean());
+
+    EXPECT_TRUE(std::isinf(euclidean[0]));
+    EXPECT_EQ(standardized[0], euclidean[0]);
+
+    // The scaling still applies, and still only within its own column.
+    const auto scaled =
+        PDistNumeric(values.data(), nullptr, 2u, 3u, Metric::StandardizedEuclidean({4.0, 9.0, 1.0}));
+    EXPECT_TRUE(std::isinf(scaled[0]));
+}
+
 TEST(DescriptorNumericCompareTest, MahalanobisWithIdentityInverseCovarianceEqualsEuclidean) {
     const auto metric = Metric::Mahalanobis({1.0, 0.0, 0.0, 1.0});
     const std::vector<double> values = {1.0, 2.0, 4.0, 6.0};

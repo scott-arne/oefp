@@ -99,6 +99,20 @@ void validate_inverse_covariance(const std::vector<double>& inverse_covariance,
     }
 }
 
+/// \brief A whitening factor L such that L * L^T equals the metric's quadratic form.
+///
+/// Standardized Euclidean whitens each column independently, so its L is diagonal and is stored as
+/// the diagonal alone. Storing it densely would be a real cost rather than a tidiness question:
+/// applying a dense columns x columns L is O(columns^2) per row, and descriptor selections are
+/// routinely wide -- a full Mordred schema is over 1800 columns -- so the multiplications by
+/// off-diagonal zeros dominate the entire comparison. Mahalanobis genuinely mixes columns and keeps
+/// the dense form.
+struct WhiteningFactor {
+    /// Diagonal of length \c columns when \c diagonal, otherwise row-major \c columns x \c columns.
+    std::vector<double> entries;
+    bool diagonal = false;
+};
+
 /// \brief Build the whitening factor L such that L * L^T equals the metric's quadratic form.
 ///
 /// For Standardized Euclidean this is the diagonal of 1 / sqrt(variance). For Mahalanobis it is
@@ -114,16 +128,18 @@ void validate_inverse_covariance(const std::vector<double>& inverse_covariance,
 /// double loop over both triangles, and symmetrizing is what keeps the two surfaces in
 /// agreement. Rejecting instead would be hostile: a numerically inverted covariance is routinely
 /// symmetric only to within rounding.
-std::vector<double> whitening_factor(const Metric& metric, std::size_t columns) {
-    std::vector<double> factor(columns * columns, 0.0);
-
+WhiteningFactor whitening_factor(const Metric& metric, std::size_t columns) {
     if (metric.Name() == MetricName::StandardizedEuclidean) {
+        WhiteningFactor diagonal;
+        diagonal.diagonal = true;
+        diagonal.entries.reserve(columns);
         for (std::size_t index = 0u; index < columns; ++index) {
-            factor[index * columns + index] = 1.0 / std::sqrt(metric.Variances()[index]);
+            diagonal.entries.push_back(1.0 / std::sqrt(metric.Variances()[index]));
         }
-        return factor;
+        return diagonal;
     }
 
+    std::vector<double> factor(columns * columns, 0.0);
     const auto& inverse_covariance = metric.InverseCovariance();
 
     // Symmetrize first, so everything below -- the scaling, the eigendecomposition, and the
@@ -217,7 +233,7 @@ std::vector<double> whitening_factor(const Metric& metric, std::size_t columns) 
         }
     }
 
-    return factor;
+    return WhiteningFactor{std::move(factor), false};
 }
 
 struct NumericPreTransform {
@@ -227,7 +243,7 @@ struct NumericPreTransform {
 
 NumericPreTransform build_pre_transform(const double* values, const std::uint8_t* validity,
                                         std::size_t rows, std::size_t columns,
-                                        const std::vector<double>& factor) {
+                                        const WhiteningFactor& factor) {
     NumericPreTransform transformed;
     transformed.values.assign(rows * columns, 0.0);
     transformed.complete.assign(rows, 1u);
@@ -244,10 +260,19 @@ NumericPreTransform build_pre_transform(const double* values, const std::uint8_t
 
         // Transform every row regardless. Incomplete rows carry meaningless but finite
         // values, so there is no NaN poisoning and no branch in the pair loop's inner loop.
+        if (factor.diagonal) {
+            // A column scale, not a matrix product: O(columns) per row instead of O(columns^2).
+            for (std::size_t k = 0u; k < columns; ++k) {
+                transformed.values[row * columns + k] =
+                    values[row * columns + k] * factor.entries[k];
+            }
+            continue;
+        }
+
         for (std::size_t k = 0u; k < columns; ++k) {
             double sum = 0.0;
             for (std::size_t i = 0u; i < columns; ++i) {
-                sum += values[row * columns + i] * factor[i * columns + k];
+                sum += values[row * columns + i] * factor.entries[i * columns + k];
             }
             transformed.values[row * columns + k] = sum;
         }
@@ -524,9 +549,9 @@ const std::uint8_t* validity_row(const std::uint8_t* validity, std::size_t row,
 /// \c validate_numeric_metric call exists to remove. Decomposing here and handing the result to the
 /// kernel keeps the rejection first without paying for a second decomposition. Metrics that need no
 /// pre-transform get an empty factor, which the kernel never reads.
-std::vector<double> pre_transform_or_empty(const Metric& metric, std::size_t columns) {
+WhiteningFactor pre_transform_or_empty(const Metric& metric, std::size_t columns) {
     return numeric_needs_pre_transform(metric) ? whitening_factor(metric, columns)
-                                               : std::vector<double>{};
+                                               : WhiteningFactor{};
 }
 
 void pdist_numeric_impl(
@@ -540,7 +565,7 @@ void pdist_numeric_impl(
     std::size_t output_length,
     const BatchKernelOptions& kernel,
     const std::vector<std::string>* names,
-    const std::vector<double>* pre_transform) {
+    const WhiteningFactor* pre_transform) {
     validate_numeric_metric(metric, missing, columns, names);
     const auto expected_length = condensed_size(rows);
     validate_output(output, output_length, expected_length);
@@ -550,7 +575,7 @@ void pdist_numeric_impl(
         // that a rejected matrix is reported as a rejected matrix; reuse it rather than decomposing
         // twice. See pre_transform_or_empty.
         const auto own_factor =
-            pre_transform == nullptr ? whitening_factor(metric, columns) : std::vector<double>{};
+            pre_transform == nullptr ? whitening_factor(metric, columns) : WhiteningFactor{};
         const auto& factor = pre_transform == nullptr ? own_factor : *pre_transform;
         const auto transformed = build_pre_transform(values, validity, rows, columns, factor);
         const auto euclidean = Metric::Euclidean();
@@ -604,7 +629,7 @@ void cdist_numeric_impl(
     std::size_t output_length,
     const BatchKernelOptions& kernel,
     const std::vector<std::string>* names,
-    const std::vector<double>* pre_transform) {
+    const WhiteningFactor* pre_transform) {
     validate_numeric_metric(metric, missing, columns, names);
     const auto expected_length =
         checked_product(a_rows, b_rows, "CDist output size is too large.");
@@ -613,7 +638,7 @@ void cdist_numeric_impl(
     if (numeric_needs_pre_transform(metric)) {
         // Reuse the caller's factor when it has one; see pdist_numeric_impl.
         const auto own_factor =
-            pre_transform == nullptr ? whitening_factor(metric, columns) : std::vector<double>{};
+            pre_transform == nullptr ? whitening_factor(metric, columns) : WhiteningFactor{};
         const auto& factor = pre_transform == nullptr ? own_factor : *pre_transform;
         const auto a_transformed = build_pre_transform(a_values, a_validity, a_rows, columns, factor);
         const auto b_transformed = build_pre_transform(b_values, b_validity, b_rows, columns, factor);
