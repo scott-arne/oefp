@@ -766,6 +766,37 @@ TEST(DescriptorNumericCompareTest, MahalanobisMatchesADirectQuadraticForm) {
     EXPECT_NEAR(result[0], std::sqrt(46.0), 1.0e-12);
 }
 
+TEST(DescriptorNumericCompareTest, MahalanobisSymmetrizesAnAsymmetricInverseCovariance) {
+    // The fingerprint path (evaluate_mahalanobis, src/compare.cpp) sums d_i * VI_ij * d_j over
+    // both triangles, which evaluates d^T * ((VI + VI^T) / 2) * d. The numeric path has to agree,
+    // so an asymmetric VI must not be read as its upper triangle mirrored: mirroring gives
+    // sqrt(18) here, the quadratic form gives 4.
+    const std::vector<double> inverse_covariance = {2.0, 1.0, 0.0, 3.0};
+    const std::vector<double> values = {0.0, 0.0, 1.0, 2.0};
+    const std::vector<double> difference = {-1.0, -2.0};
+
+    double quadratic_form = 0.0;
+    for (std::size_t i = 0u; i < 2u; ++i) {
+        for (std::size_t j = 0u; j < 2u; ++j) {
+            quadratic_form += difference[i] * inverse_covariance[i * 2u + j] * difference[j];
+        }
+    }
+    ASSERT_DOUBLE_EQ(std::sqrt(quadratic_form), 4.0);
+
+    const auto result = PDistNumeric(values.data(), nullptr, 2u, 2u,
+                                     Metric::Mahalanobis(inverse_covariance));
+    ASSERT_EQ(result.size(), 1u);
+    EXPECT_NEAR(result[0], std::sqrt(quadratic_form), 1.0e-12);
+    EXPECT_NEAR(result[0], 4.0, 1.0e-12);
+
+    // A symmetric input is unchanged, because averaging a symmetric matrix is bit-exact.
+    const std::vector<double> symmetric_values = {1.0, 2.0, 4.0, 6.0};
+    const auto symmetric_result = PDistNumeric(symmetric_values.data(), nullptr, 2u, 2u,
+                                               Metric::Mahalanobis({2.0, 0.5, 0.5, 1.0}));
+    ASSERT_EQ(symmetric_result.size(), 1u);
+    EXPECT_NEAR(symmetric_result[0], std::sqrt(46.0), 1.0e-12);
+}
+
 TEST(DescriptorNumericCompareTest, PreTransformPropagatesMissingValuesAtRowGranularity) {
     // Three rows, two columns; row 1 is missing its first column.
     const std::vector<double> values = {1.0, 2.0, 0.0, 5.0, 1.0, 2.0};

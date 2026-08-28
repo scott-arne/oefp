@@ -2379,7 +2379,11 @@ class Metric:
 
     @classmethod
     def mahalanobis(cls, inverse_covariance: Sequence[float]) -> Metric:
-        """Create a Mahalanobis distance metric from an inverse covariance matrix."""
+        """Create a Mahalanobis distance metric from an inverse covariance matrix.
+
+        An asymmetric matrix is interpreted as its symmetric part, ``(VI + VI.T) / 2``,
+        which is the value the quadratic form ``d.T @ VI @ d`` defines.
+        """
         return cls._from_native(_native._NativeMetric.Mahalanobis(_native_double_vector(inverse_covariance)))
 
     @classmethod

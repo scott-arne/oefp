@@ -108,8 +108,12 @@ void validate_inverse_covariance(const std::vector<double>& inverse_covariance,
 /// only rejection left here is the positive-semidefinite one, which cannot be read off the
 /// parameters and needs the eigenvalues.
 ///
-/// The inverse covariance must be symmetric. That precondition belongs to the solver and is not
-/// checked here, exactly as \c pseudo_inverse_symmetric does not check it.
+/// An asymmetric inverse covariance is interpreted as its symmetric part, (VI + VI^T) / 2, and
+/// symmetrized here rather than rejected. That is the matrix the quadratic form d^T * VI * d
+/// already defines, so it is also what the fingerprint Mahalanobis path computes with its full
+/// double loop over both triangles, and symmetrizing is what keeps the two surfaces in
+/// agreement. Rejecting instead would be hostile: a numerically inverted covariance is routinely
+/// symmetric only to within rounding.
 std::vector<double> whitening_factor(const Metric& metric, std::size_t columns) {
     std::vector<double> factor(columns * columns, 0.0);
 
@@ -122,13 +126,33 @@ std::vector<double> whitening_factor(const Metric& metric, std::size_t columns) 
 
     const auto& inverse_covariance = metric.InverseCovariance();
 
+    // Symmetrize first, so everything below -- the scaling, the eigendecomposition, and the
+    // positive-semidefinite verdict -- describes the matrix the distance actually uses.
+    //
+    // A pair that already agrees is copied rather than averaged, which keeps a symmetric input
+    // bit-exact at every magnitude. That matters at both ends of the range: 0.5 * (a + a)
+    // overflows to infinity for |a| > DBL_MAX / 2, turning a finite DBL_MAX matrix into an
+    // infinite one before the scaling below ever sees it, and halving rounds in the subnormal
+    // range. Genuinely differing entries average as 0.5 * a + 0.5 * b, which cannot overflow for
+    // finite inputs; 0.5 * (a + b) can.
+    std::vector<double> symmetric(inverse_covariance.size(), 0.0);
+    for (std::size_t row = 0u; row < columns; ++row) {
+        for (std::size_t column = 0u; column < columns; ++column) {
+            const auto upper = inverse_covariance[row * columns + column];
+            const auto lower = inverse_covariance[column * columns + row];
+            symmetric[row * columns + column] =
+                upper == lower ? upper : 0.5 * upper + 0.5 * lower;
+        }
+    }
+
     // The solver converges on a fixed absolute off-diagonal threshold, so a uniformly tiny
     // inverse covariance would come back undiagonalized and every distance would be silently
     // wrong. Decompose a copy scaled so its largest entry lands in [0.5, 1) and undo the scale
     // on the eigenvalues afterwards; eigenvectors are invariant under a uniform scale. The
     // scale is a power of two, so both directions are exact and no existing result moves.
+    // Measured on the symmetrized entries, which are the ones being decomposed.
     double max_magnitude = 0.0;
-    for (const auto value : inverse_covariance) {
+    for (const auto value : symmetric) {
         max_magnitude = std::max(max_magnitude, std::abs(value));
     }
     int exponent = 0;
@@ -136,9 +160,9 @@ std::vector<double> whitening_factor(const Metric& metric, std::size_t columns) 
         std::frexp(max_magnitude, &exponent);
     }
 
-    std::vector<double> scaled(inverse_covariance.size(), 0.0);
-    for (std::size_t index = 0u; index < inverse_covariance.size(); ++index) {
-        scaled[index] = std::ldexp(inverse_covariance[index], -exponent);
+    std::vector<double> scaled(symmetric.size(), 0.0);
+    for (std::size_t index = 0u; index < symmetric.size(); ++index) {
+        scaled[index] = std::ldexp(symmetric[index], -exponent);
     }
 
     auto eigensystem = symmetric_eigensystem_cyclic(std::move(scaled), columns);

@@ -60,7 +60,7 @@ struct DescriptorNumericOptions {
 ///
 /// Standardized Euclidean and Mahalanobis whiten every row before comparing, which mixes
 /// columns, so a row with any absent value yields NaN for every pair it takes part in. The
-/// Mahalanobis inverse covariance must be symmetric; that precondition is not checked.
+/// Mahalanobis inverse covariance is interpreted as (VI + VI^T) / 2 when it is asymmetric.
 ///
 /// \param values Row-major \p rows x \p columns buffer of descriptor values.
 /// \param validity Row-major \p rows x \p columns presence mask, or \c nullptr when every
@@ -98,7 +98,7 @@ std::vector<double> PDistNumeric(
 ///
 /// Standardized Euclidean and Mahalanobis whiten every row before comparing, which mixes
 /// columns, so a row with any absent value yields NaN for every pair it takes part in. The
-/// Mahalanobis inverse covariance must be symmetric; that precondition is not checked.
+/// Mahalanobis inverse covariance is interpreted as (VI + VI^T) / 2 when it is asymmetric.
 ///
 /// \param values Row-major \p rows x \p columns buffer of descriptor values.
 /// \param validity Row-major \p rows x \p columns presence mask, or \c nullptr when every
@@ -139,7 +139,7 @@ void PDistNumericInto(
 ///
 /// Standardized Euclidean and Mahalanobis whiten every row before comparing, which mixes
 /// columns, so a row with any absent value yields NaN for every pair it takes part in. The
-/// Mahalanobis inverse covariance must be symmetric; that precondition is not checked.
+/// Mahalanobis inverse covariance is interpreted as (VI + VI^T) / 2 when it is asymmetric.
 ///
 /// \param a_values Row-major \p a_rows x \p columns buffer of descriptor values.
 /// \param a_validity Row-major \p a_rows x \p columns presence mask, or \c nullptr when every
@@ -185,7 +185,7 @@ std::vector<double> CDistNumeric(
 ///
 /// Standardized Euclidean and Mahalanobis whiten every row before comparing, which mixes
 /// columns, so a row with any absent value yields NaN for every pair it takes part in. The
-/// Mahalanobis inverse covariance must be symmetric; that precondition is not checked.
+/// Mahalanobis inverse covariance is interpreted as (VI + VI^T) / 2 when it is asymmetric.
 ///
 /// \param a_values Row-major \p a_rows x \p columns buffer of descriptor values.
 /// \param a_validity Row-major \p a_rows x \p columns presence mask, or \c nullptr when every
@@ -234,7 +234,7 @@ void CDistNumericInto(
 ///
 /// Standardized Euclidean and Mahalanobis whiten every row before comparing, which mixes
 /// columns, so a row with any absent value yields NaN for every pair it takes part in. The
-/// Mahalanobis inverse covariance must be symmetric; that precondition is not checked.
+/// Mahalanobis inverse covariance is interpreted as (VI + VI^T) / 2 when it is asymmetric.
 ///
 /// \param batch Descriptor batch with a schema.
 /// \param metric Comparison metric. Euclidean, Manhattan, Chebyshev, Hamming, Canberra, Minkowski,
@@ -270,7 +270,7 @@ std::vector<double> PDist(
 ///
 /// Standardized Euclidean and Mahalanobis whiten every row before comparing, which mixes
 /// columns, so a row with any absent value yields NaN for every pair it takes part in. The
-/// Mahalanobis inverse covariance must be symmetric; that precondition is not checked.
+/// Mahalanobis inverse covariance is interpreted as (VI + VI^T) / 2 when it is asymmetric.
 ///
 /// \param batch Descriptor batch with a schema.
 /// \param metric Comparison metric. Euclidean, Manhattan, Chebyshev, Hamming, Canberra, Minkowski,
@@ -307,7 +307,7 @@ void PDistInto(
 ///
 /// Standardized Euclidean and Mahalanobis whiten every row before comparing, which mixes
 /// columns, so a row with any absent value yields NaN for every pair it takes part in. The
-/// Mahalanobis inverse covariance must be symmetric; that precondition is not checked.
+/// Mahalanobis inverse covariance is interpreted as (VI + VI^T) / 2 when it is asymmetric.
 ///
 /// \param a First descriptor batch with a schema.
 /// \param b Second descriptor batch with a schema.
@@ -345,7 +345,7 @@ std::vector<double> CDist(
 ///
 /// Standardized Euclidean and Mahalanobis whiten every row before comparing, which mixes
 /// columns, so a row with any absent value yields NaN for every pair it takes part in. The
-/// Mahalanobis inverse covariance must be symmetric; that precondition is not checked.
+/// Mahalanobis inverse covariance is interpreted as (VI + VI^T) / 2 when it is asymmetric.
 ///
 /// \param a First descriptor batch with a schema.
 /// \param b Second descriptor batch with a schema.

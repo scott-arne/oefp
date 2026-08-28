@@ -75,6 +75,9 @@ public:
 
     /// \brief Create a Mahalanobis distance metric.
     ///
+    /// An asymmetric matrix is interpreted as its symmetric part, (VI + VI^T) / 2, which is the
+    /// value the quadratic form d^T * VI * d defines.
+    ///
     /// \param inverse_covariance Row-major inverse covariance matrix.
     static Metric Mahalanobis(std::vector<double> inverse_covariance);
 
