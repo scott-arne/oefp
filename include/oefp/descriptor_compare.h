@@ -410,6 +410,12 @@ void CDistInto(
 // cdist with a zero-row side -- stays a no-op instead of hitting the zero-output-address
 // rejection, and metric and missing-policy validation still runs at every row count.
 //
+// Those forms also validate the metric before they size and allocate the output, so an invalid
+// metric is reported as an invalid metric at every row count. Without that, a row count large
+// enough to overflow the output size would surface as "Pairwise output size is too large" or
+// std::bad_alloc and hide the real mistake. The kernel validates again; the check is O(columns)
+// and idempotent.
+//
 // The trailing names parameter is optional and carries no data the kernel computes with. When it
 // is non-empty it must hold exactly columns entries, in the order the buffer's columns appear,
 // and a non-empty vector of any other length throws std::invalid_argument rather than silently

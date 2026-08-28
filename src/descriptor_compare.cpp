@@ -674,6 +674,13 @@ std::vector<double> PDistNumeric(
     const Metric& metric,
     DescriptorMissingPolicy missing,
     const BatchKernelOptions& kernel) {
+    // Metric first, then the output, as spec 6.1 requires. condensed_size and the allocation both
+    // precede the kernel's own validation, so without this an invalid metric on a large row count
+    // surfaces as "Pairwise output size is too large" or std::bad_alloc instead of the metric
+    // rejection -- the diagnostic would depend on the row count. Deliberately duplicated: the
+    // kernel validates again, and the check is O(columns) and idempotent.
+    validate_numeric_metric(metric, missing, columns, nullptr);
+
     std::vector<double> output(condensed_size(rows), 0.0);
     PDistNumericInto(values, validity, rows, columns, metric, missing, output.data(),
                      output.size(), kernel);
@@ -708,6 +715,9 @@ std::vector<double> CDistNumeric(
     const Metric& metric,
     DescriptorMissingPolicy missing,
     const BatchKernelOptions& kernel) {
+    // Metric first, then the output; see PDistNumeric for why the allocation cannot come first.
+    validate_numeric_metric(metric, missing, columns, nullptr);
+
     std::vector<double> output(
         checked_product(a_rows, b_rows, "CDist output size is too large."), 0.0);
     CDistNumericInto(a_values, a_validity, a_rows, b_values, b_validity, b_rows, columns, metric,
@@ -861,6 +871,9 @@ std::vector<double> PDistNumericAddress(
     const auto* values = numeric_values_from_address(values_address, "The value buffer");
     const auto* validity = numeric_validity_from_address(validity_address);
 
+    // Metric first, then the output; see PDistNumeric. Deliberately duplicated with the kernel.
+    validate_numeric_metric(metric, missing, columns, names.empty() ? nullptr : &names);
+
     std::vector<double> output(condensed_size(rows), 0.0);
     pdist_numeric_impl(values, validity, rows, columns, metric, missing, output.data(),
                        output.size(), kernel, names.empty() ? nullptr : &names);
@@ -914,6 +927,9 @@ std::vector<double> CDistNumericAddress(
     const auto* a_values = numeric_values_from_address(a_values_address, "The first value buffer");
     const auto* b_values =
         numeric_values_from_address(b_values_address, "The second value buffer");
+
+    // Metric first, then the output; see PDistNumeric. Deliberately duplicated with the kernel.
+    validate_numeric_metric(metric, missing, columns, names.empty() ? nullptr : &names);
 
     std::vector<double> output(
         checked_product(a_rows, b_rows, "CDist output size is too large."), 0.0);

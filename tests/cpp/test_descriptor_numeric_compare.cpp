@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <functional>
 #include <iterator>
 #include <limits>
 #include <memory>
@@ -1724,6 +1725,72 @@ TEST(DescriptorNumericAddressTest, EmptyOutputVectorFormsStayANoOpForAValidMetri
                                            Metric::Euclidean(),
                                            DescriptorMissingPolicy::Propagate);
     EXPECT_TRUE(cdist.empty());
+}
+
+// Returns the what() of the rejection \p call produces, or an empty string if it did not throw.
+std::string rejection_message(const std::function<void()>& call) {
+    try {
+        call();
+    } catch (const std::invalid_argument& error) {
+        return error.what();
+    }
+    return {};
+}
+
+TEST(DescriptorNumericBufferTest, TheMetricIsRejectedBeforeTheOutputIsSized) {
+    // Unlike the batch overloads, the buffer and address forms trust their row counts, so a row
+    // count whose output size overflows is reachable without allocating anything. That makes the
+    // metric-then-size-then-output order of spec 6.1 directly observable: under the old order the
+    // messages below were the size rejection, so the diagnostic a caller saw for one mistake
+    // depended on an unrelated row count.
+    const std::vector<double> values{1.0, 2.0};
+    const auto values_address =
+        static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>(values.data()));
+    constexpr std::size_t overflowing_rows = std::size_t{1} << 63;
+    const std::string metric_rejection =
+        "Boolean metrics are not valid for numeric descriptor comparison.";
+
+    EXPECT_EQ(rejection_message([&] {
+                  PDistNumeric(values.data(), nullptr, overflowing_rows, 2u, Metric::Jaccard(),
+                               DescriptorMissingPolicy::Propagate);
+              }),
+              metric_rejection);
+    EXPECT_EQ(rejection_message([&] {
+                  CDistNumeric(values.data(), nullptr, overflowing_rows, values.data(), nullptr,
+                               overflowing_rows, 2u, Metric::Jaccard(),
+                               DescriptorMissingPolicy::Propagate);
+              }),
+              metric_rejection);
+    EXPECT_EQ(rejection_message([&] {
+                  PDistNumericAddress(values_address, 0u, overflowing_rows, 2u, Metric::Jaccard(),
+                                      DescriptorMissingPolicy::Propagate);
+              }),
+              metric_rejection);
+    EXPECT_EQ(rejection_message([&] {
+                  CDistNumericAddress(values_address, 0u, overflowing_rows, values_address, 0u,
+                                      overflowing_rows, 2u, Metric::Jaccard(),
+                                      DescriptorMissingPolicy::Propagate);
+              }),
+              metric_rejection);
+}
+
+TEST(DescriptorNumericBufferTest, AValidMetricStillReportsAnOversizedOutput) {
+    // The counterweight: moving metric validation ahead of the sizing must not swallow the size
+    // rejection for a metric that is genuinely valid.
+    const std::vector<double> values{1.0, 2.0};
+    constexpr std::size_t overflowing_rows = std::size_t{1} << 63;
+
+    EXPECT_EQ(rejection_message([&] {
+                  PDistNumeric(values.data(), nullptr, overflowing_rows, 2u, Metric::Euclidean(),
+                               DescriptorMissingPolicy::Propagate);
+              }),
+              "Pairwise output size is too large.");
+    EXPECT_EQ(rejection_message([&] {
+                  CDistNumeric(values.data(), nullptr, overflowing_rows, values.data(), nullptr,
+                               overflowing_rows, 2u, Metric::Euclidean(),
+                               DescriptorMissingPolicy::Propagate);
+              }),
+              "CDist output size is too large.");
 }
 
 } // namespace test
