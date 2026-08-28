@@ -377,12 +377,39 @@ void CDistInto(
     const BatchKernelOptions& kernel = {});
 
 /// \cond OEFP_BINDING_DETAIL
+// Shared contract for the address-based binding helpers below. Every buffer they name is
+// caller-owned, C-contiguous and row-major, with double values, std::uint8_t validity, and
+// double output.
+//
+// Every *_address parameter is a raw integer address that is cast back to a pointer. No
+// ownership is taken and nothing is copied, so every buffer must stay alive and pinned for the
+// whole call. The Python bindings release the GIL around these entry points
+// (OEFP_GIL_RELEASE_EXCEPTION in swig/oefp.i), so a caller cannot rely on holding the GIL to
+// keep a NumPy array from being moved or collected underneath the kernel.
+//
+// rows and columns are trusted. They must describe the actual extents of the buffer at
+// values_address, not the extents of the batch those values were taken from. Nothing validates
+// them against the buffer, so a mismatch is an unchecked out-of-bounds read. The trap worth
+// naming: passing a batch's full column count while supplying only a selected subset of its
+// columns yields an output length the checks accept, and the kernel then reads past the end of
+// the input.
+//
+// A validity_address of zero means every value is present. It is a sentinel, not an error.
+//
+// A zero values_address throws std::invalid_argument -- either side, for the cdist forms -- and
+// the *IntoAddress forms additionally throw on a zero output_address. Those rejections are
+// unconditional, which is deliberately stricter than the pointer forms these delegate to. The
+// vector-returning forms validate their input addresses before the empty-output shortcut, so a
+// zero address is diagnosed identically whatever the row count; the explicit output check
+// likewise fires at output length zero, the one length at which validate_output would otherwise
+// accept a null. A binding caller who computed a zero address has made a mistake worth
+// reporting, and an empty NumPy array still has a non-zero ctypes.data.
+//
+// Everything else -- metric validity, missing-policy rejections, output-length checks, overflow
+// -- is delegated unchanged to the pointer form each address form forwards to. The \throws
+// lists on those pointer declarations apply here too.
+
 /// \brief Address-based numeric pdist helper for Python bindings.
-///
-/// \param values_address Address of a C-contiguous row-major
-///        <tt>rows x columns</tt> \c double buffer. Zero throws.
-/// \param validity_address Address of a matching \c std::uint8_t mask, or zero when every
-///        value is present.
 std::vector<double> PDistNumericAddress(
     std::uint64_t values_address,
     std::uint64_t validity_address,

@@ -782,7 +782,9 @@ std::vector<double> PDistNumericAddress(
     }
 
     PDistNumericIntoAddress(values_address, validity_address, rows, columns, metric, missing,
-                            reinterpret_cast<std::uint64_t>(output.data()), output.size(),
+                            static_cast<std::uint64_t>(
+                                reinterpret_cast<std::uintptr_t>(output.data())),
+                            output.size(),
                             kernel);
     return output;
 }
@@ -836,7 +838,9 @@ std::vector<double> CDistNumericAddress(
 
     CDistNumericIntoAddress(a_values_address, a_validity_address, a_rows, b_values_address,
                             b_validity_address, b_rows, columns, metric, missing,
-                            reinterpret_cast<std::uint64_t>(output.data()), output.size(),
+                            static_cast<std::uint64_t>(
+                                reinterpret_cast<std::uintptr_t>(output.data())),
+                            output.size(),
                             kernel);
     return output;
 }

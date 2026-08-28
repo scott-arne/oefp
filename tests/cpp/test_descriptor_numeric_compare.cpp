@@ -1259,9 +1259,12 @@ TEST(DescriptorNumericAddressTest, IntoAddressMatchesThePointerForm) {
                      DescriptorMissingPolicy::Propagate, expected.data(), expected.size());
 
     std::vector<double> actual(1u, 0.0);
-    PDistNumericIntoAddress(reinterpret_cast<std::uint64_t>(values.data()), 0u, 2u, 2u,
-                            Metric::Euclidean(), DescriptorMissingPolicy::Propagate,
-                            reinterpret_cast<std::uint64_t>(actual.data()), actual.size());
+    const auto values_address =
+        static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>(values.data()));
+    const auto actual_address =
+        static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>(actual.data()));
+    PDistNumericIntoAddress(values_address, 0u, 2u, 2u, Metric::Euclidean(),
+                            DescriptorMissingPolicy::Propagate, actual_address, actual.size());
 
     EXPECT_DOUBLE_EQ(actual[0], expected[0]);
     EXPECT_DOUBLE_EQ(actual[0], 5.0);
@@ -1269,15 +1272,16 @@ TEST(DescriptorNumericAddressTest, IntoAddressMatchesThePointerForm) {
 
 TEST(DescriptorNumericAddressTest, VectorReturningFormsAgree) {
     const std::vector<double> values{0.0, 0.0, 3.0, 4.0};
-    const auto result = PDistNumericAddress(reinterpret_cast<std::uint64_t>(values.data()), 0u,
-                                            2u, 2u, Metric::Euclidean(),
+    const auto values_address =
+        static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>(values.data()));
+
+    const auto result = PDistNumericAddress(values_address, 0u, 2u, 2u, Metric::Euclidean(),
                                             DescriptorMissingPolicy::Propagate);
     ASSERT_EQ(result.size(), 1u);
     EXPECT_DOUBLE_EQ(result[0], 5.0);
 
-    const auto cross = CDistNumericAddress(reinterpret_cast<std::uint64_t>(values.data()), 0u, 2u,
-                                           reinterpret_cast<std::uint64_t>(values.data()), 0u, 2u,
-                                           2u, Metric::Euclidean(),
+    const auto cross = CDistNumericAddress(values_address, 0u, 2u, values_address, 0u, 2u, 2u,
+                                           Metric::Euclidean(),
                                            DescriptorMissingPolicy::Propagate);
     ASSERT_EQ(cross.size(), 4u);
     EXPECT_DOUBLE_EQ(cross[1], 5.0);
@@ -1286,14 +1290,17 @@ TEST(DescriptorNumericAddressTest, VectorReturningFormsAgree) {
 TEST(DescriptorNumericAddressTest, ZeroValidityAddressMeansEverythingIsPresent) {
     const std::vector<double> values{1.0, 2.0};
     const std::vector<std::uint8_t> validity{1u, 1u};
+    const auto values_address =
+        static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>(values.data()));
+    const auto validity_address =
+        static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>(validity.data()));
 
-    const auto with_mask = PDistNumericAddress(
-        reinterpret_cast<std::uint64_t>(values.data()),
-        reinterpret_cast<std::uint64_t>(validity.data()), 2u, 1u, Metric::Manhattan(),
-        DescriptorMissingPolicy::Propagate);
-    const auto without_mask = PDistNumericAddress(
-        reinterpret_cast<std::uint64_t>(values.data()), 0u, 2u, 1u, Metric::Manhattan(),
-        DescriptorMissingPolicy::Propagate);
+    const auto with_mask =
+        PDistNumericAddress(values_address, validity_address, 2u, 1u, Metric::Manhattan(),
+                            DescriptorMissingPolicy::Propagate);
+    const auto without_mask =
+        PDistNumericAddress(values_address, 0u, 2u, 1u, Metric::Manhattan(),
+                            DescriptorMissingPolicy::Propagate);
 
     EXPECT_DOUBLE_EQ(with_mask[0], without_mask[0]);
     EXPECT_DOUBLE_EQ(with_mask[0], 1.0);
@@ -1302,19 +1309,20 @@ TEST(DescriptorNumericAddressTest, ZeroValidityAddressMeansEverythingIsPresent) 
 TEST(DescriptorNumericAddressTest, ZeroValueAndOutputAddressesAreRejected) {
     std::vector<double> output(1u, 0.0);
     const std::vector<double> values{1.0, 2.0};
+    const auto values_address =
+        static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>(values.data()));
+    const auto output_address =
+        static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>(output.data()));
 
     EXPECT_THROW(PDistNumericIntoAddress(0u, 0u, 2u, 1u, Metric::Euclidean(),
-                                         DescriptorMissingPolicy::Propagate,
-                                         reinterpret_cast<std::uint64_t>(output.data()),
+                                         DescriptorMissingPolicy::Propagate, output_address,
                                          output.size()),
                  std::invalid_argument);
-    EXPECT_THROW(PDistNumericIntoAddress(reinterpret_cast<std::uint64_t>(values.data()), 0u, 2u,
-                                         1u, Metric::Euclidean(),
+    EXPECT_THROW(PDistNumericIntoAddress(values_address, 0u, 2u, 1u, Metric::Euclidean(),
                                          DescriptorMissingPolicy::Propagate, 0u, output.size()),
                  std::invalid_argument);
-    EXPECT_THROW(CDistNumericAddress(0u, 0u, 1u,
-                                     reinterpret_cast<std::uint64_t>(values.data()), 0u, 1u, 1u,
-                                     Metric::Euclidean(), DescriptorMissingPolicy::Propagate),
+    EXPECT_THROW(CDistNumericAddress(0u, 0u, 1u, values_address, 0u, 1u, 1u, Metric::Euclidean(),
+                                     DescriptorMissingPolicy::Propagate),
                  std::invalid_argument);
 }
 
@@ -1325,17 +1333,17 @@ TEST(DescriptorNumericAddressTest, ZeroValueAddressIsRejectedEvenWhenTheOutputWo
     // cdist still have to reject a zero value address, or the same caller mistake would
     // throw or not depending only on the row count.
     const std::vector<double> values{1.0, 2.0};
+    const auto address =
+        static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>(values.data()));
 
     EXPECT_THROW(PDistNumericAddress(0u, 0u, 1u, 1u, Metric::Euclidean(),
                                      DescriptorMissingPolicy::Propagate),
                  std::invalid_argument);
-    EXPECT_THROW(CDistNumericAddress(0u, 0u, 0u,
-                                     reinterpret_cast<std::uint64_t>(values.data()), 0u, 2u, 1u,
-                                     Metric::Euclidean(), DescriptorMissingPolicy::Propagate),
+    EXPECT_THROW(CDistNumericAddress(0u, 0u, 0u, address, 0u, 2u, 1u, Metric::Euclidean(),
+                                     DescriptorMissingPolicy::Propagate),
                  std::invalid_argument);
 
     // The legitimate no-ops still return empty rather than throwing.
-    const auto address = reinterpret_cast<std::uint64_t>(values.data());
     EXPECT_TRUE(PDistNumericAddress(address, 0u, 1u, 1u, Metric::Euclidean(),
                                     DescriptorMissingPolicy::Propagate)
                     .empty());
@@ -1346,7 +1354,8 @@ TEST(DescriptorNumericAddressTest, ZeroValueAddressIsRejectedEvenWhenTheOutputWo
 
 TEST(DescriptorNumericAddressTest, StatisticsAddressFormsMatchThePointerForms) {
     const std::vector<double> values{1.0, 2.0, 3.0, 4.0, 5.0, 6.0};
-    const auto address = reinterpret_cast<std::uint64_t>(values.data());
+    const auto address =
+        static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>(values.data()));
 
     const auto statistics = ColumnStatisticsAddress(address, 0u, 3u, 2u);
     EXPECT_EQ(statistics.present_count[0], 3u);
@@ -1361,6 +1370,159 @@ TEST(DescriptorNumericAddressTest, StatisticsAddressFormsMatchThePointerForms) {
     EXPECT_EQ(inverse.rank, 1u);
 
     EXPECT_THROW(ColumnStatisticsAddress(0u, 0u, 3u, 2u), std::invalid_argument);
+}
+
+TEST(DescriptorNumericAddressTest, CDistAddressKeepsTheTwoSidesApart) {
+    // One 5x2 buffer split into two row ranges, so the two sides differ in base pointer, row
+    // count, and validity. Every other cdist fixture in this suite passes the same buffer and
+    // the same row count for both sides, which leaves a swapped a/b forwarding
+    // indistinguishable from a correct one. Slicing one buffer rather than using two keeps a
+    // swapped read in bounds, so a mutation fails on values instead of on undefined behaviour.
+    const std::vector<double> values{0.0, 0.0,    // row 0, a side
+                                     3.0, 4.0,    // row 1, a side
+                                     1.0, 0.0,    // row 2, b side
+                                     0.0, 1.0,    // row 3, b side
+                                     6.0, 8.0};   // row 4, b side
+    // Index 7 is row 3 column 1, the only absent value. It lands in b's middle row, so the a
+    // side is fully present and the two masks cannot be interchanged.
+    const std::vector<std::uint8_t> validity{1u, 1u,    // row 0
+                                             1u, 1u,    // row 1
+                                             1u, 1u,    // row 2
+                                             1u, 0u,    // row 3, column 1 absent
+                                             1u, 1u};   // row 4
+
+    const auto* a_values = values.data();
+    const auto* b_values = values.data() + 4;
+    const auto* a_validity = validity.data();
+    const auto* b_validity = validity.data() + 4;
+    const std::size_t a_rows = 2u;
+    const std::size_t b_rows = 3u;
+    const std::size_t columns = 2u;
+
+    const auto a_values_address =
+        static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>(a_values));
+    const auto b_values_address =
+        static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>(b_values));
+    const auto a_validity_address =
+        static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>(a_validity));
+    const auto b_validity_address =
+        static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>(b_validity));
+
+    const auto result =
+        CDistNumericAddress(a_values_address, a_validity_address, a_rows, b_values_address,
+                            b_validity_address, b_rows, columns, Metric::Euclidean(),
+                            DescriptorMissingPolicy::Propagate);
+
+    // Hard constants, not only agreement with the pointer form: a bug present on both sides
+    // would hide behind an agreement-only assertion.
+    ASSERT_EQ(result.size(), 6u);
+    EXPECT_DOUBLE_EQ(result[0], 1.0);                // row 0 vs row 2
+    EXPECT_TRUE(std::isnan(result[1]));              // row 0 vs row 3, column 1 absent
+    EXPECT_DOUBLE_EQ(result[2], 10.0);               // row 0 vs row 4
+    EXPECT_DOUBLE_EQ(result[3], std::sqrt(20.0));    // row 1 vs row 2
+    EXPECT_TRUE(std::isnan(result[4]));              // row 1 vs row 3, column 1 absent
+    EXPECT_DOUBLE_EQ(result[5], 5.0);                // row 1 vs row 4
+
+    // Pin the address layer to the pointer layer as well as to those constants.
+    std::vector<double> pointer_form(6u, 999.0);
+    CDistNumericInto(a_values, a_validity, a_rows, b_values, b_validity, b_rows, columns,
+                     Metric::Euclidean(), DescriptorMissingPolicy::Propagate,
+                     pointer_form.data(), pointer_form.size());
+    for (std::size_t index = 0u; index < result.size(); ++index) {
+        if (std::isnan(result[index])) {
+            EXPECT_TRUE(std::isnan(pointer_form[index])) << "at index " << index;
+        } else {
+            EXPECT_DOUBLE_EQ(pointer_form[index], result[index]) << "at index " << index;
+        }
+    }
+
+    // CDistNumericIntoAddress is otherwise reached only through CDistNumericAddress.
+    std::vector<double> into_form(6u, 999.0);
+    const auto into_address =
+        static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>(into_form.data()));
+    CDistNumericIntoAddress(a_values_address, a_validity_address, a_rows, b_values_address,
+                            b_validity_address, b_rows, columns, Metric::Euclidean(),
+                            DescriptorMissingPolicy::Propagate, into_address, into_form.size());
+    for (std::size_t index = 0u; index < result.size(); ++index) {
+        if (std::isnan(result[index])) {
+            EXPECT_TRUE(std::isnan(into_form[index])) << "at index " << index;
+        } else {
+            EXPECT_DOUBLE_EQ(into_form[index], result[index]) << "at index " << index;
+        }
+    }
+
+    // The missing policy has to be forwarded rather than hardcoded. Under Ignore the two pairs
+    // that lost column 1 fall back to column 0 and are rescaled by the total weight mass over
+    // the used weight mass, which is 2/1 here.
+    const auto ignored =
+        CDistNumericAddress(a_values_address, a_validity_address, a_rows, b_values_address,
+                            b_validity_address, b_rows, columns, Metric::Euclidean(),
+                            DescriptorMissingPolicy::Ignore);
+    ASSERT_EQ(ignored.size(), 6u);
+    EXPECT_DOUBLE_EQ(ignored[0], 1.0);
+    EXPECT_DOUBLE_EQ(ignored[1], 0.0);               // column 0 holds 0.0 on both sides
+    EXPECT_DOUBLE_EQ(ignored[2], 10.0);
+    EXPECT_DOUBLE_EQ(ignored[3], std::sqrt(20.0));
+    EXPECT_DOUBLE_EQ(ignored[4], std::sqrt(18.0));   // 3^2 rescaled by 2/1
+    EXPECT_DOUBLE_EQ(ignored[5], 5.0);
+}
+
+TEST(DescriptorNumericAddressTest, StatisticsAddressFormsForwardTheValidityMask) {
+    // Row 2 column 0 is absent, which changes every assertion below relative to the
+    // all-present answer. Without it, replacing the forwarded mask with nullptr in all three
+    // address forms passes the entire suite.
+    const std::vector<double> values{1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0};
+    const std::vector<std::uint8_t> validity{1u, 1u, 1u, 1u, 0u, 1u, 1u, 1u};
+    const std::size_t rows = 4u;
+    const std::size_t columns = 2u;
+
+    const auto values_address =
+        static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>(values.data()));
+    const auto validity_address =
+        static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>(validity.data()));
+
+    const auto statistics =
+        ColumnStatisticsAddress(values_address, validity_address, rows, columns);
+    EXPECT_EQ(statistics.present_count[0], 3u);  // 4u if the mask is dropped
+    EXPECT_EQ(statistics.present_count[1], 4u);
+    EXPECT_DOUBLE_EQ(statistics.mean[0], 11.0 / 3.0);  // 4.0 if the mask is dropped
+
+    // Row 2 is incomplete, so listwise deletion leaves three rows.
+    const auto covariance = CovarianceMatrixAddress(values_address, validity_address, rows,
+                                                    columns);
+    EXPECT_EQ(covariance.row_count, 3u);  // 4u if the mask is dropped
+
+    const auto covariance_pointer =
+        CovarianceMatrix(values.data(), validity.data(), rows, columns);
+    ASSERT_EQ(covariance.matrix.size(), covariance_pointer.matrix.size());
+    for (std::size_t index = 0u; index < covariance.matrix.size(); ++index) {
+        EXPECT_DOUBLE_EQ(covariance.matrix[index], covariance_pointer.matrix[index])
+            << "at index " << index;
+    }
+
+    const auto inverse = InverseCovarianceMatrixAddress(values_address, validity_address, rows,
+                                                        columns);
+    const auto inverse_pointer =
+        InverseCovarianceMatrix(values.data(), validity.data(), rows, columns);
+    EXPECT_EQ(inverse.row_count, inverse_pointer.row_count);
+    EXPECT_EQ(inverse.rank, inverse_pointer.rank);
+    ASSERT_EQ(inverse.matrix.size(), inverse_pointer.matrix.size());
+    for (std::size_t index = 0u; index < inverse.matrix.size(); ++index) {
+        EXPECT_DOUBLE_EQ(inverse.matrix[index], inverse_pointer.matrix[index])
+            << "at index " << index;
+    }
+
+    // rcond has to be forwarded too, or dropping it from the forwarding call would silently
+    // fall back to the default. On this fixture the surviving columns are collinear, so the
+    // covariance has one non-zero eigenvalue and the rank is already 1 under the default
+    // cutoff; there is no second non-zero eigenvalue to threshold between. An rcond of 2.0 puts
+    // the relative cutoff above every eigenvalue instead, so nothing survives and the rank-zero
+    // rejection fires -- an outcome the default cutoff cannot produce here.
+    EXPECT_NO_THROW(InverseCovarianceMatrixAddress(values_address, validity_address, rows,
+                                                   columns));
+    EXPECT_THROW(InverseCovarianceMatrixAddress(values_address, validity_address, rows, columns,
+                                                2.0),
+                 std::invalid_argument);
 }
 
 } // namespace test

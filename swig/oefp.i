@@ -673,6 +673,13 @@ OEFP_GIL_RELEASE_EXCEPTION(OEFP::CDistNumericIntoAddress)
 OEFP_GIL_RELEASE_EXCEPTION(OEFP::ColumnStatisticsAddress)
 OEFP_GIL_RELEASE_EXCEPTION(OEFP::CovarianceMatrixAddress)
 OEFP_GIL_RELEASE_EXCEPTION(OEFP::InverseCovarianceMatrixAddress)
+// The batch overloads are callable from Python too, and each is an O(rows x columns) pass --
+// a full Jacobi eigendecomposition for the inverse -- so they must not hold the GIL either.
+// %feature matches by name, so these also cover the buffer overloads of the same name; that is
+// harmless, since nothing in Python can produce the SWIGTYPE_p_double those require.
+OEFP_GIL_RELEASE_EXCEPTION(OEFP::ColumnStatistics)
+OEFP_GIL_RELEASE_EXCEPTION(OEFP::CovarianceMatrix)
+OEFP_GIL_RELEASE_EXCEPTION(OEFP::InverseCovarianceMatrix)
 OEFP_GIL_RELEASE_EXCEPTION(OEFP::MakeAtomPairFingerprint)
 OEFP_GIL_RELEASE_EXCEPTION(OEFP::MakeAtomPairCountFingerprint)
 OEFP_GIL_RELEASE_EXCEPTION(OEFP::MakeAtomPairSparseFingerprint)

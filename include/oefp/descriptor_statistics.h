@@ -162,6 +162,34 @@ DescriptorInverseCovariance InverseCovarianceMatrix(
     double rcond = 0.0);
 
 /// \cond OEFP_BINDING_DETAIL
+// Shared contract for the address-based binding helpers below. Both buffers they name are
+// caller-owned, C-contiguous and row-major, with double values and std::uint8_t validity.
+//
+// Every *_address parameter is a raw integer address that is cast back to a pointer. No
+// ownership is taken and nothing is copied, so every buffer must stay alive and pinned for the
+// whole call. The Python bindings release the GIL around these entry points
+// (OEFP_GIL_RELEASE_EXCEPTION in swig/oefp.i), so a caller cannot rely on holding the GIL to
+// keep a NumPy array from being moved or collected underneath the computation.
+//
+// rows and columns are trusted. They must describe the actual extents of the buffer at
+// values_address, not the extents of the batch those values were taken from. Nothing validates
+// them against the buffer, so a mismatch is an unchecked out-of-bounds read. The trap worth
+// naming: passing a batch's full column count while supplying only a selected subset of its
+// columns still produces extents the checks accept, and the pass then reads past the end of the
+// input.
+//
+// A validity_address of zero means every value is present. It is a sentinel, not an error.
+//
+// A zero values_address throws std::invalid_argument, unconditionally. That is deliberately
+// stricter than the buffer overloads these forward to: ColumnStatistics(const double*, ...)
+// above documents that values may be null when rows is zero, whereas the address form rejects
+// address zero whatever the row count. A binding caller who computed a zero address has made a
+// mistake worth reporting, and an empty NumPy array still has a non-zero ctypes.data.
+//
+// Everything else -- the zero-column and overflow rejections, listwise deletion, the rcond
+// cutoff, and the eigendecomposition failures -- is delegated unchanged to the buffer overload
+// each address form forwards to. The \throws lists on those declarations apply here too.
+
 /// \brief Address-based column statistics helper for Python bindings.
 DescriptorColumnStatistics ColumnStatisticsAddress(
     std::uint64_t values_address,
