@@ -1,5 +1,6 @@
 #include "oefp/descriptor_batch.h"
 
+#include <limits>
 #include <stdexcept>
 #include <utility>
 
@@ -153,39 +154,73 @@ void DescriptorBatch::AppendTypedRow(const DescriptorSet& descriptors) {
     }
     ValidateTypedDescriptorSet(descriptors);
 
-    row_ids_.push_back(descriptors.RowId());
-    const auto& values = descriptors.Values();
-    for (std::size_t column_index = 0; column_index < columns_.size(); ++column_index) {
-        auto& column = columns_[column_index];
-        const auto has_value = values[column_index].has_value();
-        column.validity.push_back(has_value ? 1u : 0u);
-        switch (column.value_kind) {
-        case DescriptorValueKind::Bool:
-            column.bool_values.push_back(
-                has_value && values[column_index]->AsBool() ? 1u : 0u);
-            break;
-        case DescriptorValueKind::Int:
-            column.int_values.push_back(has_value ? values[column_index]->AsInt() : 0);
-            break;
-        case DescriptorValueKind::Float:
-            column.float_values.push_back(has_value ? values[column_index]->AsFloat() : 0.0);
-            break;
-        case DescriptorValueKind::String:
-            column.string_values.push_back(has_value ? values[column_index]->AsString() : "");
-            break;
-        case DescriptorValueKind::FloatVector:
-        case DescriptorValueKind::IntVector:
-        case DescriptorValueKind::FloatMatrix:
-        case DescriptorValueKind::IntMatrix:
-        case DescriptorValueKind::CountedStringKeys:
-        case DescriptorValueKind::CountedIntegerKeys:
-        case DescriptorValueKind::CountedFloatKeys:
-        case DescriptorValueKind::DenseBinaryFingerprint:
-        case DescriptorValueKind::SparseBinaryFingerprint:
-        case DescriptorValueKind::DenseCountFingerprint:
-        case DescriptorValueKind::SparseCountFingerprint:
-            throw std::invalid_argument("Descriptor batch column kind is not scalar.");
+    // Record initial sizes so we can roll back if a push_back throws (e.g., std::bad_alloc).
+    const auto initial_row_ids_size = row_ids_.size();
+    std::vector<std::size_t> initial_column_sizes;
+    initial_column_sizes.reserve(columns_.size());
+    for (const auto& column : columns_) {
+        initial_column_sizes.push_back(column.validity.size());
+    }
+
+    try {
+        row_ids_.push_back(descriptors.RowId());
+        const auto& values = descriptors.Values();
+        for (std::size_t column_index = 0; column_index < columns_.size(); ++column_index) {
+            auto& column = columns_[column_index];
+            const auto has_value = values[column_index].has_value();
+            column.validity.push_back(has_value ? 1u : 0u);
+            switch (column.value_kind) {
+            case DescriptorValueKind::Bool:
+                column.bool_values.push_back(
+                    has_value && values[column_index]->AsBool() ? 1u : 0u);
+                break;
+            case DescriptorValueKind::Int:
+                column.int_values.push_back(has_value ? values[column_index]->AsInt() : 0);
+                break;
+            case DescriptorValueKind::Float:
+                column.float_values.push_back(has_value ? values[column_index]->AsFloat() : 0.0);
+                break;
+            case DescriptorValueKind::String:
+                column.string_values.push_back(has_value ? values[column_index]->AsString() : "");
+                break;
+            case DescriptorValueKind::FloatVector:
+            case DescriptorValueKind::IntVector:
+            case DescriptorValueKind::FloatMatrix:
+            case DescriptorValueKind::IntMatrix:
+            case DescriptorValueKind::CountedStringKeys:
+            case DescriptorValueKind::CountedIntegerKeys:
+            case DescriptorValueKind::CountedFloatKeys:
+            case DescriptorValueKind::DenseBinaryFingerprint:
+            case DescriptorValueKind::SparseBinaryFingerprint:
+            case DescriptorValueKind::DenseCountFingerprint:
+            case DescriptorValueKind::SparseCountFingerprint:
+                throw std::invalid_argument("Descriptor batch column kind is not scalar.");
+            }
         }
+    } catch (...) {
+        // Roll back: restore row_ids_ and all column buffers to their initial sizes.
+        row_ids_.resize(initial_row_ids_size);
+        for (std::size_t column_index = 0; column_index < columns_.size(); ++column_index) {
+            auto& column = columns_[column_index];
+            column.validity.resize(initial_column_sizes[column_index]);
+            switch (column.value_kind) {
+            case DescriptorValueKind::Bool:
+                column.bool_values.resize(initial_column_sizes[column_index]);
+                break;
+            case DescriptorValueKind::Int:
+                column.int_values.resize(initial_column_sizes[column_index]);
+                break;
+            case DescriptorValueKind::Float:
+                column.float_values.resize(initial_column_sizes[column_index]);
+                break;
+            case DescriptorValueKind::String:
+                column.string_values.resize(initial_column_sizes[column_index]);
+                break;
+            default:
+                break;
+            }
+        }
+        throw;
     }
 }
 
@@ -193,17 +228,23 @@ void DescriptorBatch::InitializeColumns(std::shared_ptr<const DescriptorSchema> 
     if (schema == nullptr) {
         throw std::invalid_argument("Descriptor batch schema must not be null.");
     }
-    schema_ = std::move(schema);
-    columns_.clear();
-    columns_.reserve(schema_->Size());
-    for (const auto& definition : schema_->Definitions()) {
+
+    // Build columns in a local vector and validate all definitions before committing anything,
+    // so a failed call leaves the batch unchanged (schema_ still null for a default-constructed batch).
+    std::vector<DescriptorColumnBlock> new_columns;
+    new_columns.reserve(schema->Size());
+    for (const auto& definition : schema->Definitions()) {
         if (!is_scalar_kind(definition.value_kind)) {
             throw std::invalid_argument("Descriptor batches currently support scalar columns only.");
         }
         DescriptorColumnBlock column;
         column.value_kind = definition.value_kind;
-        columns_.push_back(std::move(column));
+        new_columns.push_back(std::move(column));
     }
+
+    // All validations passed; commit both schema and columns atomically.
+    schema_ = std::move(schema);
+    columns_ = std::move(new_columns);
 }
 
 const DescriptorSpec& DescriptorBatch::Spec() const {
@@ -273,6 +314,123 @@ DescriptorBatch DescriptorBatch::Subset(const DescriptorSelection& selection) co
         subset.columns_[projected_index] = columns_[indices[projected_index]];
     }
     return subset;
+}
+
+DescriptorNumericMatrix DescriptorBatch::ToNumericMatrix(
+    const DescriptorSelection& selection) const {
+    const auto& schema = Schema();  // throws for legacy CSR batches
+    const auto indices = selection.Resolve(schema);
+
+    DescriptorNumericMatrix matrix;
+    matrix.rows = Size();
+    matrix.columns = indices.size();
+    matrix.names.reserve(indices.size());
+
+    // Validate all selected columns before allocating the output matrix. This ensures that
+    // an invalid selection throws immediately rather than after partial allocation, and that
+    // column buffers hold enough values (a failed AppendTypedRow can desynchronize a column's
+    // storage against row_ids_, leaving validity or the typed vector shorter than Size()).
+    for (std::size_t column = 0u; column < indices.size(); ++column) {
+        const auto& block = columns_[indices[column]];
+        const auto& definition = schema.Definition(indices[column]);
+        matrix.names.push_back(definition.name);
+
+        if (block.value_kind != DescriptorValueKind::Float
+            && block.value_kind != DescriptorValueKind::Int
+            && block.value_kind != DescriptorValueKind::Bool) {
+            throw std::invalid_argument(
+                "Descriptor column '" + definition.name + "' is not a numeric scalar column.");
+        }
+
+        std::size_t typed_count = 0u;
+        switch (block.value_kind) {
+        case DescriptorValueKind::Float:
+            typed_count = block.float_values.size();
+            break;
+        case DescriptorValueKind::Int:
+            typed_count = block.int_values.size();
+            break;
+        case DescriptorValueKind::Bool:
+            typed_count = block.bool_values.size();
+            break;
+        default:
+            break;  // Already rejected above.
+        }
+
+        if (block.validity.size() < matrix.rows || typed_count < matrix.rows) {
+            throw std::invalid_argument(
+                "Descriptor column '" + definition.name + "' holds fewer values than the batch has rows.");
+        }
+    }
+
+    // The Int range scan is deliberately a second pass rather than part of the loop above.
+    // The first pass applies O(1) checks to every selected column, so folding an O(rows) data
+    // scan into it would let an over-range Int in an earlier selection slot preempt the
+    // nonnumeric-column rejection for a later slot, changing which error a caller sees for no
+    // benefit. This pass must also follow the first one, which is what establishes that
+    // validity and int_values each hold at least matrix.rows entries; indexing here is safe
+    // only because of that.
+    for (std::size_t column = 0u; column < indices.size(); ++column) {
+        const auto& block = columns_[indices[column]];
+        if (block.value_kind != DescriptorValueKind::Int) {
+            continue;
+        }
+        const auto& definition = schema.Definition(indices[column]);
+
+        for (std::size_t row = 0u; row < matrix.rows; ++row) {
+            // A missing Int slot holds a zero-filled placeholder that never reaches the cast,
+            // so checking it would reject a batch over data that is not there.
+            if (block.validity[row] == 0u) {
+                continue;
+            }
+            const auto int_value = block.int_values[row];
+            constexpr std::int64_t max_exact = std::int64_t{1} << 53;
+            if (int_value > max_exact || int_value < -max_exact) {
+                throw std::invalid_argument(
+                    "Descriptor column '" + definition.name
+                    + "' contains an Int value whose magnitude exceeds 2^53.");
+            }
+        }
+    }
+
+    // The product is formed before being passed to assign(), so an unchecked multiplication
+    // would wrap and hand a too-small allocation to a loop that then indexes out of bounds:
+    // rows = 2^32 and columns = 2 on a 64-bit size_t makes rows * columns wrap to zero,
+    // assign() succeeds with a zero-length vector, and the row loop writes past the end.
+    if (matrix.columns != 0u
+        && matrix.rows > std::numeric_limits<std::size_t>::max() / matrix.columns) {
+        throw std::invalid_argument("Matrix dimension product is too large to index.");
+    }
+    const std::size_t entry_count = matrix.rows * matrix.columns;
+
+    matrix.values.assign(entry_count, 0.0);
+    matrix.validity.assign(entry_count, 0u);
+
+    for (std::size_t column = 0u; column < indices.size(); ++column) {
+        const auto& block = columns_[indices[column]];
+
+        for (std::size_t row = 0u; row < matrix.rows; ++row) {
+            const auto slot = row * matrix.columns + column;
+            matrix.validity[slot] = block.validity[row];
+            switch (block.value_kind) {
+            case DescriptorValueKind::Float:
+                matrix.values[slot] = block.float_values[row];
+                break;
+            case DescriptorValueKind::Int:
+                matrix.values[slot] = static_cast<double>(block.int_values[row]);
+                break;
+            case DescriptorValueKind::Bool:
+                matrix.values[slot] = block.bool_values[row] != 0u ? 1.0 : 0.0;
+                break;
+            default:
+                // Unreachable: the prepass validated all selected columns are numeric.
+                throw std::invalid_argument(
+                    "Descriptor column is not a numeric scalar column.");
+            }
+        }
+    }
+
+    return matrix;
 }
 
 std::size_t DescriptorBatch::EntryCount() const {

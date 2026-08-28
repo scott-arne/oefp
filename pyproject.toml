@@ -52,6 +52,9 @@ dev = [
     "pytest>=7.0",
     "rdkit>=2024.9",
     "ruff>=0.6",
+    # The numeric-descriptor conformance suite compares against scipy's distance
+    # implementations; without scipy those tests skip silently rather than fail.
+    "scipy>=1.11",
     "vrzn>=0.1.0",
 ]
 

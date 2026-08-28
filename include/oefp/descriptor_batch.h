@@ -12,6 +12,19 @@
 
 namespace OEFP {
 
+/// \brief Dense row-major numeric view of selected scalar descriptor columns.
+///
+/// \c values and \c validity are both \c rows * \c columns entries in row-major order.
+/// A validity entry of ``1`` marks a present value; the matching \c values entry is
+/// meaningless when validity is ``0``.
+struct DescriptorNumericMatrix {
+    std::vector<double> values;
+    std::vector<std::uint8_t> validity;
+    std::vector<std::string> names;
+    std::size_t rows = 0;
+    std::size_t columns = 0;
+};
+
 /// \brief Contiguous descriptor batch storage.
 ///
 /// Rows are stored in CSR-like form. ``row_offsets_[row]`` and
@@ -58,6 +71,10 @@ public:
     const std::vector<std::string>& RowIds() const;
 
     /// \brief Return a copied float descriptor column.
+    ///
+    /// Missing values are returned as the zero-filled raw storage, not as NaN; consult
+    /// \c ColumnValidity to tell a real zero from an absent value. The Python accessor
+    /// substitutes NaN instead.
     std::vector<double> FloatColumn(const std::string& name) const;
 
     /// \brief Return a copied integer descriptor column.
@@ -76,6 +93,24 @@ public:
 
     /// \brief Return a column subset in selection order.
     DescriptorBatch Subset(const DescriptorSelection& selection) const;
+
+    /// \brief Materialize selected scalar columns as a dense row-major numeric matrix.
+    ///
+    /// \c Bool columns map to ``0.0``/``1.0`` and \c Int columns widen to \c double.
+    /// Present \c Int values whose magnitude exceeds 2^53 are rejected.
+    ///
+    /// An empty selection is accepted and yields a ``rows x 0`` matrix. The Python wrapper
+    /// \c DescriptorBatch.to_numeric_matrix is deliberately stricter and rejects it.
+    ///
+    /// \param selection Columns to materialize, in the order they are resolved.
+    /// \return The values, the validity mask, the resolved names, and the extents.
+    /// \throws std::invalid_argument: When the batch is not schema-backed, a selected
+    ///         column is not \c Bool, \c Int, or \c Float, the matrix extents overflow,
+    ///         a column's buffer holds fewer values than the batch has rows, or a present
+    ///         \c Int value has magnitude strictly greater than 2^53.
+    /// \throws std::out_of_range: When the selection contains an unresolvable column
+    ///         name or an index past the schema's column count.
+    DescriptorNumericMatrix ToNumericMatrix(const DescriptorSelection& selection) const;
 
     /// \brief Return the total number of flattened descriptor entries.
     std::size_t EntryCount() const;

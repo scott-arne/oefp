@@ -3,6 +3,8 @@
 #include "oefp/molecular_properties.h"
 #include "oefp/mordred_intermediates.h"
 
+#include "linear_algebra.h"
+
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -33,6 +35,8 @@ namespace {
 // Re-introduce them here so they are visible for call sites inside this anonymous
 // namespace.
 using OEFP::compute_gasteiger_atom_charges;
+
+using OEFP::detail::symmetric_eigensystem_jacobi;
 
 struct MordredFirstBatchValues {
     std::uint32_t acidic_groups = 0u;
@@ -332,11 +336,6 @@ struct MordredBCUTValues {
     const char* suffix = "";
     std::optional<double> high;
     std::optional<double> low;
-};
-
-struct MordredSymmetricEigensystem {
-    std::vector<double> eigenvalues;
-    std::vector<double> eigenvectors;
 };
 
 struct MordredRingCountSummary {
@@ -3780,97 +3779,6 @@ std::optional<MordredMolecularIdValues> compute_molecular_id_values(
         }
     }
     return values;
-}
-
-std::optional<MordredSymmetricEigensystem> symmetric_eigensystem_jacobi(
-    std::vector<double> matrix,
-    std::size_t dimension) {
-    MordredSymmetricEigensystem eigensystem;
-    if (dimension == 0u) {
-        return eigensystem;
-    }
-
-    eigensystem.eigenvectors.assign(dimension * dimension, 0.0);
-    for (std::size_t index = 0u; index < dimension; ++index) {
-        eigensystem.eigenvectors[index * dimension + index] = 1.0;
-    }
-
-    if (dimension == 1u) {
-        eigensystem.eigenvalues = {matrix.front()};
-        return eigensystem;
-    }
-
-    constexpr double kTolerance = 1.0e-13;
-    const auto at = [dimension](std::size_t row, std::size_t column) {
-        return row * dimension + column;
-    };
-    const auto max_iterations = std::max<std::size_t>(100u, 100u * dimension * dimension);
-
-    for (std::size_t iteration = 0u; iteration < max_iterations; ++iteration) {
-        std::size_t pivot_row = 0u;
-        std::size_t pivot_column = 1u;
-        double max_off_diagonal = std::abs(matrix[at(pivot_row, pivot_column)]);
-
-        for (std::size_t row = 0u; row < dimension; ++row) {
-            for (std::size_t column = row + 1u; column < dimension; ++column) {
-                const auto value = std::abs(matrix[at(row, column)]);
-                if (value > max_off_diagonal) {
-                    max_off_diagonal = value;
-                    pivot_row = row;
-                    pivot_column = column;
-                }
-            }
-        }
-
-        if (max_off_diagonal <= kTolerance) {
-            eigensystem.eigenvalues.clear();
-            eigensystem.eigenvalues.reserve(dimension);
-            for (std::size_t index = 0u; index < dimension; ++index) {
-                eigensystem.eigenvalues.push_back(matrix[at(index, index)]);
-            }
-            return eigensystem;
-        }
-
-        const auto app = matrix[at(pivot_row, pivot_row)];
-        const auto aqq = matrix[at(pivot_column, pivot_column)];
-        const auto apq = matrix[at(pivot_row, pivot_column)];
-        const auto tau = (aqq - app) / (2.0 * apq);
-        const auto t = std::copysign(
-            1.0 / (std::abs(tau) + std::sqrt(1.0 + tau * tau)),
-            tau);
-        const auto c = 1.0 / std::sqrt(1.0 + t * t);
-        const auto s = t * c;
-
-        matrix[at(pivot_row, pivot_row)] = app - t * apq;
-        matrix[at(pivot_column, pivot_column)] = aqq + t * apq;
-        matrix[at(pivot_row, pivot_column)] = 0.0;
-        matrix[at(pivot_column, pivot_row)] = 0.0;
-
-        for (std::size_t index = 0u; index < dimension; ++index) {
-            if (index == pivot_row || index == pivot_column) {
-                continue;
-            }
-
-            const auto aip = matrix[at(index, pivot_row)];
-            const auto aiq = matrix[at(index, pivot_column)];
-            const auto rotated_ip = c * aip - s * aiq;
-            const auto rotated_iq = s * aip + c * aiq;
-            matrix[at(index, pivot_row)] = rotated_ip;
-            matrix[at(pivot_row, index)] = rotated_ip;
-            matrix[at(index, pivot_column)] = rotated_iq;
-            matrix[at(pivot_column, index)] = rotated_iq;
-        }
-
-        // Mordred/NumPy returns eigenvectors as columns; keep the same layout.
-        for (std::size_t row = 0u; row < dimension; ++row) {
-            const auto vip = eigensystem.eigenvectors[at(row, pivot_row)];
-            const auto viq = eigensystem.eigenvectors[at(row, pivot_column)];
-            eigensystem.eigenvectors[at(row, pivot_row)] = c * vip - s * viq;
-            eigensystem.eigenvectors[at(row, pivot_column)] = s * vip + c * viq;
-        }
-    }
-
-    return std::nullopt;
 }
 
 bool has_mordred_coordinates(const OEChem::OEMolBase& mol, unsigned int dimension) {

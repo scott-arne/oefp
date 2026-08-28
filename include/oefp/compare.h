@@ -2,10 +2,12 @@
 #define OEFP_COMPARE_H
 
 #include "oefp/batch.h"
+#include "oefp/batch_kernel_options.h"
 #include "oefp/count.h"
 #include "oefp/count_batch.h"
 #include "oefp/descriptor.h"
 #include "oefp/descriptor_batch.h"
+#include "oefp/descriptor_compare.h"
 #include "oefp/fingerprint.h"
 #include "oefp/metric.h"
 #include "oefp/sparse.h"
@@ -16,12 +18,6 @@
 #include <vector>
 
 namespace OEFP {
-
-/// \brief Execution options reserved for dense batch comparison kernels.
-struct BatchKernelOptions {
-    std::size_t num_threads = 0;
-    std::size_t chunk_size = 256;
-};
 
 /// \brief Compare two dense binary fingerprints with the requested metric.
 ///

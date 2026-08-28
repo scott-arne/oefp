@@ -638,6 +638,12 @@ namespace std {
 %ignore OEFP::WriteDescriptorParquet;
 %ignore OEFP::ReadDescriptorParquet;
 
+// DescriptorSelection has only private constructors, so DescriptorNumericOptions is not
+// default-constructible and SWIG's generated default constructor would not compile. Member
+// access is still wrapped; the Python layer reaches the numeric kernel through the address
+// forms instead.
+%nodefaultctor OEFP::DescriptorNumericOptions;
+
 %define OEFP_GIL_RELEASE_EXCEPTION(FUNC)
 %exception FUNC {
     PyThreadState* _oefp_thread_state = PyEval_SaveThread();
@@ -660,6 +666,22 @@ OEFP_GIL_RELEASE_EXCEPTION(OEFP::PDist)
 OEFP_GIL_RELEASE_EXCEPTION(OEFP::CompareIntoAddress)
 OEFP_GIL_RELEASE_EXCEPTION(OEFP::CDistIntoAddress)
 OEFP_GIL_RELEASE_EXCEPTION(OEFP::PDistIntoAddress)
+OEFP_GIL_RELEASE_EXCEPTION(OEFP::PDistNumericAddress)
+OEFP_GIL_RELEASE_EXCEPTION(OEFP::PDistNumericIntoAddress)
+OEFP_GIL_RELEASE_EXCEPTION(OEFP::CDistNumericAddress)
+OEFP_GIL_RELEASE_EXCEPTION(OEFP::CDistNumericIntoAddress)
+OEFP_GIL_RELEASE_EXCEPTION(OEFP::ColumnStatisticsAddress)
+OEFP_GIL_RELEASE_EXCEPTION(OEFP::CovarianceMatrixAddress)
+OEFP_GIL_RELEASE_EXCEPTION(OEFP::InverseCovarianceMatrixAddress)
+// The batch overloads are callable from Python too, and each is an O(rows x columns) pass --
+// a full Jacobi eigendecomposition for the inverse -- so they must not hold the GIL either.
+// %feature matches by name, so these also cover the buffer overloads of the same name, which are
+// deliberately exported rather than ignored (see tests/python/test_native_numeric_pointer_surface.py).
+// Covering them is harmless and in fact correct: those overloads are null-safe, and they are
+// O(rows x columns) too, so releasing the GIL around them is the right thing to do.
+OEFP_GIL_RELEASE_EXCEPTION(OEFP::ColumnStatistics)
+OEFP_GIL_RELEASE_EXCEPTION(OEFP::CovarianceMatrix)
+OEFP_GIL_RELEASE_EXCEPTION(OEFP::InverseCovarianceMatrix)
 OEFP_GIL_RELEASE_EXCEPTION(OEFP::MakeAtomPairFingerprint)
 OEFP_GIL_RELEASE_EXCEPTION(OEFP::MakeAtomPairCountFingerprint)
 OEFP_GIL_RELEASE_EXCEPTION(OEFP::MakeAtomPairSparseFingerprint)
@@ -916,7 +938,19 @@ namespace std {
 %include "oefp/count_batch.h"
 %include "oefp/sparse_batch.h"
 %include "oefp/morgan.h"
+%include "oefp/batch_kernel_options.h"
 %include "oefp/metric.h"
+// SWIG_ConvertPtr accepts Python None for a const double*, so exporting the raw-pointer numeric
+// forms hands Python a null values buffer that PDistNumeric and CDistNumeric dereference inside
+// the kernel -- a segfault, not an exception. That alone is reason enough to hide them; the
+// address forms below are the supported entry points. Each of these names has exactly one
+// declaration in descriptor_compare.h, so a name-level ignore hides nothing that is still needed.
+%ignore OEFP::PDistNumeric;
+%ignore OEFP::PDistNumericInto;
+%ignore OEFP::CDistNumeric;
+%ignore OEFP::CDistNumericInto;
+%include "oefp/descriptor_compare.h"
+%include "oefp/descriptor_statistics.h"
 %include "oefp/compare.h"
 %include "oefp/openeye.h"
 
