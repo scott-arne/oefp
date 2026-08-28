@@ -938,6 +938,16 @@ namespace std {
 %include "oefp/morgan.h"
 %include "oefp/batch_kernel_options.h"
 %include "oefp/metric.h"
+// SWIG_ConvertPtr accepts Python None for a const double*, so exporting the raw-pointer numeric
+// forms hands Python a null values buffer that PDistNumeric and CDistNumeric dereference inside
+// the kernel -- a segfault, not an exception. Python cannot construct a real SWIGTYPE_p_double
+// either way, so all four are dead surface; the address forms below are the supported entry
+// points. Each of these names has exactly one declaration in descriptor_compare.h, so a
+// name-level ignore hides nothing that is still needed.
+%ignore OEFP::PDistNumeric;
+%ignore OEFP::PDistNumericInto;
+%ignore OEFP::CDistNumeric;
+%ignore OEFP::CDistNumericInto;
 %include "oefp/descriptor_compare.h"
 %include "oefp/descriptor_statistics.h"
 %include "oefp/compare.h"

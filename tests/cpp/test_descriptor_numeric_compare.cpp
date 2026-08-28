@@ -1327,11 +1327,10 @@ TEST(DescriptorNumericAddressTest, ZeroValueAndOutputAddressesAreRejected) {
 }
 
 TEST(DescriptorNumericAddressTest, ZeroValueAddressIsRejectedEvenWhenTheOutputWouldBeEmpty) {
-    // The vector-returning forms short-circuit an empty output, because a zero-length
-    // std::vector may hand back a null data() that the output-address check would reject.
-    // That shortcut must not swallow the input contract: a single-row pdist and a zero-row
-    // cdist still have to reject a zero value address, or the same caller mistake would
-    // throw or not depending only on the row count.
+    // A single-row pdist and a zero-row cdist produce an empty output, which the vector
+    // forms hand to the pointer form as a legitimate no-op. That no-op must not swallow the
+    // input contract: those shapes still have to reject a zero value address, or the same
+    // caller mistake would throw or not depending only on the row count.
     const std::vector<double> values{1.0, 2.0};
     const auto address =
         static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>(values.data()));
@@ -1523,6 +1522,54 @@ TEST(DescriptorNumericAddressTest, StatisticsAddressFormsForwardTheValidityMask)
     EXPECT_THROW(InverseCovarianceMatrixAddress(values_address, validity_address, rows, columns,
                                                 2.0),
                  std::invalid_argument);
+}
+
+TEST(DescriptorNumericAddressTest, EmptyOutputVectorFormsStillValidateTheMetric) {
+    // One row makes the condensed pdist output empty; a zero-row side does the same for cdist.
+    // Validation must not become row-count dependent -- the pointer forms reject a boolean
+    // metric at every shape, so the address forms have to as well.
+    const std::vector<double> values{1.0, 2.0};
+    const auto values_address =
+        static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>(values.data()));
+
+    EXPECT_THROW(PDistNumericAddress(values_address, 0u, 1u, 2u, Metric::Jaccard(),
+                                     DescriptorMissingPolicy::Propagate),
+                 std::invalid_argument);
+    EXPECT_THROW(CDistNumericAddress(values_address, 0u, 0u, values_address, 0u, 1u, 2u,
+                                     Metric::Tanimoto(),
+                                     DescriptorMissingPolicy::Propagate),
+                 std::invalid_argument);
+    EXPECT_THROW(CDistNumericAddress(values_address, 0u, 1u, values_address, 0u, 0u, 2u,
+                                     Metric::Tanimoto(),
+                                     DescriptorMissingPolicy::Propagate),
+                 std::invalid_argument);
+
+    // The Ignore policy is rejected for the pre-transform metrics at every shape too.
+    EXPECT_THROW(PDistNumericAddress(values_address, 0u, 1u, 2u,
+                                     Metric::StandardizedEuclidean({1.0, 1.0}),
+                                     DescriptorMissingPolicy::Ignore),
+                 std::invalid_argument);
+    EXPECT_THROW(CDistNumericAddress(values_address, 0u, 0u, values_address, 0u, 1u, 2u,
+                                     Metric::Mahalanobis({1.0, 0.0, 0.0, 1.0}),
+                                     DescriptorMissingPolicy::Ignore),
+                 std::invalid_argument);
+}
+
+TEST(DescriptorNumericAddressTest, EmptyOutputVectorFormsStayANoOpForAValidMetric) {
+    // The counterweight to the test above: closing the validation hole must not turn a
+    // legitimate empty result into a throw.
+    const std::vector<double> values{1.0, 2.0};
+    const auto values_address =
+        static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>(values.data()));
+
+    const auto pdist = PDistNumericAddress(values_address, 0u, 1u, 2u, Metric::Euclidean(),
+                                           DescriptorMissingPolicy::Propagate);
+    EXPECT_TRUE(pdist.empty());
+
+    const auto cdist = CDistNumericAddress(values_address, 0u, 0u, values_address, 0u, 1u, 2u,
+                                           Metric::Euclidean(),
+                                           DescriptorMissingPolicy::Propagate);
+    EXPECT_TRUE(cdist.empty());
 }
 
 } // namespace test

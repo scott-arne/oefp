@@ -399,11 +399,16 @@ void CDistInto(
 // A zero values_address throws std::invalid_argument -- either side, for the cdist forms -- and
 // the *IntoAddress forms additionally throw on a zero output_address. Those rejections are
 // unconditional, which is deliberately stricter than the pointer forms these delegate to. The
-// vector-returning forms validate their input addresses before the empty-output shortcut, so a
-// zero address is diagnosed identically whatever the row count; the explicit output check
-// likewise fires at output length zero, the one length at which validate_output would otherwise
-// accept a null. A binding caller who computed a zero address has made a mistake worth
-// reporting, and an empty NumPy array still has a non-zero ctypes.data.
+// explicit output check fires even at output length zero, the one length at which
+// validate_output would otherwise accept a null. A binding caller who computed a zero address
+// has made a mistake worth reporting, and an empty NumPy array still has a non-zero
+// ctypes.data.
+//
+// The vector-returning forms allocate their own output and hand it to the pointer form, the way
+// PDistNumeric and CDistNumeric do; they never route through an *IntoAddress form. So an empty
+// result -- a one-row pdist, or a cdist with a zero-row side -- stays a no-op instead of hitting
+// the zero-output-address rejection, and metric and missing-policy validation still runs at
+// every row count.
 //
 // Everything else -- metric validity, missing-policy rejections, output-length checks, overflow
 // -- is delegated unchanged to the pointer form each address form forwards to. The \throws

@@ -770,22 +770,19 @@ std::vector<double> PDistNumericAddress(
     const Metric& metric,
     DescriptorMissingPolicy missing,
     const BatchKernelOptions& kernel) {
-    // Validate the input address up front, before the empty-output shortcut below. Otherwise a
-    // caller passing a zero value address with rows < 2 gets a silent empty result instead of
-    // the diagnostic every other entry point gives them, and the same mistake with rows >= 2
-    // would throw -- the same bug reported two different ways depending on the row count.
-    (void)numeric_values_from_address(values_address, "The value buffer");
+    // Delegate to the pointer form, exactly as PDistNumeric does, rather than to
+    // PDistNumericIntoAddress. Going through the address form would reject the empty output a
+    // one-row pdist legitimately produces, because an empty vector's data() may be null and the
+    // *IntoAddress forms treat a zero output address as an error. Short-circuiting before the
+    // call instead would skip validate_numeric_metric, making metric and missing-policy
+    // validation depend on the row count. The pointer form does both correctly: it validates
+    // first, and validate_output accepts a null output at length zero.
+    const auto* values = numeric_values_from_address(values_address, "The value buffer");
+    const auto* validity = numeric_validity_from_address(validity_address);
 
     std::vector<double> output(condensed_size(rows), 0.0);
-    if (output.empty()) {
-        return output;
-    }
-
-    PDistNumericIntoAddress(values_address, validity_address, rows, columns, metric, missing,
-                            static_cast<std::uint64_t>(
-                                reinterpret_cast<std::uintptr_t>(output.data())),
-                            output.size(),
-                            kernel);
+    PDistNumericInto(values, validity, rows, columns, metric, missing, output.data(),
+                     output.size(), kernel);
     return output;
 }
 
@@ -825,23 +822,16 @@ std::vector<double> CDistNumericAddress(
     const Metric& metric,
     DescriptorMissingPolicy missing,
     const BatchKernelOptions& kernel) {
-    // Both input addresses are validated before the empty-output shortcut, for the reason
-    // given in PDistNumericAddress.
-    (void)numeric_values_from_address(a_values_address, "The first value buffer");
-    (void)numeric_values_from_address(b_values_address, "The second value buffer");
+    // Delegates to the pointer form for the reason given in PDistNumericAddress.
+    const auto* a_values = numeric_values_from_address(a_values_address, "The first value buffer");
+    const auto* b_values =
+        numeric_values_from_address(b_values_address, "The second value buffer");
 
     std::vector<double> output(
         checked_product(a_rows, b_rows, "CDist output size is too large."), 0.0);
-    if (output.empty()) {
-        return output;
-    }
-
-    CDistNumericIntoAddress(a_values_address, a_validity_address, a_rows, b_values_address,
-                            b_validity_address, b_rows, columns, metric, missing,
-                            static_cast<std::uint64_t>(
-                                reinterpret_cast<std::uintptr_t>(output.data())),
-                            output.size(),
-                            kernel);
+    CDistNumericInto(a_values, numeric_validity_from_address(a_validity_address), a_rows,
+                     b_values, numeric_validity_from_address(b_validity_address), b_rows,
+                     columns, metric, missing, output.data(), output.size(), kernel);
     return output;
 }
 
