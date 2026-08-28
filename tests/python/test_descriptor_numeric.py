@@ -235,17 +235,19 @@ def test_columns_argument_rejects_non_schema_batches():
 
 
 def test_cdist_columns_rejects_non_descriptor_batch_inputs():
-    """cdist with columns= checks both inputs are DescriptorBatch."""
+    """pdist and cdist with columns= require DescriptorBatch inputs."""
     oechem = pytest.importorskip("openeye.oechem")
     import oefp
 
-    batch = _mixed_batch()
     mol = oechem.OEGraphMol()
     oechem.OESmilesToMol(mol, "CCO")
     fingerprint_batch = oefp.OEFPBatch.from_molecules([mol], oefp.morgan_fingerprint)
 
-    with pytest.raises(TypeError, match="DescriptorBatch"):
-        oefp.cdist(fingerprint_batch, batch, oefp.Metric.euclidean(), columns=["MW"])
+    with pytest.raises(TypeError, match="only valid for a DescriptorBatch"):
+        oefp.pdist(fingerprint_batch, oefp.Metric.euclidean(), columns=["MW"])
+
+    with pytest.raises(TypeError, match="only valid for DescriptorBatch inputs"):
+        oefp.cdist(fingerprint_batch, fingerprint_batch, oefp.Metric.euclidean(), columns=["MW"])
 
 
 def test_to_numeric_matrix_preserves_width_for_zero_rows():
@@ -253,7 +255,8 @@ def test_to_numeric_matrix_preserves_width_for_zero_rows():
     import oefp
 
     schema = _mixed_batch().schema
-    empty_batch = oefp.DescriptorBatch.from_descriptors([])
+    # from_descriptors([]) carries no schema; raw constructor is needed for a
+    # schema-backed zero-row batch.
     empty_batch = oefp.DescriptorBatch(schema=schema, rows=[], row_ids=[])
 
     values, validity = empty_batch.to_numeric_matrix(["MW", "nAtom"])
