@@ -51,6 +51,44 @@ def test_to_numeric_matrix_rejects_bad_selections():
         batch.to_numeric_matrix(["NotAColumn"])
 
 
+def test_to_numeric_matrix_int_range_boundary():
+    """Int values at 2^53 boundary: accepted at boundary, rejected beyond."""
+    import oefp
+
+    schema = oefp.DescriptorSchema([oefp.DescriptorDefinition("N", "int")])
+
+    # Exactly 2^53 is accepted and materializes exactly
+    at_boundary = oefp.DescriptorBatch.from_descriptors(
+        [oefp.DescriptorSet(schema, {"N": 2**53})]
+    )
+    values, _ = at_boundary.to_numeric_matrix(["N"])
+    assert values[0, 0] == 2**53
+
+    # Negative boundary also accepted
+    at_neg_boundary = oefp.DescriptorBatch.from_descriptors(
+        [oefp.DescriptorSet(schema, {"N": -(2**53)})]
+    )
+    values, _ = at_neg_boundary.to_numeric_matrix(["N"])
+    assert values[0, 0] == -(2**53)
+
+    # Beyond boundary is rejected
+    beyond_positive = oefp.DescriptorBatch.from_descriptors(
+        [oefp.DescriptorSet(schema, {"N": 2**53 + 1})]
+    )
+    with pytest.raises(ValueError, match="exceeds 2\\^53"):
+        beyond_positive.to_numeric_matrix(["N"])
+
+    beyond_negative = oefp.DescriptorBatch.from_descriptors(
+        [oefp.DescriptorSet(schema, {"N": -(2**53 + 1)})]
+    )
+    with pytest.raises(ValueError, match="exceeds 2\\^53"):
+        beyond_negative.to_numeric_matrix(["N"])
+
+    # Rejection also reaches callers
+    with pytest.raises(ValueError, match="exceeds 2\\^53"):
+        oefp.column_statistics(beyond_positive, ["N"])
+
+
 def test_propagate_and_ignore_differ_on_a_missing_value():
     import oefp
 
@@ -132,18 +170,29 @@ def test_cdist_rejects_batches_with_different_schema_ids():
 def test_statistics_respect_the_validity_mask():
     import oefp
 
+    # _mixed_batch has MW in rows 0,1 (values 1.0, 4.0) and nAtom in all three (2, 6, 6)
     statistics = oefp.column_statistics(_mixed_batch(), ["MW", "nAtom"])
     assert statistics.names == ("MW", "nAtom")
     np.testing.assert_array_equal(statistics.present_count, np.array([2, 3], dtype=np.uint64))
+
+    # MW column: mean = (1+4)/2 = 2.5, variance = ((1-2.5)^2 + (4-2.5)^2)/1 = 4.5
     assert statistics.mean[0] == pytest.approx(2.5)
+    assert statistics.variance[0] == pytest.approx(4.5)
     assert statistics.minimum[0] == pytest.approx(1.0)
     assert statistics.maximum[0] == pytest.approx(4.0)
 
+    # nAtom column: mean = (2+6+6)/3 = 14/3, variance = ((2-14/3)^2 + (6-14/3)^2 + (6-14/3)^2)/2 = 16/3
+    assert statistics.mean[1] == pytest.approx(14/3)
+    assert statistics.variance[1] == pytest.approx(16/3)
+    assert statistics.minimum[1] == pytest.approx(2.0)
+    assert statistics.maximum[1] == pytest.approx(6.0)
+
     covariance = oefp.covariance_matrix(_mixed_batch(), ["MW", "nAtom"])
-    # Listwise deletion drops row 2, leaving two complete rows.
+    # Listwise deletion drops row 2, leaving rows 0,1: (1.0, 2), (4.0, 6)
+    # Covariance matrix: [[4.5, 6.0], [6.0, 8.0]]
     assert covariance.row_count == 2
     assert covariance.matrix.shape == (2, 2)
-    assert covariance.matrix[0, 0] == pytest.approx(4.5)
+    np.testing.assert_allclose(covariance.matrix, [[4.5, 6.0], [6.0, 8.0]])
 
 
 def test_inverse_covariance_reports_rank_and_rejects_a_constant_column():
@@ -162,6 +211,41 @@ def test_inverse_covariance_reports_rank_and_rejects_a_constant_column():
         [oefp.DescriptorSet(schema, {"A": v, "B": 2.0 * v}) for v in (1.0, 2.0, 3.0)]
     )
     assert oefp.inverse_covariance_matrix(collinear, ["A", "B"]).rank == 1
+
+
+def test_inverse_covariance_matrix_and_rcond_forwarding():
+    """Test inverse covariance matrix, row_count, and rcond parameter."""
+    import oefp
+
+    schema = oefp.DescriptorSchema(
+        [oefp.DescriptorDefinition(name, "float") for name in ("X", "Y")]
+    )
+    # Well-conditioned fixture: [(1.0, 2.0), (3.0, 4.0), (5.0, 7.0)]
+    # Covariance: [[4.0, 5.0], [5.0, 19/3]], determinant = 1/3
+    # Exact inverse: [[19.0, -15.0], [-15.0, 12.0]]
+    well_conditioned = oefp.DescriptorBatch.from_descriptors(
+        [
+            oefp.DescriptorSet(schema, {"X": 1.0, "Y": 2.0}),
+            oefp.DescriptorSet(schema, {"X": 3.0, "Y": 4.0}),
+            oefp.DescriptorSet(schema, {"X": 5.0, "Y": 7.0}),
+        ]
+    )
+
+    # Default rcond yields rank 2 and exact inverse
+    result_default = oefp.inverse_covariance_matrix(well_conditioned, ["X", "Y"])
+    assert result_default.row_count == 3
+    assert result_default.rank == 2
+    np.testing.assert_allclose(result_default.matrix, [[19.0, -15.0], [-15.0, 12.0]])
+
+    # rcond=0.001 also yields rank 2 (eigenvalues differ by ~318, cutoff is low enough)
+    result_low = oefp.inverse_covariance_matrix(well_conditioned, ["X", "Y"], rcond=0.001)
+    assert result_low.rank == 2
+    np.testing.assert_allclose(result_low.matrix, [[19.0, -15.0], [-15.0, 12.0]])
+
+    # rcond=0.01 drops the small eigenvalue, yielding rank 1 and different matrix
+    result_high = oefp.inverse_covariance_matrix(well_conditioned, ["X", "Y"], rcond=0.01)
+    assert result_high.rank == 1
+    assert not np.allclose(result_high.matrix, [[19.0, -15.0], [-15.0, 12.0]])
 
 
 def test_the_feature_request_reproduction_now_succeeds():
@@ -202,7 +286,7 @@ def test_cdist_with_columns_computes_asymmetric_numeric_distances():
 
     result = oefp.cdist(a, b, oefp.Metric.euclidean(), columns=["MW", "nAtom"])
 
-    # Shape check kills row-count transposition
+    # Shape is fixed by Python-side allocation; value/NaN assertions kill transposition
     assert result.shape == (3, 2)
 
     # Hand-computed Euclidean distances for the three finite pairs:
@@ -217,6 +301,51 @@ def test_cdist_with_columns_computes_asymmetric_numeric_distances():
     assert np.isnan(result[2, :]).all()  # a[2] has missing MW
     assert np.isnan(result[:, 1]).all()  # b[1] has missing nAtom
     assert not np.isnan(result[:2, 0]).any()  # a[0], a[1] vs b[0] are finite
+
+
+def test_cdist_missing_ignore_rescales_partial_dimensions():
+    """cdist with missing="ignore" rescales when dimensions are missing."""
+    import oefp
+
+    # Same asymmetric fixture: a has 3 rows, row 2 missing MW; b has 2 rows, row 1 missing nAtom
+    a = _mixed_batch()
+    schema = a.schema
+    b = oefp.DescriptorBatch.from_descriptors(
+        [
+            oefp.DescriptorSet(schema, {"MW": 2.0, "nAtom": 4, "Lipinski": True, "Source": "p"}),
+            oefp.DescriptorSet(schema, {"MW": 3.0, "Lipinski": False, "Source": "q"}),
+        ]
+    )
+
+    propagate = oefp.cdist(a, b, oefp.Metric.euclidean(), columns=["MW", "nAtom"])
+    ignore = oefp.cdist(a, b, oefp.Metric.euclidean(), columns=["MW", "nAtom"], missing="ignore")
+
+    # Ignore rescales: with 1 of 2 dimensions usable, multiply by total/used = 2
+    # a0=(1.0,2)  b0=(2.0,4)  both dims  -> sqrt(1+4)          = sqrt(5)
+    # a0=(1.0,2)  b1=(3.0, -) MW only    -> sqrt(2 * (1-3)^2)  = sqrt(8)
+    # a1=(4.0,6)  b0=(2.0,4)  both dims  -> sqrt(4+4)          = sqrt(8)
+    # a1=(4.0,6)  b1=(3.0, -) MW only    -> sqrt(2 * (4-3)^2)  = sqrt(2)
+    # a2=( - ,6)  b0=(2.0,4)  nAtom only -> sqrt(2 * (6-4)^2)  = sqrt(8)
+    # a2=( - ,6)  b1=(3.0, -) no common dimension -> NaN
+    assert ignore[0, 0] == pytest.approx(math.sqrt(5))
+    assert ignore[0, 1] == pytest.approx(math.sqrt(8))
+    assert ignore[1, 0] == pytest.approx(math.sqrt(8))
+    assert ignore[1, 1] == pytest.approx(math.sqrt(2))
+    assert ignore[2, 0] == pytest.approx(math.sqrt(8))
+    assert math.isnan(ignore[2, 1])
+
+    # Sanity: propagate differs in 3 of 6 cells
+    assert not np.array_equal(propagate, ignore, equal_nan=True)
+
+
+def test_cdist_rejects_invalid_missing_policy():
+    """cdist with columns= validates the missing-value policy."""
+    import oefp
+
+    a = _mixed_batch()
+
+    with pytest.raises(ValueError, match="missing-value policy"):
+        oefp.cdist(a, a, oefp.Metric.euclidean(), columns=["MW"], missing="drop")
 
 
 def test_columns_argument_rejects_non_schema_batches():
