@@ -6,20 +6,20 @@
             "name": "default",
             "displayName": "Default Config",
             "binaryDir": "${sourceDir}/build",
+            "description": "Set OPENEYE_ROOT in the environment, or override it in a local CMakeUserPresets.json.",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Release",
-                "OPENEYE_ROOT": "/Users/johnss51/Support/openeye/lib/openeye/toolkits/2026.1.0/macOS-14-clang++16-universal",
-                "Python3_EXECUTABLE": "/Users/johnss51/Applications/micromamba/envs/main/bin/python"
+                "OPENEYE_USE_SHARED": "ON"
             }
         },
         {
             "name": "debug",
             "displayName": "Debug",
             "binaryDir": "${sourceDir}/build-debug",
+            "description": "Set OPENEYE_ROOT in the environment, or override it in a local CMakeUserPresets.json.",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Debug",
-                "OPENEYE_ROOT": "/Users/johnss51/Support/openeye/lib/openeye/toolkits/2026.1.0/macOS-14-clang++16-universal",
-                "Python3_EXECUTABLE": "/Users/johnss51/Applications/micromamba/envs/main/bin/python"
+                "OPENEYE_USE_SHARED": "ON"
             }
         }
     ],
