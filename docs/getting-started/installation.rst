@@ -11,7 +11,9 @@ Prerequisites
 - **CMake**: 3.16 or later
 - **OpenEye Toolkit**: Licensed OpenEye C++ SDK for building, Python package for runtime
 - **Python**: 3.11 or later
-- **SWIG**: 4.0 or later
+- **SWIG**: 4.4.1 or later. CI builds with SWIG 4.5.1 (``pip install swig==4.5.1``);
+  SWIG 4.4.0, which Ubuntu 26.04 ships, generates stable-ABI wrappers that do not
+  compile against Python 3.13 or newer.
 - **pyarrow**: 25.x — the extension loads Arrow from the installed pyarrow, so
   the major version is fixed by the release, not merely a lower bound
 - **RDKit**: Required for conformance tests, not required by the runtime package
@@ -45,8 +47,8 @@ Build from source using CMake:
    cd oefp
 
    export OPENEYE_ROOT=/path/to/openeye/sdk
-   cmake --preset release
-   cmake --build build-release --parallel
+   cmake --preset debug
+   cmake --build build-debug --parallel
 
 Run the C++ tests from a debug build:
 
